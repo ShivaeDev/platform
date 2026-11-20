@@ -877,6 +877,8 @@ const showNotes = can(auth.session, ReadNotes);
 
 `auth` owns the current session and passes it to `App`; `SignIn` updates that session before invoking `onSignedIn`. Use the session's registry for router context and React, as with other query routes. Importing `permissionGuard` augments TanStack's `StaticDataRouteOption`; route options and their inference remain native. The guard returns `void` explicitly, so `beforeLoad` needs no return annotation, including when it reads the session from route context.
 
+The guard reads the session when a navigation loads, so a session that refreshes in place, such as a remembered session whose check answers with fewer grants, leaves the open screen unguarded until the next navigation. Call `useGuardRerun(router, session)` from `@shivaedev/react/adapters/useGuardRerun.ts` where the router is created: when the session's grants change it invalidates the router, the guards run again on the current location, and a screen that needs a removed grant is replaced by the refusal.
+
 `InnerWrap` puts `PermissionBoundary` inside the router, and the boundary's fallback can render `Link` and read route context. TanStack types `InnerWrap` as a component that returns an element, so `PermissionShell` leaves its return type to inference; annotated as returning `ReactNode`, it does not compile. Set `defaultErrorComponent: PermissionBoundaryError` so route and loader failures reach the boundary's fallback while TanStack keeps its navigation controller mounted. This lets a refused viewer follow the fallback link without reloading the page. Keep `disableGlobalCatchBoundary: true`; other errors propagate to an enclosing application boundary. A route-specific `errorComponent` owns any failures it consumes.
 
 `Forbidden` from `@shivaedev/react/adapters/Forbidden.ts` supplies the no-access heading, explanation and a router link. Set `to` to a route the viewer may open. Optional `title`, `children`, `backLabel` and `className` let the application choose wording and layout. The default heading is “Permission denied” and the link says “Go back”.
@@ -906,7 +908,7 @@ function SignInButton({ email, password }: { email: string; password: string }) 
 
 The example uses `authAction`, identity's `authCall`, `useAction`, `effect/reactivity/AsyncResult` and `effect/Option`, with an application-owned `authClient`. Identity owns the Promise bridge and its typed failures; see [Better Auth client adapters](https://github.com/ShivaeDev/platform/blob/main/packages/identity/README.md#better-auth-client-adapters). For a form's Effect-based `onSubmit`, pass the function returned by `authCall` directly.
 
-Use `authSession` from `@shivaedev/react/client/authSession.ts` to wrap identity's session Effect. It returns a native `atom` for `useQuery` and a `refresh` Effect that refreshes that same atom and waits through its loading state. Both expose typed `user.permissions` alongside the provider's existing session and user fields, using the `PermissionSession` schema from `@shivaedev/identity/PermissionSession.ts`. Applications do not decode `get-session` themselves. Missing grants stay optional; malformed grants fail with `AuthUnavailable`. The reader must return a nullable session with a `user` object; use `authQuery` for other payload shapes. Supply Better Auth's public `getSession` call with `disableCookieCache: true` so a mutation reads current user data:
+Use `authSession` from `@shivaedev/react/client/authSession.ts` to wrap identity's session Effect. It returns a native `atom` for `useQuery` and a `refresh` Effect that refreshes that same atom and waits through its loading state. Both expose typed `user.permissions` alongside the provider's existing session and user fields, using the `PermissionSession` schema from `@shivaedev/identity/PermissionSession.ts`. Applications do not decode `get-session` themselves. Missing grants stay optional; malformed grants fail with `AuthUnavailable`. The reader must return a nullable session with a `user` object; use `authQuery` for other payload shapes. Pass `{ remember: browserSessionMemory }` as the second argument to start a returning person's app from the last verified session while the check runs; see [identity's remembered session](https://github.com/ShivaeDev/platform/blob/main/packages/identity/README.md#start-from-the-last-verified-session) for what it keeps and what it means. Supply Better Auth's public `getSession` call with `disableCookieCache: true` so a mutation reads current user data:
 
 ```tsx
 import { Effect } from "effect";
@@ -1252,7 +1254,7 @@ pnpm add @shivaedev/react @effect/atom-react effect react
 pnpm add @shivaedev/form
 ```
 
-Add the optional router peer when using `queryRoute`, `loadQuery`, `permissionGuard`, `signInRedirect`, `PermissionBoundary`, `PermissionBoundaryError`, `Forbidden` or `useSignOut`:
+Add the optional router peer when using `queryRoute`, `loadQuery`, `permissionGuard`, `useGuardRerun`, `signInRedirect`, `PermissionBoundary`, `PermissionBoundaryError`, `Forbidden` or `useSignOut`:
 
 ```sh
 pnpm add @tanstack/react-router

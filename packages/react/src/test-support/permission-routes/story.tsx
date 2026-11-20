@@ -15,6 +15,7 @@ interface State {
 	app?: ReturnType<typeof permissionApp>;
 	hidden?: boolean;
 	host?: Host;
+	refreshedRole?: Role | undefined;
 	role?: Role | undefined;
 	serverRole?: Role | undefined;
 	view?: Rendered;
@@ -62,7 +63,9 @@ function expectedFailure(state: State, path: string) {
 	if (path === "/notes/offline") {
 		return isServiceUnavailable;
 	}
-	return (notes && state.role === "guest") || ((path === "/query" || notes) && state.serverRole === "guest") ? isForbidden : undefined;
+	return (notes && (state.role === "guest" || state.refreshedRole === "guest")) || ((path === "/query" || notes) && state.serverRole === "guest")
+		? isForbidden
+		: undefined;
 }
 
 function routeVerbs(state: State, screen: Screen) {
@@ -89,6 +92,20 @@ function routeVerbs(state: State, screen: Screen) {
 				yield* screen.act("the navigation resolves", () => navigation);
 				yield* settle(state, screen);
 			}),
+		sessionRefreshes: () =>
+			Effect.gen(function* () {
+				const { auth, host, view } = current(state);
+				const role = state.refreshedRole;
+				const app = state.app;
+				if (role === undefined || app === undefined) {
+					return yield* Effect.die(new Error("No refreshed session is prepared"));
+				}
+				auth.current = yield* AtomRegistry.getResult(view.registry, host.readSession(role).atom);
+				yield* screen.act(`the session check answers as a ${role} without a navigation`, () =>
+					view.render(<PermissionApp app={app} session={auth.current} />),
+				);
+				yield* settle(state, screen);
+			}),
 		signIn: () => clickAndNavigate("Sign in", "sign in as a reader"),
 		signOut: () => clickAndNavigate("Sign out", "sign out explicitly"),
 		visit: (path: string) =>
@@ -103,7 +120,7 @@ function routeVerbs(state: State, screen: Screen) {
 				const app = permissionApp(host, view.registry, session, path, state.hidden);
 				state.view = view;
 				state.app = app;
-				yield* screen.act(`visit ${path}`, () => view.render(<PermissionApp app={app} />));
+				yield* screen.act(`visit ${path}`, () => view.render(<PermissionApp app={app} session={session} />));
 				yield* settle(state, screen);
 			}),
 	};
@@ -138,6 +155,12 @@ function* openApp(state: State, role: Role | undefined, serverRole: Role | undef
 	state.role = role;
 	state.serverRole = serverRole;
 	state.host = yield* openHost(serverRole);
+}
+
+export function refreshedAs(role: Role) {
+	return permissionScreens.trait("screen", `the next session check answers as a ${role}`, ({ state }) => {
+		state.refreshedRole = role;
+	});
 }
 
 export function visitor(role: Role | undefined, serverRole = role) {

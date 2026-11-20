@@ -731,6 +731,29 @@ The failure's `_tag` remains `AuthFailure`; its `code` union includes the declar
 
 React's `authAction`, `authQuery` and `authSession` consume these Effects to create atoms. See [React's Better Auth usage](https://github.com/ShivaeDev/platform/blob/main/packages/react/README.md#better-auth-actions).
 
+#### Start from the last verified session
+
+A returning person's app can render at once from the session it last verified, while the real check runs in the background. Pass `remember` to React's `authSession`:
+
+```ts
+import { authSession as readSession } from "@shivaedev/identity/client/adapters/authSession.ts";
+import { browserSessionMemory } from "@shivaedev/identity/client/adapters/browserSessionMemory.ts";
+import { authSession } from "@shivaedev/react/client/authSession.ts";
+
+const session = authSession(
+	readSession((signal) => authClient.getSession({ fetchOptions: { signal }, query: { disableCookieCache: true } })),
+	{ remember: browserSessionMemory },
+);
+```
+
+After each verified answer the session memory keeps the user id, the session id, the permissions and the session's `expiresAt`, never a credential: the cookie stays the browser's. At launch the session atom answers at once with that remembered session, marked as refreshing, so `SessionBoundary` renders, connects and opens the live socket while `get-session` is on the wire. With `remember`, the atom's value is `RememberedSession | null` from `@shivaedev/identity/client/SessionMemory.ts` for remembered and fresh answers alike, so a screen cannot read a field the launch does not have. The reader must return the provider's `session.id` and `session.expiresAt`; Better Auth's `getSession` does.
+
+When the check answers, the same user keeps the session generation and gets the fresh permissions; another user replaces the memory and starts a new generation; a signed-out answer wipes the memory before the atom answers `null`, so the signed-out screen never renders with a session still remembered. A check that fails, for example without a network, keeps the remembered session rendering instead of failing the launch. Past the remembered `expiresAt` the memory is wiped and ignored, and the launch waits for the check. `forgetSession` in the same module is the one wipe behind sign-out, another user, a signed-out answer and a passed expiry.
+
+What this means for the people using the app: until the check answers, the shell renders with the remembered user and permissions. After someone signs out elsewhere or their session is revoked, a device still shows its shell at its next launch for one round trip, and while it stays offline until the session's expiry; the host still refuses every call from the ended session, so only what the device already holds can show. A user id and their grants rest in the browser's local storage. Route guards read the session lazily, so rerun them when the refreshed session changes the grants; React's `useGuardRerun` does that for a TanStack router.
+
+`browserSessionMemory` stores the session under one `localStorage` key. Another platform supplies its own `SessionMemory` Layer with `read`, `write` and `clear`.
+
 ### Auth tables owned by another migrator
 
 An application moving from Prisma can keep Prisma in charge of its auth tables while adopting identity's mount. Apply the existing migrator first, then run `assertBetterAuthSchema` as a startup guard before `betterAuthMount`. Both use the same application `SqlClient`; keep Better Auth's table and field mappings aligned with the existing schema.

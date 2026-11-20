@@ -44,6 +44,14 @@ export function authScreenVerbs(engine: Screen, tell: (line: string) => void) {
 				}
 				return engine.history.location.href;
 			}),
+		sessionCheckStatus: () => Effect.sync(() => (engine.view?.container.textContent.includes("Checking your session") ? "shown" : "not shown")),
+		releaseSessionCheck: () =>
+			Effect.promise(async () => {
+				tell("the held session check answers");
+				await act(async () => {
+					auth().releaseSessionCheck();
+				});
+			}),
 		recoverSessionCheck: () =>
 			Effect.sync(() => {
 				tell("the session check provider recovers");

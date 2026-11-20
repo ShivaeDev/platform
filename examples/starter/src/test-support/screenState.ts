@@ -1,6 +1,8 @@
 import { Effect } from "effect";
 import type { RootOptions } from "react-dom/client";
 import type { ClientActivity } from "@shivaedev/contract/clientActivity.ts";
+import { browserSessionMemory } from "@shivaedev/identity/client/adapters/browserSessionMemory.ts";
+import { forgetSession } from "@shivaedev/identity/client/SessionMemory.ts";
 import { type Rendered, render } from "@shivaedev/test-story/client/adapters/react.ts";
 import type { ScreenDriverOptions } from "@shivaedev/test-story/server/screenDriver.ts";
 
@@ -15,7 +17,7 @@ export const acquireScreen = Effect.fn("ScreenStory.acquireScreen")(function* (e
 	Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 	engine.view = yield* Effect.acquireRelease(
 		Effect.promise(() => render(null, options)),
-		(view) => Effect.promise(view.unmount),
+		(view) => Effect.promise(view.unmount).pipe(Effect.andThen(Effect.provide(forgetSession, browserSessionMemory))),
 	);
 	return engine.view;
 });

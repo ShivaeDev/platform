@@ -5,6 +5,8 @@ import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { act } from "react";
 import { LiveConnection } from "@shivaedev/contract/automaticLive.ts";
 import { authCall } from "@shivaedev/identity/client/adapters/authCall.ts";
+import { browserSessionMemory } from "@shivaedev/identity/client/adapters/browserSessionMemory.ts";
+import { rememberSession } from "@shivaedev/identity/client/SessionMemory.ts";
 import { loadQuery } from "@shivaedev/react/adapters/loadQuery.ts";
 import { authAction } from "@shivaedev/react/client/authAction.ts";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
@@ -123,6 +125,26 @@ export const openApp = Effect.fn("ScreenStory.openApp")(function* (engine: Scree
 		root: view.container,
 		tell: () => undefined,
 	}).settle();
+});
+
+export const openReturningApp = Effect.fn("ScreenStory.openReturningApp")(function* (engine: Screen, check: "held" | "failing") {
+	yield* rememberSession({ session: { expiresAt: new Date("2099-01-01T00:00:00.000Z"), id: "alice-session" }, user: { id: "alice" } }).pipe(
+		Effect.provide(browserSessionMemory),
+	);
+	const fixture = appAuth({
+		baseUrl: "http://returning.story.test",
+		sessionFailure: check === "failing",
+		sessionHeld: check === "held",
+		signedIn: true,
+	});
+	engine.auth = fixture;
+	const view = yield* acquireScreen(engine);
+	engine.pending = () => check === "failing" && view.registry.get(fixture.auth.session.atom).waiting;
+	yield* Effect.promise(() =>
+		view.render(
+			<App auth={fixture.auth} connect={(session) => clientModules(session, [notesRegistration(engine.client)])} history={createMemoryHistory()} />,
+		),
+	);
 });
 
 export const openNotes = Effect.fn("ScreenStory.openNotes")(function* (engine: Screen, signOutFailure?: string) {

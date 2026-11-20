@@ -1,6 +1,6 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { permissionScreens, visited, visitor } from "#test/permission-routes/story.tsx";
+import { permissionScreens, refreshedAs, visited, visitor } from "#test/permission-routes/story.tsx";
 
 for (const role of ["reader", "supervisor"] as const) {
 	permissionScreens.it(
@@ -158,6 +158,22 @@ permissionScreens.it(
 		yield* outcomes([
 			["screen", () => heading(), "Controls"],
 			["location", () => location(), "/controls"],
+		]);
+	},
+);
+
+permissionScreens.it(
+	"a refreshed session without the route's grant replaces the open screen with the refusal without a navigation",
+	[refreshedAs("guest"), visitor("reader")],
+	function* ({ heading, location, sessionRefreshes, visit }) {
+		yield* visit("/notes/first");
+		expect(yield* heading()).toBe("Note first");
+
+		yield* sessionRefreshes();
+
+		yield* outcomes([
+			["heading", () => heading(), "Permission denied"],
+			["location", () => location(), "/notes/first"],
 		]);
 	},
 );

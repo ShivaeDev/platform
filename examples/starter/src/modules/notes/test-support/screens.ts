@@ -9,7 +9,15 @@ import { notesRefreshVerbs } from "#modules/notes/test-support/refreshVerbs.ts";
 import { requireSetup } from "#modules/notes/test-support/requireSetup.ts";
 import { screenActions } from "#modules/notes/test-support/screenActions.ts";
 import { screenObservations } from "#modules/notes/test-support/screenObservations.ts";
-import { openApp, openCodePreview, openLogin, openNotes, openRoute, openSession } from "#modules/notes/test-support/screenSetup.tsx";
+import {
+	openApp,
+	openCodePreview,
+	openLogin,
+	openNotes,
+	openReturningApp,
+	openRoute,
+	openSession,
+} from "#modules/notes/test-support/screenSetup.tsx";
 import { createScreen } from "#modules/notes/test-support/screenState.ts";
 import { noteScreenVerbs } from "#modules/notes/test-support/screenVerbs.ts";
 import { notesUiVerbs } from "#modules/notes/test-support/uiVerbs.ts";
@@ -148,5 +156,11 @@ export function malformedSession() {
 export function signedInApp() {
 	return screens.trait("screen", "alice's signed-in session opens the real app", (engine) =>
 		openApp(engine, "/", { baseUrl: "http://retained.story.test", signedIn: true }),
+	);
+}
+
+export function returningAlice(check: "held" | "failing") {
+	return screens.trait("screen", `alice returns to the app she last used signed in, and its session check is ${check}`, (engine) =>
+		openReturningApp(engine, check),
 	);
 }
