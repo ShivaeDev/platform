@@ -1,8 +1,10 @@
 import { NodeHttpClient } from "@effect/platform-node";
-import { Effect, Layer, Schema } from "effect";
+import { Effect, Fiber, Layer, Schema } from "effect";
 import { FetchHttpClient, HttpClient, type HttpClientResponse } from "effect/http";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { passes, untilTimer } from "@shivaedev/test-story/server/watchedClock.ts";
 import { readBoundedJson } from "#body.ts";
+import { bodyExcerptDeadline } from "#bodyExcerpt.ts";
 import { filterStatus } from "#filterStatus.ts";
 import { connections, type Reply } from "#test/http-client/connections.ts";
 
@@ -36,13 +38,22 @@ export function rejections(transport: "fetch" | "node") {
 			read: (reply: Reply) => {
 				const limit = byteLimit(reply);
 				story.tell(`the client reads /${reply} as JSON within ${limit} bytes from the loopback server`);
-				return client.get(`${remote.url}/${reply}`).pipe(
+				const answer = client.get(`${remote.url}/${reply}`).pipe(
 					Effect.flatMap((response) => readBoundedJson(response, limit, Schema.Struct({ name: Schema.String }))),
 					Effect.catchTag("RemoteNotFound", () => Effect.succeed("RemoteNotFound")),
 					Effect.catchTag("ResponseBodyTooLarge", () => Effect.succeed("ResponseBodyTooLarge")),
 					Effect.catchTag("InvalidBodyLimit", () => Effect.succeed("InvalidBodyLimit")),
 					Effect.catchTag("SchemaError", () => Effect.succeed("SchemaError")),
 				);
+				if (reply !== "status") {
+					return answer;
+				}
+				return Effect.gen(function* () {
+					const pending = yield* Effect.forkScoped(answer);
+					yield* untilTimer(bodyExcerptDeadline);
+					story.tell("the one-second error body excerpt deadline passes while the server withholds the body");
+					return yield* passes(bodyExcerptDeadline, Fiber.join(pending));
+				});
 			},
 		}),
 	});

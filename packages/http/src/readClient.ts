@@ -5,10 +5,27 @@ import { InvalidBodyLimit, isRemoteStatusError, ResponseBodyTooLarge } from "#er
 import { filterStatus } from "#filterStatus.ts";
 
 export class ReadClientError extends Schema.TaggedError<ReadClientError>()("ReadClientError", {
+	bodyExcerpt: Schema.optionalKey(Schema.String),
 	reason: Schema.Literals(["timeout", "body-too-large", "status", "decode", "transport", "invalid-limit"]),
 	source: Schema.String,
 	status: Schema.optionalKey(Schema.Number),
 }) {}
+
+function readFailure(error: unknown, source: string): ReadClientError {
+	if (isRemoteStatusError(error)) {
+		const { bodyExcerpt, status } = error;
+		return new ReadClientError({ reason: "status", source, status, ...(bodyExcerpt === undefined ? {} : { bodyExcerpt }) });
+	}
+	let reason: ReadClientError["reason"] = "transport";
+	if (error instanceof ResponseBodyTooLarge) {
+		reason = "body-too-large";
+	} else if (error instanceof InvalidBodyLimit) {
+		reason = "invalid-limit";
+	} else if (error instanceof Schema.SchemaError) {
+		reason = "decode";
+	}
+	return new ReadClientError({ reason, source });
+}
 
 export interface ReadClientOptions<TSchema extends Schema.Constraint> {
 	readonly bodyLimit: number;
@@ -30,20 +47,7 @@ export const makeReadClient = Effect.fnUntraced(function* <TSchema extends Schem
 			const response = yield* client.get(url);
 			return yield* readBoundedJson(response, options.bodyLimit, options.schema);
 		}).pipe(
-			Effect.mapError((error) => {
-				if (isRemoteStatusError(error)) {
-					return new ReadClientError({ reason: "status", source: options.source, status: error.status });
-				}
-				let reason: ReadClientError["reason"] = "transport";
-				if (error instanceof ResponseBodyTooLarge) {
-					reason = "body-too-large";
-				} else if (error instanceof InvalidBodyLimit) {
-					reason = "invalid-limit";
-				} else if (error instanceof Schema.SchemaError) {
-					reason = "decode";
-				}
-				return new ReadClientError({ reason, source: options.source });
-			}),
+			Effect.mapError((error) => readFailure(error, options.source)),
 			Effect.timeoutOrElse({
 				duration: options.timeout,
 				orElse: () => Effect.fail(new ReadClientError({ reason: "timeout", source: options.source })),

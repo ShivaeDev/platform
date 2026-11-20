@@ -2,7 +2,14 @@ import { Effect } from "effect";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { appGithub } from "#test/appGithub.ts";
 import { github } from "#test/github.ts";
-import { holdsPooledInstallationToken, unfinishedAppResponse, unfinishedChunkedPull, unfinishedPull } from "#test/rejectedBodies.ts";
+import {
+	appErrorExcerptDeadlinePasses,
+	errorExcerptDeadlinePasses,
+	holdsPooledInstallationToken,
+	unfinishedAppResponse,
+	unfinishedChunkedPull,
+	unfinishedPull,
+} from "#test/rejectedBodies.ts";
 
 for (const [status, headers, outcome] of [
 	[404, {}, "not found"],
@@ -12,7 +19,7 @@ for (const [status, headers, outcome] of [
 ] as const) {
 	github.it(
 		`a ${status} refusal releases an unfinished GitHub body`,
-		[unfinishedPull(status, headers)],
+		status === 404 ? [unfinishedPull(status, headers), errorExcerptDeadlinePasses] : [unfinishedPull(status, headers)],
 		function* ({ bodyReleased, readPullWithin }) {
 			const result = yield* readPullWithin(10);
 			yield* outcomes([
@@ -50,7 +57,7 @@ for (const [reply, outcome] of [
 ] as const) {
 	appGithub.it(
 		`an unfinished token exchange that fails as ${outcome} releases its body`,
-		[unfinishedAppResponse("token", reply)],
+		"status" in reply ? [unfinishedAppResponse("token", reply), appErrorExcerptDeadlinePasses] : [unfinishedAppResponse("token", reply)],
 		function* ({ bodyReleased, readPull }) {
 			const result = yield* readPull();
 			yield* outcomes([
@@ -63,7 +70,7 @@ for (const [reply, outcome] of [
 
 appGithub.it(
 	"a rejected installation lookup releases its unfinished body",
-	[unfinishedAppResponse("installation", { status: 401 })],
+	[unfinishedAppResponse("installation", { status: 401 }), appErrorExcerptDeadlinePasses],
 	function* ({ bodyReleased, readRepositoryPull }) {
 		const result = yield* readRepositoryPull();
 		yield* outcomes([
