@@ -4,7 +4,7 @@ import type { SqlClient } from "effect/sql";
 import type { SqlError } from "effect/sql/SqlError";
 import { expectTypeOf, it } from "vitest";
 import { makeRepository } from "#repository.ts";
-import type { BucketRegistrationError } from "#repositoryCollection.ts";
+import type { BucketRegistrationError, ServerOnlyKeyError } from "#repositoryCollection.ts";
 
 class FilterEncoding extends Context.Service<FilterEncoding, string>()("@shivaedev/sql/FilterEncoding") {}
 const Kind = Schema.String.pipe(
@@ -138,5 +138,5 @@ const program = Effect.gen(function* () {
 });
 
 it("conflict predicates retain field encoding services and check columns and values", () => {
-	expectTypeOf(program).toEqualTypeOf<Effect.Effect<void, BucketRegistrationError, SqlClient.SqlClient>>();
+	expectTypeOf(program).toEqualTypeOf<Effect.Effect<void, BucketRegistrationError | ServerOnlyKeyError, SqlClient.SqlClient>>();
 });

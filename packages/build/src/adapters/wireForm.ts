@@ -1,5 +1,6 @@
 import ts from "typescript";
 import { classForm, objectForm } from "#adapters/objectForm.ts";
+import { isRedacted } from "#adapters/serverOnlyPath.ts";
 import { declaredIn, isLibraryType, isReference, literalOf, type TypeReading, typeArguments } from "#adapters/typeReading.ts";
 import { unionForm } from "#adapters/unionForm.ts";
 import type { Primitive, WireForm } from "#facts.ts";
@@ -48,6 +49,9 @@ function tupleForm(reading: TypeReading, type: ts.TypeReference, path: string, s
 }
 
 function objectTypeForm(reading: TypeReading, type: ts.Type, path: string, seen: ReadonlySet<ts.Type>): WireForm | undefined {
+	if (isRedacted(type)) {
+		return reading.refuseServerOnly(path);
+	}
 	if (isLibraryType(reading, type, "Date")) {
 		return { form: "primitive", primitive: "Date" };
 	}
