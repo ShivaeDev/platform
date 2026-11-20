@@ -5,12 +5,13 @@ import { permission } from "@shivaedev/access/permission.ts";
 import { contract } from "@shivaedev/contract/contract.ts";
 import { command } from "@shivaedev/contract/operation.ts";
 import type { subjectLayers } from "@shivaedev/contract/subjectLayers.ts";
+import type { DelegationRuleMissing } from "#DelegationRuleMissing.ts";
 import { Identity, SessionUser } from "#identity.ts";
 import type { IdentityFailures } from "#middleware.ts";
 import { currentSessionContext } from "#server/adapters/currentSessionContext.ts";
 import { revalidateStream } from "#server/revalidateStream.ts";
 import type { SessionShape } from "#server/session.ts";
-import { accountSubject, Subject, type SubjectId, type SubjectResolver, selfSubject } from "#subject.ts";
+import { accountSubject, delegatedSubject, Subject, type SubjectId, type SubjectResolver, selfSubject } from "#subject.ts";
 
 class CannotAct extends Schema.TaggedError<CannotAct>()("CannotAct", { account: Schema.String }) {}
 const write = command("write", { invalidates: () => [] });
@@ -49,3 +50,14 @@ expectTypeOf<Rpc.ServicesClient<RpcGroup.Rpcs<typeof Own>>>().toEqualTypeOf<neve
 const lookup = Effect.succeed(Option.none<SessionShape>());
 currentSessionContext<SessionShape, never>("alice", lookup);
 revalidateStream<SessionShape, never>(Rpc.make("read"), "alice", lookup);
+
+const Coached = contract("coached", {
+	commands: [write],
+	subject: delegatedSubject({ deny: (account) => new CannotAct({ account }), refusal: CannotAct, service: "app/CoachRule" }),
+});
+expectTypeOf<Rpc.ErrorExit<Rpc.ExtractTag<RpcGroup.Rpcs<typeof Coached>, "coached.write">>>().toEqualTypeOf<IdentityFailures | CannotAct>();
+// The rule's service is a requirement of the subject's Layer, so a host that does not provide it is rejected by the compiler.
+expectTypeOf<Layer.Services<ReturnType<typeof subjectLayers<RpcGroup.Rpcs<typeof Coached>>>>>().toEqualTypeOf<SubjectResolver | "app/CoachRule">();
+expectTypeOf<Layer.Error<ReturnType<typeof subjectLayers<RpcGroup.Rpcs<typeof Coached>>>>>().toEqualTypeOf<DelegationRuleMissing>();
+// @ts-expect-error A refusal must match the declared error schema.
+delegatedSubject({ deny: () => ({ _tag: "Other" }), refusal: CannotAct, service: "app/CoachRule" });

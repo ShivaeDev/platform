@@ -1,14 +1,22 @@
 import { layerWebSocket } from "@effect/platform-node/NodeSocket";
-import { Deferred, Effect, Fiber, Layer, Stream } from "effect";
+import { Cause, Deferred, Effect, Fiber, Layer, Option, Stream } from "effect";
 import { FetchHttpClient, HttpClient, HttpClientRequest } from "effect/http";
 import { RpcClient, RpcSerialization } from "effect/rpc";
-import { answered } from "@shivaedev/test-story/server/answers.ts";
+import { SqlClient } from "effect/sql";
+import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
+import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
+import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
+import { answered, errorWords } from "@shivaedev/test-story/server/answers.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { passes, untilTimer } from "@shivaedev/test-story/server/watchedClock.ts";
+import { appHost } from "#appDatabase.ts";
+import { appModules } from "#appModules.ts";
 import { close, start } from "#test/app-host/lifecycle.ts";
-import { emptyHost, type HostState } from "#test/app-host/state.ts";
-import { browserVerbs } from "#test/subject/browser.ts";
-import { Api, CannotActForAccount, type State, subjectHost } from "#test/subject/feature.ts";
+import { databaseOf, emptyHost, type HostState } from "#test/app-host/state.ts";
+import { databaseUrl, postgres } from "#test/postgres.ts";
+import { browserVerbs, coachingVerbs } from "#test/subject/browser.ts";
+import { coachingModule, coachingWithoutRule } from "#test/subject/coaching.ts";
+import { Api, CannotActForAccount, type State, sessions, subjectHost } from "#test/subject/feature.ts";
 
 function httpClient(url: string, actor?: string, subject?: string) {
 	const headers = { ...(actor === undefined ? {} : { authorization: actor }), ...(subject === undefined ? {} : { "x-platform-subject": subject }) };
@@ -109,3 +117,79 @@ export function titled(account: string, title: string) {
 export const withoutSessions = subjectStory.trait("configured", "the host has no session policy", ({ state }) => {
 	state.sessions = false;
 });
+
+interface CoachingState extends HostState {
+	coaching: typeof coachingModule | typeof coachingWithoutRule;
+	readonly revoked: Set<string>;
+}
+
+function coachingHost(state: CoachingState) {
+	return Layer.unwrap(
+		Effect.map(appModules([state.coaching]), (modules) =>
+			appHost({
+				postgresSettings: {},
+				...modules,
+				config: { databaseUrl: databaseOf(state).url, port: 0 },
+				sessions: Layer.succeed(SessionPolicy, sessions(state)),
+			}),
+		),
+	);
+}
+
+// The coaching application's delegation, on the real host and PostgreSQL, through the same browser-like client.
+export const coachingStory = storyKit({
+	after: { configured: (state: CoachingState) => start(state) },
+	around: withIsolatedDatabase,
+	clock: "test",
+	*create() {
+		const state: CoachingState = { ...emptyHost(), coaching: coachingModule, database: yield* PostgresTestDatabase, revoked: new Set<string>() };
+		state.build = () => coachingHost(state);
+		yield* Effect.addFinalizer(() => close(state).pipe(Effect.orDie));
+		return state;
+	},
+	layer: postgres,
+	name: "a module's delegated subject over WebSocket on PostgreSQL",
+	runIf: databaseUrl !== undefined,
+	stages: ["configured", "running"],
+	verbs: (state, story) => ({
+		...coachingVerbs(state, story),
+		startup: () =>
+			Effect.sync(() =>
+				state.bootFailure === undefined
+					? "started"
+					: Option.match(Cause.findErrorOption(state.bootFailure), {
+							onNone: () => Cause.pretty(state.bootFailure ?? Cause.empty),
+							onSome: (error) => (error instanceof Error ? error.message : errorWords(error)),
+						}),
+			),
+		storedNote: (client: string) =>
+			SqlClient.SqlClient.use((sql) => sql<{ note: string }>`select note from coaching_notes where client = ${client}`).pipe(
+				Effect.map(([row]) => row?.note ?? "no stored note"),
+			),
+		unassigned: (coach: string, client: string) => {
+			story.tell(`the coaching app ends ${coach}'s assignment to ${client}`);
+			return SqlClient.SqlClient.use((sql) => sql`delete from coaching_assignments where coach = ${coach} and client = ${client}`);
+		},
+	}),
+});
+
+export function assigned(coach: string, client: string) {
+	return coachingStory.trait("running", `${coach} is assigned as ${client}'s coach`, () =>
+		SqlClient.SqlClient.use((sql) => sql`insert into coaching_assignments (coach, client) values (${coach}, ${client})`),
+	);
+}
+
+export function noted(client: string, note: string, diary = "") {
+	return coachingStory.trait("running", `${client}'s stored note reads "${note}"${diary === "" ? "" : ` and her diary "${diary}"`}`, () =>
+		SqlClient.SqlClient.use((sql) => sql`insert into coaching_notes (client, note, diary) values (${client}, ${note}, ${diary})`),
+	);
+}
+
+export const ruleForgotten = coachingStory.trait(
+	"configured",
+	"the application registers the coaching module without its delegation rule",
+	(state) => {
+		state.coaching = coachingWithoutRule;
+		state.expectBootFailure = true;
+	},
+);

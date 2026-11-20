@@ -10,6 +10,7 @@ import { makeClient } from "@shivaedev/contract/bind.ts";
 import { answered, errorWords } from "@shivaedev/test-story/server/answers.ts";
 import { until } from "@shivaedev/test-story/server/until.ts";
 import { passes, untilTimer } from "@shivaedev/test-story/server/watchedClock.ts";
+import { Coaching } from "#test/subject/coaching.ts";
 import { CannotActForAccount, Delegated } from "#test/subject/feature.ts";
 
 // A browser's WebSocket takes only subprotocols, so the client must authenticate with its first frame and send nothing on the upgrade.
@@ -23,12 +24,14 @@ function browserWebSocket(opened: string[]) {
 	});
 }
 
+const browserRegistry = Effect.acquireRelease(
+	Effect.sync(() => AtomRegistry.make()),
+	(current) => Effect.sync(() => current.dispose()),
+);
+
 export const openBrowser = Effect.fnUntraced(function* (url: string, actor: string) {
 	const opened: string[] = [];
-	const registry = yield* Effect.acquireRelease(
-		Effect.sync(() => AtomRegistry.make()),
-		(current) => Effect.sync(() => current.dispose()),
-	);
+	const registry = yield* browserRegistry;
 	const client = makeClient(Delegated, { bearerToken: actor, url: `${url}/rpc`, webSocketConstructor: browserWebSocket(opened) });
 	function run<A, E>(effect: Effect.Effect<A, E, Context.Service.Identifier<typeof client.Client> | Reactivity.Reactivity>) {
 		return AtomRegistry.getResult(registry, client.runtime.atom(effect).pipe(Atom.setIdleTTL(0)));
@@ -172,6 +175,92 @@ export function browserVerbs(state: { readonly url: string }, story: { readonly 
 						),
 					),
 				),
+			);
+		},
+	};
+}
+
+const openCoachingBrowser = Effect.fnUntraced(function* (url: string, actor: string) {
+	const opened: string[] = [];
+	const registry = yield* browserRegistry;
+	const client = makeClient(Coaching, { bearerToken: actor, url: `${url}/rpc`, webSocketConstructor: browserWebSocket(opened) });
+	function run<A, E>(effect: Effect.Effect<A, E, Context.Service.Identifier<typeof client.Client> | Reactivity.Reactivity>) {
+		return AtomRegistry.getResult(registry, client.runtime.atom(effect).pipe(Atom.setIdleTTL(0)));
+	}
+	return { client, opened, registry, run };
+});
+
+type CoachingBrowser = Effect.Success<ReturnType<typeof openCoachingBrowser>>;
+
+function noteText(result: AsyncResult.AsyncResult<string, unknown>): string {
+	if (AsyncResult.isInitial(result)) {
+		return "loading";
+	}
+	if (AsyncResult.isSuccess(result)) {
+		return result.waiting ? `${result.value} while loading` : result.value;
+	}
+	return `failed with ${errorWords(result.cause.reasons.find((reason) => reason._tag === "Fail")?.error)}`;
+}
+
+export function coachingVerbs(state: { readonly url: string }, story: { readonly tell: (line: string) => void }) {
+	const browsers = new Map<string, CoachingBrowser>();
+	function browser(actor: string) {
+		const existing = browsers.get(actor);
+		if (existing !== undefined) {
+			return Effect.succeed(existing);
+		}
+		return Effect.tap(openCoachingBrowser(state.url, actor), (opened) => Effect.sync(() => browsers.set(actor, opened)));
+	}
+	function view(opened: CoachingBrowser, page: "note" | "diary", subject: string | undefined) {
+		return opened.client.api[page].query(undefined, subject === undefined ? {} : { subject });
+	}
+	function answer(opened: CoachingBrowser, page: "note" | "diary", subject: string | undefined, answers: (text: string) => boolean) {
+		return until(AtomRegistry.toStream(opened.registry, view(opened, page, subject)), (result) => answers(noteText(result)), {
+			name: `${subject ?? "own"} ${page} answered`,
+		}).pipe(Effect.map(noteText));
+	}
+	function opens(actor: string, page: "note" | "diary", subject: string | undefined) {
+		return Effect.flatMap(browser(actor), (opened) => {
+			opened.registry.mount(view(opened, page, subject));
+			return answer(opened, page, subject, (text) => !text.includes("loading"));
+		});
+	}
+	return {
+		coachingSocketsOpened: (actor: string) => Effect.map(browser(actor), (opened) => opened.opened.length),
+		nextShownNote: (actor: string, subject?: string) =>
+			Effect.flatMap(browser(actor), (opened) => {
+				const before = noteText(opened.registry.get(view(opened, "note", subject)));
+				return answer(opened, "note", subject, (text) => text !== before && !text.includes("loading"));
+			}),
+		noteAfterRevalidation: (actor: string, subject: string) => {
+			story.tell("the session revalidation interval passes");
+			return Effect.flatMap(browser(actor), (opened) =>
+				untilTimer("30 seconds").pipe(
+					Effect.andThen(
+						passes(
+							"30 seconds",
+							answer(opened, "note", subject, (text) => text.startsWith("failed")),
+						),
+					),
+				),
+			);
+		},
+		opensDiary: (actor: string, subject?: string) => {
+			story.tell(`${actor} opens ${subject === undefined ? "their own" : `${subject}'s`} diary from a browser`);
+			return opens(actor, "diary", subject);
+		},
+		shownNote: (actor: string, subject?: string) =>
+			Effect.flatMap(browser(actor), (opened) =>
+				opened.run(opened.client.sync).pipe(Effect.andThen(Effect.sync(() => noteText(opened.registry.get(view(opened, "note", subject)))))),
+			),
+		watchesNote: (actor: string, subject?: string) => {
+			story.tell(`${actor} watches ${subject === undefined ? "their own" : `${subject}'s`} note live from a browser`);
+			return opens(actor, "note", subject);
+		},
+		writesNote: (actor: string, note: string, subject?: string) => {
+			story.tell(`${actor} writes "${note}" as ${subject === undefined ? "their own" : `${subject}'s`} note from a browser`);
+			return Effect.flatMap(browser(actor), (opened) =>
+				answered(opened.run(opened.client.api.write.run({ note }, subject === undefined ? {} : { subject })), errorWords),
 			);
 		},
 	};
