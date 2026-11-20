@@ -1,6 +1,6 @@
 import { Effect } from "effect";
-import { positiveRefusalFindings } from "#adapters/positiveRefusalFindings.ts";
 import { importGraph } from "#imports/graph.ts";
+import { positiveRefusalFindings } from "#positiveRefusalFindings.ts";
 import { defineRule } from "#rule.ts";
 import { storyOrigins } from "#rules/stories/origins.ts";
 import { storySources } from "#rules/stories/sources.ts";

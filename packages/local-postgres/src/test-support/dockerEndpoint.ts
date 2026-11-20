@@ -3,7 +3,7 @@ import { ConfigProvider, Effect, Predicate } from "effect";
 import { ChildProcessSpawner } from "effect/process";
 import { fakeHttpService } from "@shivaedev/test-story/server/fakeHttpService.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { docker } from "#server/adapters/docker.ts";
+import { docker } from "#server/docker.ts";
 import { type DockerEnvironment, dockerEnvironment } from "#server/dockerEnvironment.ts";
 import { environmentGate } from "#test/environmentGate.ts";
 import { scriptedProcess } from "#test/scriptedProcess.ts";

@@ -1,6 +1,5 @@
 import * as NodePath from "@effect/platform-node/NodePath";
 import { Console, Effect, Path } from "effect";
-import { manifestReader } from "#adapters/manifestReader.ts";
 import { biomeReport } from "#biome/report.ts";
 import type { ResolvedConfig } from "#config/load.ts";
 import { readBaseline } from "#engine/baselineFile.ts";
@@ -10,6 +9,7 @@ import { registryEntries } from "#exceptions/registryEntries.ts";
 import { SetupFailure } from "#failure.ts";
 import { gitOrFail } from "#git/command.ts";
 import { withStagedContent } from "#hooks/withStagedContent.ts";
+import { manifestReader } from "#manifestReader.ts";
 import { type ReportContext, renderFindings } from "#report/render.ts";
 import { failingFindings } from "#rules/biome.ts";
 

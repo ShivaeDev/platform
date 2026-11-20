@@ -1,7 +1,7 @@
 import type { Endpoint } from "#imports/Endpoint.ts";
 
 const ENGINES: ReadonlyArray<readonly [string, readonly string[]]> = [
-	["an Effect test runner", ["@shivaedev/test/adapters/it.ts", "@shivaedev/test/adapters/makeEffectIt.ts"]],
+	["an Effect test runner", ["@shivaedev/test/it.ts", "@shivaedev/test/adapters/makeEffectIt.ts"]],
 	["the file system", ["node:fs"]],
 	[
 		"the network",

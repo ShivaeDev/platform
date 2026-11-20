@@ -1,6 +1,6 @@
 import { noBarrel } from "#rules/noBarrel.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
+import { assertThat } from "#testing/assertThat.ts";
 
 for (const wrapper of [
 	"export const columns = () => createColumnHelper<Feature>();",

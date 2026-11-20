@@ -1,10 +1,10 @@
 import * as Effect from "effect/Effect";
 import { withLive } from "@shivaedev/test/withLive.ts";
 import type { screenElements } from "#server/adapters/screenElements.ts";
-import { screenLoading } from "#server/adapters/screenLoading.ts";
-import { screenNavigation } from "#server/adapters/screenNavigation.ts";
 import { loadingDeadline } from "#server/loadingDeadline.ts";
 import type { ScreenDriverOptions, ScreenTarget } from "#server/screenDriver.ts";
+import { screenLoading } from "#server/screenLoading.ts";
+import { screenNavigation } from "#server/screenNavigation.ts";
 import { targetName } from "#server/targetName.ts";
 import { waitForScreen } from "#server/waitForScreen.ts";
 

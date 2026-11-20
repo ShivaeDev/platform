@@ -1,13 +1,13 @@
 import { Config, Effect, Redacted } from "effect";
 import { betterAuthDatabase } from "@shivaedev/identity/server/better-auth/adapters/database.ts";
-import { betterAuthMount } from "@shivaedev/identity/server/better-auth/adapters/mount.ts";
 import { assignRole } from "@shivaedev/identity/server/better-auth/assignRole.ts";
+import { betterAuthMount } from "@shivaedev/identity/server/better-auth/mount.ts";
 import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
 import { postgresLayer } from "@shivaedev/sql/postgresLayer.ts";
 import { AppAccess } from "#AppAccess.ts";
 import { Owner } from "#roles/Owner.ts";
 import { User } from "#roles/User.ts";
-import { signUpEmail } from "#server/admin/adapters/signUpEmail.ts";
+import { signUpEmail } from "#server/admin/signUpEmail.ts";
 import { authOptions } from "#server/authOptions.ts";
 
 export const createAdmin = Effect.fn("App.createAdmin")(

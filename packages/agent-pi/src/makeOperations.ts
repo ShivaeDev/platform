@@ -1,10 +1,10 @@
 import { Effect, Exit, Scope, Stream } from "effect";
 import { UnknownAcceptance } from "@shivaedev/agent/failures.ts";
 import type { Receipt, Reconciliation, StartRequest } from "@shivaedev/agent/run.ts";
-import { protocolFailure } from "#adapters/failure.ts";
 import { openSession } from "#adapters/openSession.ts";
-import { textOf } from "#adapters/textOf.ts";
+import { protocolFailure } from "#failure.ts";
 import type { PiOptions } from "#PiOptions.ts";
+import { textOf } from "#textOf.ts";
 
 export const makeOperations = Effect.fnUntraced(function* (options: PiOptions) {
 	const runs = yield* Effect.sync(() => new Map<string, Effect.Success<ReturnType<typeof openSession>>>());

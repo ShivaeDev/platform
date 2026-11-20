@@ -1,6 +1,6 @@
 import { importsResolvable } from "#rules/imports/resolvable.ts";
 import { importStory, repositoryHas } from "#test/importStory.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
+import { assertThat } from "#testing/assertThat.ts";
 
 const SOURCES = repositoryHas(
 	{ content: "export const first = 1;", path: "src/first.ts" },

@@ -1,8 +1,8 @@
 import { Effect } from "effect";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { qualityInstalled, repositoryHas, repositoryStory } from "#test/repositoryStory.ts";
-import { withMatchers } from "#testing/adapters/assertThat.ts";
 import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
+import { withMatchers } from "#testing/assertThat.ts";
 
 const FLOATING_PROMISE = {
 	content:

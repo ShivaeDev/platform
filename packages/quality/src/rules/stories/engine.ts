@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import ts from "typescript";
-import { engineEscapes } from "#adapters/engineEscapes.ts";
+import { engineEscapes } from "#engineEscapes.ts";
 import { importGraph } from "#imports/graph.ts";
 import { packageOf } from "#imports/workspace.ts";
 import { testName } from "#naming/testName.ts";

@@ -8,7 +8,7 @@ import type { subjectLayers } from "@shivaedev/contract/subjectLayers.ts";
 import type { DelegationRuleMissing } from "#DelegationRuleMissing.ts";
 import { Identity, SessionUser } from "#identity.ts";
 import type { IdentityFailures } from "#middleware.ts";
-import { currentSessionContext } from "#server/adapters/currentSessionContext.ts";
+import { currentSessionContext } from "#server/currentSessionContext.ts";
 import { revalidateStream } from "#server/revalidateStream.ts";
 import type { SessionShape } from "#server/session.ts";
 import { accountSubject, delegatedSubject, Subject, type SubjectId, type SubjectResolver, selfSubject } from "#subject.ts";

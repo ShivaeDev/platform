@@ -38,7 +38,7 @@ An application's `vite.config.ts` and `vitest.config.ts` each import one functio
 ```ts
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
-import { appViteConfig } from "@shivaedev/build/adapters/appViteConfig.ts";
+import { appViteConfig } from "@shivaedev/build/appViteConfig.ts";
 
 export default appViteConfig([tailwindcss(), react()], [], ["/health"]);
 ```

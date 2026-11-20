@@ -1,6 +1,6 @@
 import { failureHonesty } from "#rules/effect/failureHonesty.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
+import { assertThat } from "#testing/assertThat.ts";
 
 const INTERPOLATED = ["Effect.succeed(`failed with ${", "failureOf(error)}`)"].join("");
 

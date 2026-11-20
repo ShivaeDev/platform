@@ -1,7 +1,7 @@
 import { Effect } from "effect";
-import { catalogEntries } from "#adapters/catalogEntries.ts";
-import { catalogWorkspace } from "#adapters/catalogWorkspace.ts";
-import { manifestFiles, readPackageManifest } from "#adapters/manifestInventory.ts";
+import { catalogEntries } from "#catalogEntries.ts";
+import { catalogWorkspace } from "#catalogWorkspace.ts";
+import { manifestFiles, readPackageManifest } from "#manifestInventory.ts";
 import { defineRule, type Finding } from "#rule.ts";
 
 const SECTIONS = ["dependencies", "devDependencies", "optionalDependencies", "peerDependencies"] as const;

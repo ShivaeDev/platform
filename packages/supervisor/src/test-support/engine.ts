@@ -1,7 +1,7 @@
 import process from "node:process";
 import { Clock, Effect, Exit, Fiber, Queue, Schema, Scope } from "effect";
-import { type Output, spawn } from "#adapters/spawn.ts";
 import { jsonReadiness, withoutReadiness } from "#readiness.ts";
+import { type Output, spawn } from "#spawn.ts";
 import { supervise } from "#supervisor.ts";
 import { fixture } from "#test/fixture.ts";
 

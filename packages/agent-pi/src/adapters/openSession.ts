@@ -2,9 +2,9 @@ import { type Cause, Effect, Queue, Stream } from "effect";
 import type { RunEvent } from "@shivaedev/agent/events.ts";
 import type { Observation, Receipt, StartRequest } from "@shivaedev/agent/run.ts";
 import { deliver } from "#adapters/deliver.ts";
-import { unavailable } from "#adapters/failure.ts";
-import { makeEventMapper, rawOf } from "#adapters/mapping.ts";
 import { openRuntime } from "#adapters/runtime.ts";
+import { unavailable } from "#failure.ts";
+import { makeEventMapper, rawOf } from "#mapping.ts";
 import type { PiOptions } from "#PiOptions.ts";
 
 export const openSession = Effect.fnUntraced(function* (options: PiOptions, request: StartRequest, resume: string | undefined) {

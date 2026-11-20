@@ -13,9 +13,9 @@ import {
 	stages,
 	stagesLink,
 } from "#test/linkedWorktree.ts";
-import { withMatchers } from "#testing/adapters/assertThat.ts";
 import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
 import { logs } from "#testing/adapters/hookRepository.ts";
+import { withMatchers } from "#testing/assertThat.ts";
 
 const FORMATTED = { content: "export function value(): number {\n\treturn 1;\n}\n", path: "src/value.ts" };
 const UNFORMATTED = { content: "export function value(): number {\nreturn 1;\n}\n", path: "src/value.ts" };

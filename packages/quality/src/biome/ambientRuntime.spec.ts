@@ -1,6 +1,6 @@
 import { AMBIENT_RUNTIME_CASES, ambientFiles, SCHEDULERS } from "#test/ambientFiles.ts";
 import { biomeStory, presetInstalled, repositoryHas } from "#test/biomeStory.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
+import { assertThat } from "#testing/assertThat.ts";
 
 for (const [shape, expression] of AMBIENT_RUNTIME_CASES) {
 	biomeStory.it(

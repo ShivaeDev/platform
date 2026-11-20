@@ -13,7 +13,7 @@ import { signedInUser } from "@shivaedev/test-kits/identity/adapters/betterAuth.
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { SessionUserSchema } from "#identity.ts";
 import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
-import { betterAuthMount } from "#server/better-auth/adapters/mount.ts";
+import { betterAuthMount } from "#server/better-auth/mount.ts";
 import { sweepExpiredSessions } from "#server/better-auth/sweepExpiredSessions.ts";
 import { authTestDatabase } from "#server/better-auth/testDatabase.ts";
 import { storyClock, withIdentityDatabase } from "#test/clock.ts";

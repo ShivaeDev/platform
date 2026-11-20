@@ -1,9 +1,9 @@
 import { Effect } from "effect";
-import { type SharedErrorCatalog, sharedErrorCatalog } from "#adapters/sharedErrorCatalog.ts";
 import { defineRule, type Finding, type SourceFile } from "#rule.ts";
 import { taggedClasses } from "#rules/effect/errorTags.ts";
 import { parse } from "#rules/parse.ts";
 import { findingAt } from "#rules/stories/syntax.ts";
+import { type SharedErrorCatalog, sharedErrorCatalog } from "#sharedErrorCatalog.ts";
 
 function declaresErrors(source: SourceFile): boolean {
 	return /\bclass\b/u.test(source.text) && /TaggedError|_tag|@shivaedev\/errors/u.test(source.text);

@@ -1,7 +1,7 @@
 import { testUtils } from "better-auth/plugins";
 import { Effect, Redacted } from "effect";
 import { betterAuthDatabase } from "@shivaedev/identity/server/better-auth/adapters/database.ts";
-import { betterAuthMount } from "@shivaedev/identity/server/better-auth/adapters/mount.ts";
+import { betterAuthMount } from "@shivaedev/identity/server/better-auth/mount.ts";
 import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
 import { signedInUser } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
 import { AppAccess } from "#AppAccess.ts";

@@ -3,7 +3,7 @@ export const developmentFiles: Readonly<Record<string, string>> = {
 		imports: { "#runtime": { application: "./selected.mjs", default: "./unselected.mjs" } },
 		type: "module",
 	}),
-	"runner.mjs": `import { runDevelopment } from "@shivaedev/server/development.ts";
+	"runner.mjs": `import { runDevelopment } from "@shivaedev/server/adapters/development.ts";
 runDevelopment({ server: "server.mjs", worker: "worker.mjs", conditions: ["application"] });`,
 	"selected.mjs": 'export const label = "application";',
 	"unselected.mjs": 'throw new Error("Development did not forward application conditions");',

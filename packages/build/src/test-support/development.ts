@@ -4,7 +4,7 @@ import { Effect, Schema } from "effect";
 import { createViteServer } from "vitest/node";
 import { loopbackServer } from "@shivaedev/test-story/server/adapters/loopback.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { appViteConfig } from "#adapters/appViteConfig.ts";
+import { appViteConfig } from "#appViteConfig.ts";
 import { emptyProject, writeFiles } from "#test/fixtureProject.ts";
 
 const HostRecord = Schema.fromJsonString(Schema.Struct({ host: Schema.String, path: Schema.String }));

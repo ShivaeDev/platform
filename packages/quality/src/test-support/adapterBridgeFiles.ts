@@ -103,3 +103,9 @@ export const serviceFolders: readonly SeedFile[] = [
 	{ content: 'export const Labels = { id: "Labels" };\n', path: "src/adapters/labels/service.ts" },
 	{ content: "export function label(name: string): string {\n\treturn name.trim();\n}\n", path: "src/adapters/labels/label.ts" },
 ];
+
+export function reportedFiles(report: string): readonly string[] {
+	return [...report.matchAll(/^ {2}(?<file>\S+\.[cm]?[jt]sx?)\b/gmu)]
+		.map((match) => match.groups?.file ?? "")
+		.toSorted((left, right) => left.localeCompare(right));
+}

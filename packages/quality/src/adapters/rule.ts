@@ -1,9 +1,9 @@
 import { Effect } from "effect";
-import { DeclarationFiles } from "#adapters/declaration-files/service.ts";
-import { describeIssue, type StandardSchemaV1 } from "#adapters/standardSchema.ts";
-import { typeScriptProgram } from "#adapters/typeScriptProgram.ts";
+import { DeclarationFiles } from "#declaration-files/service.ts";
 import { validOrFail } from "#decoded.ts";
 import type { Configured, Findings, RegisteredRule, RuleCheck, RuleContext } from "#rule.ts";
+import { describeIssue, type StandardSchemaV1 } from "#standardSchema.ts";
+import { typeScriptProgram } from "#typeScriptProgram.ts";
 
 export type RuleCheckResult<TServices> = Findings | Effect.Effect<Findings, unknown, TServices>;
 

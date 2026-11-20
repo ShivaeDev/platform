@@ -1,4 +1,4 @@
-import { databaseUrlFindings } from "#adapters/databaseUrlFindings.ts";
+import { databaseUrlFindings } from "#databaseUrlFindings.ts";
 import { defineRule } from "#rule.ts";
 
 export const databaseUrl = defineRule({

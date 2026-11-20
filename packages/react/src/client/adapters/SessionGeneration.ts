@@ -8,11 +8,11 @@ import { liveBindings } from "@shivaedev/contract/composeBindings.ts";
 import type { QueryStorageProvider } from "@shivaedev/contract/QueryStorage.ts";
 import { type QueryRetentionOptions, queryRetention } from "@shivaedev/contract/queryRetention.ts";
 import { registerSessionRecheck } from "#adapters/sessionRecheck.ts";
-import { useLatestCallback } from "#adapters/useLatestCallback.ts";
 import { useStoredQueries } from "#client/adapters/useStoredQueries.ts";
-import { useWarmQueries } from "#client/adapters/useWarmQueries.ts";
 import { mountLive } from "#client/mountLive.ts";
 import { RecheckContext } from "#client/RecheckContext.ts";
+import { useWarmQueries } from "#client/useWarmQueries.ts";
+import { useLatestCallback } from "#useLatestCallback.ts";
 
 interface Owned<TClient> {
 	readonly client: TClient;

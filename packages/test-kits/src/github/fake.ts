@@ -2,7 +2,7 @@ import { Effect } from "effect";
 import { type FakeHttpRequest, type FakeHttpRoute, fakeHttpService } from "@shivaedev/test-story/server/fakeHttpService.ts";
 import { appProvider } from "#github/adapters/appProvider.ts";
 import { githubAppCredentials } from "#github/adapters/credentials.ts";
-import { webhookDelivery } from "#github/adapters/webhookDelivery.ts";
+import { webhookDelivery } from "#github/webhookDelivery.ts";
 
 export interface GitHubAppAccess {
 	readonly appRequest: (request: FakeHttpRequest) => boolean;

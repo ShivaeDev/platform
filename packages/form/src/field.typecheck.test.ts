@@ -1,7 +1,7 @@
 import { Effect, Schema } from "effect";
-import { useList } from "#adapters/useList.ts";
 import * as Field from "#field.ts";
 import { form } from "#form.ts";
+import { useList } from "#useList.ts";
 
 const Fields = Schema.Struct({
 	amount: Field.number({ optional: true }),

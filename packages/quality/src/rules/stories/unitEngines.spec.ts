@@ -1,7 +1,7 @@
 import { storySpecs } from "#rules/stories/specs.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
 import { orders, ordersPackage, pureOrders, unitSpec } from "#test/unitFiles.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
+import { assertThat } from "#testing/assertThat.ts";
 
 const UNIT = "src/orders.unit.test.ts";
 
@@ -43,7 +43,7 @@ for (const declaration of ['import type { Client } from "pg";', 'export type { S
 
 for (const [specifier, label, engine] of [
 	["node:fs/promises", "node:fs/promises", "the file system"],
-	["@shivaedev/test/adapters/it.ts", "@shivaedev/test/adapters/it.ts", "an Effect test runner"],
+	["@shivaedev/test/it.ts", "@shivaedev/test/it.ts", "an Effect test runner"],
 	["@shivaedev/test/adapters/makeEffectIt.ts", "@shivaedev/test/adapters/makeEffectIt.ts", "an Effect test runner"],
 	["node:https", "node:https", "the network"],
 	["effect/http", "effect/http", "the network"],

@@ -1,9 +1,9 @@
 import { Effect, Layer, type Redacted, type Scope } from "effect";
 import type { PostgresMigrationOptions } from "@shivaedev/sql/migrations.ts";
 import type { PostgresOptions } from "@shivaedev/sql/postgresLayer.ts";
-import { postgresTestContext } from "#server/adapters/postgresTestContext.ts";
 import { connectionLimitHint } from "#server/connectionLimitHint.ts";
 import type { PostgresTestServices } from "#server/database.ts";
+import { postgresTestContext } from "#server/postgresTestContext.ts";
 
 export type PostgresTestLoader<E = never, R = never> = (
 	url: Redacted.Redacted<string>,

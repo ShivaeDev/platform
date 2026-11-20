@@ -1,8 +1,8 @@
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { manifestStory, repositoryHas } from "#test/manifestStory.ts";
 import { publishedTestingFiles, RUNTIME_MANIFEST } from "#test/publishedTestingFiles.ts";
-import { withMatchers } from "#testing/adapters/assertThat.ts";
 import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
+import { withMatchers } from "#testing/assertThat.ts";
 
 manifestStory.it(
 	"quality lint rejects a runtime package's test-story peer and names the test-kits repair without rule configuration",

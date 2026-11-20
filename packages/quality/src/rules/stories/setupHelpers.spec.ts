@@ -1,6 +1,6 @@
 import { storySetup } from "#rules/stories/setup.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
+import { assertThat } from "#testing/assertThat.ts";
 
 const TEST = "src/cart/cart.test.ts";
 

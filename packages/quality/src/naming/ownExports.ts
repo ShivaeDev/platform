@@ -1,5 +1,5 @@
 import ts from "typescript";
-import { constantType, plainData } from "#naming/adapters/plainData.ts";
+import { constantType, plainData } from "#naming/plainData.ts";
 
 export interface OwnExport {
 	readonly constant: boolean;

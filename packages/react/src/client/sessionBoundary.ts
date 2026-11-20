@@ -6,15 +6,15 @@ import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { createElement, Fragment, type ReactNode, useContext } from "react";
 import type { QueryStorageProvider } from "@shivaedev/contract/QueryStorage.ts";
 import type { QueryRetentionOptions } from "@shivaedev/contract/queryRetention.ts";
-import { DraftSessionContext } from "@shivaedev/form/adapters/react.ts";
+import { DraftSessionContext } from "@shivaedev/form/react.ts";
 import { SessionGeneration } from "#client/adapters/SessionGeneration.ts";
 import { SessionHandoff } from "#client/adapters/SessionHandoff.ts";
-import { SessionSignOut } from "#client/adapters/SessionSignOut.ts";
-import { useSessionRetry } from "#client/adapters/useSessionRetry.ts";
 import { useDeviceWipe, useStoredQueryWipes } from "#client/adapters/useStoredQueries.ts";
 import { RecheckContext } from "#client/RecheckContext.ts";
+import { SessionSignOut } from "#client/SessionSignOut.ts";
 import { SignOutRegistryContext } from "#client/SignOutRegistryContext.ts";
 import { useDraftOwner } from "#client/useDraftOwner.ts";
+import { useSessionRetry } from "#client/useSessionRetry.ts";
 export interface SessionBoundaryProps<TSession, TClient> {
 	readonly children: (client: TClient) => ReactNode;
 	readonly connect: (session: TSession, registry: AtomRegistry.AtomRegistry) => TClient;

@@ -9,8 +9,8 @@ import {
 	workspaceStoreInstalled,
 } from "#test/consumerServices.ts";
 import { biomeFormatted, qualityInstalled, repositoryHas, repositoryStory } from "#test/repositoryStory.ts";
-import { withMatchers } from "#testing/adapters/assertThat.ts";
 import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
+import { withMatchers } from "#testing/assertThat.ts";
 
 const consumer = [qualityInstalled(), effectInstalled(), repositoryHas(...consumerWorkspace, consumerService)];
 

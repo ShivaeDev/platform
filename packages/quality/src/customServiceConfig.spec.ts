@@ -1,5 +1,5 @@
 import { customServiceStory } from "#test/customServiceStory.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
+import { assertThat } from "#testing/assertThat.ts";
 
 customServiceStory.it("quality reports findings from a typed rule with a supplied custom service", [], function* ({ checks, report }) {
 	yield* checks();

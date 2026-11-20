@@ -4,7 +4,7 @@ import { Effect } from "effect";
 import { Backend } from "@shivaedev/agent/backend.ts";
 import { requireFeatures } from "@shivaedev/agent/agent.ts";
 import { makeClaudeBackend } from "@shivaedev/agent-claude-code/claudeCode.ts";
-import { ClaudeProvider } from "@shivaedev/agent-claude-code/adapters/ClaudeProvider.ts";
+import { ClaudeProvider } from "@shivaedev/agent-claude-code/ClaudeProvider.ts";
 
 const end = Promise.withResolvers<void>();
 let closed = false;

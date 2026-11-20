@@ -3,10 +3,10 @@ import type * as AsyncResult from "effect/reactivity/AsyncResult";
 import type * as Atom from "effect/reactivity/Atom";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { loadQuery } from "#adapters/loadQuery.ts";
-import { type QueryRouteRedirects, queryRouteFailure } from "#adapters/queryRouteFailure.ts";
 import { useQueryRetry } from "#adapters/useQueryRetry.ts";
 import type { QueryOptions } from "#client/resultState.ts";
 import { type LoadedQueryState, useLoaderQuery } from "#client/useLoaderQuery.ts";
+import { type QueryRouteRedirects, queryRouteFailure } from "#queryRouteFailure.ts";
 
 interface QueryRouteInput<TParams, TSearch, TContext> {
 	readonly context: TContext;

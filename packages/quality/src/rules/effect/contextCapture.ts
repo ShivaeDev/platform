@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { contextCaptureCheck } from "#adapters/contextCaptureCheck.ts";
+import { contextCaptureCheck } from "#contextCaptureCheck.ts";
 import { defineRule } from "#rule.ts";
 import { rootedFindings } from "#rules/rootedFindings.ts";
 import { unsafeFindings } from "#rules/unsafeFindings.ts";

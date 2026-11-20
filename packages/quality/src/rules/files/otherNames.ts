@@ -1,7 +1,7 @@
 import { posix } from "node:path";
 import { Effect, Schema } from "effect";
-import { type IgnoreMatcher, ignorePatterns } from "#adapters/ignore.ts";
 import { GlobDeclarations, globPatterns, validateGlobs } from "#config/globs.ts";
+import { type IgnoreMatcher, ignorePatterns } from "#ignore.ts";
 import { nativeNames } from "#naming/nativeNames.ts";
 import { CAMEL, KEBAB } from "#naming/words.ts";
 import { defineRule, type Finding } from "#rule.ts";

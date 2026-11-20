@@ -1,4 +1,4 @@
-import { seedCookies } from "@shivaedev/test-story/server/adapters/seedCookies.ts";
+import { seedCookies } from "@shivaedev/test-story/server/seedCookies.ts";
 
 export function sessionCookie(token?: string) {
 	return seedCookies([

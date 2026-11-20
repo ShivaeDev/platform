@@ -1,5 +1,5 @@
 import { gitTracks, inventoryStory, repositoryHas } from "#test/inventoryStory.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
+import { assertThat } from "#testing/assertThat.ts";
 
 const GITIGNORES = [
 	{ content: ".worktree/\nbuild/\n*.scratch.ts\n", path: ".gitignore" },

@@ -1,7 +1,7 @@
 import { Effect, Queue } from "effect";
 import { build, createServer, type InlineConfig, type Logger, type ViteDevServer } from "vite";
-import { type AppViteOptions, appViteConfig } from "#adapters/appViteConfig.ts";
 import { buildPlugin } from "#adapters/vitePlugin.ts";
+import { type AppViteOptions, appViteConfig } from "#appViteConfig.ts";
 
 // What reaches the browser over Vite's HMR socket: a page reload and the file whose change caused it, or the error overlay.
 export type BrowserMessage = { readonly overlay: string } | { readonly reloadAfter: string };

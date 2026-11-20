@@ -1,5 +1,5 @@
 import { biomeStory, presetInstalled, repositoryHas } from "#test/biomeStory.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
+import { assertThat } from "#testing/assertThat.ts";
 
 const GLOBALS = ["fetch", "localStorage", "sessionStorage", "indexedDB", "WebSocket", "EventSource", "Worker", "SharedWorker"];
 

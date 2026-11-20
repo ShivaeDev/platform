@@ -3,7 +3,7 @@ import { basename, dirname, resolve } from "node:path";
 import { Effect, FileSystem, type PlatformError, Schema } from "effect";
 import ts from "typescript";
 import { cacheConfig } from "#adapters/biome/cacheConfig.ts";
-import { liftedPlugin } from "#adapters/biome/liftedPlugin.ts";
+import { liftedPlugin } from "#biome/liftedPlugin.ts";
 import { nonEffectPlugins } from "#biome/nonEffectPlugins.ts";
 
 const ObjectConfig = Schema.Record(Schema.String, Schema.Unknown);

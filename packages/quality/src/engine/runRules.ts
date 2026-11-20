@@ -1,5 +1,4 @@
 import { Deferred, Effect, Fiber } from "effect";
-import { withStoryProgram } from "#adapters/storyProgram.ts";
 import { ChildStarted } from "#engine/childStarted.ts";
 import { type ActiveRule, runRule } from "#engine/runRule.ts";
 import { permitted, reported } from "#engine/unsafeFindings.ts";
@@ -9,6 +8,7 @@ import { inAdapters } from "#naming/unsafeFolders.ts";
 import type { RuleInputs, RuleServices } from "#rule.ts";
 import { PACKAGE_CHECKS, withPackageWalk } from "#rules/packageFindings.ts";
 import { withSharedTrees } from "#rules/parse.ts";
+import { withStoryProgram } from "#storyProgram.ts";
 
 type RuleRun = Effect.Effect<readonly Violation[], SetupFailure, RuleServices>;
 
@@ -87,7 +87,6 @@ function readsEvidence(rule: ActiveRule): boolean {
 	return rule.needs === "evidence";
 }
 
-// adapters/ and test-support/ permit what an unsafe finding reports, so it is dropped there; in adapters/ it is the evidence that rules reading it judge after every other rule has run.
 const withEvidence = Effect.fn("Engine.withEvidence")(function* (rules: readonly ActiveRule[], inputs: RuleInputs, results: readonly Violation[]) {
 	const evidence = new Set(results.filter((violation) => permitted(violation) && inAdapters(violation.file)).map((violation) => violation.file));
 	const judged = yield* Effect.forEach(rules.filter(readsEvidence), (rule) =>

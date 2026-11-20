@@ -1,7 +1,7 @@
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { noInline } from "#rules/suppressions/noInline.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
+import { assertThat } from "#testing/assertThat.ts";
 
 const EXPECT_ERROR = "// @ts-expect-error The types reject it.\n";
 

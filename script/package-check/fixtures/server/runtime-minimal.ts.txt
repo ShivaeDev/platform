@@ -1,5 +1,5 @@
 import { Identity } from "@shivaedev/identity/identity.ts"
-import { nodeSubscriptionSignal } from "@shivaedev/server/adapters/subscriptionSignal.ts"
+import { nodeSubscriptionSignal } from "@shivaedev/server/subscriptionSignal.ts"
 import { makePlatformRuntime } from "@shivaedev/server/adapters/makePlatformRuntime.ts"
 import { Context, Layer } from "effect"
 

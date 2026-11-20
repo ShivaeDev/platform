@@ -2,7 +2,7 @@ import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { biomeOverrides } from "#rules/suppressions/biomeOverrides.ts";
 import { acmePreset, consumer, off } from "#test/biomeConfigFiles.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
-import { assertThat, withMatchers } from "#testing/adapters/assertThat.ts";
+import { assertThat, withMatchers } from "#testing/assertThat.ts";
 
 const REASON = "Tools load their config files through the default export.";
 

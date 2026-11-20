@@ -1,13 +1,10 @@
 import { posix } from "node:path";
 import { Effect, Schema } from "effect";
-import { ignorePatterns } from "#adapters/ignore.ts";
-import { isToolConfig } from "#adapters/isToolConfig.ts";
-import { serviceAssemblyImports } from "#adapters/serviceAssemblyImports.ts";
-import { directServiceDefinitions } from "#adapters/serviceAssemblySyntax.ts";
 import { GlobDeclarations, globPatterns, validateGlobs } from "#config/globs.ts";
+import { ignorePatterns } from "#ignore.ts";
 import { programmaticBuilds } from "#inventory/programmaticBuilds.ts";
 import { routeFiles } from "#inventory/routeFiles.ts";
-import { knownDataExports } from "#naming/adapters/plainData.ts";
+import { isToolConfig } from "#isToolConfig.ts";
 import { constantModule } from "#naming/constantModule.ts";
 import { exportFits } from "#naming/exportFits.ts";
 import { isMigrationFile } from "#naming/isMigrationFile.ts";
@@ -16,10 +13,13 @@ import { mainExport } from "#naming/mainExport.ts";
 import { moduleRoot } from "#naming/moduleRoot.ts";
 import { ownExports } from "#naming/ownExports.ts";
 import { type PackageLayout, packageLayout } from "#naming/packageLayout.ts";
+import { knownDataExports } from "#naming/plainData.ts";
 import { repeatedFolder } from "#naming/repeatedFolder.ts";
 import { CAMEL, KEBAB } from "#naming/words.ts";
 import { defineRule, type Finding, type SourceFile } from "#rule.ts";
 import { parse } from "#rules/parse.ts";
+import { serviceAssemblyImports } from "#serviceAssemblyImports.ts";
+import { directServiceDefinitions } from "#serviceAssemblySyntax.ts";
 
 const DEFAULT_TOOL_OWNED: readonly string[] = ["*.d.ts", "*.d.mts", "*.d.cts"];
 

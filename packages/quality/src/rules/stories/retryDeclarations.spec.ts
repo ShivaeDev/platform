@@ -1,8 +1,8 @@
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { globalRetries } from "#rules/stories/globalRetries.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
-import { assertThat, withMatchers } from "#testing/adapters/assertThat.ts";
-import { kitFiles, spec } from "#testing/adapters/storySpecFiles.ts";
+import { assertThat, withMatchers } from "#testing/assertThat.ts";
+import { kitFiles, spec } from "#testing/storySpecFiles.ts";
 
 for (const registration of [
 	'it("works", { retry: 2 }, () => {});',
@@ -61,7 +61,7 @@ for (const [imports, registration] of [
 	['import * as runner from "vitest";', 'runner.test("works", { retry: 1 }, () => {});'],
 	['import { it } from "@effect/vitest";', 'it.effect("works", () => Effect.void, { retry: 1 });'],
 	['import { it } from "@effect/vitest";', 'it.layer(layer)("orders", { retry: 1 }, (it) => {});'],
-	['import { it } from "@shivaedev/test/adapters/it.ts";', 'it.effect("works", function* () {}, { retry: 1 });'],
+	['import { it } from "@shivaedev/test/it.ts";', 'it.effect("works", function* () {}, { retry: 1 });'],
 	[
 		'import { makeEffectIt } from "@shivaedev/test/adapters/makeEffectIt.ts";',
 		'const { effectApp } = makeEffectIt({}); effectApp("works", function* () {}, { retry: 1 });',

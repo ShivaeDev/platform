@@ -1,5 +1,5 @@
 import { biomeReports } from "#test/biomeReports.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
+import { assertThat } from "#testing/assertThat.ts";
 
 biomeReports.it(
 	"a Biome run that exits without a report fails with the command Biome ran, its exit code and Biome's error output",

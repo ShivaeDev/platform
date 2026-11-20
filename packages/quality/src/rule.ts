@@ -1,11 +1,11 @@
 import type { Context, Effect, FileSystem } from "effect";
 import type { ChildProcessSpawner } from "effect/process";
 import type ts from "typescript";
-import type { DeclarationFiles } from "#adapters/declaration-files/service.ts";
 import { configureWith, noOptions, type RuleCheckResult, ruleConfiguration } from "#adapters/rule.ts";
-import type { StandardSchemaV1 } from "#adapters/standardSchema.ts";
+import type { DeclarationFiles } from "#declaration-files/service.ts";
 import type { ExceptionDeclaration } from "#exceptions/declaration.ts";
 import type { FilesystemFailure } from "#inventory/filesystem.ts";
+import type { StandardSchemaV1 } from "#standardSchema.ts";
 
 export interface Finding {
 	readonly count?: number | undefined;

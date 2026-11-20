@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { testingEngine } from "@shivaedev/test-kits/jobs/adapters/testingEngine.ts";
+import { testingEngine } from "@shivaedev/test-kits/jobs/testingEngine.ts";
 import type { DatabaseEngine } from "#test/postgres/databaseEngine.ts";
 import { admin } from "#test/postgres/engine.ts";
 import { idOf } from "#test/postgres/verbs.ts";

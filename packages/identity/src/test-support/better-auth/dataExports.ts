@@ -7,8 +7,8 @@ import { signedInUser } from "@shivaedev/test-kits/identity/adapters/betterAuth.
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { accountExport } from "#server/accountExport.ts";
 import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
-import { betterAuthUserDataExport } from "#server/better-auth/adapters/userDataExport.ts";
 import { mappedExportUser, storedExportAccount } from "#server/better-auth/test-support/exportAccounts.ts";
+import { betterAuthUserDataExport } from "#server/better-auth/userDataExport.ts";
 import { userReference } from "#server/better-auth/userReference.ts";
 import { storyClock, withIdentityDatabase } from "#test/clock.ts";
 import { databaseUrl, postgres } from "#test/postgres.ts";

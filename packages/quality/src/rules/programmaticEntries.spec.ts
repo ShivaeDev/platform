@@ -1,7 +1,7 @@
 import { unusedCode } from "#rules/unusedCode.ts";
 import { programmaticEntries } from "#test/programmaticEntries.ts";
 import { ruleStory } from "#test/ruleStory.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
+import { assertThat } from "#testing/assertThat.ts";
 
 ruleStory.it(
 	"code/unused follows bundled main and preload entries but still reports abandoned files and exports",

@@ -1,6 +1,6 @@
 import { ConfigProvider, Effect } from "effect";
-import { docker } from "#server/adapters/docker.ts";
 import { startContainer } from "#server/adapters/localContainer.ts";
+import { docker } from "#server/docker.ts";
 import { dockerEnvironment } from "#server/dockerEnvironment.ts";
 import { LocalPostgresError } from "#server/LocalPostgresError.ts";
 import { PostgresCommandError } from "#server/PostgresCommandError.ts";

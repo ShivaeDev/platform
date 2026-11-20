@@ -5,8 +5,8 @@ import { effectInstalled } from "#test/consumerServices.ts";
 import { biomeFormatted, repositoryHas as cliRepositoryHas, qualityInstalled, repositoryStory } from "#test/repositoryStory.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
 import { ASSEMBLY_INVENTORY, assemblyFiles, serviceAssembly, serviceInstalled, statelessAssembly } from "#test/serviceAssemblyFiles.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
 import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
+import { assertThat } from "#testing/assertThat.ts";
 
 repositoryStory.it(
 	"quality lint accepts ordinary operations, state factories and marked generic operations and factories",

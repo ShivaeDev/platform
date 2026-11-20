@@ -1,7 +1,7 @@
 import { registryFacts } from "#test/consumerHeuristics.ts";
 import { inventoryStory, repositoryHas } from "#test/inventoryStory.ts";
 import { shadcnApplication } from "#test/shadcnApplication.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
+import { assertThat } from "#testing/assertThat.ts";
 
 inventoryStory.it(
 	"inventory includes 17 customized registry filenames and excludes only files declared tool-owned",

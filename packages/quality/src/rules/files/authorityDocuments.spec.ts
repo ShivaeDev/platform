@@ -1,6 +1,6 @@
 import { otherNames } from "#rules/files/otherNames.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
+import { assertThat } from "#testing/assertThat.ts";
 
 ruleStory.it(
 	"other-names accepts root authority documents beside AGENTS and still reports ordinary uppercase documents",

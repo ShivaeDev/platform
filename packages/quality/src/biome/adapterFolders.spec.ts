@@ -1,6 +1,6 @@
 import { inAdaptersOrTestSupport } from "#naming/unsafeFolders.ts";
 import { biomeStory, presetInstalled, repositoryHas } from "#test/biomeStory.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
+import { assertThat } from "#testing/assertThat.ts";
 
 const PATHS = [
 	"adapters/root.ts",

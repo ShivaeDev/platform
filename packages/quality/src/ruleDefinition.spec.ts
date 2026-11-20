@@ -1,6 +1,6 @@
 import { echo, maxFiles, readsNotes, todo } from "#test/definedRules.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
+import { assertThat } from "#testing/assertThat.ts";
 
 const THREE_FILES = [
 	{ content: "export const a = 1;\n", path: "src/a.ts" },

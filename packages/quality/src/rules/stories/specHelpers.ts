@@ -1,9 +1,9 @@
 import { Effect } from "effect";
-import { pureReader } from "#adapters/pureReader.ts";
-import { specReaderSources } from "#adapters/specReaderSources.ts";
+import { pureReader } from "#pureReader.ts";
 import { defineRule } from "#rule.ts";
 import { storySources } from "#rules/stories/sources.ts";
 import { findingAt, topLevelHelpers } from "#rules/stories/syntax.ts";
+import { specReaderSources } from "#specReaderSources.ts";
 
 const MESSAGE =
 	"Declares a setup or action helper in a spec. Move the action into the story kit's verbs or the setup into its traits in test-support/.";

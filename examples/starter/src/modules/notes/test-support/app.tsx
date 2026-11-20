@@ -5,7 +5,7 @@ import { SqlClient } from "effect/sql";
 import { clientActivity } from "@shivaedev/contract/clientActivity.ts";
 import { authTestDatabase } from "@shivaedev/identity/server/better-auth/testDatabase.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
-import { seedCookies } from "@shivaedev/test-story/server/adapters/seedCookies.ts";
+import { seedCookies } from "@shivaedev/test-story/server/seedCookies.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { App } from "#client/App.tsx";
 import { makeAuth } from "#client/adapters/auth.ts";

@@ -3,12 +3,12 @@ import { Cause, Effect, Option } from "effect";
 import type * as Atom from "effect/reactivity/Atom";
 import { useContext, useInsertionEffect, useMemo, useRef } from "react";
 import { isUnauthorized } from "@shivaedev/errors/taxonomy.ts";
-import { useFeedback } from "#client/adapters/useFeedback.ts";
 import { useStableRun } from "#client/adapters/useStableRun.ts";
 import type { BoundOperation } from "#client/boundOperation.ts";
 import type { FailureChoices, FailuresOption } from "#client/failures.ts";
 import type { NoticeDescriptor, NoticeFeedback } from "#client/notices.ts";
 import { useSessionRecheck } from "#client/sessionBoundary.ts";
+import { useFeedback } from "#client/useFeedback.ts";
 
 export interface ActionOptions<TInput, A, E, R = never> {
 	readonly concurrent?: boolean;

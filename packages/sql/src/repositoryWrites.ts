@@ -1,11 +1,11 @@
 import { Effect, Schema } from "effect";
 import type { Model } from "effect/schema";
 import { SqlClient, SqlSchema } from "effect/sql";
-import { storageSchema } from "#adapters/storageSchema.ts";
 import type { RepositoryChanges } from "#repositoryChanges.ts";
 import { makeFilter } from "#repositoryFilter.ts";
 import { selectedUpdate } from "#repositoryUpdate.ts";
 import { sqlNameTransforms } from "#sqlNameTransforms.ts";
+import { storageSchema } from "#storageSchema.ts";
 
 export const repositoryWrites = Effect.fnUntraced(function* (
 	model: Model.Any,

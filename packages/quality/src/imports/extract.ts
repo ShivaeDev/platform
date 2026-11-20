@@ -1,5 +1,5 @@
 import ts from "typescript";
-import { moduleResolver } from "#adapters/moduleResolver.ts";
+import { moduleResolver } from "#moduleResolver.ts";
 
 export type ImportKind = "import" | "path-reference" | "resolve" | "type-reference";
 

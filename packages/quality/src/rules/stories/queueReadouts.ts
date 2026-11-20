@@ -1,4 +1,4 @@
-import { queueReadoutFindings } from "#adapters/queueReadoutFindings.ts";
+import { queueReadoutFindings } from "#queueReadoutFindings.ts";
 import { defineRule } from "#rule.ts";
 
 export const queueReadouts = defineRule({

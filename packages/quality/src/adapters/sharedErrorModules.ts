@@ -4,9 +4,9 @@ import { fileURLToPath } from "node:url";
 import { Effect } from "effect";
 import ts from "typescript";
 import errorsPackage from "@shivaedev/errors/package.json" with { type: "json" };
-import { type Project, projectsFor } from "#adapters/imports/projects.ts";
-import { readPackageManifest } from "#adapters/manifestInventory.ts";
 import { exportTargets } from "#imports/packageExports.ts";
+import { type Project, projectsFor } from "#imports/projects.ts";
+import { readPackageManifest } from "#manifestInventory.ts";
 import type { RuleInputs } from "#rule.ts";
 
 export interface SharedErrorModule {

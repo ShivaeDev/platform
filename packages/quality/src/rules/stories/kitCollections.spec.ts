@@ -1,8 +1,8 @@
 import { storySpecs } from "#rules/stories/specs.ts";
 import { waitOnEvents } from "#rules/stories/waitOnEvents.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
-import { kitFiles, spec } from "#testing/adapters/storySpecFiles.ts";
+import { assertThat } from "#testing/assertThat.ts";
+import { kitFiles, spec } from "#testing/storySpecFiles.ts";
 
 for (const loop of [
 	"for (const kit of kits)",

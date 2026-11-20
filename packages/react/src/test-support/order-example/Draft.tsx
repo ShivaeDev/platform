@@ -1,7 +1,7 @@
 import { Option } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import { createElement, useId } from "react";
-import { useDirty, useField, useSubmit } from "@shivaedev/form/adapters/react.ts";
+import { useDirty, useField, useSubmit } from "@shivaedev/form/react.ts";
 import type { Form } from "@shivaedev/form/shape.ts";
 import type { Order } from "#test/order-example/contract.ts";
 import type { DraftFields } from "#test/order-example/DraftFields.ts";

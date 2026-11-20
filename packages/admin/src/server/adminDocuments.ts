@@ -2,7 +2,7 @@ import { Effect } from "effect";
 import { HttpRouter, HttpServerRequest, HttpServerResponse } from "effect/http";
 import * as HttpStatus from "effect/http/HttpStatus";
 import { permissionRoute } from "@shivaedev/identity/server/adapters/permissionRoute.ts";
-import { matchAdminRoute } from "#adapters/matchAdminRoute.ts";
+import { matchAdminRoute } from "#matchAdminRoute.ts";
 import type { AnyAdminRegistry } from "#registry.ts";
 
 export function adminDocuments<E, R>(

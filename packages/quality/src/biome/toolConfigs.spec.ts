@@ -1,5 +1,5 @@
 import { biomeStory, presetInstalled, repositoryHas } from "#test/biomeStory.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
+import { assertThat } from "#testing/assertThat.ts";
 
 biomeStory.it(
 	"Biome accepts a tool-required default export in dependency-cruiser configs and still rejects ordinary defaults",

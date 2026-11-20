@@ -1,8 +1,8 @@
 import ts from "typescript";
-import { callerContextData } from "#adapters/callerContextData.ts";
-import { clientHandle } from "#adapters/clientHandle.ts";
-import { nonEmptyContext } from "#adapters/nonEmptyContext.ts";
-import { valueType } from "#adapters/valueType.ts";
+import { callerContextData } from "#callerContextData.ts";
+import { clientHandle } from "#clientHandle.ts";
+import { nonEmptyContext } from "#nonEmptyContext.ts";
+import { valueType } from "#valueType.ts";
 
 const SERVICE = "~effect/Context/Service";
 const CONTEXT = "~effect/Context";

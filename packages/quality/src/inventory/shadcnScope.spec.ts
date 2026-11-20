@@ -1,6 +1,6 @@
 import { inventoryStory, repositoryHas } from "#test/inventoryStory.ts";
 import { shadcnApplication } from "#test/shadcnApplication.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
+import { assertThat } from "#testing/assertThat.ts";
 
 inventoryStory.it(
 	"a nested package skips only declared stock files, keeping helpers, tests and matching names elsewhere",

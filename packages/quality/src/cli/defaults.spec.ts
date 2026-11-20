@@ -1,7 +1,7 @@
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { qualityInstalled, repositoryHas, repositoryStory } from "#test/repositoryStory.ts";
-import { assertThat, withMatchers } from "#testing/adapters/assertThat.ts";
 import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
+import { assertThat, withMatchers } from "#testing/assertThat.ts";
 
 const TODO = { content: "// TODO\nexport function value(): number {\n\treturn 1;\n}\n", path: "src/value.ts" };
 const CLEAN = { content: "export function value(): number {\n\treturn 1;\n}\n", path: "src/value.ts" };

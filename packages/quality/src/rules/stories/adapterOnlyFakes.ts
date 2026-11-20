@@ -1,12 +1,12 @@
 import { Effect } from "effect";
 import ts from "typescript";
-import { fakeApi, fakeReferences } from "#adapters/imports/fakeReferences.ts";
 import { type FakeModule, fakeTargets } from "#adapters/imports/fakeTargets.ts";
-import { storyProgram } from "#adapters/storyProgram.ts";
+import { fakeApi, fakeReferences } from "#imports/fakeReferences.ts";
 import { importGraph } from "#imports/graph.ts";
 import { isTestCode } from "#naming/testName.ts";
 import { defineRule, type Finding } from "#rule.ts";
 import { fakeReplacements } from "#rules/stories/fakeReplacements.ts";
+import { storyProgram } from "#storyProgram.ts";
 
 function internal(path: string): boolean {
 	return !path.split("/").includes("adapters");

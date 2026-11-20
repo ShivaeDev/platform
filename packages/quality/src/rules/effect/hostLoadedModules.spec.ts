@@ -1,8 +1,8 @@
 import { adapterImports } from "#rules/effect/adapterImports.ts";
 import { effectBoundary } from "#rules/effect/boundary.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
 import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
+import { assertThat } from "#testing/assertThat.ts";
 
 const WORKSPACE = { content: '{"name":"@demo/workspace","workspaces":["packages/*"],"devDependencies":{"vitest":"*"}}', path: "package.json" };
 

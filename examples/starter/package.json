@@ -5,7 +5,7 @@
 	"type": "module",
 	"imports": {
 		"#*": "./src/*",
-		"#railway": "./.railway/adapters/project.ts"
+		"#railway": "./.railway/project.ts"
 	},
 	"scripts": {
 		"admin:create": "node --conditions=@shivaedev/source --env-file-if-exists=.env.local src/server/admin/run.ts",
@@ -28,7 +28,7 @@
 		"setup": "pnpm install && pnpm skills:sync && quality setup",
 		"skills:sync": "shivaedev-skills sync",
 		"start": "node --conditions=@shivaedev/source --env-file-if-exists=.env.local src/server/server.ts",
-		"test": "node --conditions=@shivaedev/source tooling/heavy.ts -- node --conditions=@shivaedev/source --env-file-if-exists=.env.local tooling/adapters/test.ts",
+		"test": "node --conditions=@shivaedev/source tooling/heavy.ts -- node --conditions=@shivaedev/source --env-file-if-exists=.env.local tooling/test.ts",
 		"typecheck": "pnpm generate && node --conditions=@shivaedev/source tooling/heavy.ts -- tsc --noEmit",
 		"worker": "node --conditions=@shivaedev/source --env-file-if-exists=.env.local src/server/worker.ts"
 	},

@@ -2,7 +2,7 @@ import { importsResolvable } from "#rules/imports/resolvable.ts";
 import { definedModuleWorkspace, generatorWrote, NOTES_GENERATED } from "#test/definedModules.ts";
 import { fixtureTree } from "#test/fixtureTree.ts";
 import { importStory, repositoryHas, repositoryHolds } from "#test/importStory.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
+import { assertThat } from "#testing/assertThat.ts";
 
 importStory.it(
 	"imports/resolvable reports an import of a file in the application's src/generated that the generator does not write, naming the module that would define it",

@@ -1,13 +1,13 @@
 import { Deferred, Effect, Layer, Result } from "effect";
-import { changeKeyCheck } from "#adapters/changeKeyCheck.ts";
-import { DeclarationFiles } from "#adapters/declaration-files/service.ts";
-import { projectsFor } from "#adapters/imports/projects.ts";
-import { sourcesProgram } from "#adapters/typeScriptProgram.ts";
+import { changeKeyCheck } from "#changeKeyCheck.ts";
+import { DeclarationFiles } from "#declaration-files/service.ts";
+import { projectsFor } from "#imports/projects.ts";
 import { packageOf, workspacePackages } from "#imports/workspace.ts";
 import type { Finding, RuleInputs, SourceFile, TypeScriptProgram } from "#rule.ts";
 import { boundaryCheck } from "#rules/effect/boundaryCheck.ts";
 import { serviceParameterCheck } from "#rules/effect/serviceParameterCheck.ts";
 import { typedCastCheck } from "#rules/suppressions/typedCastCheck.ts";
+import { sourcesProgram } from "#typeScriptProgram.ts";
 
 export interface PackageCheck {
 	readonly checks: (file: SourceFile) => boolean;

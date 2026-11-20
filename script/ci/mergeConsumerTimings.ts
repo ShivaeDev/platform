@@ -1,7 +1,7 @@
 import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { Effect, FileSystem, Schema } from "effect";
-import { availableJobDurations } from "#ci/adapters/availableJobDurations.ts";
+import { availableJobDurations } from "#ci/availableJobDurations.ts";
 import { type MainTimingRun, mainTimingRun, timingReports } from "#ci/mainTimingRun.ts";
 import { consumerShardMs, wallTimeShardCount } from "#ci/shardCount.ts";
 import { decodeTimingSnapshot, mergeConsumerTimingReports } from "#ci/timings.ts";

@@ -1,6 +1,6 @@
 import { biomeStory, presetInstalled, repositoryHas } from "#test/biomeStory.ts";
 import { fileInputs, generatorEntries, rendererCss } from "#test/consumerHeuristics.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
+import { assertThat } from "#testing/assertThat.ts";
 
 biomeStory.it(
 	"noDoneCallback accepts fixture data destructuring in a custom generator entry and reports a Vitest done callback",

@@ -3,9 +3,9 @@ import type { Model } from "effect/schema";
 import { SqlClient } from "effect/sql";
 import type { SqlError } from "effect/sql/SqlError";
 import type { Fragment } from "effect/sql/Statement";
-import { storageSchema } from "#adapters/storageSchema.ts";
 import type { RepositoryChanges } from "#repositoryChanges.ts";
 import { sqlNameTransforms } from "#sqlNameTransforms.ts";
+import { storageSchema } from "#storageSchema.ts";
 import { makeUpsertDecoder, upsertReturning } from "#upsertResult.ts";
 
 export type InsertMany<TModel extends Model.Any, TServices = never> = (

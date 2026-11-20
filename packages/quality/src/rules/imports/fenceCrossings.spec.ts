@@ -4,7 +4,7 @@ import { importFences } from "#rules/imports/fences.ts";
 import { fixtureTree } from "#test/fixtureTree.ts";
 import { gameFences } from "#test/gameFences.ts";
 import { importStory, repositoryHolds } from "#test/importStory.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
+import { assertThat } from "#testing/assertThat.ts";
 
 const { cmsStaysOffDisk, coreNeedsNoAuth, gameKeepsOutOfCms, gameNeverReachesCms, gameSpeaksCards } = gameFences;
 

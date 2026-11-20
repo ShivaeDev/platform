@@ -1,6 +1,6 @@
 import { Effect } from "effect";
-import { readPackageManifest } from "#adapters/manifestInventory.ts";
 import { workspacePackages } from "#imports/workspace.ts";
+import { readPackageManifest } from "#manifestInventory.ts";
 import type { RuleInputs, SourceFile, TypeScriptProgram } from "#rule.ts";
 import { serviceCatalog } from "#rules/effect/serviceCatalog.ts";
 import { serviceFindings } from "#rules/effect/serviceFindings.ts";

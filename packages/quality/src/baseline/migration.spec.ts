@@ -1,8 +1,8 @@
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { baselineStory } from "#test/baselineStory.ts";
 import { earlierBaseline, qualityConfigured, repositoryHas } from "#test/debtRecorded.ts";
-import { assertThat, withMatchers } from "#testing/adapters/assertThat.ts";
 import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
+import { assertThat, withMatchers } from "#testing/assertThat.ts";
 
 const LEGACY_PATH = "quality/baseline.json";
 

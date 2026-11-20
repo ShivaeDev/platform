@@ -1,7 +1,7 @@
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { exceptionStory, repositoryHas } from "#test/exceptionStory.ts";
-import { withMatchers } from "#testing/adapters/assertThat.ts";
 import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
+import { withMatchers } from "#testing/assertThat.ts";
 
 const FILE = "src/parse.ts";
 const REASON = "This parser preserves the external format.";

@@ -16,10 +16,10 @@ import { AccountPreferences as AccountPreferencesClient } from "#generated/Accou
 import { AccountClock } from "#server/account-clock/service.ts";
 import { AccountDayStart, LogicalDay } from "#server/account-clock/settings.ts";
 import { accountPreferencesStore } from "#server/account-preferences/store.ts";
-import { accountPreferencesMigration } from "#server/adapters/accountPreferencesMigration.ts";
+import { accountPreferencesMigration } from "#server/accountPreferencesMigration.ts";
 import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
-import { migrateBetterAuth } from "#server/better-auth/adapters/migrate.ts";
-import { betterAuthMount } from "#server/better-auth/adapters/mount.ts";
+import { migrateBetterAuth } from "#server/better-auth/migrate.ts";
+import { betterAuthMount } from "#server/better-auth/mount.ts";
 import { SessionPolicy } from "#server/SessionPolicy.ts";
 import { selfSubject } from "#subject.ts";
 

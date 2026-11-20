@@ -1,7 +1,7 @@
 import { Context, type Effect, type PubSub } from "effect";
 import type { BackendFailure, ReadFailure } from "@shivaedev/agent/failures.ts";
-import type { OpencodeRequest } from "#adapters/OpencodeRequest.ts";
-import type { ToolSessions } from "#adapters/toolSessions.ts";
+import type { OpencodeRequest } from "#OpencodeRequest.ts";
+import type { ToolSessions } from "#toolSessions.ts";
 
 export interface ProviderPort {
 	readonly exited: Effect.Effect<void>;

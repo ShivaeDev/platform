@@ -2,7 +2,7 @@ import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { qualityInstalled, repositoryHas, repositoryStory } from "#test/repositoryStory.ts";
 import { SKILL_EXAMPLE, SKILL_MANIFEST } from "#test/skillDistribution.ts";
 import { syncedSkills } from "#test/syncedSkills.ts";
-import { assertThat, withMatchers } from "#testing/adapters/assertThat.ts";
+import { assertThat, withMatchers } from "#testing/assertThat.ts";
 
 for (const directory of [".", "apps/site"]) {
 	const prefix = directory === "." ? "" : `${directory}/`;

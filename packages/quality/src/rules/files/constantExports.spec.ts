@@ -1,6 +1,6 @@
 import { namedAfterExport } from "#rules/files/namedAfterExport.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
+import { assertThat } from "#testing/assertThat.ts";
 
 const named = [
 	["src/migration.ts", "export const MIGRATION_DIRECTORY = 'migrations'; export const MIGRATION_PATTERN = /^[0-9]+/u;"],

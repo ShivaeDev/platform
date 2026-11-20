@@ -1,9 +1,9 @@
 import type { Layer } from "effect";
 import type { Rpc, RpcGroup } from "effect/rpc";
-import { servedHandlers } from "#adapters/servedHandlers.ts";
 import type { Declared } from "#contract.ts";
 import type { ModuleServices } from "#moduleProof.ts";
 import type { CommandShape, QueryShape, StreamShape } from "#operation.ts";
+import { servedHandlers } from "#servedHandlers.ts";
 
 export interface AnyModule {
 	readonly "~requires": ModuleServices;

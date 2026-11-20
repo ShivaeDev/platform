@@ -1,11 +1,11 @@
 import { Effect, Scope } from "effect";
 import type { PgBossClient } from "#server/adapters/client.ts";
-import { ensureQueue } from "#server/adapters/ensureQueue.ts";
 import { registerWorker } from "#server/adapters/registerWorker.ts";
 import { workerDiagnostics } from "#server/adapters/workerDiagnostics.ts";
 import type { StopOptions } from "#server/clientOptions.ts";
 import type { JobPayloadSchema, JobRegistration, QueueDefinition, QueueWorker, ScheduleDefinition, ScheduledWorker } from "#server/definition.ts";
 import { validateMaxDeferrals } from "#server/definitionOptions.ts";
+import { ensureQueue } from "#server/ensureQueue.ts";
 import { PgBossQueueOptionsError, toPgBossError } from "#server/error.ts";
 import { runQueueWorker } from "#server/runQueueWorker.ts";
 

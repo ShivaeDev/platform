@@ -1,6 +1,6 @@
 import { databaseUrl } from "#rules/stories/databaseUrl.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
+import { assertThat } from "#testing/assertThat.ts";
 
 for (const [imports, read] of [
 	['import { Config } from "effect";', 'Config.String("PLATFORM_SQL_TEST_DATABASE_URL");'],

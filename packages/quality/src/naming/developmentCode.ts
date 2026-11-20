@@ -1,9 +1,9 @@
 import { Effect, Path } from "effect";
-import { readPackageManifest } from "#adapters/manifestInventory.ts";
-import { scriptPaths } from "#adapters/scriptPaths.ts";
 import { isTooling } from "#imports/isTooling.ts";
 import { packageOf, workspacePackages } from "#imports/workspace.ts";
+import { readPackageManifest } from "#manifestInventory.ts";
 import type { RuleInputs } from "#rule.ts";
+import { scriptPaths } from "#scriptPaths.ts";
 
 export const developmentCode = Effect.fn("Naming.developmentCode")(function* (inputs: RuleInputs) {
 	const posix = yield* Path.Path.pipe(Effect.provide(Path.layer));

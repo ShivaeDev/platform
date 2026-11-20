@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { outsideImportFindings } from "#adapters/outsideImportFindings.ts";
+import { outsideImportFindings } from "#outsideImportFindings.ts";
 import { defineRule } from "#rule.ts";
 import { unsafeFindings } from "#rules/unsafeFindings.ts";
 

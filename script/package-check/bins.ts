@@ -1,11 +1,11 @@
 import { basename, dirname, join } from "node:path";
 import { Effect, FileSystem, Schema } from "effect";
 import { FetchHttpClient } from "effect/http";
-import { pinnedTarballs } from "#package-check/adapters/pinnedTarballs.ts";
 import { plainOutput } from "#package-check/adapters/plainOutput.ts";
 import { checkServer } from "#package-check/adapters/server.ts";
 import { command, requireThat } from "#package-check/io.ts";
 import { bins, decodeVersions, type Package, Versions } from "#package-check/model.ts";
+import { pinnedTarballs } from "#package-check/pinnedTarballs.ts";
 import { packedInstaller } from "#starter-published/packedInstaller.ts";
 
 const Case = Schema.Struct({

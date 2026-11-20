@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { screenPending } from "#adapters/screenPending.ts";
+import { screenPending } from "#screenPending.ts";
 import { liveLoaderHost } from "#test/live-loader/host.ts";
 import { Note } from "#test/live-screen/Note.tsx";
 import { Screen } from "#test/Screen.ts";

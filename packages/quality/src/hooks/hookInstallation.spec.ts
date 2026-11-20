@@ -2,8 +2,8 @@ import { dirname } from "node:path";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { checkoutStory } from "#test/checkoutStory.ts";
 import { hookInstalled, linkedWorktree, outsideGit, ownHook, qualityFileAt } from "#test/linkedWorktree.ts";
-import { assertThat, withMatchers } from "#testing/adapters/assertThat.ts";
 import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
+import { assertThat, withMatchers } from "#testing/assertThat.ts";
 
 const OWN_HOOK = "#!/bin/sh\nmake check\n";
 

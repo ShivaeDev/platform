@@ -1,7 +1,7 @@
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { noDoubleCast } from "#rules/suppressions/noDoubleCast.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
+import { assertThat } from "#testing/assertThat.ts";
 
 for (const [expression, bridge] of [
 	["value as unknown as Target", "unknown"],

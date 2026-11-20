@@ -1,5 +1,5 @@
 import { expect } from "vitest";
-import { atMost } from "@shivaedev/test-story/server/adapters/outcomeMatchers.ts";
+import { atMost } from "@shivaedev/test-story/server/outcomeMatchers.ts";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { orderedShutdownHost, stalledCollector } from "#test/app-host/orderedShutdownStory.ts";
 import { DRAINING_MILLIS } from "#test/app-host/ShutdownApi.ts";

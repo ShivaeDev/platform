@@ -11,9 +11,9 @@ import {
 	withoutConfig,
 } from "#test/linkedWorktree.ts";
 import { FAST_RUN } from "#test/runs.ts";
-import { assertThat, withMatchers } from "#testing/adapters/assertThat.ts";
 import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
 import { logs } from "#testing/adapters/hookRepository.ts";
+import { assertThat, withMatchers } from "#testing/assertThat.ts";
 
 const COMMIT_AGAIN =
 	"help: fix what the output above reports, then commit again; `quality hooks pre-commit` repeats these checks without committing.";

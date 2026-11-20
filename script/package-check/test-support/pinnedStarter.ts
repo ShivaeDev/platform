@@ -6,9 +6,9 @@ import { FetchHttpClient } from "effect/http";
 import * as HttpStatus from "effect/http/HttpStatus";
 import { fakeHttpService } from "@shivaedev/test-story/server/fakeHttpService.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { pinnedTarballs } from "#package-check/adapters/pinnedTarballs.ts";
 import { command, writeJson } from "#package-check/io.ts";
 import type { Package } from "#package-check/model.ts";
+import { pinnedTarballs } from "#package-check/pinnedTarballs.ts";
 import { packedInstaller } from "#starter-published/packedInstaller.ts";
 
 const NAME = "@fixture/starter-pin";

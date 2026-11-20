@@ -1,7 +1,7 @@
 import ts from "typescript";
-import { serviceProperty } from "#adapters/serviceAssemblySyntax.ts";
 import { packageNameOf } from "#imports/packageName.ts";
 import { boundaryReference } from "#rules/effect/boundaryReference.ts";
+import { serviceProperty } from "#serviceAssemblySyntax.ts";
 
 function rootIdentifier(expression: ts.Expression): ts.Identifier | undefined {
 	if (ts.isIdentifier(expression)) {

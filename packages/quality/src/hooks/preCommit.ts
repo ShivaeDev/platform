@@ -1,12 +1,12 @@
 import { Config, Console, Effect } from "effect";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
-import type { ManifestReadFailure } from "#adapters/manifestInventory.ts";
 import { reportLint } from "#cli/lint.ts";
 import { loadConfig } from "#config/load.ts";
 import { passes } from "#engine/evaluate.ts";
 import { projectScripts } from "#engine/projectScripts.ts";
 import { GateFailed, SetupFailure } from "#failure.ts";
 import { stagedCheck } from "#hooks/stagedCheck.ts";
+import type { ManifestReadFailure } from "#manifestInventory.ts";
 import { recap } from "#report/recap.ts";
 
 const COMMIT_AGAIN =

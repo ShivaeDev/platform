@@ -1,6 +1,6 @@
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { folderBlocked, inventoryStory, repositoryHas, repositoryLinks, runsAsRoot } from "#test/inventoryStory.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
+import { assertThat } from "#testing/assertThat.ts";
 
 const APP = { content: "a\nb\n", path: "src/app.ts" };
 const VIEW = { content: "<p/>\n", path: "src/view.tsx" };

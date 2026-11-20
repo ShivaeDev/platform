@@ -1,8 +1,8 @@
 {
 	"files": [
 		{ "durationMs": 12280, "path": "packages/admin/src/client/adapters/jobsHealthDetail.dom.spec.tsx", "project": "@shivaedev/admin:dom" },
-		{ "durationMs": 10159, "path": "packages/admin/src/client/adapters/JobsView.dom.test.tsx", "project": "@shivaedev/admin:dom" },
-		{ "durationMs": 10654, "path": "packages/admin/src/client/adapters/SessionsView.dom.test.tsx", "project": "@shivaedev/admin:dom" },
+		{ "durationMs": 10159, "path": "packages/admin/src/client/JobsView.dom.test.tsx", "project": "@shivaedev/admin:dom" },
+		{ "durationMs": 10654, "path": "packages/admin/src/client/SessionsView.dom.test.tsx", "project": "@shivaedev/admin:dom" },
 		{ "durationMs": 15357, "path": "packages/admin/src/jobs/jobsPostgres.spec.ts", "project": "@shivaedev/admin:unit" },
 		{ "durationMs": 12444, "path": "packages/admin/src/jobs/retryPostgres.spec.ts", "project": "@shivaedev/admin:unit" },
 		{ "durationMs": 34935, "path": "packages/create-app/src/adminDevelopment.heavy.spec.ts", "project": "@shivaedev/create-app:heavy" },

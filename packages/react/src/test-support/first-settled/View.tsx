@@ -2,9 +2,9 @@ import { Option } from "effect";
 import type * as AsyncResult from "effect/reactivity/AsyncResult";
 import type * as Atom from "effect/reactivity/Atom";
 import { useState } from "react";
-import { useFirstSettled } from "#client/adapters/useFirstSettled.ts";
 import { useAction, useQuery } from "#client/resultState.ts";
 import { SessionBoundary } from "#client/sessionBoundary.ts";
+import { useFirstSettled } from "#client/useFirstSettled.ts";
 import type { FirstSettledClient } from "#test/first-settled/client.ts";
 
 function Answer({ name, query }: { readonly name: string; readonly query: Atom.Atom<AsyncResult.AsyncResult<string, unknown>> }) {

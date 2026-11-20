@@ -1,7 +1,7 @@
 import type { Effect } from "effect";
 import { useState } from "react";
-import { SessionsView } from "#client/adapters/SessionsView.ts";
-import type { DateDisplay } from "#client/adapters/timestampText.ts";
+import { SessionsView } from "#client/SessionsView.ts";
+import type { DateDisplay } from "#client/timestampText.ts";
 import type { sessionsHost } from "#test/sessionsHost.ts";
 
 export function SessionsScreenApp({

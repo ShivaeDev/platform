@@ -1,7 +1,7 @@
 import { importCycles } from "#rules/imports/cycles.ts";
 import { fixtureTree } from "#test/fixtureTree.ts";
 import { importStory, repositoryHolds } from "#test/importStory.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
+import { assertThat } from "#testing/assertThat.ts";
 
 const LOOPS = repositoryHolds(fixtureTree("cycle"));
 

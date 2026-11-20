@@ -1,5 +1,5 @@
-import { serviceIdFindings } from "#adapters/serviceIdFindings.ts";
 import { defineRule } from "#rule.ts";
+import { serviceIdFindings } from "#serviceIdFindings.ts";
 
 export const serviceIds = defineRule({
 	check: serviceIdFindings,

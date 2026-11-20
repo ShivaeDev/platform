@@ -1,10 +1,10 @@
 import { Effect } from "effect";
-import { DeclarationFiles } from "#adapters/declaration-files/service.ts";
-import { typeScriptProgram } from "#adapters/typeScriptProgram.ts";
+import { DeclarationFiles } from "#declaration-files/service.ts";
 import { linesOf } from "#inventory/linesOf.ts";
 import type { Findings, RegisteredRule, Rule, RuleInputs } from "#rule.ts";
 import { run } from "#testing/adapters/run.ts";
 import type { SeedFile } from "#testing/adapters/tree.ts";
+import { typeScriptProgram } from "#typeScriptProgram.ts";
 
 export interface Seed {
 	readonly files?: readonly string[];

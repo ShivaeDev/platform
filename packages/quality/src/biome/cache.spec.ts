@@ -1,6 +1,6 @@
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { biomeCacheStory, untypedFiles } from "#test/biomeCacheStory.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
+import { assertThat } from "#testing/assertThat.ts";
 
 biomeCacheStory.it(
 	"a killed Quality process leaves only ignored cached configs and the next run reuses them successfully",

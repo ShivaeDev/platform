@@ -1,7 +1,7 @@
 import { Effect } from "effect";
-import { PRESET, rootConfig } from "#adapters/biome/rootConfig.ts";
 import { fileExclusions } from "#biome/exceptionConfig.ts";
 import { biomeReport, type Diagnostic, FAILING } from "#biome/report.ts";
+import { PRESET, rootConfig } from "#biome/rootConfig.ts";
 import { needsScanner, SCANNER_RULES } from "#biome/scannerRules.ts";
 import { withoutEntryPointImports } from "#biome/withoutEntryPointImports.ts";
 import type { ExceptionDeclaration } from "#exceptions/declaration.ts";

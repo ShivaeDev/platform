@@ -4,9 +4,9 @@ import * as AsyncResult from "effect/reactivity/AsyncResult";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { StrictMode } from "react";
 import { useDeployUpdate } from "#client/adapters/useDeployUpdate.ts";
-import { useUndoableChange } from "#client/adapters/useUndoableChange.ts";
 import type { deployUpdate } from "#client/deployUpdate.ts";
 import { useAction, useQuery } from "#client/resultState.ts";
+import { useUndoableChange } from "#client/useUndoableChange.ts";
 import type { ChangeClient } from "#test/undoable-change/client.ts";
 
 export interface Props {

@@ -3,7 +3,7 @@ import { HOST_PROTOCOL } from "#test/hostProtocol.ts";
 import { MOVED_NOTES } from "#test/movedNotes.ts";
 import { OLD_NOTES_MODULE, OLD_NOTES_PAGE } from "#test/oldNotes.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
+import { assertThat } from "#testing/assertThat.ts";
 
 const REPAIR =
 	"Write each operation as payload plus *run, list the operations in a defineModule and register it with module: in place of group and handlers, as https://github.com/ShivaeDev/platform/blob/main/docs/framework/add-a-feature.md#move-an-existing-module-to-this-shape describes.";

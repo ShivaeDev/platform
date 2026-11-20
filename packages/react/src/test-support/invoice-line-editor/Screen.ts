@@ -2,7 +2,7 @@ import { useAtomValue } from "@effect/atom-react";
 import { Option, Schema } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import { createElement, Fragment, type ReactNode } from "react";
-import { useField } from "@shivaedev/form/adapters/react.ts";
+import { useField } from "@shivaedev/form/react.ts";
 import type { Form } from "@shivaedev/form/shape.ts";
 import { useCreate } from "#client/create.ts";
 import { useEditor } from "#client/editor.ts";
