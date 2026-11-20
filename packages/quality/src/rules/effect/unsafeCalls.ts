@@ -28,9 +28,12 @@ const COUNTERPARTS: Readonly<Record<string, string>> = {
 const GENERIC_REPAIR =
 	"Yield the Effect that Effect ships beside it, usually the same name without Unsafe, or wrap the call in Effect.sync, Effect.try or Effect.suspend when it is a real side effect.";
 
-function definedName(node: ts.Node): string | undefined {
-	const named = ts.isFunctionDeclaration(node) || ts.isFunctionExpression(node) || ts.isMethodDeclaration(node) ? node.name : undefined;
-	const holder = ts.isPropertyAssignment(node.parent) || ts.isVariableDeclaration(node.parent) ? node.parent.name : undefined;
+function memberName(node: ts.Node): string | undefined {
+	const named = ts.isMethodDeclaration(node) ? node.name : undefined;
+	const holder =
+		(ts.isArrowFunction(node) || ts.isFunctionExpression(node)) && (ts.isPropertyAssignment(node.parent) || ts.isPropertyDeclaration(node.parent))
+			? node.parent.name
+			: undefined;
 	const name = named ?? holder;
 	return name !== undefined && (ts.isIdentifier(name) || ts.isStringLiteral(name)) ? name.text : undefined;
 }
@@ -47,7 +50,7 @@ function nameOf(node: ts.Node): string | undefined {
 	return ts.isPropertyAccessExpression(node) ? node.name.text : undefined;
 }
 
-// A wrapper runs its thunk as an Effect again, and a body defined under an …Unsafe name implements an unsafe member whose caller owns the risk.
+// A wrapper runs its thunk as an Effect again, and an object or class member named …Unsafe implements an unsafe member of an interface whose caller owns the risk.
 function accepted(checker: ts.TypeChecker, node: ts.Node): boolean {
 	for (let child = node, parent = node.parent; parent !== undefined; child = parent, parent = parent.parent) {
 		if (
@@ -57,7 +60,7 @@ function accepted(checker: ts.TypeChecker, node: ts.Node): boolean {
 		) {
 			return true;
 		}
-		if (ts.isFunctionLike(parent) && UNSAFE_NAME.test(definedName(parent) ?? "")) {
+		if (ts.isFunctionLike(parent) && UNSAFE_NAME.test(memberName(parent) ?? "")) {
 			return true;
 		}
 	}
@@ -112,7 +115,7 @@ export const unsafeCalls = defineRule({
 		return [...parsed].flatMap(([path, source]) => unsafeFindings(checker, path, source));
 	},
 	description:
-		"Core code does not call Effect's …Unsafe functions bare: they run synchronously outside an Effect, so they throw on bad input (DateTime.makeUnsafe) or perform their side effect at once (Queue.offerUnsafe). The rule reports calls of …Unsafe functions imported from effect or @effect/*, such functions passed as an argument, and …Unsafe member calls on a value such as reactivity.registerUnsafe(keys). A call inside an Effect.sync, Effect.try or Effect.suspend thunk, including a callback written inside it, is accepted, as is a body defined under an …Unsafe name, which implements an unsafe member. A repository's own …Unsafe function or module export is not reported. The finding names the safe counterpart where Effect ships one: DateTime.make and Duration.fromInput return an Option, the Duration constructors build a fixed value, Queue.offer is an Effect and Stream.callback turns a callback into a stream. Tests, tool configs, adapters/ and test-support/ are not checked. currentTimeMillisUnsafe stays with the ambient-runtime Biome plugin, and Context.makeUnsafe, which neither throws nor acts but only builds a Context from a raw map, is not reported; no-double-cast reports a Context retagged through mapUnsafe.",
+		"Core code does not call Effect's …Unsafe functions bare: they run synchronously outside an Effect, so they throw on bad input (DateTime.makeUnsafe) or perform their side effect at once (Queue.offerUnsafe). The rule reports calls of …Unsafe functions imported from effect or @effect/*, such functions passed as an argument, and …Unsafe member calls on a value such as reactivity.registerUnsafe(keys). A call inside an Effect.sync, Effect.try or Effect.suspend thunk, including a callback written inside it, is accepted, as is the body of an object-literal or class member named …Unsafe, which implements an unsafe member of an interface; a function or variable named …Unsafe gets no such exemption. A repository's own …Unsafe function or module export is not reported. The finding names the safe counterpart where Effect ships one: DateTime.make and Duration.fromInput return an Option, the Duration constructors build a fixed value, Queue.offer is an Effect and Stream.callback turns a callback into a stream. Tests, tool configs, adapters/ and test-support/ are not checked. currentTimeMillisUnsafe stays with the ambient-runtime Biome plugin, and Context.makeUnsafe, which neither throws nor acts but only builds a Context from a raw map, is not reported; no-double-cast reports a Context retagged through mapUnsafe.",
 	id: "effect/unsafe-calls",
 	registrable: false,
 });
