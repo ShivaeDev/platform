@@ -34,14 +34,15 @@ export const checkDocumentation = Effect.fn("Published.checkDocumentation")(func
 	const fs = yield* FileSystem.FileSystem;
 	const path = join(consumer, "documented-imports.ts");
 	yield* fs.writeFileString(path, entries.map(importProbe).join("\n"));
-	const problems = yield* Effect.sync(() => importProblems(path, entries, versions));
+	const program = yield* Effect.sync(() => probeProgram(path));
+	const problems = importProblems(program, entries, versions);
 	yield* requireThat(problems.length === 0, `Published documentation API check failed:\n${problems.join("\n")}`);
-	yield* checkRuntimeImports(consumer, entries, versions);
+	yield* checkRuntimeImports(consumer, runtimeEntries(program, path, entries), versions);
 	yield* Effect.log(`Checked ${entries.length} documented imports against ${source}.`);
 });
 
-function importProblems(path: string, entries: readonly DocumentedImport[], versions: Readonly<Record<string, string>>): string[] {
-	const program = ts.createProgram([path], {
+function probeProgram(path: string): ts.Program {
+	return ts.createProgram([path], {
 		module: ts.ModuleKind.ESNext,
 		moduleResolution: ts.ModuleResolutionKind.Bundler,
 		noEmit: true,
@@ -51,6 +52,9 @@ function importProblems(path: string, entries: readonly DocumentedImport[], vers
 		types: [],
 		verbatimModuleSyntax: true,
 	});
+}
+
+function importProblems(program: ts.Program, entries: readonly DocumentedImport[], versions: Readonly<Record<string, string>>): string[] {
 	return ts.getPreEmitDiagnostics(program).map((diagnostic) => {
 		const line = diagnostic.file?.getLineAndCharacterOfPosition(diagnostic.start ?? 0).line;
 		const entry = line === undefined ? undefined : entries[line];
@@ -61,4 +65,18 @@ function importProblems(path: string, entries: readonly DocumentedImport[], vers
 		const name = packageName(entry.specifier);
 		return `${name}@${versions[name]}: import ${entry.name ?? "*"} from ${entry.specifier} (${entry.source}): ${detail}`;
 	});
+}
+
+function runtimeEntries(program: ts.Program, path: string, entries: readonly DocumentedImport[]): DocumentedImport[] {
+	const checker = program.getTypeChecker();
+	const file = program.getSourceFile(path);
+	const module = file === undefined ? undefined : checker.getSymbolAtLocation(file);
+	const values = new Set(
+		(module === undefined ? [] : checker.getExportsOfModule(module))
+			.filter((symbol) => (checker.getAliasedSymbol(symbol).flags & ts.SymbolFlags.Value) !== 0)
+			.map((symbol) => symbol.name),
+	);
+	return entries.filter(
+		(entry, index) => entry.name === undefined || entry.typeOnly === false || (entry.typeOnly === undefined && values.has(`entry${index}`)),
+	);
 }

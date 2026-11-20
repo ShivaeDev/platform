@@ -4,6 +4,7 @@ import { makeClient } from "@shivaedev/contract/bind.ts";
 import { contract } from "@shivaedev/contract/contract.ts";
 import { command, query } from "@shivaedev/contract/operation.ts";
 import { layerLiveMemoryProtocol } from "@shivaedev/test-kits/contract/liveMemoryProtocol.ts";
+import { memoryQueryStorage } from "@shivaedev/test-kits/contract/memoryQueryStorage.ts";
 
 const notes = collection("first-settled-notes", Schema.Number);
 const read = { readPolicy: () => Effect.succeed(true), reads: () => [notes.list], success: Schema.String };
@@ -12,6 +13,19 @@ const Author = query("author", read);
 const Count = query("count", read);
 const Rename = command("rename", { invalidates: () => [] });
 const Notes = contract("notes", { commands: [Rename], queries: [Title, Author, Count] });
+
+export function storedResults(user: string, answers: { readonly author: string; readonly title: string }) {
+	const memory = memoryQueryStorage();
+	const entries = [
+		["title", answers.title],
+		["author", answers.author],
+	] as const;
+	for (const [name, answer] of entries) {
+		const key = JSON.stringify([`notes.${name}`, "null", null]);
+		memory.users.set(user, new Map([...(memory.users.get(user) ?? []), [key, { key, used: 1, value: JSON.stringify(answer) }]]));
+	}
+	return memory.layer;
+}
 
 export function firstSettledClient() {
 	const held = {

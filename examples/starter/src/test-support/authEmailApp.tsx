@@ -1,8 +1,9 @@
-import { createMemoryHistory, RouterProvider } from "@tanstack/react-router";
+import { createMemoryHistory } from "@tanstack/react-router";
 import { ConfigProvider, DateTime, Effect, Layer, Schema } from "effect";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { act } from "react";
 import { JobsClientFactory } from "@shivaedev/jobs/server/JobsClientFactory.ts";
+import { RouterProvider } from "@shivaedev/react/RouterProvider.ts";
 import { emailLink, inbox } from "@shivaedev/test-kits/email/adapters/inbox.ts";
 import { signedInUser } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
 import { makePgBossTesting } from "@shivaedev/test-kits/jobs/testing.ts";

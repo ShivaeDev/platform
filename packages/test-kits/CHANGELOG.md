@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.14.0 - 2026-11-20
+
+### Added
+
+- `memoryQueryStorage()` in `contract/memoryQueryStorage.ts` returns an in-memory `QueryStorageProvider` Layer and the entries it holds per user, for specs of stored query results.
+
 ## 0.13.7 - 2026-11-20
 
 ### Changed

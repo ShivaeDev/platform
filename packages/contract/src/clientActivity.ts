@@ -18,6 +18,7 @@ export type ClientActivity = Stream.Stream<ClientActivityState> & {
 	readonly connectionStatus: Atom.Atom<ConnectionStatus>;
 	readonly current: Effect.Effect<ClientActivityState>;
 	readonly firstSettled: Atom.Atom<boolean>;
+	readonly rendered: Effect.Effect<void>;
 };
 
 export const Activity = Symbol.for("@shivaedev/contract/ClientActivity");

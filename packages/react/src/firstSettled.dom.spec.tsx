@@ -1,6 +1,12 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { aliceOpens, aliceSeesFirstResults, firstSettledScreens } from "#test/first-settled/story.tsx";
+import {
+	aliceOpens,
+	aliceOpensRoute,
+	aliceReloadsWithStoredResults,
+	aliceSeesFirstResults,
+	firstSettledScreens,
+} from "#test/first-settled/story.tsx";
 
 const WAITING = "waiting for first results";
 const SETTLED = "first results settled";
@@ -51,17 +57,16 @@ firstSettledScreens.it(
 );
 
 firstSettledScreens.it(
-	"a screen that reads no query keeps useFirstSettled false, also after a command finished",
+	"a screen that reads no query turns useFirstSettled true once it has rendered, and a later command does not turn it back",
 	[aliceOpens("no query")],
-	function* ({ command, renameFinishes, signal, startRename }) {
-		expect(yield* signal()).toBe(WAITING);
+	function* ({ command, signal, startRename }) {
+		expect(yield* signal()).toBe(SETTLED);
 
 		yield* startRename();
-		yield* renameFinishes();
 
 		yield* outcomes([
-			["command", () => command(), "finished"],
-			["signal", () => signal(), WAITING],
+			["command", () => command(), "unfinished"],
+			["signal", () => signal(), SETTLED],
 		]);
 	},
 );
@@ -91,6 +96,94 @@ firstSettledScreens.it(
 
 		yield* outcomes([
 			["client activity", () => activity(), { commands: 0, initialQueries: 1 }],
+			["signal", () => signal(), SETTLED],
+		]);
+	},
+);
+
+firstSettledScreens.it(
+	"a query the first screen mounts only after its first render shows its own loading state while useFirstSettled is already true",
+	[aliceOpens("count after its first render")],
+	function* ({ count, signal }) {
+		yield* outcomes([
+			["count", () => count(), "waiting"],
+			["signal", () => signal(), SETTLED],
+		]);
+	},
+);
+
+firstSettledScreens.it(
+	"a screen that reads no query turns useFirstSettled true while the session's warm query still waits for its first result",
+	[aliceOpens("no query", "count")],
+	function* ({ activity, signal }) {
+		yield* outcomes([
+			["client activity", () => activity(), { commands: 0, initialQueries: 1 }],
+			["signal", () => signal(), SETTLED],
+		]);
+	},
+);
+
+firstSettledScreens.it(
+	"a first screen whose queries show stored results turns useFirstSettled true while they are still stale and refreshing",
+	[aliceReloadsWithStoredResults],
+	function* ({ answer, signal }) {
+		yield* outcomes([
+			["title", () => answer("title"), "Groceries (stale, refreshing)"],
+			["author", () => answer("author"), "alice (stale, refreshing)"],
+			["signal", () => signal(), SETTLED],
+		]);
+	},
+);
+
+for (const route of ["a loader that reads the title", "a component that reads the title"] as const) {
+	firstSettledScreens.it(
+		`above react's RouterProvider, a first route with ${route} keeps useFirstSettled false until the title answers and then reveals it in one step`,
+		[aliceOpensRoute(route)],
+		function* ({ answer, answers, signal }) {
+			expect(yield* signal()).toBe(WAITING);
+
+			yield* answers("title", "Groceries");
+
+			yield* outcomes([
+				["title", () => answer("title"), "Groceries"],
+				["signal", () => signal(), SETTLED],
+			]);
+		},
+	);
+}
+
+firstSettledScreens.it(
+	"in StrictMode, above react's RouterProvider, a first route with a component that reads the title keeps useFirstSettled false until the title answers",
+	[aliceOpensRoute("a component that reads the title", "react's", "in StrictMode")],
+	function* ({ answer, answers, signal }) {
+		expect(yield* signal()).toBe(WAITING);
+
+		yield* answers("title", "Groceries");
+
+		yield* outcomes([
+			["title", () => answer("title"), "Groceries"],
+			["signal", () => signal(), SETTLED],
+		]);
+	},
+);
+
+firstSettledScreens.it(
+	"above react's RouterProvider, a first route that reads nothing turns useFirstSettled true once it has rendered",
+	[aliceOpensRoute("nothing")],
+	function* ({ answer, signal }) {
+		yield* outcomes([
+			["route", () => answer("blank"), "blank form"],
+			["signal", () => signal(), SETTLED],
+		]);
+	},
+);
+
+firstSettledScreens.it(
+	"above TanStack's own RouterProvider, useFirstSettled turns true before the first route's title has answered",
+	[aliceOpensRoute("a component that reads the title", "TanStack's")],
+	function* ({ answer, signal }) {
+		yield* outcomes([
+			["title", () => answer("title"), "waiting"],
 			["signal", () => signal(), SETTLED],
 		]);
 	},

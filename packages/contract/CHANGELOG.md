@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.53.0 - 2026-11-20
+
+### Added
+
+- `QueryStorage` and `QueryStorageProvider` in `QueryStorage.ts`, the port for query results that outlive the page, and `browserQueryStorage` in `adapters/browserQueryStorage.ts`, its IndexedDB Layer. Every result of a query the session reads is stored, encoded with its operation's success schema; an entry is deleted when its query answers `QueryReadDenied` or `NotFound` or no longer decodes. `queryRetention` takes `storedBytes`, counted in UTF-8 bytes.
+
+### Fixed
+
+- a route loader resolves at once from a bound query's retained value. A query bound by `makeClient` kept its retained flag on signals that `loadQuery` never read, so the loader waited for the revalidation.
+
 ## 0.52.0 - 2026-11-20
 
 ### Added

@@ -1,11 +1,12 @@
 import { RegistryContext } from "@effect/atom-react";
 import { layerWebSocketConstructor } from "@effect/platform-node/NodeWS";
-import { createMemoryHistory, RouterProvider } from "@tanstack/react-router";
+import { createMemoryHistory } from "@tanstack/react-router";
 import { Effect } from "effect";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { activityScreenSignal, type ClientActivity, clientActivity } from "@shivaedev/contract/clientActivity.ts";
+import { RouterProvider } from "@shivaedev/react/RouterProvider.ts";
 import { memberScreens } from "@shivaedev/test-story/server/adapters/memberScreens.ts";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 import { makeAuth } from "#client/adapters/auth.ts";
