@@ -12,7 +12,7 @@ export const checkAdoption = Effect.fn("Published.checkAdoption")(function* (roo
 	const fixtures = path.join(root, "script/starter-published/adoption");
 	const features = (yield* fs.readDirectory(fixtures)).toSorted();
 	const modulesPath = path.join(app, "src/server/modules.ts");
-	const hostPath = path.join(app, "src/server/adapters/applicationHost.ts");
+	const hostPath = path.join(app, "src/server/applicationHost.ts");
 	let modules = yield* fs.readFileString(modulesPath);
 	let host = yield* fs.readFileString(hostPath);
 	for (const [index, feature] of features.entries()) {

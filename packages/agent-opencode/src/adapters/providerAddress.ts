@@ -15,7 +15,7 @@ export const providerAddress = Effect.fnUntraced(function* (options: OpencodeOpt
 		command: options.command ?? "opencode",
 		constrained: options.constrainedPrompt !== undefined,
 		cwd: options.cwd,
-		plugin: fileURLToPath(new URL(import.meta.url.endsWith(".ts") ? "./opencodePlugin.config.ts" : "./opencodePlugin.config.js", import.meta.url)),
+		plugin: fileURLToPath(new URL(import.meta.url.endsWith(".ts") ? "../opencodePlugin.config.ts" : "../opencodePlugin.config.js", import.meta.url)),
 		skills: options.skills,
 		tools: endpoint,
 	});
