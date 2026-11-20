@@ -43,17 +43,16 @@ screens.it(
 );
 
 screens.it(
-	"after a dismissed conflict, Refresh keeps the draft and the next save stores it trimmed without a new alert",
+	"after a conflict, Refresh keeps the draft and the next save stores it trimmed and clears the conflict notice",
 	[editingNote(), noteRevisedElsewhere("Saved elsewhere")],
 	function* ({ alert, click, draft, enter, saveState, settle, settleQuery }) {
 		yield* enter("  My draft  ");
 		yield* click("Save note");
 		yield* settle();
-		expect(yield* alert()).toBe(CONFLICT);
-		yield* click("Dismiss");
-
 		yield* click("Refresh");
 		yield* settleQuery();
+		expect(yield* alert()).toBe(CONFLICT);
+
 		yield* click("Save note");
 		yield* settle();
 

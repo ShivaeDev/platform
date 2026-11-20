@@ -32,7 +32,7 @@ export const assignRole = Effect.fn("Identity.assignRole")(function* <TRole exte
 		});
 		const target = yield* readTarget(userId).pipe(Effect.mapError(unavailable));
 		if (Option.isNone(target)) {
-			return yield* Effect.fail(new NotFound({ message: "User not found" }));
+			return yield* Effect.fail(new NotFound({ message: "This user no longer exists." }));
 		}
 		if (target.value.role === role) {
 			return false;

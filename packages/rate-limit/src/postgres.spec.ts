@@ -33,7 +33,7 @@ postgres.it("the JSON RPC client decodes a rate-limit refusal as the shared TooM
 
 	expect(refused).toEqual({
 		key: "notes:alice",
-		message: "Rate limit exceeded",
+		message: "Too many attempts. Wait a moment and try again.",
 		refusal: "shared TooManyRequests",
 		retryAt: expect.any(Number),
 	});

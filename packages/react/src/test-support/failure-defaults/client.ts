@@ -10,7 +10,7 @@ import { AuthUnavailable, Conflict, InternalServerError, NotFound, ServiceUnavai
 
 class SubtitleRejected extends Schema.TaggedError<SubtitleRejected>()("SubtitleRejected", { message: Schema.String }) {}
 
-export type Answer = "Conflict" | "Conflict on title" | "NotFound" | "SubtitleRejected" | "Unauthorized";
+export type Answer = "Conflict" | "Conflict on title" | "NotFound" | "Renamed" | "SubtitleRejected" | "Unauthorized";
 export type Outage = "AuthUnavailable" | "InternalServerError" | "ServiceUnavailable";
 
 const Rename = command("rename", {
@@ -27,7 +27,7 @@ const Note = query("note", {
 });
 const Drafts = contract("failureDefaults", { commands: [Rename], queries: [Note] });
 
-function rejection(answer: Answer) {
+function rejection(answer: Exclude<Answer, "Renamed">) {
 	switch (answer) {
 		case "Conflict":
 			return new Conflict({ message: "Someone else saved this draft" });
@@ -38,7 +38,7 @@ function rejection(answer: Answer) {
 		case "SubtitleRejected":
 			return new SubtitleRejected({ message: "The subtitle is too long" });
 		case "Unauthorized":
-			return new Unauthorized({ message: "Authentication required" });
+			return new Unauthorized({ message: "Sign in to continue" });
 	}
 }
 
@@ -54,7 +54,7 @@ function outage(failure: Outage) {
 }
 
 export function failureClient() {
-	const server: { answer: Answer; noteReads: number; outage: Outage; readonly reread: Deferred.Deferred<void> } = {
+	const server: { answer: Answer; noteReads: number; outage: Outage | "over"; readonly reread: Deferred.Deferred<void> } = {
 		answer: "Conflict",
 		noteReads: 0,
 		outage: "ServiceUnavailable",
@@ -70,7 +70,7 @@ export function failureClient() {
 						? Effect.fail(new NotFound({ message: "Draft 7 is gone" }))
 						: Effect.as(Deferred.await(server.reread), "Quarterly report");
 				},
-				"failureDefaults.rename": () => Effect.fail(rejection(server.answer)),
+				"failureDefaults.rename": () => (server.answer === "Renamed" ? Effect.succeed("Renamed") : Effect.fail(rejection(server.answer))),
 			}),
 		),
 	);
@@ -91,7 +91,10 @@ export function failureClient() {
 			runtime: Client.runtime,
 		},
 		server,
-		unavailable: { run: (_input: { readonly title: string }) => Effect.fail(outage(server.outage)), runtime: Client.runtime },
+		unavailable: {
+			run: (_input: { readonly title: string }) => (server.outage === "over" ? Effect.void : Effect.fail(outage(server.outage))),
+			runtime: Client.runtime,
+		},
 	};
 }
 export type FailureClient = ReturnType<typeof failureClient>;

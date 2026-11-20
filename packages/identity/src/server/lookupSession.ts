@@ -10,7 +10,7 @@ export const sessionRequest = Effect.fnUntraced(function* (headers: Headers.Head
 	const policy = yield* SessionPolicy;
 	const request = yield* transportOriginRequest(headers, rpc);
 	if (!policy.origin(request)) {
-		return yield* new Forbidden({ message: "Origin not allowed" });
+		return yield* new Forbidden({ message: "Open this application from its own address to continue." });
 	}
 	return request;
 });

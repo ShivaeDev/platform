@@ -1,11 +1,11 @@
 import { Context, Deferred, Effect, Layer, Option, Schema } from "effect";
 import type { Rpc } from "effect/rpc";
 import type { Permission } from "@shivaedev/access/permission.ts";
+import { unauthorized } from "@shivaedev/access/refusal.ts";
 import { DefinedModule } from "@shivaedev/contract/defineModule.ts";
 import { operationKind } from "@shivaedev/contract/operationKind.ts";
 import { CurrentViewer } from "@shivaedev/contract/readPolicy.ts";
 import { subjectHeader } from "@shivaedev/contract/subjectHeader.ts";
-import { Unauthorized } from "@shivaedev/errors/taxonomy.ts";
 import { Identity, SessionUser, SessionUserSchema } from "#identity.ts";
 import type { IdentityFailures } from "#middleware.ts";
 import { hasPermission } from "#permission.ts";
@@ -66,7 +66,7 @@ function guard<E>(policy: Policy<E>): SubjectMiddleware<E, SessionPolicy> {
 		Effect.gen(function* () {
 			const session = yield* resolveSession(headers, rpc._tag);
 			if (Option.isNone(session)) {
-				return yield* new Unauthorized({ message: "Authentication required" });
+				return yield* unauthorized();
 			}
 			const user = session.value.user;
 			// RPC merges each call's message headers over its transport's, so the call's own subject comes first and a subject set on the
@@ -99,7 +99,7 @@ export function subjectResolverLayer() {
 				return (effect, request) =>
 					Option.isSome(sessions)
 						? middleware(effect, request).pipe(Effect.provideService(SessionPolicy, sessions.value))
-						: Effect.fail(new Unauthorized({ message: "Authentication required" }));
+						: Effect.fail(unauthorized());
 			}
 			return {
 				account: <E>(permission: Permission, deny: (id: string) => E) => resolved({ deny, kind: "account", permission }),

@@ -25,7 +25,7 @@ function jobsFailures<A, R>(
 		Effect.mapError((error) => {
 			switch (error._tag) {
 				case "SchemaError":
-					return new BadRequest({ message: "Invalid job page options" });
+					return new BadRequest({ message: "This page of jobs could not be read. Open the jobs page again." });
 				case "PgBossPayloadError":
 					return new JobsPayloadInvalid({ queue: error.queue });
 				case "PgBossError":

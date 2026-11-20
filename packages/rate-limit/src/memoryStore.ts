@@ -21,7 +21,7 @@ export const memoryStore = Layer.effect(Store)(
 					}
 					const entry = windows.get(key) ?? { count: 0, expiresAt: now + windowMillis };
 					if (entry.count >= per) {
-						return Effect.fail(new TooManyRequests({ key, message: "Rate limit exceeded", retryAt: entry.expiresAt }));
+						return Effect.fail(new TooManyRequests({ key, message: "Too many attempts. Wait a moment and try again.", retryAt: entry.expiresAt }));
 					}
 					entry.count += 1;
 					windows.set(key, entry);

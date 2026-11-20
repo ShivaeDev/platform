@@ -1,7 +1,8 @@
 import { Effect, Layer, Option, Schema } from "effect";
 import type { Headers } from "effect/http";
+import { unauthorized } from "@shivaedev/access/refusal.ts";
 import { CurrentViewer } from "@shivaedev/contract/readPolicy.ts";
-import { type AuthUnavailable, Unauthorized } from "@shivaedev/errors/taxonomy.ts";
+import type { AuthUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import {
 	Identity,
 	OptionalIdentity,
@@ -42,7 +43,7 @@ export function authenticatedLayer() {
 					Effect.gen(function* () {
 						const session = yield* resolveSession(headers, rpc._tag);
 						if (Option.isNone(session)) {
-							return yield* new Unauthorized({ message: "Authentication required" });
+							return yield* unauthorized();
 						}
 						const id = yield* identified(session.value.user.id);
 						return yield* effect.pipe(
@@ -87,7 +88,7 @@ export function withSessionUser(headers: Headers.Headers, operation: string) {
 		Effect.gen(function* () {
 			const session = yield* resolveSession(headers, operation);
 			if (Option.isNone(session)) {
-				return yield* new Unauthorized({ message: "Authentication required" });
+				return yield* unauthorized();
 			}
 			const user = Schema.decodeUnknownSync(SessionUserSchema)(session.value.user);
 			const id = yield* identified(session.value.user.id);
@@ -128,7 +129,7 @@ export function authenticatedUserWithProviderAccountsLayer() {
 					Effect.gen(function* () {
 						const session = yield* resolveSession(headers, rpc._tag);
 						if (Option.isNone(session)) {
-							return yield* new Unauthorized({ message: "Authentication required" });
+							return yield* unauthorized();
 						}
 						const { providerAccounts, ...user } = yield* providerAccountsUser(session.value.user);
 						const { id } = user;

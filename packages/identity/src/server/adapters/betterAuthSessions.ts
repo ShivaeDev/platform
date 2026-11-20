@@ -1,7 +1,8 @@
 import { Clock, Effect, Option, Predicate, Schema } from "effect";
 import type { Headers } from "effect/http";
 import * as HttpStatus from "effect/http/HttpStatus";
-import { type AuthUnavailable, Unauthorized } from "@shivaedev/errors/taxonomy.ts";
+import { unauthorized } from "@shivaedev/access/refusal.ts";
+import type { AuthUnavailable, Unauthorized } from "@shivaedev/errors/taxonomy.ts";
 import type { ProviderAccountValue } from "#identity.ts";
 import { authCall } from "#server/adapters/authCall.ts";
 import { providerFailure } from "#server/providerFailure.ts";
@@ -33,7 +34,7 @@ export function betterAuthSessions<TSession extends SessionShape>(getSession: Ge
 			Effect.catch(
 				({ cause }): Effect.Effect<never, AuthUnavailable | Unauthorized> =>
 					Predicate.hasProperty(cause, "statusCode") && cause.statusCode === HttpStatus.fromLiteral("Unauthorized")
-						? Effect.fail(new Unauthorized({ message: "Authentication required" }))
+						? Effect.fail(unauthorized())
 						: providerFailure(cause),
 			),
 		);

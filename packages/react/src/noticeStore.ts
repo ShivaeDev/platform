@@ -24,11 +24,12 @@ export function noticeStore<TMessage = unknown>(registry: AtomRegistry.AtomRegis
 		entries,
 		publish: (descriptor: Pick<NoticeDescriptor<never, TMessage>, "message" | "expiresIn">, kind: NoticeKind, action?: NoticeAction<TMessage>) => {
 			if (!store.active) {
-				return;
+				return undefined;
 			}
 			const entry = noticeEntry(registry, clock, nextId, descriptor, remove, action, kind);
 			nextId += 1;
 			registry.set(entries, [...registry.get(entries), entry]);
+			return entry.dismiss;
 		},
 	};
 	return store;
@@ -40,10 +41,10 @@ export function publishNotice<R, E, TMessage = unknown>(
 	kind: NoticeKind,
 ) {
 	if (!(store?.active && descriptor)) {
-		return;
+		return undefined;
 	}
 	const action = descriptor.action;
-	store.publish(
+	return store.publish(
 		descriptor,
 		kind,
 		action === undefined ? undefined : { atom: runtime.fn(() => action.run).pipe(Atom.setIdleTTL(0)), label: action.label },

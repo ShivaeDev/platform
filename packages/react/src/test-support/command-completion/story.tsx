@@ -68,7 +68,7 @@ function commandVerbs(state: State, screen: Screen) {
 			finish(state, screen, title, `the server rejects ${title} as ${failure}`, (gate) =>
 				Deferred.doneUnsafe(
 					gate,
-					Effect.fail(failure === "Unauthorized" ? new Unauthorized({ message: "Authentication required" }) : new Rejected({ reason: "Locked" })),
+					Effect.fail(failure === "Unauthorized" ? new Unauthorized({ message: "Sign in to continue" }) : new Rejected({ reason: "Locked" })),
 				),
 			),
 	};

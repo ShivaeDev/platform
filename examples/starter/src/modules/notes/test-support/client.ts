@@ -39,7 +39,7 @@ export const notesClient = Effect.fn("ScreenStory.notesClient")(function* (initi
 					Effect.provideService(Identity, { id: "alice" }),
 					Effect.provideService(SessionUser, { email: "alice@app.test", id: "alice", name: "Alice" }),
 				)
-			: Effect.fail(new Unauthorized({ message: "Authentication required" })),
+			: Effect.fail(new Unauthorized({ message: "Sign in to continue" })),
 	);
 	function get(id: number) {
 		return Effect.suspend(() => {

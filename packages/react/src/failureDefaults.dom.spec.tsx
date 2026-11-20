@@ -43,7 +43,7 @@ failures.it(
 		yield* press("Rename");
 
 		yield* outcomes([
-			["notices", () => notices(), ["Authentication required"]],
+			["notices", () => notices(), ["Sign in to continue"]],
 			["rechecks", () => rechecks(), "once"],
 		]);
 	},

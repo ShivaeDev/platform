@@ -17,7 +17,7 @@ screens.it(
 );
 
 screens.it(
-	"adding a note after alice's session expires shows Authentication required and keeps the draft",
+	"adding a note after alice's session expires shows Sign in to continue and keeps the draft",
 	[notesScreen()],
 	function* ({ alert, draft, enter, expireSession, settle, submit }) {
 		yield* expireSession();
@@ -27,7 +27,7 @@ screens.it(
 		yield* settle();
 
 		yield* outcomes([
-			["alert", alert, "Authentication required"],
+			["alert", alert, "Sign in to continue"],
 			["draft", draft, "Keep this draft"],
 		]);
 	},

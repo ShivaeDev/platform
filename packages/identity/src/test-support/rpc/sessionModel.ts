@@ -57,7 +57,7 @@ export function answerOf(engine: Engine, result: Result.Result<string, unknown>)
 	}
 	const error = result.failure;
 	if (error instanceof Forbidden) {
-		return error.message === "Origin not allowed" ? "forbidden origin" : `forbidden: ${error.message}`;
+		return error.message === "Open this application from its own address to continue." ? "forbidden origin" : `forbidden: ${error.message}`;
 	}
 	if (error instanceof Unauthorized) {
 		return "unauthorized";

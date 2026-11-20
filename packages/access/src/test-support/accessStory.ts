@@ -2,6 +2,7 @@ import { Effect, Schema } from "effect";
 import { Forbidden, Unauthorized } from "@shivaedev/errors/taxonomy.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import type { Permission } from "#permission.ts";
+import { MissingPermission } from "#refusal.ts";
 import { requirePermission } from "#requirePermission.ts";
 import type { User } from "#roleSet.ts";
 import { Access, AccessWithReaderTwice, AssignRoles, ReadAllUsers, ReadJobDetails, ReadJobs, ReadUsers } from "#test/policy.ts";
@@ -66,6 +67,16 @@ export const accessStory = storyKit({
 		decodeRole: (stored: string) => outcomeOf(Schema.decodeUnknownEffect(engine.access.Role)(stored)),
 		enforceGrant: (permission: Permission) => Effect.flatMap(permissionUser(engine), (user) => allowed(requirePermission(user, permission))),
 		enforceRead: (owner: Owner) => allowed(engine.access.requireAccess(engine.user, ReadUsers, owner)),
+		// What the person is shown, then the grant the refusal's cause names for logs and code.
+		refusalOf: (permission: Permission) =>
+			Effect.flatMap(permissionUser(engine), (user) =>
+				Effect.flip(requirePermission(user, permission)).pipe(
+					Effect.map((refusal) => [
+						refusal.message,
+						refusal.cause instanceof MissingPermission ? grantNames([refusal.cause.permission])[0] : "no cause",
+					]),
+				),
+			),
 		resolve: (stored: string) => outcomeOf(engine.access.resolve(stored)),
 		resolvedGrants: () =>
 			Effect.gen(function* () {

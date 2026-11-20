@@ -64,6 +64,11 @@ export const failures = storyKit(
 			note: () => Effect.sync(() => texts(state, "[data-note], [role='alert']:not([data-notice]), [role='status']:not([data-notice])")),
 			// A notice's own paragraph holds its words; the buttons beside it are the host's.
 			notices: () => Effect.sync(() => texts(state, "[data-notice] > p")),
+			outageEnds: () =>
+				Effect.sync(() => {
+					screen.tell("the outage is over");
+					state.current.client.server.outage = "over";
+				}),
 			outageIs: (outage: Outage) =>
 				Effect.sync(() => {
 					screen.tell(`the server is out with ${outage}`);
