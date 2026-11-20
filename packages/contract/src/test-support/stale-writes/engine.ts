@@ -10,8 +10,8 @@ export type Writer = "alice" | "bob";
 export const engine = Effect.gen(function* () {
 	const sql = yield* SqlClient.SqlClient;
 	const handlers = moduleHandlers(Notes).pipe(Layer.provide(Layer.succeed(StaleNotes, yield* makeNotes)));
-	const connect = Effect.flatMap(Layer.build(layerMemoryProtocol(Notes).pipe(Layer.provide(handlers))), (context) =>
-		RpcClient.make(Notes, { flatten: true }).pipe(Effect.provideContext(context)),
+	const connect = Effect.flatMap(Layer.build(layerMemoryProtocol(Notes.application).pipe(Layer.provide(handlers))), (context) =>
+		RpcClient.make(Notes.application, { flatten: true }).pipe(Effect.provideContext(context)),
 	);
 	const clients = { alice: yield* connect, bob: yield* connect };
 	const read: Record<Writer, number> = { alice: -1, bob: -1 };
