@@ -26,7 +26,7 @@ export function applicationWorker<R = never, E = never, TRequirements = never>(c
 				migrations: { ...database.migrations, ...Option.match(configuredRelease, { onNone: () => ({}), onSome: (release) => ({ release }) }) },
 				services,
 				workers: modules.workers.pipe(Layer.provide(Layer.merge(emailMailerLayer(), replacements))),
-			}).pipe(Layer.tap(() => Effect.logInfo("Worker ready to take jobs")));
+			});
 		}),
 	);
 }
