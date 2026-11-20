@@ -42,13 +42,15 @@ export function completionClient() {
 	const finished: string[] = [];
 	const refetch = Effect.runSync(Deferred.make<string>());
 	const refetched = Deferred.makeUnsafe<void>();
-	let reads = 0;
+	const reads: string[] = [];
 	const handlers = Commands.application.toLayer(
 		Effect.succeed(
 			Commands.application.of({
 				"completions.list": () => {
-					reads += 1;
-					return reads === 1 ? Effect.succeed("initial") : Deferred.await(refetch).pipe(Effect.tap(() => Deferred.succeed(refetched, undefined)));
+					reads.push(reads.length === 0 ? "first read" : "read after a change");
+					return reads.length === 1
+						? Effect.succeed("initial")
+						: Deferred.await(refetch).pipe(Effect.tap(() => Deferred.succeed(refetched, undefined)));
 				},
 				"completions.rename": ({ title }) =>
 					Effect.gen(function* () {
@@ -68,7 +70,7 @@ export function completionClient() {
 		command: commandFor,
 		finished,
 		list: api.list.query(),
-		reads: () => reads,
+		reads: () => [...reads],
 		refetch,
 		refetched,
 		run: (input: { readonly title: string }) =>

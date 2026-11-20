@@ -99,12 +99,12 @@ commands.it(
 	"a completion makes the server read the list once more and reports while the list still shows the earlier read",
 	[firstHeld()],
 	function* ({ complete, listReads, listShown, notices }) {
-		expect(yield* listReads()).toBe(1);
+		expect(yield* listReads()).toEqual(["first read"]);
 
 		yield* complete("first", "A");
 
 		yield* outcomes([
-			["list reads", () => listReads(), 2],
+			["list reads", () => listReads(), ["first read", "read after a change"]],
 			["shown list", () => listShown(), "initial"],
 			["notices", () => notices(), ["original: first -> A"]],
 		]);
@@ -118,7 +118,7 @@ commands.it(
 		yield* renderAgain();
 
 		yield* outcomes([
-			["list reads", () => listReads(), 2],
+			["list reads", () => listReads(), ["first read", "read after a change"]],
 			["notices", () => notices(), ["original: first -> A"]],
 		]);
 	},
@@ -131,7 +131,7 @@ commands.it(
 		yield* reject("first", "Rejected");
 
 		yield* outcomes([
-			["list reads", () => listReads(), 1],
+			["list reads", () => listReads(), ["first read"]],
 			["notices", () => notices(), ["original: first rejected: Rejected"]],
 			["rechecks", () => rechecks(), "never"],
 		]);

@@ -94,8 +94,10 @@ completionStory.it(
 	function* ({ open, releaseAnswer, requestFinished, requestReceived, shown, signals, waiting }) {
 		open();
 		yield* requestReceived();
-		expect(yield* signals()).toMatchObject({ completed: 0, pending: true });
-		expect(yield* waiting()).toBe(true);
+		yield* outcomes([
+			["held request", () => signals(), { completed: 0, pending: true }],
+			["waiting", () => waiting(), true],
+		]);
 
 		yield* releaseAnswer();
 		yield* requestFinished();
