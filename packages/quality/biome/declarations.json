@@ -57,5 +57,15 @@
 		"includes": ["**"],
 		"reason": "react/jsx-conditionals owns conditional rendering in JSX children and asks for decisions before JSX or extracted components; noLeakedRender suggests a ternary that the Quality rule also rejects.",
 		"rule": "lint/suspicious/noLeakedRender"
+	},
+	{
+		"includes": ["**"],
+		"reason": "react/nested-components owns nested component definitions and judges a component by the JSX it returns or where it is rendered; this rule judges by a capitalised name alone and reports failure handlers keyed by an error tag.",
+		"rule": "lint/correctness/noNestedComponentDefinitions"
+	},
+	{
+		"includes": ["**"],
+		"reason": "react/nested-components owns components and hooks defined inside other functions and judges a component by the JSX it returns or where it is rendered; this rule judges by a capitalised name alone and reports failure handlers keyed by an error tag.",
+		"rule": "lint/correctness/noComponentHookFactories"
 	}
 ]

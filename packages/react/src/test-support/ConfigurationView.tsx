@@ -10,13 +10,10 @@ import { type ConfigurationProps, type Current, Destination, type Name, Rejected
 const query = Atom.make(AsyncResult.success({ name: "stored" }));
 export function ConfigurationView(props: ConfigurationProps) {
 	const { revision, rejected, mapping, held, saved } = props;
-	function toName() {
-		return { field: "name" as const, message: revision };
-	}
 	const config = {
 		fields: props.fields,
 		persistedDraft: { key: `${props.kind}-${revision}`, now: props.now, storage: () => window.localStorage },
-		...(mapping ? { failures: { Rejected: toName } } : {}),
+		...(mapping ? { failures: { Rejected: () => ({ field: "name" as const, message: revision }) } } : {}),
 	};
 	function save(values: Name) {
 		return Effect.gen(function* () {

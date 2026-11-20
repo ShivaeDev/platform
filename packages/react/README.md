@@ -456,17 +456,17 @@ A bound command given to `useAction`, `usePendingCommand` or `useUndoableChange`
 `failureKind` from `@shivaedev/contract/failureKind.ts` holds that classification, `AppRejection<E>` names the app's own rejections in an error type, and `RequestRejection` and `ServerFailure` in `@shivaedev/errors/taxonomy.ts` name the shared ones.
 
 ```tsx
-function onTitle(error: SubtitleRejected) {
-	return { field: "title" as const, message: error.message };
-}
-
 function Retitle({ id }: { readonly id: number }) {
-	const editor = useEditor(api.retitle, { query: api.get.query({ id }), fixed: { id }, failures: { SubtitleRejected: onTitle } });
+	const editor = useEditor(api.retitle, {
+		query: api.get.query({ id }),
+		fixed: { id },
+		failures: { SubtitleRejected: (error) => ({ field: "title", message: error.message }) },
+	});
 	return <TitleForm form={editor.form} save={editor.save} />;
 }
 ```
 
-Here `api.retitle` takes `{ id, title }` and can fail with the app's tagged `SubtitleRejected`, which refers to the server's `subtitle` while the form calls the input `title`; `api`, `SubtitleRejected` and `TitleForm` belong to the application. Declare a handler that takes only the error outside the component, as `onTitle` is here, or give it the input as a second parameter: Biome's `noNestedComponentDefinitions` and `noComponentHookFactories`, which Quality's preset enables, read a function of at most one parameter under a PascalCase key inside a component or hook as a component definition. A handler is keyed by the failure's tag and receives the error and the invocation's input, which for a form is its decoded values. It returns a notice descriptor, a field rejection `{ field, message }` naming one of the form's fields (form hooks only), or `"silent"`. In place of a function, `"message"` shows the error's own message as a notice and `"silent"` shows nothing for that tag. A handler may also be given for a shared rejection to word it differently for that call. `silent: true` shows nothing for any failure of the call, which differs from leaving `failures` out: that uses the defaults. The typed failure stays in the hook's `failure` and `cause` in every case.
+Here `api.retitle` takes `{ id, title }` and can fail with the app's tagged `SubtitleRejected`, which refers to the server's `subtitle` while the form calls the input `title`; `api`, `SubtitleRejected` and `TitleForm` belong to the application. A handler is keyed by the failure's tag and receives the error and the invocation's input, which for a form is its decoded values. It returns a notice descriptor, a field rejection `{ field, message }` naming one of the form's fields (form hooks only), or `"silent"`. In place of a function, `"message"` shows the error's own message as a notice and `"silent"` shows nothing for that tag. A handler may also be given for a shared rejection to word it differently for that call. `silent: true` shows nothing for any failure of the call, which differs from leaving `failures` out: that uses the defaults. The typed failure stays in the hook's `failure` and `cause` in every case.
 
 A missing handler is a compile error that names the tag. `useAction(api.retitle)` with no options reports `Property '"failures.SubtitleRejected"' is missing`, followed by `the operation can fail with SubtitleRejected, a rejection the app declared: say what it shows, for example failures: { SubtitleRejected: "message" }`. Options without `failures` report `Property 'failures' is missing` for a type `HandleAppRejections<"SubtitleRejected", …>`, `failures: {}` reports `Property 'SubtitleRejected' is missing`, and a key that is not a failure of the operation is an unknown property. A form's rejection whose `field` can only name a field the form lacks counts as the app's own and needs a handler.
 

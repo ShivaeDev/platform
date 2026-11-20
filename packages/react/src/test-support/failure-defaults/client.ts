@@ -8,7 +8,7 @@ import { contract } from "@shivaedev/contract/contract.ts";
 import { command, query } from "@shivaedev/contract/operation.ts";
 import { AuthUnavailable, Conflict, InternalServerError, NotFound, ServiceUnavailable, Unauthorized } from "@shivaedev/errors/taxonomy.ts";
 
-export class SubtitleRejected extends Schema.TaggedError<SubtitleRejected>()("SubtitleRejected", { message: Schema.String }) {}
+class SubtitleRejected extends Schema.TaggedError<SubtitleRejected>()("SubtitleRejected", { message: Schema.String }) {}
 
 export type Answer = "Conflict" | "Conflict on title" | "NotFound" | "SubtitleRejected" | "Unauthorized";
 export type Outage = "AuthUnavailable" | "InternalServerError" | "ServiceUnavailable";

@@ -80,6 +80,12 @@ export const biomeStory = storyKit({
 					.toSorted((left, right) => left.file.localeCompare(right.file) || (left.line ?? 0) - (right.line ?? 0))
 					.map(locationOf),
 			),
+		reportedIn: (path: string) =>
+			Effect.sync(() =>
+				checked(engine)
+					.filter((finding) => finding.file === path)
+					.map((finding) => `${finding.subject ?? ""} ${locationOf(finding)}`),
+			),
 	}),
 });
 
