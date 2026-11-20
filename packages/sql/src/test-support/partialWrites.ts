@@ -21,15 +21,10 @@ const partialWriteEngine = Effect.fnUntraced(function* () {
 	const profiles = yield* makeRepository(Profile, {
 		collection: collection(tableName, Schema.Number, { owner: Schema.String }),
 		conflictColumns: ["id"],
-		idColumn: "id",
-		spanPrefix: "Profile",
-		tableName,
 	});
 	const byOwner = yield* makeRepository(Profile, {
 		collection: collection(tableName, Schema.String, { owner: Schema.String }),
 		idColumn: ["id", "owner"],
-		spanPrefix: "OwnedProfile",
-		tableName,
 	});
 	return { byOwner, capture: yield* makeCapture<unknown>(), log: statementLog(), profiles, records: records(), sql, tableName };
 });

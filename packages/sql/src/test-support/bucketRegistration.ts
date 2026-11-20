@@ -16,8 +16,6 @@ const schemas = {
 };
 
 const declarations = {
-	"a collection named bucketRegistration": collection("bucketRegistration", Schema.Number, { ownerId: Schema.String }),
-	"a collection named bucketRegistration with a title bucket": collection("bucketRegistration", Schema.Number, { title: Schema.String }),
 	"a collection with a title bucket": collection("bucket_registration", Schema.Number, { title: Schema.String }),
 	"no collection": undefined,
 };
@@ -39,9 +37,6 @@ export const bucketRegistration = storyKit({
 				}) {}
 				engine.result = yield* makeRepository(Row, {
 					collection: collection("bucket_registration", Schema.Number, { value: Schema.String }),
-					idColumn: "id",
-					spanPrefix: "BucketRegistration",
-					tableName: "bucket_registration",
 				}).pipe(
 					Effect.match({
 						onFailure: (error) => `${error._tag}: ${error.message}`,
@@ -57,12 +52,10 @@ export const bucketRegistration = storyKit({
 					ownerId: bucket(Schema.String),
 				}) {}
 				const declaration = declarations[declared];
-				engine.result = yield* makeRepository(Row, {
-					...(declaration === undefined ? {} : { collection: declaration }),
-					idColumn: "id",
-					spanPrefix: "BucketRegistration",
-					tableName: "bucket_registration",
-				}).pipe(
+				engine.result = yield* makeRepository(
+					Row,
+					declaration === undefined ? { tableName: "bucket_registration" } : { collection: declaration },
+				).pipe(
 					Effect.match({
 						onFailure: (error) => `${error._tag}: ${error.message}`,
 						onSuccess: () => "registered",
@@ -79,9 +72,6 @@ export const bucketRegistration = storyKit({
 				}) {}
 				engine.result = yield* makeRepository(Row, {
 					collection: collection("bucket_registration", Schema.Number, {}, { ownerTuple: ["owner", column] }),
-					idColumn: "id",
-					spanPrefix: "BucketRegistration",
-					tableName: "bucket_registration",
 				}).pipe(
 					Effect.match({
 						onFailure: (error) => `${error._tag}: ${error.message}`,

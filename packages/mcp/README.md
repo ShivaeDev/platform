@@ -85,7 +85,7 @@ mcpStdio({ name: "Local integration", version: "1", tools: userTools.pipe(Layer.
 );
 ```
 
-`userTools` is the toolkit Layer declared above. The stdio entry point requires Effect's `Stdio` service, supplied here by `NodeServices.layer` from `@effect/platform-node`. Keep stdout for MCP messages and direct application logs to stderr. The server supports MCP `2026-07-28` and `2025-11-25` over newline-delimited JSON-RPC. Its Layer scope owns the transport and handlers: cancelling a tool call releases its scoped resources, and closing the client stops the child process and releases in-flight tool resources.
+`userTools` is the toolkit Layer declared above. The stdio entry point requires Effect's `Stdio` service, supplied here by `NodeServices.layer` from `@effect/platform-node`. Keep stdout for MCP messages and direct application logs to stderr. The server supports MCP `2026-07-28` and `2025-11-25` over newline-delimited JSON-RPC. Its Layer scope owns the transport and handlers: cancelling a tool call releases its scoped resources, and closing the client interrupts in-flight tools, releases their resources and ends the child process with exit code 0.
 
 Stdio uses the services supplied by the local application. It does not run the HTTP session policy or select permission-based audiences; the application chooses which toolkits to serve and supplies the identity its tools read. Services a tool declares in `dependencies` are request-level in Effect's `McpServer`: supply them through `McpServer.middleware` provided to the toolkit Layer, as `localUser` does here, because `Layer.provide` with the service itself does not satisfy them.
 

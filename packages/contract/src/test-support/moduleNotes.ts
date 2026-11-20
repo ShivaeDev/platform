@@ -2,6 +2,7 @@ import { Context, Data, Effect, Option, Schema } from "effect";
 import { RpcMiddleware } from "effect/rpc";
 import { collection } from "@shivaedev/changes/keys.ts";
 import { NotFound, Unauthorized } from "@shivaedev/errors/taxonomy.ts";
+import { commandResult } from "#commandResult.ts";
 import { defineModule } from "#defineModule.ts";
 import { command, query } from "#operation.ts";
 import { CurrentViewer } from "#readPolicy.ts";
@@ -50,7 +51,6 @@ function toNotes(notes: readonly StoredNote[]): readonly (typeof Note.Type)[] {
 
 export const Create = command("create", {
 	payload: NoteFields,
-	rejections: { TitleTaken, Unauthorized },
 	*run({ title }) {
 		const store = yield* NotesStore;
 		const owner = yield* signedInUser;
@@ -60,7 +60,6 @@ export const Create = command("create", {
 		}
 		return toNote(yield* store.insert(title, owner));
 	},
-	success: Note,
 });
 
 export const Get = query("get", {
@@ -74,7 +73,6 @@ export const Get = query("get", {
 			return Option.exists(note, ({ owner }) => owner === viewer.value.id);
 		}),
 	reads: ({ id }) => [moduleNotes.item(id)],
-	rejections: { NotFound },
 	*run({ id }) {
 		const note = yield* (yield* NotesStore).find(id);
 		if (Option.isNone(note)) {
@@ -82,22 +80,38 @@ export const Get = query("get", {
 		}
 		return toNote(note.value);
 	},
-	success: Note,
 });
 
 export const List = query("list", {
 	reads: () => [moduleNotes.list],
-	rejections: { Unauthorized },
 	*run() {
 		const store = yield* NotesStore;
 		return toNotes(yield* store.owned(yield* signedInUser));
 	},
-	success: Schema.Array(Note),
+});
+
+// The note is found by its title, so only run knows which note's key to announce.
+export const Touch = command("touch", {
+	payload: NoteFields,
+	*run({ title }) {
+		const store = yield* NotesStore;
+		const note = (yield* store.owned(yield* signedInUser)).find((owned) => owned.title === title);
+		if (note === undefined) {
+			return yield* new NotFound({ message: "Note not found" });
+		}
+		return yield* commandResult({ invalidates: [moduleNotes.item(note.id)], result: toNote(note) });
+	},
 });
 
 export const Notes = defineModule({
 	middleware: Caller,
 	name: "moduleNotes",
-	operations: [List, Get, Create],
+	operations: [List, Get, Create, Touch],
 	requires: [NotesStore],
+	wire: {
+		create: { rejections: { TitleTaken, Unauthorized }, success: Note },
+		get: { rejections: { NotFound }, success: Note },
+		list: { rejections: { Unauthorized }, success: Schema.Array(Note) },
+		touch: { rejections: { NotFound, Unauthorized }, success: Note },
+	},
 });

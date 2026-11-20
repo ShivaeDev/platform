@@ -66,16 +66,10 @@ const refusals: Record<ServerOnlyRole, () => Effect.Effect<unknown, RepositoryBu
 	"a bucket": () =>
 		makeRepository(BucketedCredential, {
 			collection: collection("refused_credentials", Schema.Number, { digest: Schema.String }),
-			idColumn: "id",
-			spanPrefix: "Refused",
-			tableName: "refused_credentials",
 		}),
 	"a tuple bucket column": () =>
 		makeRepository(Credential, {
 			collection: collection("refused_credentials", Schema.Number, {}, { ownerDigest: ["owner", "digest"] }),
-			idColumn: "id",
-			spanPrefix: "Refused",
-			tableName: "refused_credentials",
 		}),
 	"the ID column": () => makeRepository(Credential, { idColumn: "digest", spanPrefix: "Refused", tableName: "refused_credentials" }),
 } as const;

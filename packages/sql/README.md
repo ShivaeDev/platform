@@ -112,12 +112,10 @@ class InvoiceLine extends Model.Class<InvoiceLine>("InvoiceLine")({
 	note: Schema.NullOr(Schema.String),
 }) {}
 
-const makeInvoiceLines = makeRepository(InvoiceLine, {
-	tableName: "invoice_line",
-	idColumn: "id",
-	spanPrefix: "InvoiceLine",
-});
+const makeInvoiceLines = makeRepository(InvoiceLine, { tableName: "invoice_line" });
 ```
+
+The repository works on the table `tableName` names, keys rows by the model's `id` field and names its operation spans after the table, such as `invoice_line.findById`. Pass `idColumn` for a different or composite primary key; a model without an `id` field must name its `idColumn`, or the call does not compile. Pass `spanPrefix` to name the spans differently. A model with `bucket` fields names its table through its [collection](#transactions-and-invalidation) instead of `tableName`.
 
 The database supplies `id` on insert. Its `Model.Field` includes the ID in selected rows, updates and JSON, and leaves it out of insertion. Keep the repository's ID field in the update variant. An ordinary field such as `name` participates in the writable variants. By default, `update` takes the complete update shape; select particular columns when changing only part of a row.
 
@@ -227,11 +225,7 @@ import { makeRepository } from "@shivaedev/sql/repository.ts";
 import { Pot } from "#pots/Pot.ts";
 
 const initializePots = Effect.gen(function* () {
-	const rows = yield* makeRepository(Pot, {
-		idColumn: "id",
-		spanPrefix: "Pots",
-		tableName: "pots",
-	});
+	const rows = yield* makeRepository(Pot, { tableName: "pots" });
 	const load = Effect.fn("Pots.load")((id: number) => rows.findById(id));
 	const settle = Effect.fn("Pots.settle")(function* (id: number) {
 		const pot = yield* load(id);
@@ -566,7 +560,6 @@ const ingest = Effect.gen(function* () {
 		tableName: "readings",
 		idColumn: ["source", "sequence"],
 		conflictColumns: ["source", "sequence"],
-		spanPrefix: "Reading",
 	});
 	const input = { source: "meter", sequence: 1, amount: 52, label: "Imported" };
 	const inserted = yield* readings.insertOrIgnore(input);
@@ -606,10 +599,8 @@ For a partial unique index such as `CREATE UNIQUE INDEX ON entries (a, b) WHERE 
 ```ts
 const entries = yield* makeRepository(Entry, {
   tableName: "entries",
-  idColumn: "id",
   conflictColumns: ["a", "b"],
   conflictWhere: { kind: "x" },
-  spanPrefix: "Entry",
 });
 const inserted = yield* entries.insertManyOrIgnore(inputs);
 ```
@@ -690,11 +681,7 @@ export const PurgeAudit = defineSchedule({
 	cron: "0 * * * *",
 }).run(
 	Effect.gen(function* () {
-		const audit = yield* makeRepository(AuditEntry, {
-			idColumn: "id",
-			tableName: "audit_entries",
-			spanPrefix: "AuditEntry",
-		});
+		const audit = yield* makeRepository(AuditEntry, { tableName: "audit_entries" });
 		const now = yield* Clock.currentTimeMillis;
 		const removed = yield* audit.deleteBatched({
 			where: { createdAt: { lt: new Date(now - 30 * 24 * 60 * 60 * 1_000) } },
@@ -760,7 +747,6 @@ const makeDocuments = makeRepository(Document, {
 	tableName: "documents",
 	idColumn: ["id", "ownerId"],
 	conflictColumns: ["id"],
-	spanPrefix: "Document",
 	versionColumn: "lockVersion",
 });
 
@@ -864,15 +850,10 @@ class Note extends Model.Class<Note>("Note")({
 }) {}
 
 const notes = collection("notes", Note.fields.id, { listId: Note.fields.listId, owner: Note.fields.owner });
-const makeNotes = makeRepository(Note, {
-	collection: notes,
-	idColumn: "id",
-	spanPrefix: "Notes",
-	tableName: "notes",
-});
+const makeNotes = makeRepository(Note, { collection: notes });
 ```
 
-Pass the contract collection as the repository's `collection` option when the model has buckets. The collection name is the table name: `collection("water_entries", ...)` for `tableName: "water_entries"`, never `collection("waterEntries", ...)`. Registration fails with `BucketRegistrationError` if the collection is missing, its name differs from `tableName`, or its bucket field names differ from the model's annotated fields. Its message says what to change: the collection the repository needs, both names and that they must be equal, or both field lists. Registration also rejects annotated fields whose decoded schemas cannot produce key values, naming them in `invalidFields`, before any write. Use explicit string or number schemas and refinements instead of opaque declarations; nullable and optional wrappers remain supported. Repositories without buckets may omit the collection. Every inserted, updated or deleted row announces its record key and each declared bucket from the old and new stored values. An insert belongs only to its new buckets; a move announces both sides; a delete announces the old buckets. Bucket codecs decode stored values before producing keys, so a `bucket(Schema.NumberFromString)` field matches a numeric query bucket even when stored as text. Nullable and optional bucket values contribute no key when absent. Bucket codecs must need no services and decode to strings, numbers or absent values.
+Pass the contract collection as the repository's `collection` option when the model has buckets. The collection names the table: `collection("water_entries", ...)` makes a repository on `water_entries`, and `tableName` is not accepted beside it, so the two names cannot disagree. Registration fails with `BucketRegistrationError` if the collection is missing or its bucket field names differ from the model's annotated fields. Its message says what to change: the collection the repository needs, or both field lists. Registration also rejects annotated fields whose decoded schemas cannot produce key values, naming them in `invalidFields`, before any write. Use explicit string or number schemas and refinements instead of opaque declarations; nullable and optional wrappers remain supported. Repositories without buckets may omit the collection and name their table with `tableName`. Every inserted, updated or deleted row announces its record key and each declared bucket from the old and new stored values. An insert belongs only to its new buckets; a move announces both sides; a delete announces the old buckets. Bucket codecs decode stored values before producing keys, so a `bucket(Schema.NumberFromString)` field matches a numeric query bucket even when stored as text. Nullable and optional bucket values contribute no key when absent. Bucket codecs must need no services and decode to strings, numbers or absent values.
 
 A bucket can also span an ordered tuple of columns, declared on the collection rather than the model. Here a diary listens per owner and per owner and day:
 
@@ -885,7 +866,7 @@ class Entry extends Model.Class<Entry>("Entry")({
 }) {}
 
 const entries = collection("entries", Entry.fields.id, { ownerId: Entry.fields.ownerId }, { ownerDay: ["ownerId", "day"] });
-const makeEntries = makeRepository(Entry, { collection: entries, idColumn: "id", spanPrefix: "Entries", tableName: "entries" });
+const makeEntries = makeRepository(Entry, { collection: entries });
 ```
 
 A query of alice's entries for day 1 reads `entries.bucket.ownerDay({ ownerId: "alice", day: 1 })` and reruns only for writes to that owner and day; a write by alice on day 2 or by bob on day 1 leaves it alone. A query of all of alice's entries reads `entries.bucket.ownerId("alice")`. Choose a single-column bucket when readers filter by one column and a tuple bucket when they filter by all of its columns together. A repository read whose filter pins every column of the tuple listens on it, as [live reads](#live-reads-listen-on-what-they-filter-by) describe. Repository writes announce each tuple from the row's old and new stored values in the same before-commit path as single-column buckets: an insert announces its new tuple, a delete its old one, and an update both when any column of the tuple changed. A tuple with an absent value, such as an entry without a day, announces no key. Each column decodes through its model field's codec, and its columns need no `bucket` annotation. Registration fails with `BucketRegistrationError`, naming the columns as `tuple.column` in `invalidTupleColumns`, when a tuple names a column the model lacks or one that cannot decode to a string, number or absent value. A raw writer records a tuple key through `changes` like any other bucket key.
@@ -1079,7 +1060,7 @@ Import the module that defines the name; there is no root entry.
 - `@shivaedev/sql/json.ts`: `json(schema)` — PostgreSQL `json` storage codec using the supplied value schema; keeps object key order as written.
 - `@shivaedev/sql/compositeRecordKey.ts`: `compositeRecordKey(model, { tableName, idColumn }, value)` — Encodes decoded composite key fields into the published record key.
 - `@shivaedev/sql/defineRepository.ts`: `defineRepository({ id, initialize })` — Native Context service and `.layer` for a shared repository shape; the initializer's dependencies, errors and scoped resources belong to its Layer.
-- `@shivaedev/sql/repository.ts`: `makeRepository(model, options)` — `tableName`, scalar or composite `idColumn`, `spanPrefix`, optional `versionColumn`, `conflictColumns` and `conflictWhere`, and `collection` required for bucket models; requires native `SqlClient`.
+- `@shivaedev/sql/repository.ts`: `makeRepository(model, options)` — `collection` (required for bucket models, and it names the table) or `tableName`, scalar or composite `idColumn` (defaults to `"id"` when the model has that field), `spanPrefix` (defaults to the table name), optional `versionColumn`, `conflictColumns` and `conflictWhere`; requires native `SqlClient`.
 - `@shivaedev/sql/RepositoryModels.ts`: `RepositoryModels` — Reference that `makeRepository` and `makeOrderedChildren` call with their model while they are built; the application host provides it to mask the model's sensitive fields in every diagnostic, and its default does nothing.
 - `@shivaedev/sql/repository.ts`: `OptimisticConcurrencyError` — Typed stale or missing-row failure for versioned writes, with `tableName`, `id`, `expectedVersion`, `reason: "missing" | "stale"`.
 - `@shivaedev/sql/tupleIn.ts`: `tupleIn(model, fields, tuples, types)` — Filter entry matching two or more fields together against a list of tuples, for `where` in reads and unversioned deletes.

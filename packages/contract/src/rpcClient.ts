@@ -10,7 +10,7 @@ import { Activity } from "#clientActivity.ts";
 import type { ClientOptions } from "#clientOptions.ts";
 import { ConnectionScope, connectionProtocol } from "#connectionProtocol.ts";
 import { commandConnections } from "#connectionReadiness.ts";
-import { liveSyncRpc } from "#liveSyncRpc.ts";
+import { type LiveSyncRpc, liveSyncRpc } from "#liveSyncRpc.ts";
 import { reflections } from "#reflection.ts";
 import type { ResumeWindow } from "#resume.ts";
 import { CommandInvalidation } from "#serverMetadata.ts";
@@ -53,7 +53,7 @@ export function rpcClient(name: string, source: RpcSource, options: ClientOption
 	}
 	const protocolFor = configuredProtocol();
 	const protocol = protocolFor(undefined);
-	function observeClient(client: RpcClient.RpcClient.Flat<Rpc.Any, RpcClientError>, wait: Effect.Effect<void, RpcClientError>) {
+	function observeClient(client: RpcClient.RpcClient.Flat<Rpc.Any | LiveSyncRpc, RpcClientError>, wait: Effect.Effect<void, RpcClientError>) {
 		const observed = new Proxy(client, {
 			apply(target, receiver, args) {
 				const result = Reflect.apply(target, receiver, args);
@@ -72,7 +72,7 @@ export function rpcClient(name: string, source: RpcSource, options: ClientOption
 	const make = Effect.gen(function* () {
 		const { connection, reflection } = yield* ConnectionScope;
 		const wait = Effect.suspend(() => (connection.isReady() ? Effect.void : activity.hold(connection.wait)));
-		const native = yield* RpcClient.make<Rpc.Any, true>(group, { flatten: true });
+		const native = yield* RpcClient.make(group, { flatten: true });
 		const observed = observeClient(native, wait);
 		// Only the shared socket proves a command reaches the host that holds its streams; any other protocol syncs after the reply.
 		reflections.set(observed, { piggyback: options.protocol === undefined, reflection });

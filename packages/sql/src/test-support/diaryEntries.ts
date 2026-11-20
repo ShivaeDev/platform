@@ -24,6 +24,6 @@ export const diaryEntries = Effect.gen(function* () {
 		() => sql`drop table ${sql(tableName)}`.pipe(Effect.orDie),
 	);
 	const keys = diaryKeys(tableName);
-	const entries = yield* makeRepository(DiaryEntry, { collection: keys, idColumn: "id", spanPrefix: "DiaryEntries", tableName });
+	const entries = yield* makeRepository(DiaryEntry, { collection: keys });
 	return { entries, keys, tableName };
 });

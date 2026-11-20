@@ -49,12 +49,7 @@ class Note extends Model.Class<Note>("Note")({
 const Renamed = Schema.Struct({ name: Schema.String });
 
 const makeNotes = Effect.gen(function* () {
-	const rows = yield* makeRepository(Note, {
-		conflictColumns: ["id"],
-		idColumn: "id",
-		spanPrefix: "Note",
-		tableName: "notes",
-	});
+	const rows = yield* makeRepository(Note, { conflictColumns: ["id"], tableName: "notes" });
 	return yield* makeEventStore({
 		name: "notes",
 		schema: Renamed,

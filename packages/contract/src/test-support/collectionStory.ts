@@ -56,12 +56,7 @@ export const collectionStory = storyKit({
 		},
 		register: (collection?: RepositoryCollection) => {
 			story.tell("register the workspace repository against its contract collection");
-			return makeRepository(Workspace, {
-				...(collection === undefined ? {} : { collection }),
-				idColumn: "id",
-				spanPrefix: "Registration",
-				tableName: "workspaces",
-			}).pipe(
+			return makeRepository(Workspace, collection === undefined ? { tableName: "workspaces" } : { collection }).pipe(
 				Effect.provideContext(current.services),
 				Effect.as("registered"),
 				Effect.catchTag("BucketRegistrationError", (error) =>

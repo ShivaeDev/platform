@@ -689,7 +689,7 @@ Long jumps also expire signed-in sessions. With Better Auth, use `signInAgain(au
 
 ### Waiting for a timer
 
-Every story uses `watchedClock` automatically, including stories that pin a UTC instant. It instruments the native TestClock and publishes every sleep start as a native `Duration` through its consuming `sleeps` stream. Starts stay queued until consumed, so a wait can observe a sleep that began before it subscribed. Each story gets its own queue.
+Every story uses `watchedClock` automatically, including stories that pin a UTC instant. It instruments the native TestClock and publishes every sleep start as a native `Duration` through its consuming `sleepStarts` stream. Starts stay queued until consumed, so a wait can observe a sleep that began before it subscribed. Each story gets its own queue.
 
 Use `untilTimer(interval)` in a kit verb to wait for the next matching sleep start before advancing time. It consumes starts in arrival order, skipping other durations. Equivalent durations such as `"1 second"` and `"1000 millis"` match. A start records that the sleep was called; it does not mean the timer is still pending. `untilTimer` returns the matching `Duration` and never advances virtual time. Its default deadline is five seconds of live time; pass `{ timeout }` to change it. If no matching sleep starts, it fails with `SignalNotReceived`, naming the missing sleep and the last observation.
 

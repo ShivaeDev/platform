@@ -17,7 +17,6 @@ export class DraftMissing extends Schema.TaggedError<DraftMissing>()("DraftMissi
 
 const Create = command("create", {
 	payload: { title: Schema.String },
-	rejections: { TitleTaken },
 	*run({ title }) {
 		const sql = yield* SqlClient.SqlClient;
 		const taken = yield* sql`select id from defined_notes where title = ${title}`;
@@ -27,13 +26,11 @@ const Create = command("create", {
 		yield* sql`insert into defined_notes (title) values (${title})`;
 		return title;
 	},
-	success: Schema.String,
 });
 
 const Get = query("get", {
 	payload: { id: Schema.Number },
 	reads: ({ id }) => [notes.item(id)],
-	rejections: { NotFound },
 	*run({ id }) {
 		const sql = yield* SqlClient.SqlClient;
 		const [row] = yield* sql<{ title: string }>`select title from defined_notes where id = ${id}`;
@@ -42,7 +39,6 @@ const Get = query("get", {
 		}
 		return row.title;
 	},
-	success: Schema.String,
 });
 
 export const Notes = defineModule({
@@ -50,6 +46,10 @@ export const Notes = defineModule({
 	name: "notes",
 	operations: [Create, Get],
 	requires: [SqlClient.SqlClient],
+	wire: {
+		create: { rejections: { TitleTaken }, success: Schema.String },
+		get: { rejections: { NotFound }, success: Schema.String },
+	},
 });
 
 export const Drafts = contract("drafts", {

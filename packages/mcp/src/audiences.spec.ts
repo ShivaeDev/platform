@@ -82,7 +82,8 @@ mcp.it(
 		const failure = yield* callsWithInvalidArguments("ada");
 
 		expect(failure).toEqual({
-			clientFailure: 'MCP tool reported an error: Invalid parameters for tool \'adminOnly\': Expected number\n  at ["request"]["count"]',
+			clientFailure:
+				'MCP tool reported an error: Invalid parameters for tool \'adminOnly\': Expected "Infinity" | "-Infinity" | "NaN"\n  at ["request"]["count"]',
 		});
 	},
 );
