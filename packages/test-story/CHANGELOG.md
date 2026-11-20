@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.49.1 - 2026-11-20
+
+### Changed
+
+- Update `@shivaedev/contract` from 0.49.0 to 0.50.0.
+- Update `@shivaedev/test-sql` from 0.25.4 to 0.25.5.
+
 ## 0.49.0 - 2026-11-20
 
 ### Changed

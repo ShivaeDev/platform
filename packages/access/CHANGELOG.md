@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.6 - 2026-11-20
+
+### Changed
+
+- Update `@shivaedev/errors` from 0.13.1 to 0.14.0.
+
 ## 0.6.5 - 2026-11-20
 
 ### Changed
