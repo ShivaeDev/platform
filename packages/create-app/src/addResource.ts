@@ -1,5 +1,5 @@
 import { Console, Effect, FileSystem, Path } from "effect";
-import { MIGRATION_FILE_PATTERN } from "@shivaedev/sql/migration.ts";
+import { MIGRATION_FILE_PATTERN, MIGRATIONS_FOLDER } from "@shivaedev/sql/migration.ts";
 import { CreateAppError } from "#CreateAppError.ts";
 import { GENERATION_FILE } from "#generation.ts";
 import { resourceFiles } from "#resource/files.ts";
@@ -21,7 +21,7 @@ export const addResource = Effect.fn("CreateApp.addResource")(function* (folder:
 	}
 	const files = yield* fs.readDirectory(path.join(root, "src"), { recursive: true });
 	const ids = files
-		.filter((file) => path.basename(path.dirname(file)) === "migrations" && MIGRATION_FILE_PATTERN.test(path.basename(file)))
+		.filter((file) => path.basename(path.dirname(file)) === MIGRATIONS_FOLDER && MIGRATION_FILE_PATTERN.test(path.basename(file)))
 		.map((file) => Number(path.basename(file).slice(0, 4)));
 	const migration = String(Math.max(0, ...ids) + 1).padStart(4, "0");
 	const generated = resourceFiles(names, migration);

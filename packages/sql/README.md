@@ -971,7 +971,7 @@ The helper adds no ledger entries and does not change `migratePostgres`'s single
 
 ### PostgreSQL migrations: one discovered folder
 
-Application migrations live in `src/server/migrations/`. Name each file with a four-digit zero-padded sequential number, an underscore and a snake_case name, such as `0007_add_note_tags.ts`. Export the migration's SQL Effect as the default export:
+Migrations live in a `migrations` folder beside the code that registers them: an application's in `src/server/migrations/`, a feature module's in `src/modules/<name>/server/migrations/`. Name each file with a four-digit zero-padded sequential number, an underscore and a snake_case name, such as `0007_add_note_tags.ts`. Export the migration's SQL Effect as the default export:
 
 ```ts
 import { Effect } from "effect";
@@ -983,7 +983,7 @@ export default Effect.gen(function* () {
 });
 ```
 
-Run the discovered files from the application root:
+Run the discovered files from a module in `src/server/`:
 
 ```ts
 import { NodeServices } from "@effect/platform-node";
@@ -994,15 +994,15 @@ import { migratePostgres } from "@shivaedev/sql/migrations.ts";
 const migrateOrders = migratePostgres({
 	table: "app_migrations",
 	lockTimeout: "5 seconds",
-	loader: migrationsFromDirectory(process.cwd()).pipe(Effect.provide(NodeServices.layer)),
+	loader: migrationsFromDirectory(import.meta.dirname).pipe(Effect.provide(NodeServices.layer)),
 });
 ```
 
-`migrationsFromDirectory(root)` delegates discovery to Effect's `MigratorFileSystem.fromFileSystem` from `effect/sql/MigratorFileSystem` and requires native `FileSystem` and `Path` services. Keep the folder beside the server source when deploying it, or include it in your server build. Adding a migration means adding one file; there is no import list. The first run of `0001_create_orders.ts` returns `[[1, "create_orders"]]`; repeating it returns `[]`, and adding a higher numbered file applies the new work. Treat applied migrations as immutable.
+`migrationsFromDirectory(directory)` reads the `migrations` folder in `directory`, here `src/server/migrations/`. It delegates discovery to Effect's `MigratorFileSystem.fromFileSystem` from `effect/sql/MigratorFileSystem` and requires native `FileSystem` and `Path` services. A directory without a `migrations` folder fails the run with native `MigrationError` (`kind: "Failed"`) instead of applying nothing. An application hosted by `@shivaedev/server` does not call it directly: each module registration writes `migrations: migrationsIn(import.meta.dirname)`, which calls `migrationsFromDirectory` with Node's file system provided. Keep the folder beside the server source when deploying it, or include it in your server build. Adding a migration means adding one file; there is no import list. The first run of `0001_create_orders.ts` returns `[[1, "create_orders"]]`; repeating it returns `[]`, and adding a higher numbered file applies the new work. Treat applied migrations as immutable.
 
 Use sequential numbers, not timestamps. Effect's Migrator skips any migration whose ID is not greater than the latest applied ID. A timestamped migration from a branch that merges late could therefore be silently skipped by native Migrator on an already-migrated database. Two branches that choose the same sequential number instead fail loudly with Effect's duplicate-ID `MigrationError` (`kind: "Duplicates"`), forcing the second branch to renumber and re-check. This package also rejects gaps below the latest applied ID, as described below.
 
-`migration.ts` exports `MIGRATIONS_DIRECTORY` and `MIGRATION_FILE_PATTERN` so template packaging and repository quality configuration share the folder and filename convention.
+`migration.ts` exports `MIGRATIONS_FOLDER` and `MIGRATION_FILE_PATTERN` so discovery, template packaging and repository quality configuration share the folder name and filename convention.
 
 `migratePostgres` rejects loaded migration IDs at or below the latest applied ID that are missing from the ledger with a typed native `MigrationError` (`kind: "BadState"`) naming those IDs. It also rejects a loaded ID recorded under a different name, matching readiness's ID and name checks. Both checks run before any new migration body, schema component or release publication. Later ledger entries absent from the loader are allowed for older releases.
 
@@ -1070,8 +1070,8 @@ Import the module that defines the name; there is no root entry.
 - `@shivaedev/sql/transact.ts`: `transact(effect, options?)` or `effect.pipe(transact(options?))` — Optional `onSqlError` mapper; without it `SqlError` stays in the error channel; requires `SqlClient` and `Reactivity`.
 - `@shivaedev/sql/transact.ts`: `invalidateOnCommit(keys, options?)` — Records keys for its client, or invalidates immediately outside a transaction.
 - `@shivaedev/sql/advisoryXactLock.ts`: `advisoryXactLock(key)`, `AdvisoryLockOutsideTransaction` — PostgreSQL transaction lock on a bigint or string hashed with `hashtextextended(key, 0)`; requires an active transaction on the current `SqlClient`.
-- `@shivaedev/sql/migration.ts`: `MIGRATIONS_DIRECTORY`, `MIGRATION_FILE_PATTERN` — Application folder and four-digit sequential snake_case TypeScript filename pattern.
-- `@shivaedev/sql/migrationsFromDirectory.ts`: `migrationsFromDirectory(root)` — Discover migrations under the application root with native `FileSystem` and `Path`.
+- `@shivaedev/sql/migration.ts`: `MIGRATIONS_FOLDER`, `MIGRATION_FILE_PATTERN` — Migration folder name and four-digit sequential snake_case TypeScript filename pattern.
+- `@shivaedev/sql/migrationsFromDirectory.ts`: `migrationsFromDirectory(directory)` — Discover migrations in the `migrations` folder in `directory` with native `FileSystem` and `Path`.
 - `@shivaedev/sql/migrations.ts`: `migratePostgres(options)` — Native loader, required `lockTimeout`, optional `components`, `release` and ledger `table`, default `effect_sql_migrations`.
 - `@shivaedev/sql/backfillPostgres.ts`: `backfillPostgres({ batchSize, lock, loadProgress, select, process, saveProgress })` — Bounded transactions with application-owned checkpoints; returns the rows processed in this invocation. `BackfillInsideTransaction` rejects an enclosing transaction.
 - `@shivaedev/sql/assertPostgresMigrations.ts`: `assertPostgresMigrations({ loader, table?, components? })` — Read-only readiness check of required migration IDs and names in the native ledger and registered schema components.
