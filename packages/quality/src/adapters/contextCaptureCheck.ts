@@ -1,6 +1,7 @@
 import ts from "typescript";
 import { composedContext } from "#adapters/composedContext.ts";
 import { effectApi } from "#adapters/serviceModelSyntax.ts";
+import { inAdaptersOrTestSupport } from "#naming/unsafeFolders.ts";
 import type { Finding, SourceFile, TypeScriptProgram } from "#rule.ts";
 import { parse } from "#rules/parse.ts";
 import { importBindings } from "#rules/stories/importBindings.ts";
@@ -63,8 +64,7 @@ function layerShaped(argument: ts.Expression): boolean {
 
 // Only these call shapes can re-provide a context, so a file without one never enters the type-checked program.
 function candidate(file: SourceFile): boolean {
-	const source =
-		/(?:^|\/)(?:adapters|test-support)\//u.test(file.path) || !PROVIDERS.some((name) => file.text.includes(name)) ? undefined : parse(file);
+	const source = inAdaptersOrTestSupport(file.path) || !PROVIDERS.some((name) => file.text.includes(name)) ? undefined : parse(file);
 	if (source === undefined) {
 		return false;
 	}

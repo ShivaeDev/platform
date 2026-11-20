@@ -1,11 +1,12 @@
 import ts from "typescript";
+import { inAdaptersOrTestSupport } from "#naming/unsafeFolders.ts";
 import { defineRule, type Finding, type SourceFile } from "#rule.ts";
 import { boundaryReference, moduleBinder } from "#rules/effect/boundaryReference.ts";
 import { parses } from "#rules/parse.ts";
 
 const UNSAFE_NAME = /[a-z0-9]Unsafe$/u;
 
-const UNCHECKED_PATH = /(?:^|\/)(?:adapters|test-support)\/|\.(?:config|test|spec)\.[cm]?[jt]sx?$|\.d\.[cm]?ts$/u;
+const UNCHECKED_FILE = /\.(?:config|test|spec)\.[cm]?[jt]sx?$|\.d\.[cm]?ts$/u;
 
 const EFFECT_MODULE = /^(?:effect|@effect\/[^./]+)[./]/u;
 
@@ -106,7 +107,7 @@ function unsafeFindings(checker: ts.TypeChecker, path: string, source: ts.Source
 }
 
 function checked(file: SourceFile): boolean {
-	return parses(file) && !UNCHECKED_PATH.test(file.path) && /[a-z0-9]Unsafe\b/u.test(file.text);
+	return parses(file) && !inAdaptersOrTestSupport(file.path) && !UNCHECKED_FILE.test(file.path) && /[a-z0-9]Unsafe\b/u.test(file.text);
 }
 
 export const unsafeCalls = defineRule({

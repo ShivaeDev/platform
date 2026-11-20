@@ -7,7 +7,7 @@ import { TestClock } from "effect/testing";
 import { hostTime } from "@shivaedev/test-kits/host/time.ts";
 import { applicationHost } from "#server/adapters/applicationHost.ts";
 import { applicationWorker } from "#server/applicationWorker.ts";
-import { runWorker } from "#server/runWorker.ts";
+import { workerTeardown } from "#server/workerTeardown.ts";
 import { deploymentTime } from "#test-support/deploymentTime.ts";
 import { testPoolSizes } from "#test-support/poolSizes.ts";
 
@@ -22,12 +22,13 @@ if (process.argv[2] === "web") {
 		),
 	);
 } else {
-	runWorker(
+	NodeRuntime.runMain(
 		Effect.gen(function* () {
 			yield* TestClock.setTime(yield* Config.Number("STORY_CLOCK_START"));
 			const time = yield* hostTime();
 			yield* deploymentTime(time);
 			yield* Layer.launch(applicationWorker({ poolSizes: testPoolSizes }).pipe(Layer.provide(time.layer))).pipe(TestClock.withLive);
 		}).pipe(Effect.scoped, Effect.provide(TestClock.layer())),
+		{ teardown: workerTeardown },
 	);
 }
