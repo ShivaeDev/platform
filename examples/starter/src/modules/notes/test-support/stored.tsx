@@ -54,13 +54,13 @@ export const storedNotes = storyKit({
 		},
 		releaseNotesList: () => {
 			story.tell("the host answers the notes list");
-			return Effect.promise(() => act(async () => engine.client.releaseList())).pipe(Effect.andThen(settleQuery(engine)));
+			return Effect.sync(() => act(() => engine.client.releaseList())).pipe(Effect.andThen(settleQuery(engine)));
 		},
 		reload: () =>
 			Effect.gen(function* () {
 				story.tell("the page hides and reloads while the host holds the notes list");
-				yield* Effect.promise(() =>
-					act(async () => {
+				yield* Effect.sync(() =>
+					act(() => {
 						Object.defineProperty(document, "visibilityState", { configurable: true, value: "hidden" });
 						document.dispatchEvent(new Event("visibilitychange"));
 						Object.defineProperty(document, "visibilityState", { configurable: true, value: "visible" });
