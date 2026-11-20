@@ -12,7 +12,7 @@ export const cloneClock = storyKit({
 		const clone = yield* storyDatabase();
 		const state = { clone, elapsed: 0, sleeps: 0 };
 		const clock = yield* watchedClock;
-		yield* Stream.runForEach(clock.sleeps, () =>
+		yield* Stream.runForEach(clock.sleepStarts, () =>
 			Effect.sync(() => {
 				state.sleeps += 1;
 			}),

@@ -26,7 +26,7 @@ const invalidFixtures = {
 	readsPayload: "Property 'slug' does not exist on type '{ readonly id: number; }'",
 	rejectionTag: "must have that _tag",
 	runCollectionsPolicy: "Property 'readPolicy' is missing",
-	undeclaredRejection: "Type 'Other' is not assignable to type 'NoteMissing | QueryReadDenied'",
+	undeclaredRejection: "Type 'Other' is not assignable to type 'Denied | MissingReadPolicy | NoteMissing | QueryReadDenied | WebSocketRequired'",
 	unknownReject: "Property 'Other' does not exist",
 	wrongPayload: "Type 'string' is not assignable to type 'number'",
 	zeroRejections: "Property 'members' does not exist on type 'Never'",

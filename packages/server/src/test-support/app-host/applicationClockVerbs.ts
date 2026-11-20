@@ -10,7 +10,7 @@ export function applicationClockVerbs(state: HostState, tell: (line: string) => 
 			tell(`${days} days pass in one step of the host's application clock`);
 			return Effect.gen(function* () {
 				const clock = yield* watchedClock;
-				yield* Stream.runForEach(clock.sleeps, () =>
+				yield* Stream.runForEach(clock.sleepStarts, () =>
 					Effect.sync(() => {
 						state.applicationClockWakeups += 1;
 					}),

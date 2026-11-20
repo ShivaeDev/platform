@@ -79,23 +79,13 @@ migrationHost.it(
 );
 
 migrationHost.it(
-	"interrupting a waiting host finishes only after its pool disconnects, closing every connection without starting the application",
+	"interrupting a waiting host closes its pool without waiting for PostgreSQL to acknowledge the disconnects, and never starts the application",
 	[heldDisconnects],
-	function* ({
-		applicationLifecycle,
-		hostEnding,
-		hostStarts,
-		interruptionProgress,
-		openPoolConnections,
-		peerAcknowledgesDisconnects,
-		theHostIsInterrupted,
-	}) {
+	function* ({ applicationLifecycle, hostEnding, hostStarts, openPoolConnections, postgresEndsEveryBackend, theHostIsInterrupted }) {
 		yield* hostStarts();
 		expect(yield* openPoolConnections()).toBe("2 open connections");
 		yield* theHostIsInterrupted();
-		expect(yield* interruptionProgress()).toBe("waiting for the pool to disconnect");
-
-		yield* peerAcknowledgesDisconnects();
+		yield* postgresEndsEveryBackend();
 
 		yield* outcomes([
 			["application lifecycle", () => applicationLifecycle(), []],

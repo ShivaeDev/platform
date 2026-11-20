@@ -1,5 +1,6 @@
 import type * as PgClient from "@effect/sql-pg/PgClient";
 import { Effect, Queue, Scope } from "effect";
+import type { SqlClient } from "effect/sql";
 import type { SqlError } from "effect/sql/SqlError";
 import type { PostgresChangeClient, PostgresNotification } from "#postgresChanges.ts";
 
@@ -54,7 +55,7 @@ const instrument = Effect.fnUntraced(function* (
 });
 
 export function instrumentedClient(
-	client: PgClient.PgClient,
+	client: PgClient.PgClient & SqlClient.SqlClient,
 	controls: ListenerControls,
 	events: ListenerEvents,
 	release: Effect.Effect<void>,
