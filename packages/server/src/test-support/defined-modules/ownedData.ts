@@ -46,7 +46,8 @@ const Owned = query("owned", {
 	readPolicy: () => Effect.succeed(true),
 	*run() {
 		const owned = yield* (yield* RepositoryModels).owned;
-		return owned.map(({ owner: { column }, table }) => ({ column, table }));
+		const columns: readonly { readonly column: string; readonly table: string }[] = owned.map(({ owner: { column }, table }) => ({ column, table }));
+		return columns;
 	},
 });
 
