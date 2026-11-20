@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.50.0 - 2026-11-19
+
+### Added
+
+- `RepositoryModels` from `@shivaedev/sql/RepositoryModels.ts`; `makeRepository` and `makeOrderedChildren` declare their model through it while they are built, and its default does nothing.
+
+### Fixed
+
+- `BucketRegistrationError` now says what to change. When the collection name differs from `tableName`, it prints both names and says the collection name must equal the table name; it names the collection a repository without one needs, and it prints both bucket field lists when they differ.
+
+### Breaking
+
+- a `readSql` read whose interpolated keys are all single-column keys straight from their collection, bucket keys or numeric-id row keys, no longer carries `MultiColumnKeyParameter` in its error type, so a contract module query can use it without `Effect.die`. Migrate by removing any `Effect.catchTag("MultiColumnKeyParameter", ...)` or `Effect.die` handler on such a read; the compiler now rejects the `catchTag`. Reads that interpolate a key typed as a plain `Key`, `BucketKey` or `ItemKey`, including a string-id row key, keep the error.
+
 ## 0.49.0 - 2026-11-18
 
 ### Added

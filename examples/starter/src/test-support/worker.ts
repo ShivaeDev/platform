@@ -1,12 +1,12 @@
 import { Config, ConfigProvider, DateTime, Effect, Layer } from "effect";
 import { authTestDatabase } from "@shivaedev/identity/server/better-auth/testDatabase.ts";
+import { JobsClientFactory } from "@shivaedev/jobs/server/JobsClientFactory.ts";
 import { makePgBossTesting } from "@shivaedev/test-kits/jobs/testing.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { applicationWorker } from "#server/applicationWorker.ts";
 import { SweepExpiredSessions } from "#server/foundationWorker.ts";
-import { JobsClientFactory } from "#server/JobsClientFactory.ts";
 import { testPoolSizes } from "#test-support/poolSizes.ts";
 import { configured, postgres } from "#test-support/postgres.ts";
 import { mintUser } from "#test-support/sessionPrecondition.ts";

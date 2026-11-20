@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.49.1 - 2026-11-19
+
+### Changed
+
+- Update `@shivaedev/access` from 0.6.3 to 0.6.4.
+- Update `@shivaedev/contract` from 0.47.0 to 0.48.0.
+- Update `@shivaedev/errors` from 0.12.0 to 0.13.0.
+- Update `@shivaedev/form` from 0.19.3 to 0.19.4.
+- Update `@shivaedev/identity` from 0.32.3 to 0.33.0.
+
 ## 0.49.0 - 2026-11-18
 
 ### Breaking

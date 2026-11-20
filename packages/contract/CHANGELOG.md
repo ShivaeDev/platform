@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.48.0 - 2026-11-19
+
+### Added
+
+- a bound query's options take `subject`, and a query's, command's or stream's `run` takes `{ subject }` as its second argument, so one client and its one socket, including a browser's or Capacitor app's first-frame bearer socket, act for the actor and any number of delegated subjects at once. `subjectHeader.ts` exports `subjectHeader`, `withSubject` and `subjectSerializationKey`.
+
+### Fixed
+
+- a defined module's operations carry `GeneratedSuccess` for every success their wire supplies, so a payload or rejection that marks a name sensitive no longer fails host start or `layerMemoryProtocol` with `SensitiveFieldConflict` when the generated success names it too. Hand-written contracts keep their check.
+- two bound queries with different subjects and the same `serializationKey` now serialize under separate keys, so SSR hydration no longer gives one subject's result to the other.
+
 ## 0.47.0 - 2026-11-18
 
 ### Added

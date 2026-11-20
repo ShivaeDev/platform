@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.33.0 - 2026-11-19
+
+### Added
+
+- the subject guard reads `x-platform-subject` from each call's own RPC message and falls back to the transport header, so existing Node clients that set it on the WebSocket upgrade keep working. It reads no other header from the message; the session, Origin, cookies and authorization stay bound to the transport.
+
 ## 0.32.3 - 2026-11-18
 
 ### Changed

@@ -1,5 +1,6 @@
 import { ConfigProvider, Context, Effect, Layer, Redacted, Schema } from "effect";
 import { FetchHttpClient, HttpClient, HttpServer } from "effect/http";
+import { JobsClientFactory } from "@shivaedev/jobs/server/JobsClientFactory.ts";
 import { makePgBossTesting } from "@shivaedev/test-kits/jobs/testing.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
@@ -7,7 +8,6 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { deliverWebhook } from "@shivaedev/test-kits/webhooks/deliver.ts";
 import { applicationHost } from "#server/adapters/applicationHost.ts";
 import { applicationWorker } from "#server/applicationWorker.ts";
-import { JobsClientFactory } from "#server/JobsClientFactory.ts";
 import { sources } from "#adoption/webhooks/feature.ts";
 import { testPoolSizes } from "#test-support/poolSizes.ts";
 import { postgres } from "#test-support/postgres.ts";

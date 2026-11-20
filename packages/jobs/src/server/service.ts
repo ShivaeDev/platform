@@ -1,6 +1,5 @@
 import { Context, type Effect, Layer, type Option, type Redacted, type Schema } from "effect";
 import { acquireClient } from "#server/acquireClient.ts";
-import type { PgBossClientFactory } from "#server/adapters/client.ts";
 import { clientEngine } from "#server/adapters/lifecycle.ts";
 import { pgBossDefinitionLayer } from "#server/adapters/pgBossDefinitionLayer.ts";
 import type { ClientOptions, StopOptions } from "#server/clientOptions.ts";
@@ -54,7 +53,6 @@ export type PgBossOptions = Omit<ClientOptions, "connectionString"> & {
 	readonly connectionString?: Redacted.Redacted<string>;
 	readonly idleTimeoutMillis?: number;
 	readonly maxLifetimeSeconds?: number;
-	readonly clientFactory?: PgBossClientFactory;
 	readonly clientCacheKey?: string | symbol | undefined;
 	readonly stop?: StopOptions;
 };

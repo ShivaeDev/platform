@@ -5,7 +5,7 @@ import type { PgBossClientOptionsError, PgBossError } from "#server/error.ts";
 
 export interface AcquireClientOptions {
 	readonly clientCacheKey?: string | symbol | undefined;
-	readonly clientFactory?: PgBossClientFactory | undefined;
+	readonly clientFactory: PgBossClientFactory;
 	readonly constructor: ClientOptions;
 }
 

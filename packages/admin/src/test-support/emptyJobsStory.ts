@@ -4,6 +4,7 @@ import { TestClock } from "effect/testing";
 import { moduleHandlers } from "@shivaedev/contract/moduleHandlers.ts";
 import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import type { UserSessionShape } from "@shivaedev/identity/server/session.ts";
+import { JobsClientFactory } from "@shivaedev/jobs/server/JobsClientFactory.ts";
 import { makePgBoss, pgBossLayer } from "@shivaedev/jobs/server/service.ts";
 import { hostChanges } from "@shivaedev/server/hostChanges.ts";
 import { makePgBossTesting } from "@shivaedev/test-kits/jobs/testing.ts";
@@ -24,7 +25,10 @@ const emptyJobsEngine = Effect.gen(function* () {
 	const clock = yield* TestClock.testClockWith(Effect.succeed);
 	const testing = makePgBossTesting({ clock });
 	const context = yield* Layer.build(
-		Jobs.layer({ jobs: [] }).pipe(Layer.provide(pgBossLayer({ clientFactory: testing.clientFactory, connectionString: database.url }))),
+		Jobs.layer({ jobs: [] }).pipe(
+			Layer.provide(pgBossLayer({ connectionString: database.url })),
+			Layer.provide(Layer.succeed(JobsClientFactory, testing.clientFactory)),
+		),
 	);
 	const registration = registerAdmin(adminRegistry(JobsPage), { jobs: moduleHandlers(JobsModule) });
 	const jobs = Context.get(context, Jobs);

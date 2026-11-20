@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.3 - 2026-11-19
+
+### Changed
+
+- Update `@shivaedev/quality` from 0.78.3 to 0.78.4.
+
 ## 0.2.2 - 2026-11-18
 
 ### Changed

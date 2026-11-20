@@ -12,6 +12,7 @@ import { registerAdmin } from "@shivaedev/admin/server/registerAdmin.ts";
 import { moduleHandlers } from "@shivaedev/contract/moduleHandlers.ts";
 import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import { defineQueue } from "@shivaedev/jobs/server/definition.ts";
+import { JobsClientFactory } from "@shivaedev/jobs/server/JobsClientFactory.ts";
 import { makePgBoss, pgBossLayer } from "@shivaedev/jobs/server/service.ts";
 import { makePgBossTesting } from "@shivaedev/test-kits/jobs/testing.ts";
 import { postgresTestUrl } from "@shivaedev/test-sql/server/adapters/postgresTestUrl.ts";
@@ -56,7 +57,8 @@ export const registeredJobs = jobsRedaction.trait(
 		const sessions = { origin: () => true, provider: { get: () => Effect.succeed(Option.none()) } };
 		const testing = makePgBossTesting({ clock: yield* TestClock.testClockWith(Effect.succeed) });
 		const services = Jobs.layer({ jobs: [Mail.handle(() => Effect.fail(new Error("private job failure detail")))] }).pipe(
-			Layer.provide(pgBossLayer({ clientFactory: testing.clientFactory, connectionString: database.url, supervise: false })),
+			Layer.provide(pgBossLayer({ connectionString: database.url, supervise: false })),
+			Layer.provide(Layer.succeed(JobsClientFactory, testing.clientFactory)),
 		);
 		const jobs = Context.get(yield* Layer.build(services), Jobs);
 		const id = Option.getOrThrow(yield* jobs.enqueue(Mail, { recipient: "private-recipient@example.test" }, { retryLimit: 0 }));
