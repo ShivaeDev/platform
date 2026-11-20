@@ -34,6 +34,7 @@ import { manifestsValid } from "#rules/manifestsValid.ts";
 import { maxDepth } from "#rules/maxDepth.ts";
 import { maxLines } from "#rules/maxLines.ts";
 import { noBarrel } from "#rules/noBarrel.ts";
+import { oldOperationForm } from "#rules/oldOperationForm.ts";
 import { jsxConditionals } from "#rules/react/jsxConditionals.ts";
 import { nestedComponents } from "#rules/react/nestedComponents.ts";
 import { adapterOnlyFakes } from "#rules/stories/adapterOnlyFakes.ts";
@@ -130,4 +131,5 @@ export const builtInRules = [
 	positiveRefusals,
 	groupedOutcomes,
 	waitOnEvents,
+	oldOperationForm,
 ] as const;
