@@ -10,8 +10,7 @@ export const checkRuntimeImports = Effect.fn("Published.checkRuntimeImports")(fu
 	versions: Readonly<Record<string, string>>,
 ) {
 	const fs = yield* FileSystem.FileSystem;
-	const probes = entries.filter((entry) => !entry.typeOnly);
-	const tests = probes.map((entry) => {
+	const tests = entries.map((entry) => {
 		const name = packageName(entry.specifier);
 		const label = `${name}@${versions[name]}: import ${entry.name ?? "*"} from ${entry.specifier} (${entry.source})`;
 		return `test(${JSON.stringify(label)}, async () => {
