@@ -724,7 +724,7 @@ type SignInFailure = Effect.Error<ReturnType<typeof signIn>>;
 type Messages = Record<SignInFailure["code"], string>;
 ```
 
-The failure's `_tag` remains `AuthFailure`; its `code` union includes the declared application codes, so `Messages` requires text for each one as well as the standard codes. Database-hook and email-delivery Effects return their application code and message through `BetterAuthHookError`. The mounted HTTP route preserves these refusals even when Better Auth catches an email-delivery error internally. Undeclared codes remain `UNKNOWN`. `AuthFailure.withCodes(ApplicationCode.literals)` supplies the corresponding native error schema when the application needs to decode a failure.
+The failure's `_tag` remains `AuthFailure`; its `code` union includes the declared application codes, so `Messages` requires text for each one as well as the standard codes. Database-hook and email-delivery Effects return their application code and message through `BetterAuthHookError`. The mounted HTTP route preserves these refusals even when Better Auth catches an email-delivery error internally. On email sign-up, Better Auth sends the account confirmation after it saves the new user and session, so a refused confirmation answers with the refusal while both rows stay stored. Undeclared codes remain `UNKNOWN`. `AuthFailure.withCodes(ApplicationCode.literals)` supplies the corresponding native error schema when the application needs to decode a failure.
 
 `authQuery` returns an input-to-Effect function that preserves returned provider errors and maps rejected Promises to `AuthUnavailable` from `@shivaedev/errors/taxonomy.ts`. Both call adapters pass Effect's abort signal to the supplied client function.
 

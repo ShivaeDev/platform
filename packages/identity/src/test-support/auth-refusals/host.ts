@@ -26,11 +26,12 @@ export interface Refusals {
 	seed: boolean;
 }
 
-export const refusalHost = Effect.fnUntraced(function* (refusals: Refusals) {
+export const refusalHost = Effect.fnUntraced(function* (refusals: Refusals, signInPolicy: boolean) {
 	yield* postgresMigration;
 	const options = {
 		database: yield* betterAuthDatabase(),
 		emailAndPassword: { enabled: true },
+		emailVerification: { sendOnSignUp: true },
 		logger: { disabled: true },
 		plugins: [testUtils()],
 		secret: "auth-refusal-stories-secret-at-least-32-characters",
@@ -57,10 +58,14 @@ export const refusalHost = Effect.fnUntraced(function* (refusals: Refusals) {
 		},
 		roleSeed: Effect.succeed({ onSignIn: () => (refusals.seed ? Effect.fail("Role storage is unavailable") : Effect.void) }),
 		roles: Access,
-		signIn: {
-			rule: () =>
-				refusals.policy === "unavailable" ? Effect.fail("Membership service is unavailable") : Effect.succeed(refusals.policy !== "refused"),
-		},
+		...(signInPolicy
+			? {
+					signIn: {
+						rule: () =>
+							refusals.policy === "unavailable" ? Effect.fail("Membership service is unavailable") : Effect.succeed(refusals.policy !== "refused"),
+					},
+				}
+			: {}),
 	})
 		.pipe(Effect.provide(memoryStore))
 		.pipe(Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env: { "AUTH_RATE_LIMIT_ENABLED": "false" } }))));
@@ -84,5 +89,6 @@ export const refusalHost = Effect.fnUntraced(function* (refusals: Refusals) {
 		client: createAuthClient({ "baseURL": `http://127.0.0.1:${server.address.port}` }),
 		credentials: { email: "alice@example.test", password: CURRENT_PASSWORD },
 		storedSessions: Effect.map(storage.sessions, (rows) => rows.map(({ email }) => email)),
+		storedUsers: Effect.map(storage.users, (rows) => rows.map(({ email }) => email)),
 	};
 });
