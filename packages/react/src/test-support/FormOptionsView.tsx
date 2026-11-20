@@ -12,22 +12,21 @@ interface Props {
 	readonly kind: Kind;
 	readonly runtime: Atom.AtomRuntime<TitleCheck>;
 }
-function config(runtime: Props["runtime"]) {
+function config() {
 	return {
 		arrayKeys: { answers: (answer: Answers["answers"][number]) => answer.id },
 		checks: { title: (value: string) => Effect.flatMap(TitleCheck, (service) => service.check(value)) },
 		debounce: "50 millis" as const,
 		fields: Answers,
 		requiredMessages: { title: "Give this editor a title" },
-		runtime,
 	};
 }
 function EditorView({ runtime }: Props) {
-	const editor = useEditor({ ...config(runtime), loaded: initialValues, query, save: saveAnswers, values: (row) => row });
+	const editor = useEditor({ run: saveAnswers, runtime }, { ...config(), loaded: initialValues, query, values: (row) => row });
 	return <Controls form={editor.form} onSave={editor.save} />;
 }
 function CreateView({ runtime }: Props) {
-	const create = useCreate({ ...config(runtime), create: saveAnswers, initialValues });
+	const create = useCreate({ run: saveAnswers, runtime }, { ...config(), initialValues });
 	return <Controls form={create.form} onSave={create.save} />;
 }
 export function FormOptionsView(props: Props) {

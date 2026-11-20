@@ -7,18 +7,9 @@ import { Order } from "#test/postgres-example/contract.ts";
 import type { makeClient } from "#test/postgres-example/makeClient.ts";
 
 const Draft = Schema.Struct({ name: Order.fields.name, quantity: Schema.NumberFromString });
-function values(order: Order) {
-	return { name: order.name, quantity: String(order.quantity) };
-}
 function useOrderEditor(client: ReturnType<typeof makeClient>) {
 	useAtomMount(client.connection);
-	return useEditor({
-		fields: Draft,
-		query: client.query,
-		runtime: client.Client.runtime,
-		save: (input) => client.api.save.run({ id: 1, ...input }),
-		values,
-	});
+	return useEditor(client.api.save, { fields: Draft, fixed: { id: 1 }, query: client.query });
 }
 function DraftFields({ form }: { readonly form: NonNullable<ReturnType<typeof useOrderEditor>["form"]> }) {
 	const name = useField(form, "name");

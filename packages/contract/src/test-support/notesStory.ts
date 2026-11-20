@@ -1,6 +1,7 @@
 import { Effect, Ref, SubscriptionRef } from "effect";
 import type * as AsyncResult from "effect/reactivity/AsyncResult";
 import type * as Atom from "effect/reactivity/Atom";
+import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { LiveConnection } from "#automaticLive.ts";
 import { answered, shown, times } from "#test/answers.ts";
@@ -75,7 +76,16 @@ export const notesStory = storyKit({
 		},
 		rename: (id: number, title: string) => {
 			story.tell(`the client renames note ${id} to ${JSON.stringify(title)}`);
-			return answered(write(engine, engine.run(engine.api.rename.run({ id, title }))), (note) => `renamed note ${note.id} to ${note.title}`);
+			// The command runs on the runtime it carries, the one React's hooks run it on.
+			const { run, runtime } = engine.api.rename;
+			return answered(
+				write(engine, AtomRegistry.getResult(engine.registry, runtime.atom(run({ id, title })))),
+				(note) => `renamed note ${note.id} to ${note.title}`,
+			);
+		},
+		renamePayload: () => {
+			story.tell("the client reads the payload schema the bound rename command carries");
+			return Effect.succeed(Object.keys(engine.api.rename.payload.fields).sort((left, right) => left.localeCompare(right)));
 		},
 		serverReads: () => SubscriptionRef.get(engine.server.reads),
 		shown: (view: View) => shownOf(engine, view),

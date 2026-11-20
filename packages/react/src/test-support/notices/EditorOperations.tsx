@@ -5,17 +5,18 @@ import type { NoticeClient } from "#test/notices/client.ts";
 import { Fields } from "#test/notices/Fields.ts";
 
 export function EditorOperations({ client }: { readonly client: NoticeClient }) {
-	const editor = useEditor({
-		fields: Fields,
-		loaded: "existing",
-		notices: { onSuccess: (title) => ({ message: `Saved ${title}` }) },
-		query: client.api.list.query(),
-		queryNotice: () => ({ message: "Editor refresh failed" }),
-		runtime: client.runtime,
-		save: (values) => client.api.remove.run(values).pipe(Effect.as(values.title)),
-		values: (title) => ({ title }),
-	});
-	const breakReads = useAction(client.runtime, client.api.breakReads.run);
+	const editor = useEditor(
+		{ run: (values: typeof Fields.Type) => client.api.remove.run(values).pipe(Effect.as(values.title)), runtime: client.runtime },
+		{
+			fields: Fields,
+			loaded: "existing",
+			notices: { onSuccess: (title) => ({ message: `Saved ${title}` }) },
+			query: client.api.list.query(),
+			queryNotice: () => ({ message: "Editor refresh failed" }),
+			values: (title) => ({ title }),
+		},
+	);
+	const breakReads = useAction(client.api.breakReads);
 	return (
 		<>
 			<button onClick={editor.save} type="button">

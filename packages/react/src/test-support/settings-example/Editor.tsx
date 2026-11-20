@@ -3,25 +3,16 @@ import { Option, Schema } from "effect";
 import { useId } from "react";
 import { useField } from "@shivaedev/form/adapters/react.ts";
 import { useEditor } from "#client/editor.ts";
-import { type EntitySettings, Settings } from "#test/settings-example/contract.ts";
+import { Settings } from "#test/settings-example/contract.ts";
 import type { makeClient } from "#test/settings-example/makeClient.ts";
 
 const Draft = Schema.Struct({
 	...Settings.fields,
 	pageSize: Schema.NumberFromString,
 });
-function values(row: typeof EntitySettings.Type) {
-	return { pageSize: String(row.pageSize), title: row.title };
-}
 function useSettingsEditor(client: ReturnType<typeof makeClient>) {
 	useAtomMount(client.connection);
-	return useEditor({
-		fields: Draft,
-		query: client.query,
-		runtime: client.Client.runtime,
-		save: (input) => client.api.save.run({ entityId: client.entityId, ...input }),
-		values,
-	});
+	return useEditor(client.api.save, { fields: Draft, fixed: { entityId: client.entityId }, query: client.query });
 }
 function Fields({ form }: { readonly form: NonNullable<ReturnType<typeof useSettingsEditor>["form"]> }) {
 	const errorId = useId();

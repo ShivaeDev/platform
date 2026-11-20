@@ -1,9 +1,9 @@
-import { Cause, type Effect, Option, Predicate } from "effect";
+import { Cause, Option, Predicate } from "effect";
 import type * as AsyncResult from "effect/reactivity/AsyncResult";
 import type * as Atom from "effect/reactivity/Atom";
 import { createElement, useState } from "react";
 import type { SessionList, SessionListInput, SignedInSession } from "@shivaedev/identity/signedInSessions.ts";
-import type { AtomServices } from "@shivaedev/react/AtomServices.ts";
+import type { BoundOperation } from "@shivaedev/react/client/boundOperation.ts";
 import { useAction, useQuery } from "@shivaedev/react/client/resultState.ts";
 import { SessionConfirmation } from "#client/adapters/SessionConfirmation.tsx";
 import { SessionListView } from "#client/adapters/SessionListView.tsx";
@@ -14,20 +14,19 @@ export interface SessionsViewProps<R, E> extends DateDisplay {
 	readonly currentSessionId: string | undefined;
 	readonly list: (input: typeof SessionListInput.Type) => Atom.Atom<AsyncResult.AsyncResult<SessionList, unknown>>;
 	readonly onCurrentSessionRevoked: () => void;
-	readonly revoke: (input: { readonly id: string }) => Effect.Effect<void, unknown, AtomServices<R>>;
-	readonly runtime: Atom.AtomRuntime<R, E>;
+	readonly revoke: BoundOperation<{ readonly id: string }, void, unknown, R, E>;
 }
 
 function forbidden(cause: Option.Option<Cause.Cause<unknown>>) {
 	return Option.exists(Option.flatMap(cause, Cause.findErrorOption), (error) => Predicate.isTagged(error, "Forbidden"));
 }
 
-export function SessionsView<R, E>({ currentSessionId, list, locale, onCurrentSessionRevoked, revoke, runtime, timeZone }: SessionsViewProps<R, E>) {
+export function SessionsView<R, E>({ currentSessionId, list, locale, onCurrentSessionRevoked, revoke, timeZone }: SessionsViewProps<R, E>) {
 	const [cursors, setCursors] = useState<readonly NonNullable<typeof SessionListInput.Type.cursor>[]>([]);
 	const [selected, select] = useState<typeof SignedInSession.Type>();
 	const cursor = cursors.at(-1);
 	const state = useQuery(list({ ...(cursor === undefined ? {} : { cursor }), limit: 20 }));
-	const action = useAction(runtime, revoke, {
+	const action = useAction(revoke, {
 		onSuccess: (_, { id }) => {
 			select(undefined);
 			if (id === currentSessionId) {

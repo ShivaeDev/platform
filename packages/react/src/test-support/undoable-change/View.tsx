@@ -17,8 +17,8 @@ export interface Props {
 
 function Panel({ client, update }: Props) {
 	const list = useQuery(client.api.list.query());
-	const change = useUndoableChange({ ...client.api.change, runtime: client.runtime, update }, { describe: (row) => `Removed ${row.id}` });
-	const edit = useAction(client.runtime, client.api.change.run);
+	const change = useUndoableChange(client.api.change, { describe: (row) => `Removed ${row.id}`, update });
+	const edit = useAction(client.api.change);
 	const deploy = useDeployUpdate(update);
 	const notice = Option.getOrUndefined(change.notice);
 	const error = AsyncResult.isFailure(change.undoResult) ? Option.getOrUndefined(Cause.findErrorOption(change.undoResult.cause)) : undefined;

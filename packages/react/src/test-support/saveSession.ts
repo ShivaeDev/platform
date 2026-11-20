@@ -24,23 +24,18 @@ interface ProbeProps {
 }
 
 function CreateProbe({ held, denied, dies }: ProbeProps) {
-	held.current = useCreate({
-		create: (_values: Name) => (dies ? Effect.die(new Error("Save died")) : Effect.fail(denied)),
-		fields: Name,
-		initialValues: { name: "" },
-		runtime,
-	});
+	held.current = useCreate(
+		{ run: (_values: Name) => (dies ? Effect.die(new Error("Save died")) : Effect.fail(denied)), runtime },
+		{ fields: Name, initialValues: { name: "" } },
+	);
 	return createElement(SaveControls, { held });
 }
 
 function EditorProbe({ held, denied, dies }: ProbeProps) {
-	held.current = useEditor({
-		fields: Name,
-		query,
-		runtime,
-		save: (_values: Name) => (dies ? Effect.die(new Error("Save died")) : Effect.fail(denied)),
-		values: (row) => row,
-	});
+	held.current = useEditor(
+		{ run: (_values: Name) => (dies ? Effect.die(new Error("Save died")) : Effect.fail(denied)), runtime },
+		{ fields: Name, query, values: (row) => row },
+	);
 	return createElement(SaveControls, { held });
 }
 

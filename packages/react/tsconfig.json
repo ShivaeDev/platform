@@ -2,6 +2,7 @@
 	"compilerOptions": {
 		"jsx": "react-jsx"
 	},
+	"exclude": ["src/test-support/compiler-fixtures"],
 	"extends": "../../tsconfig.base.json",
 	"include": ["src"]
 }

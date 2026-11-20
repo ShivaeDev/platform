@@ -16,7 +16,7 @@ export function useStableRun(run: unknown) {
 	const changes = seen === committedRef.current ? 1 : seen.changes + 1;
 	if (changes === UNCOMMITTED_CHANGES) {
 		throw new Error(
-			`useAction received a new \`run\` function on ${UNCOMMITTED_CHANGES} renders in a row. \`run\` is the action's identity and must stay the same function between renders: pass a bound command such as \`api.rename.run\` directly, or wrap your function in \`useCallback\` or \`useMemo\`.`,
+			`useAction received a new \`run\` function on ${UNCOMMITTED_CHANGES} renders in a row. \`run\` is the action's identity and must stay the same function between renders: pass a bound command such as \`api.rename\` directly, or wrap your \`run\` in \`useCallback\` or \`useMemo\`.`,
 		);
 	}
 	see({ changes, run });

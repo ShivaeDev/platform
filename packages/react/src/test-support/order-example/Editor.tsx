@@ -3,20 +3,18 @@ import { createElement } from "react";
 import { useEditor } from "#client/editor.ts";
 import { useAction, useQuery } from "#client/resultState.ts";
 import { Draft } from "#test/order-example/Draft.tsx";
-import { DraftFields, valuesOf } from "#test/order-example/fields.ts";
+import { DraftFields } from "#test/order-example/DraftFields.ts";
 import type { makeClient } from "#test/order-example/makeClient.ts";
 
 type OrderClient = ReturnType<typeof makeClient>;
 
-export function Editor({ id, client: { api, Client } }: { readonly id: number; readonly client: OrderClient }) {
-	const editor = useEditor({
+export function Editor({ id, client: { api } }: { readonly id: number; readonly client: OrderClient }) {
+	const editor = useEditor(api.save, {
 		fields: DraftFields,
+		fixed: { id },
 		query: api.get.query({ id }),
 		rejectField: (error: Effect.Error<ReturnType<typeof api.save.run>>) =>
 			error._tag === "OrderValidation" ? { field: error.field, message: error.message } : undefined,
-		runtime: Client.runtime,
-		save: (values) => api.save.run({ id, ...values }),
-		values: valuesOf,
 	});
 	const { query, form } = editor;
 	const order = Option.getOrUndefined(query.data);

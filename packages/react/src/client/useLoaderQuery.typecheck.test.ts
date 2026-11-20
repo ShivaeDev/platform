@@ -25,14 +25,10 @@ export function useLoadedScreen() {
 	useLoaderQuery(atom);
 	// @ts-expect-error The loader value must match the query's success type.
 	useLoaderQuery(atom, { id: 1 });
-	const editor = useEditor({
-		fields: Schema.Struct({ title: Schema.String }),
-		loaded: row,
-		query: atom,
-		runtime: Atom.runtime(Layer.empty),
-		save: Effect.succeed,
-		values: (value) => value,
-	});
+	const editor = useEditor(
+		{ run: (values: { readonly title: string }) => Effect.succeed(values), runtime: Atom.runtime(Layer.empty) },
+		{ fields: Schema.Struct({ title: Schema.String }), loaded: row, query: atom },
+	);
 	expectTypeOf(editor.query.data).toEqualTypeOf<{ title: string }>();
 	expectTypeOf<undefined>().not.toExtend<typeof editor.form>();
 	return { editor, query };

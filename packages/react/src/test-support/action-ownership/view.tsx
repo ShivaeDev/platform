@@ -34,10 +34,13 @@ function NativeControl(props: ControlProps) {
 
 function RuntimeControl(props: ControlProps) {
 	const [feedback, present] = useState("");
-	const action = useAction(props.client.runtime, props.client.commands[props.name].run, {
-		onFailure: (error) => present(`${props.name}: ${error}`),
-		onSuccess: (value) => present(`${props.name}: ${value}`),
-	});
+	const action = useAction(
+		{ run: props.client.commands[props.name].run, runtime: props.client.runtime },
+		{
+			onFailure: (error) => present(`${props.name}: ${error}`),
+			onSuccess: (value) => present(`${props.name}: ${value}`),
+		},
+	);
 	return (
 		<>
 			<Control {...props} action={action} />
@@ -47,7 +50,7 @@ function RuntimeControl(props: ControlProps) {
 }
 
 function InlineRunControl(props: ControlProps) {
-	const action = useAction(props.client.runtime, (input: string) => props.client.commands[props.name].run(input));
+	const action = useAction({ run: (input: string) => props.client.commands[props.name].run(input), runtime: props.client.runtime });
 	return <Control {...props} action={action} />;
 }
 

@@ -1,0 +1,6 @@
+{
+	"compilerOptions": { "noErrorTruncation": true, "pretty": false },
+	"exclude": [],
+	"extends": "../../../tsconfig.json",
+	"include": ["*.ts", "invalid/*.ts"]
+}

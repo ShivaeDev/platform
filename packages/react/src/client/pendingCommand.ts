@@ -1,16 +1,12 @@
 import { RegistryContext, useAtomValue } from "@effect/atom-react";
-import { type Effect, Option } from "effect";
+import { Option } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as Atom from "effect/reactivity/Atom";
 import { useContext, useMemo, useState } from "react";
 import { untilReflected } from "@shivaedev/contract/commandSignal.ts";
-import type { AtomServices } from "#AtomServices.ts";
+import type { BoundOperation } from "#client/boundOperation.ts";
 import { type ActionState, useAction } from "#client/resultState.ts";
 
-export interface PendingCommand<TInput, A, E, R, TRuntimeError> {
-	readonly run: (input: TInput) => Effect.Effect<A, E, AtomServices<R>>;
-	readonly runtime: Atom.AtomRuntime<R, TRuntimeError>;
-}
 export interface PendingCommandOptions<TInput, TValue> {
 	readonly queries?: readonly Atom.Atom<AsyncResult.AsyncResult<unknown, unknown>>[];
 	readonly value: TValue;
@@ -23,14 +19,14 @@ export interface PendingCommandState<TInput, A, E, TValue> extends ActionState<T
 const NO_QUERIES: readonly Atom.Atom<AsyncResult.AsyncResult<unknown, unknown>>[] = [];
 
 export function usePendingCommand<TInput, A, E, R, TRuntimeError, TValue>(
-	command: PendingCommand<TInput, A, E, R, TRuntimeError>,
+	command: BoundOperation<TInput, A, E, R, TRuntimeError>,
 	options: PendingCommandOptions<NoInfer<TInput>, TValue>,
 ): PendingCommandState<TInput, A, E | TRuntimeError, TValue> {
 	const { run, runtime } = command;
 	const { queries = NO_QUERIES, value, wanted } = options;
 	// The reply arrives before the live queries the command changed are updated, so the action ends when the command is reflected.
 	const reflected = useMemo(() => (input: TInput) => untilReflected(run(input)), [run]);
-	const action = useAction(runtime, reflected);
+	const action = useAction({ run: reflected, runtime });
 	const registry = useContext(RegistryContext);
 	const refreshing = useAtomValue(useMemo(() => Atom.make((get) => queries.some((query) => get(query).waiting)), [queries]));
 	const [held, hold] = useState({ reflected, registry, value: Option.none<TValue>() });

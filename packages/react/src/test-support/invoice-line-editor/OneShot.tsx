@@ -7,7 +7,7 @@ import { InvoiceLineDraft, InvoiceLineForm, values } from "#test/invoice-line-ed
 
 export function InvoiceLineOneShot({
 	opening,
-	server: { api, runtime },
+	server: { api },
 	onSaved,
 }: {
 	readonly opening: InvoiceLine;
@@ -15,11 +15,10 @@ export function InvoiceLineOneShot({
 	readonly onSaved: (line: InvoiceLine) => void;
 }) {
 	const [original] = useState(opening);
-	const edit = useCreate({
-		create: (draft) => api.save.run({ expectedVersion: original.version, id: original.id, ...draft }),
+	const edit = useCreate(api.save, {
 		fields: InvoiceLineDraft,
+		fixed: { expectedVersion: original.version, id: original.id },
 		initialValues: values(original),
-		runtime,
 	});
 	useEffect(() => {
 		if (Option.isSome(edit.created)) {
