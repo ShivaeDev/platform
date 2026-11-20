@@ -66,7 +66,7 @@ export type Configured<TServices = RuleServices> =
 
 export type Depth = "deep";
 
-export type Need = "child-process" | "story-program";
+export type Need = "child-process" | "story-program" | "type-checker";
 
 export interface RegisteredRule<TServices = RuleServices> {
 	readonly depth?: Depth;

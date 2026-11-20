@@ -60,5 +60,6 @@ export const failureHonesty = defineRule({
 	description:
 		"Keep failures typed and observable: no forked forever/orDie loops, retry({ while }) without times or a pacing Schedule, blanket catch-to-success, or FileSystem option/orElseSucceed. Catch a named reason, use a Schedule that paces retries or model an explicit unavailable state. In test-support/, a blanket catch whose handler derives its value from the caught error is a readout translation and is accepted. No config exceptions or inline suppressions; baseline existing debt.",
 	id: "effect/failure-honesty",
+	needs: "type-checker",
 	registrable: false,
 });

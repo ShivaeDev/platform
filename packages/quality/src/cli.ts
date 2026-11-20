@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import process from "node:process";
-import { runMain } from "#adapters/runMain.ts";
-import { program } from "#cli/program.ts";
+import { runWithHeapLimit } from "#adapters/runWithHeapLimit.ts";
+import { heapLimit, heapLimitReached } from "#cli/heapLimit.ts";
 
-runMain(program(process.argv.slice(2), { cwd: process.cwd(), launch: { options: process.execArgv, script: process.argv[1] ?? "" } }));
+runWithHeapLimit(heapLimit(process.argv.slice(2)), heapLimitReached, () => import("#cli/main.ts"));

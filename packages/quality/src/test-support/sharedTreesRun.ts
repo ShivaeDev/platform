@@ -54,8 +54,8 @@ function storyReader(state: SharedTreesState) {
 }
 
 function sameTree(state: SharedTreesState, reader: string): string {
-	const shared = state.trees.get("story-parser");
-	return shared !== undefined && state.trees.get(reader) === shared ? "the story rules' tree" : "a tree of its own";
+	const shared = state.trees.get("syntax");
+	return shared !== undefined && state.trees.get(reader) === shared ? "the syntax rules' tree" : "a tree of its own";
 }
 
 export const sharedTreesRun = storyKit({
@@ -69,7 +69,7 @@ export const sharedTreesRun = storyKit({
 		const state: SharedTreesState = { inputs: undefined, trees: new Map() };
 		const local = yield* validOrFail(
 			"local rules",
-			yield* resolveRules({ local: [treeReader(state, "syntax"), treeReader(state, "story-parser", "story-program"), storyReader(state)] }),
+			yield* resolveRules({ local: [treeReader(state, "syntax"), treeReader(state, "typed", "type-checker"), storyReader(state)] }),
 		);
 		return { check: scan({ ...config, active: local.active }), state };
 	},
@@ -79,15 +79,15 @@ export const sharedTreesRun = storyKit({
 	stages: [],
 	verbs: ({ check, state }, story) => ({
 		runs: () => {
-			story.tell("quality runs a syntax rule, a story rule that parses a source and a story rule that reads the story program");
+			story.tell("quality runs a syntax rule, a rule that declares it needs a type checker and a rule that reads the story program");
 			return Effect.asVoid(check);
 		},
 		storyTree: () => Effect.sync(() => sameTree(state, "story")),
-		syntaxTree: () => Effect.sync(() => sameTree(state, "syntax")),
 		treeAfterRun: () =>
 			Effect.sync(() => {
 				const file = state.inputs === undefined ? undefined : sourceOf(state.inputs);
-				return file !== undefined && parse(file) === state.trees.get("story-parser") ? "the run's tree" : "a new tree";
+				return file !== undefined && parse(file) === state.trees.get("syntax") ? "the run's tree" : "a new tree";
 			}),
+		typedTree: () => Effect.sync(() => sameTree(state, "typed")),
 	}),
 });
