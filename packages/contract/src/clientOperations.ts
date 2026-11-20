@@ -8,7 +8,7 @@ import type { Key } from "@shivaedev/changes/keys.ts";
 import type { BindingOwner } from "#adapters/bindingOwner.ts";
 import { clientId } from "#adapters/clientId.ts";
 import type { automaticLive } from "#automaticLive.ts";
-import type { QueryOptions } from "#bind.ts";
+import type { QueryOptions, RunOptions } from "#bind.ts";
 import { clientActivities } from "#clientActivities.ts";
 import { clientInvalidationKeys, clientReadKeys } from "#clientKeys.ts";
 import { commandPayload } from "#commandPayload.ts";
@@ -19,6 +19,7 @@ import type { CommandShape, QueryShape } from "#operation.ts";
 import { shareQuerySignals } from "#querySignals.ts";
 import { type CommandObserver, reflectCommand } from "#reflectCommand.ts";
 import { retainQuery } from "#retainQuery.ts";
+import { subjectSerializationKey, withSubject } from "#subjectHeader.ts";
 
 type ErasedClient = AtomRpc.AtomRpcClient<unknown, string, Rpc.Rpc<string, Schema.Top, Schema.Top, Schema.Top>>;
 type ErasedStreamingClient = AtomRpc.AtomRpcClient<
@@ -26,6 +27,11 @@ type ErasedStreamingClient = AtomRpc.AtomRpcClient<
 	string,
 	Rpc.Rpc<string, Schema.Top, RpcSchema.Stream<Schema.Top, Schema.Top>, Schema.Never>
 >;
+
+// `runtime.fn(api.save.run)` passes its function context as the second argument, so only an options object selects a subject.
+function runSubject(options: unknown): string | undefined {
+	return typeof options === "object" && options !== null && "subject" in options && typeof options.subject === "string" ? options.subject : undefined;
+}
 
 export function clientOperations(
 	service: AtomRpc.AtomRpcClient<unknown, string, Rpc.Any>,
@@ -46,8 +52,13 @@ export function clientOperations(
 	function boundQuery(tag: string, query: QueryShape) {
 		const cached = new WeakMap<ReturnType<typeof ordinaryClient.query>, ReturnType<typeof ordinaryClient.query>>();
 		return {
-			query: (payload: unknown, options: QueryOptions = {}) => {
-				const atom = ordinaryClient.query(tag, payload, { ...options, timeToLive: 0 });
+			query: (payload: unknown, { headers: given, serializationKey, subject }: QueryOptions = {}) => {
+				const headers = withSubject(given, subject);
+				const atom = ordinaryClient.query(tag, payload, {
+					headers,
+					serializationKey: subjectSerializationKey(serializationKey, headers),
+					timeToLive: 0,
+				});
 				const existing = cached.get(atom);
 				if (existing !== undefined) {
 					return existing;
@@ -64,14 +75,15 @@ export function clientOperations(
 					Schema.toEquivalence(query.success),
 					Schema.decodeUnknownSync(Schema.toType(query.success)),
 					(source) => ordinaryClient.runtime.factory.withReactivity(clientReadKeys(dependencies, owner?.context))(source),
-					options.headers,
+					headers,
 				);
 				const tracked = retainQuery(ordinaryClient.runtime, clientActivities.get(ordinaryClient)?.watch(result) ?? result);
 				shareQuerySignals(tracked, result);
 				cached.set(atom, tracked);
 				return tracked;
 			},
-			run: (payload: unknown) => run(ordinaryClient.use((client) => client(tag, payload))),
+			run: (payload: unknown, options?: RunOptions | Atom.FnContext) =>
+				run(ordinaryClient.use((client) => client(tag, payload, { headers: withSubject(undefined, runSubject(options)) }))),
 		};
 	}
 
@@ -83,17 +95,20 @@ export function clientOperations(
 			];
 			return Reactivity.invalidate(clientInvalidationKeys(keys, owner?.context));
 		}
-		function send(observer: CommandObserver, payload: unknown) {
+		function send(observer: CommandObserver, payload: unknown, subject: string | undefined) {
 			return ordinaryClient.use((client) =>
 				commandPayload(command, payload).pipe(
 					Effect.tap(() => waitForConnection(client)),
-					Effect.flatMap((validated) => reflectCommand(client, observer, (options) => client(tag, validated, options))),
+					Effect.flatMap((validated) =>
+						reflectCommand(client, observer, (options) => client(tag, validated, { headers: withSubject(options?.headers, subject) })),
+					),
 					Effect.tap((result) => invalidate(payload, result)),
 				),
 			);
 		}
 		return {
-			run: (payload: unknown) => Effect.flatMap(observed, (observer) => run(send(observer, payload))),
+			run: (payload: unknown, options?: RunOptions | Atom.FnContext) =>
+				Effect.flatMap(observed, (observer) => run(send(observer, payload, runSubject(options)))),
 		};
 	}
 
@@ -108,8 +123,10 @@ export function clientOperations(
 
 	function boundStream(tag: string) {
 		return {
-			run: (payload: unknown) => {
-				const stream = Stream.unwrap(streaming.use((client) => Effect.succeed(client(tag, payload))));
+			run: (payload: unknown, options?: RunOptions | Atom.FnContext) => {
+				const stream = Stream.unwrap(
+					streaming.use((client) => Effect.succeed(client(tag, payload, { headers: withSubject(undefined, runSubject(options)) }))),
+				);
 				return owner === undefined
 					? stream
 					: Stream.callback<unknown, unknown>(

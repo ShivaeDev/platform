@@ -55,12 +55,13 @@ export type Read =
 	| { readonly call: "readSql"; readonly id: number; readonly owner: string }
 	| { readonly call: "readSqlBySlug"; readonly key: MultiColumnKey };
 
-export type MultiColumnKey = "a tuple bucket key" | "a composite row key";
+export type MultiColumnKey = "a tuple bucket key" | "a composite row key" | "a composite row key from a string id";
 
 const drafts = collection("drafts", Schema.String, {}, { ownerSlug: ["owner", "slug"] });
 // Typed as plain keys, as a key that passed through a Key-typed value reaches readSql.
 const multiColumnKeys: Readonly<Record<MultiColumnKey, BucketKey | ItemKey>> = {
 	"a composite row key": drafts.item(compositeId(["alice", "draft"])),
+	"a composite row key from a string id": drafts.item('["alice","draft"]'),
 	"a tuple bucket key": drafts.bucket.ownerSlug({ owner: "alice", slug: "draft" }),
 };
 

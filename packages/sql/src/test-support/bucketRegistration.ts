@@ -1,5 +1,6 @@
 import { Effect, Schema } from "effect";
 import { Model } from "effect/schema";
+import { bucket } from "@shivaedev/changes/buckets.ts";
 import { collection } from "@shivaedev/changes/keys.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { makeRepository } from "#repository.ts";
@@ -13,6 +14,15 @@ const schemas = {
 	object: Schema.Struct({ id: Schema.String }),
 	unknown: Schema.Unknown,
 };
+
+const declarations = {
+	"a collection named bucketRegistration": collection("bucketRegistration", Schema.Number, { ownerId: Schema.String }),
+	"a collection named bucketRegistration with a title bucket": collection("bucketRegistration", Schema.Number, { title: Schema.String }),
+	"a collection with a title bucket": collection("bucket_registration", Schema.Number, { title: Schema.String }),
+	"no collection": undefined,
+};
+
+export type Declared = keyof typeof declarations;
 
 export const bucketRegistration = storyKit({
 	...onPostgres,
@@ -29,6 +39,26 @@ export const bucketRegistration = storyKit({
 				}) {}
 				engine.result = yield* makeRepository(Row, {
 					collection: collection("bucket_registration", Schema.Number, { value: Schema.String }),
+					idColumn: "id",
+					spanPrefix: "BucketRegistration",
+					tableName: "bucket_registration",
+				}).pipe(
+					Effect.match({
+						onFailure: (error) => `${error._tag}: ${error.message}`,
+						onSuccess: () => "registered",
+					}),
+				);
+			}),
+		registerCollection: (declared: Declared) =>
+			Effect.gen(function* () {
+				story.tell(`a repository on table bucket_registration with an ownerId bucket declares ${declared}`);
+				class Row extends Model.Class<Row>("BucketRegistrationCollectionRow")({
+					id: Schema.Number,
+					ownerId: bucket(Schema.String),
+				}) {}
+				const declaration = declarations[declared];
+				engine.result = yield* makeRepository(Row, {
+					...(declaration === undefined ? {} : { collection: declaration }),
 					idColumn: "id",
 					spanPrefix: "BucketRegistration",
 					tableName: "bucket_registration",

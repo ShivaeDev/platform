@@ -36,10 +36,11 @@ export function wireRejections(rejections: ClassRejections) {
 	return { ...rejections, InternalServerError, ServiceUnavailable };
 }
 
+// A wire's success is generated from run's type and carries no annotation, so its RPC takes it out of the sensitivity policy.
 export function wired(operation: QueryShape | CommandShape, entry: WireEntry | undefined): QueryShape | CommandShape {
 	if (entry === undefined) {
 		return operation;
 	}
 	const rejections = wireRejections(entry.rejections);
-	return { ...operation, rejections, success: entry.success, ...rejectionSet(rejections) };
+	return { ...operation, generatedSuccess: true, rejections, success: entry.success, ...rejectionSet(rejections) };
 }

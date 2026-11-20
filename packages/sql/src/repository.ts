@@ -11,6 +11,7 @@ import { repositoryChanges } from "#repositoryChanges.ts";
 import { type RepositoryBuildError, type RepositoryOptions, validateRepositoryCollection } from "#repositoryCollection.ts";
 import type { FindManyFilter, RepositoryFilter, RepositoryListFilter } from "#repositoryFilter.ts";
 import { makeQueries, type Queries } from "#repositoryQueries.ts";
+import { refuseServerOnlyKeys } from "#serverOnly.ts";
 import type { VersionedRepositoryShape } from "#VersionedRepositoryShape.ts";
 import { type IdColumn, makeVersionedWrites, type VersionColumn } from "#versionedRepository.ts";
 
@@ -115,8 +116,9 @@ export function makeRepository<TModel extends Model.Any, TId extends IdColumn<TM
 ): Effect.Effect<unknown, RepositoryBuildError, SqlClient.SqlClient> {
 	return Effect.fnUntraced(function* () {
 		const idColumns = (typeof options.idColumn === "object" ? options.idColumn : [options.idColumn]).map(String);
-		const changes = yield* repositoryChanges(options.tableName, idColumns, model.fields, options.collection?.tuples);
+		yield* refuseServerOnlyKeys(options.tableName, idColumns, model.fields, options.collection?.tuples);
 		yield* validateRepositoryCollection(model.fields, options);
+		const changes = yield* repositoryChanges(options.tableName, idColumns, model.fields, options.collection?.tuples);
 		const recordRead = makeRecordRead(model, { idColumns, tableName: options.tableName, tuples: options.collection?.tuples });
 		const crud = {
 			...(yield* makeCompositeCrud(model, { ...options, columns: idColumns, recordRead }, changes)),

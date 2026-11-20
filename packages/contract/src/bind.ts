@@ -25,22 +25,29 @@ export type Failure<R extends Rpc.Any> =
 
 export type RunFailure<R extends Rpc.Any> = Failure<R>;
 
-export interface QueryOptions {
+export interface RunOptions {
+	readonly subject?: string;
+}
+
+export interface QueryOptions extends RunOptions {
 	readonly headers?: Headers.Input;
 	readonly serializationKey?: string;
 }
 
+// `runtime.fn(api.save.run)` and `useAction(runtime, api.save.run)` call `run` with the atom's function context second, which selects no subject.
+type Run<TPayload, TResult> = (payload: TPayload, options?: RunOptions | Atom.FnContext) => TResult;
+
 export interface BoundQuery<R extends Rpc.Any, TSelf, TSubscription extends Rpc.Any = never> {
 	readonly query: (payload: Rpc.Payload<R>, options?: QueryOptions) => Atom.Atom<AsyncResult.AsyncResult<Rpc.Success<R>, Failure<R | TSubscription>>>;
-	readonly run: (payload: Rpc.Payload<R>) => Effect.Effect<Rpc.Success<R>, RunFailure<R>, TSelf>;
+	readonly run: Run<Rpc.Payload<R>, Effect.Effect<Rpc.Success<R>, RunFailure<R>, TSelf>>;
 }
 
 export interface BoundCommand<R extends Rpc.Any, TSelf> {
-	readonly run: (payload: Rpc.Payload<R>) => Effect.Effect<Rpc.Success<R>, RunFailure<R>, TSelf | Reactivity.Reactivity>;
+	readonly run: Run<Rpc.Payload<R>, Effect.Effect<Rpc.Success<R>, RunFailure<R>, TSelf | Reactivity.Reactivity>>;
 }
 
 export interface BoundStream<R extends Rpc.Any, TSelf> {
-	readonly run: (payload: Rpc.Payload<R>) => Stream.Stream<Rpc.SuccessChunk<R>, RunFailure<R>, TSelf | Rpc.ServicesClient<R>>;
+	readonly run: Run<Rpc.Payload<R>, Stream.Stream<Rpc.SuccessChunk<R>, RunFailure<R>, TSelf | Rpc.ServicesClient<R>>>;
 }
 
 export type Bound<

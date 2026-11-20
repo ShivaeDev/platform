@@ -1,4 +1,5 @@
 import { Hash, Schema, SchemaAST } from "effect";
+import type { SingleColumnBucketKey, SingleColumnItemKey } from "#compositeKeys.ts";
 import { Composite, type CompositeBucketKey, CompositeId, type CompositeItemKey, isCompositeId } from "#compositeKeys.ts";
 
 export type Identity = string | number;
@@ -78,12 +79,12 @@ export interface Collection<
 	TFields extends BucketFields = Record<never, never>,
 	TTuples extends BucketTuples = Record<never, never>,
 > {
-	readonly bucket: { readonly [TField in keyof TFields]: (value: TFields[TField]["Type"]) => BucketKey<TName> } & {
+	readonly bucket: { readonly [TField in keyof TFields]: (value: TFields[TField]["Type"]) => SingleColumnBucketKey<TName> } & {
 		readonly [TTuple in keyof TTuples]: (values: TupleValues<TFields, TTuples[TTuple]>) => CompositeBucketKey<TName>;
 	};
 	readonly item: {
 		(id: string extends TId ? CompositeId : never): CompositeItemKey<TName>;
-		(id: TId): ItemKey<TName>;
+		(id: TId): [TId] extends [number] ? SingleColumnItemKey<TName> : ItemKey<TName>;
 	};
 	readonly list: ListKey<TName>;
 	readonly name: TName;

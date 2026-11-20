@@ -1,5 +1,7 @@
-import { Schema } from "effect";
+import { Effect, Schema } from "effect";
 import { Model } from "effect/schema";
+import { declaredBuckets } from "@shivaedev/changes/buckets.ts";
+import { ServerOnlyKeyError } from "#repositoryCollection.ts";
 
 const STORED = "@shivaedev/sql/serverOnlyStored";
 
@@ -19,3 +21,19 @@ export function serverOnlyStored(field: Schema.Constraint): Schema.Constraint | 
 	const stored = Schema.resolveAnnotations(field)?.[STORED];
 	return Schema.isSchema(stored) ? stored : undefined;
 }
+
+export const refuseServerOnlyKeys = Effect.fnUntraced(function* (
+	table: string,
+	columns: readonly string[],
+	fields: Schema.Struct.Fields,
+	tuples: Readonly<Record<string, readonly string[]>> = {},
+) {
+	const announced = [...new Set([...columns, ...declaredBuckets(fields).map(({ field }) => field), ...Object.values(tuples).flat()])];
+	const refused = announced.filter((column) => {
+		const schema = fields[column];
+		return schema !== undefined && serverOnlyStored(schema) !== undefined;
+	});
+	if (refused.length > 0) {
+		return yield* new ServerOnlyKeyError({ fields: refused, tableName: table });
+	}
+});
