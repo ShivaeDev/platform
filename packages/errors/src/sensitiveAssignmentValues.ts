@@ -40,6 +40,11 @@ function closingQuote(text: string, from: number, quote: string): readonly [numb
 	return [text.length, text.length];
 }
 
+// After a `\n`, `\r` or `\t` escape the matcher reads the escape's letter as the start of the name.
+function secretName(text: string, keyStart: number, key: string, sensitive: (key: string) => boolean): boolean {
+	return sensitive(key) || (text[keyStart - 1] === "\\" && /^[nrt]./u.test(key) && sensitive(key.slice(1)));
+}
+
 export function sensitiveAssignmentValues(text: string, sensitive: (key: string) => boolean): ReadonlyArray<readonly [number, number]> {
 	// Names start where a run of name characters starts, unquoted values stop at "=" and only a secret's quoted value is skipped, so each character is scanned a bounded number of times. Text inside any other quoted value is read on for the names it holds, which is where escaped JSON keeps its keys; a quote may sit behind up to seven backslashes, three levels of escaping. Each level doubles the backslashes before an inner quote and adds one, so a quote closes a value opened behind `escapes` backslashes only when its own run leaves that remainder modulo 2 × (escapes + 1).
 	const matcher =
@@ -49,7 +54,7 @@ export function sensitiveAssignmentValues(text: string, sensitive: (key: string)
 		const { key = "", quote, separator = "", value = "" } = match.groups ?? {};
 		const valueStart = matcher.lastIndex - (quote ?? value).length;
 		const keyStart = valueStart - separator.length - key.length;
-		const secret = sensitive(key);
+		const secret = secretName(text, keyStart, key, sensitive);
 		if (quote !== undefined) {
 			if (secret) {
 				const [contentEnd, end] = closingQuote(text, matcher.lastIndex, quote);

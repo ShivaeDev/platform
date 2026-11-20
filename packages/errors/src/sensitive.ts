@@ -44,6 +44,9 @@ export function isSensitiveKey(key: string): boolean {
 }
 const AUTH_SCHEME = /\b(?<scheme>Bearer|Basic)\s+[A-Za-z0-9%._~+/-]+=*/giu;
 const JWT = /\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]*/gu;
+// Token families whose prefix and length mark them as secrets without a name in front.
+const TOKEN =
+	/\b(?:gh[oprsu]_[A-Za-z0-9]{36,}|github_pat_\w{22,}|[rs]k_(?:live|test)_[A-Za-z0-9]{24,}|A[KS]IA[0-9A-Z]{16}\b|xox[abps]-[A-Za-z0-9-]{10,})/gu;
 // Schemes other than Bearer and Basic, such as `token` or `Digest`, are only recognisable after the header name.
 const AUTHORIZATION_HEADER = /\b(?<header>(?:proxy-)?authorization:[ \t]*[A-Za-z][\w-]*[ \t]+)[^\s"',;]+/giu;
 function mask(text: string, ranges: ReadonlyArray<readonly [number, number]>): string {
@@ -59,7 +62,8 @@ function scrub(text: string, sensitive: SensitiveKey): string {
 	const credentials = mask(text, privateKeyBlocks(text))
 		.replaceAll(AUTH_SCHEME, `$<scheme> ${REDACTED}`)
 		.replaceAll(AUTHORIZATION_HEADER, `$<header>${REDACTED}`)
-		.replaceAll(JWT, REDACTED);
+		.replaceAll(JWT, REDACTED)
+		.replaceAll(TOKEN, REDACTED);
 	return mask(credentials, sensitiveAssignmentValues(credentials, sensitive));
 }
 function redactSchemaValues(text: string): string {
