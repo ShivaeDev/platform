@@ -52,7 +52,7 @@ for (const id of ["third", "third-copy"]) {
 			yield* refresh();
 
 			yield* outcomes([
-				["typed stale-version refusal", () => failure(), `Conflict: Stale version for ${id}`],
+				["typed stale-version refusal", () => failure(), "Conflict: This was changed or deleted since you loaded it. Refresh and try again."],
 				["unchanged batch", () => rows(), before],
 				["retained Undo", () => notice(), "Changed 6 rows"],
 			]);

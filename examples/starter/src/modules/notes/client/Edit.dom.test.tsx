@@ -2,7 +2,7 @@ import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { editingNote, noteRevisedElsewhere, screens } from "#modules/notes/test-support/screens.ts";
 
-const CONFLICT = "This note changed. Refresh and review your draft before trying again.";
+const CONFLICT = "This was changed or deleted since you loaded it. Refresh and try again.";
 
 screens.it("opening a note reads it once for both the route and the editor", [editingNote()], function* ({ noteReads }) {
 	expect(yield* noteReads()).toBe("one note read");
