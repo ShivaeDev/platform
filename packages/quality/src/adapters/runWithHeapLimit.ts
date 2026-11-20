@@ -16,11 +16,16 @@ export function withoutHeapLimit(options: readonly string[]): readonly string[] 
 }
 
 // Node fixes its heap limit at startup, so the process starts itself again under the limit and stays to forward signals and explain an abort. A limit the caller set through Node is kept as it is. The program loads only in the process that runs it.
-export function runWithHeapLimit(megabytes: number, load: () => Promise<{ readonly main: () => void }>): void {
+export function runWithHeapLimit<TError>(
+	limit: Effect.Effect<number, TError>,
+	reached: (megabytes: number) => string,
+	load: () => Promise<{ readonly main: () => void }>,
+): void {
 	if (callerLimited()) {
 		void load().then(({ main }) => main());
 		return;
 	}
+	const megabytes = Effect.runSync(limit);
 	const child = spawn(process.execPath, [...process.execArgv, `--max-old-space-size=${megabytes}`, ...process.argv.slice(1)], { stdio: "inherit" });
 	function forward(signal: NodeJS.Signals): void {
 		child.kill(signal);
@@ -41,9 +46,7 @@ export function runWithHeapLimit(megabytes: number, load: () => Promise<{ readon
 	child.on("exit", (code, signal) => {
 		settle();
 		if (signal === "SIGABRT") {
-			process.stderr.write(
-				`quality: Node aborted the run, as it does when the run reaches Quality's heap limit of ${megabytes} MB. Raise the limit with NODE_OPTIONS=--max-old-space-size=<megabytes>; Quality keeps a limit set there.\n`,
-			);
+			process.stderr.write(`${reached(megabytes)}\n`);
 			process.exitCode = COULD_NOT_RUN;
 			return;
 		}

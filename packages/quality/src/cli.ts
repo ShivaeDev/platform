@@ -1,5 +1,6 @@
 #!/usr/bin/env node
+import process from "node:process";
 import { runWithHeapLimit } from "#adapters/runWithHeapLimit.ts";
+import { heapLimit, heapLimitReached } from "#cli/heapLimit.ts";
 
-// Every rule reads one shared set of parsed trees, and the largest measured run keeps about 1.3 GB alive; without a limit V8 lets the heap grow to several times that before it collects.
-runWithHeapLimit(2048, () => import("#cli/main.ts"));
+runWithHeapLimit(heapLimit(process.argv.slice(2)), heapLimitReached, () => import("#cli/main.ts"));

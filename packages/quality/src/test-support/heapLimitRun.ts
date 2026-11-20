@@ -1,14 +1,17 @@
 import { spawnSync } from "node:child_process";
 import process from "node:process";
-import { Effect } from "effect";
+import { ConfigProvider, Effect } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { heapLimit } from "#cli/heapLimit.ts";
 
 const LIMIT_MB = 16;
 
 // The program keeps everything it allocates, so it reaches the limit within milliseconds.
 const PROGRAM = `
+import { Effect } from ${JSON.stringify(import.meta.resolve("effect"))};
 import { runWithHeapLimit } from ${JSON.stringify(new URL("../adapters/runWithHeapLimit.ts", import.meta.url).href)};
-runWithHeapLimit(${LIMIT_MB}, async () => ({
+import { heapLimitReached } from ${JSON.stringify(new URL("../cli/heapLimit.ts", import.meta.url).href)};
+runWithHeapLimit(Effect.succeed(${LIMIT_MB}), heapLimitReached, async () => ({
 	main: () => {
 		const kept = [];
 		for (;;) kept.push(new Array(10_000).fill(kept.length));
@@ -35,6 +38,8 @@ export const heapLimitRun = storyKit({
 	verbs: (engine, story) => ({
 		exitCode: () => Effect.sync(() => ran(engine).status),
 		lastError: () => Effect.sync(() => ran(engine).stderr.trimEnd().split("\n").at(-1)),
+		limitFor: (args: readonly string[], env: Readonly<Record<string, string>> = {}) =>
+			heapLimit(args).pipe(Effect.provideService(ConfigProvider.ConfigProvider, ConfigProvider.fromEnv({ env }))),
 		outgrowsLimit: () =>
 			Effect.sync(() => {
 				story.tell(`a program started under a heap limit of ${LIMIT_MB} MB keeps allocating until Node aborts it`);
