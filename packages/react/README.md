@@ -1060,25 +1060,24 @@ These lines belong inside a component; `text` and `ClipboardDenied` belong to th
 
 #### Render tests in happy-dom
 
-Use `@shivaedev/test-story/client/adapters/react.ts` with Vitest's `happy-dom` environment. Install changes and contract for the module's keys, operations and client binding, and the testing peers and environment in your app's dev dependencies:
+Use `@shivaedev/test-story/client/adapters/react.ts` with Vitest's `happy-dom` environment. Install changes, contract and identity for the module's keys, operations, middleware and client binding, and the testing peers and environment in your app's dev dependencies:
 
 ```sh
-pnpm add @shivaedev/changes @shivaedev/contract
+pnpm add @shivaedev/changes @shivaedev/contract @shivaedev/identity
 pnpm add -D @shivaedev/test-story @effect/platform-node @effect/vitest vitest happy-dom react-dom @types/react-dom
 ```
 
-Configure Vitest with `test: { environment: "happy-dom" }`, or select that environment for your DOM test project. The screen below reads a defined `notes` module. Its operations yield a `NoteTitles` service, and its list admits every viewer, because this screen has no session:
+Configure Vitest with `test: { environment: "happy-dom" }`, or select that environment for your DOM test project. The screen below reads a defined `notes` module, whose operations yield a `NoteTitles` service and run behind identity's `Authenticated` middleware:
 
 ```ts
-import { Effect } from "effect";
 import { defineModule } from "@shivaedev/contract/defineModule.ts";
 import { command, query } from "@shivaedev/contract/operation.ts";
+import { Authenticated } from "@shivaedev/identity/middleware.ts";
 import { notesWire } from "#generated/modules/notes/Notes.ts";
 import { NoteTitle, notes } from "#modules/notes/model.ts";
 import { NoteTitles } from "#modules/notes/services.ts";
 
 const List = query("list", {
-	readPolicy: () => Effect.succeed(true),
 	reads: () => [notes.list],
 	*run() {
 		return yield* (yield* NoteTitles).all;
@@ -1091,16 +1090,19 @@ const Add = command("add", {
 		yield* (yield* NoteTitles).add(title);
 	},
 });
-export const Notes = defineModule({ name: "notes", operations: [List, Add], wire: notesWire });
+export const Notes = defineModule({ middleware: Authenticated, name: "notes", operations: [List, Add], wire: notesWire });
 ```
 
-`model.ts` declares `notes` as `collection("notes", Schema.Number)` and `NoteTitle` as `Schema.Struct({ title: Schema.String })`, and `services.ts` declares `NoteTitles` with an `all` Effect of titles and an `add(title)` method. Keep the engine, rendering and verbs in a story kit under `src/test-support/notesScreen.tsx`. This kit serves the module's own handlers from `moduleHandlers` over native RPC, with an in-memory `NoteTitles`, binds the generated contract and gives the screen driver the registry's pending signal:
+`model.ts` declares `notes` as `collection("notes", Schema.Number)` and `NoteTitle` as `Schema.Struct({ title: Schema.String })`, and `services.ts` declares `NoteTitles` with an `all` Effect of titles and an `add(title)` method. Keep the engine, rendering and verbs in a story kit under `src/test-support/notesScreen.tsx`. This kit serves the module's own handlers from `moduleHandlers` over native RPC, with an in-memory `NoteTitles` and a fake `Authenticated` that signs alice in, binds the generated contract and gives the screen driver the registry's pending signal:
 
 ```tsx
 import { Effect, Layer, Option, Ref } from "effect";
 import { act, createElement } from "react";
 import { makeClient } from "@shivaedev/contract/bind.ts";
 import { moduleHandlers } from "@shivaedev/contract/moduleHandlers.ts";
+import { CurrentViewer } from "@shivaedev/contract/readPolicy.ts";
+import { Identity } from "@shivaedev/identity/identity.ts";
+import { Authenticated } from "@shivaedev/identity/middleware.ts";
 import { layerMemoryProtocol } from "@shivaedev/test-kits/contract/testing.ts";
 import { screenPending } from "@shivaedev/react/adapters/screenPending.ts";
 import { useAction, useQuery } from "@shivaedev/react/client/resultState.ts";
@@ -1119,9 +1121,13 @@ export const notesScreen = storyKit({
 			add: (title) => Ref.update(stored, (all) => [...all, title]),
 			all: Ref.get(stored),
 		});
+		const signedIn = Layer.succeed(Authenticated, (effect) =>
+			effect.pipe(Effect.provideService(CurrentViewer, Option.some({ id: "alice" })), Effect.provideService(Identity, { id: "alice" })),
+		);
+		const handlers = moduleHandlers(NotesModule).pipe(Layer.provide(titles));
 		const { api } = makeClient(Notes, {
 			live: false,
-			protocol: layerMemoryProtocol(NotesModule.application).pipe(Layer.provide(moduleHandlers(NotesModule).pipe(Layer.provide(titles)))),
+			protocol: layerMemoryProtocol(NotesModule.application).pipe(Layer.provide([handlers, signedIn])),
 			url: "memory://notes",
 		});
 		function NotesView() {
@@ -1189,7 +1195,7 @@ notesScreen.it("a command refetches the rendered notes through native RPC", [], 
 
 `render(node, options?)` returns the attached `container`, its fresh native `registry`, `render(nextNode)` to update the same root and registry, and `unmount()` to release the root, registry and container. The options are React's own `RootOptions`, passed to `createRoot`, including `onCaughtError`, `onUncaughtError` and `onRecoverableError`. Acquire the view with `Effect.acquireRelease` so its scope releases it on success, failure or interruption. The screen driver's `act` adapter keeps component interactions and settling inside React's `act`. `expectNoReactWarnings()` registers a Vitest hook that fails a test if it logged to `console.error`.
 
-The kit runs the module's real operations and replaces only the service they yield; `moduleHandlers` requires exactly the services the operations yield beyond the middleware, so the compiler names one the kit forgets. A module behind identity middleware also needs that middleware's Layer, and a story about persistence runs the operations through the application host, as the starter's application kit does.
+The kit runs the module's real operations, read policies included, and replaces only the service they yield and the session. `moduleHandlers` requires exactly the services the operations yield beyond the middleware, so the compiler names one the kit forgets. The fake middleware provides the viewer the default `signedIn` policy checks and the `Identity` the operations may yield; without a viewer, the list answers `QueryReadDenied`. The starter's [notes screen kit](https://github.com/ShivaeDev/platform/blob/main/examples/starter/src/modules/notes/test-support/client.ts) fakes its middleware the same way. A story about persistence or the real session runs the operations through the application host, as the starter's application kit does.
 
 For a boundary fallback test, keep the warnings guard and declare the caught error inside the test. `expectCaughtError(predicate)` returns an `onCaughtError` handler that accepts matching errors without logging them. The guard fails if the handler receives any other error or the expected error never arrives. Other console errors and React warnings still fail the guard.
 

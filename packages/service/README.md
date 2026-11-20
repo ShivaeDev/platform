@@ -4,17 +4,17 @@ Declare once what an Effect service requires, and write its operations as ordina
 
 ## Why you want this
 
-A service should say what it needs and what callers can do with it. When operations take a repository, a client or the user's id as arguments, that knowledge spreads into every caller and every caller can get it wrong. Here each operation reads what it needs from the environment, including who asked:
+A service should say what it needs and what callers can do with it. When operations take a mail client, a repository or the user's id as arguments, that knowledge spreads into every caller and every caller can get it wrong. Here each operation reads what it needs from the environment, including who asked:
 
 ```ts
 import { Effect } from "effect";
 import { SessionUser } from "@shivaedev/identity/identity.ts";
-import { BookmarkRows } from "#bookmarks/BookmarkRows.ts";
+import { MailTransport } from "#welcome/MailTransport.ts";
 
-export const list = Effect.fn("Bookmarks.list")(function* () {
+export const send = Effect.fn("Welcome.send")(function* () {
 	const user = yield* SessionUser;
-	const rows = yield* BookmarkRows;
-	return yield* rows.ownedBy(user.id);
+	const mail = yield* MailTransport;
+	yield* mail.send({ subject: "Welcome", text: `Hello ${user.name}, your account is ready.`, to: user.email });
 });
 ```
 
@@ -24,19 +24,18 @@ The service lists its requirements once and names its operations:
 import { Effect } from "effect";
 import { SessionUser } from "@shivaedev/identity/identity.ts";
 import { defineService } from "@shivaedev/service/defineService.ts";
-import { add } from "#bookmarks/add.ts";
-import { BookmarkRows } from "#bookmarks/BookmarkRows.ts";
-import { list } from "#bookmarks/list.ts";
+import { MailTransport } from "#welcome/MailTransport.ts";
+import { send } from "#welcome/send.ts";
 
-export const Bookmarks = defineService({
-	id: "app/Bookmarks",
-	requires: [BookmarkRows, SessionUser],
+export const Welcome = defineService({
+	id: "app/Welcome",
 	initialize: Effect.void,
-	methods: () => ({ add, list }),
+	methods: () => ({ send }),
+	requires: [MailTransport, SessionUser],
 });
 ```
 
-A handler yields `Bookmarks` and calls `list()`. It passes no user id and no repository, so nothing a caller passes can make it list another account's bookmarks.
+An application operation's `run` calls it with `yield* (yield* Welcome).send()`. It passes no address and no mail transport, so nothing a caller passes can send another account's welcome, and the transport stays one port that the application provides to the service's Layer. A service earns its place by holding such a port, or state its callers share; an operation that only reads a repository yields the repository itself.
 
 ## Using it
 
