@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.26.4 - 2026-11-20
+
+### Changed
+
+- Require Effect 4.1.4 and its matching platform packages.
+
+### Fixed
+
+- an admin page rebuilt from a contract keeps the contract's subject and guards each operation with it once, and re-applies only the middleware applied to the whole contract instead of the first operation's.
+
 ## 0.26.3 - 2026-11-19
 
 ### Changed

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.5 - 2026-11-20
+
+### Changed
+
+- Require Effect 4.1.4 and its matching platform packages.
+
 ## 0.4.4 - 2026-11-11
 
 ### Changed
