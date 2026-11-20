@@ -109,6 +109,7 @@ export function moduleBinder(sources: readonly SourceFile[]) {
 	);
 	const named = new Map([...parsed.values()].map((source) => [source.fileName, source]));
 	host.getSourceFile = (name) => named.get(name);
+	host.resolveModuleNameLiterals = (literals) => literals.map(() => ({ resolvedModule: undefined }));
 	return { checker: ts.createProgram([...named.keys()], options, host).getTypeChecker(), parsed };
 }
 
