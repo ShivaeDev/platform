@@ -100,7 +100,7 @@ export const ownerMarks = storyKit({
 	verbs: (_engine, story) => ({
 		build: (repository: Built) =>
 			Effect.suspend(() => {
-				story.tell(`the host builds the repository of ${repository}`);
+				story.tell(`the repository of ${repository} is built on the collecting Layer`);
 				return repositories[repository]().pipe(Effect.match({ onFailure: (error) => `${error._tag}: ${error.message}`, onSuccess: () => "built" }));
 			}),
 		owned: () =>
