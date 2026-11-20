@@ -90,7 +90,7 @@ The browser entry point creates `makeAuth({ baseUrl })` and supplies it to `App`
 
 The TypeScript configuration keeps strict application checking and sets `skipLibCheck: true` for dependencies that declare unused runtime types.
 
-To export Effect spans, follow the quickstart's [Deploy section](https://github.com/ShivaeDev/platform/blob/main/docs/framework/quickstart.md#deploy); the host and worker provide the same `otlpTracing` Layer.
+To export Effect spans, follow the quickstart's [Deploy section](https://github.com/ShivaeDev/platform/blob/main/docs/framework/quickstart.md#deploy); `appHost` and `workerHost` both export through the server package's redacting OTLP pipeline.
 
 Write new tests as stories following the [story-testing skill](https://github.com/ShivaeDev/platform/blob/main/packages/skills/skills/story-testing/SKILL.md). The kit in [`src/modules/notes/test-support/application.ts`](src/modules/notes/test-support/application.ts) owns a disposable PostgreSQL database and the real HTTP app host. Traits describe setup; verbs drive authenticated notes requests and start the word-count worker. Extend the kit when a feature needs another setup, action or readout.
 
