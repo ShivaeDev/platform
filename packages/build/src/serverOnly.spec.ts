@@ -9,14 +9,19 @@ const INSTEAD = "which never leaves the server; return a public shape without th
 
 const REFUSALS = {
 	returnsAccount: `accounts.returnsAccount: run returns a Redacted value at success.credentials[number].digest, a field of the Schema class Account, ${INSTEAD}`,
+	returnsFolder: `accounts.returnsFolder: run returns a Redacted value at success.key, a field of the Schema class Folder, ${INSTEAD}`,
+	returnsGrant: `accounts.returnsGrant: run returns a Redacted value at success.refresh.value, a field of the Schema class Grant, ${INSTEAD}`,
+	returnsMaybeToken: `accounts.returnsMaybeToken: run returns a Redacted value at success.token<Some>, ${INSTEAD}`,
+	returnsNullableToken: `accounts.returnsNullableToken: run returns a Redacted value at success.token, ${INSTEAD}`,
 	returnsRow: `accounts.returnsRow: run returns a Redacted value at success.digest, a field of the Schema class Credential, ${INSTEAD}`,
 	returnsRows: `accounts.returnsRows: run returns a Redacted value at success.rows[number].digest, a field of the Schema class Credential, ${INSTEAD}`,
 	returnsSession: `accounts.returnsSession: run returns a Redacted value at success.tokens[string], a field of the Schema class Session, ${INSTEAD}`,
+	returnsSignIn: `accounts.returnsSignIn: run returns a Redacted value at success<_tag: Signed>.token, ${INSTEAD}`,
 	returnsToken: `accounts.returnsToken: run returns a Redacted value at success.session.tokens[number], ${INSTEAD}`,
 } as const;
 
 generator.it(
-	"generate refuses each operation whose success holds a Redacted, in a returned object or in a field of an exported Schema or Model class at any depth, naming the field's path, and writes no file for the module",
+	"generate refuses each operation whose success holds a Redacted, in a returned object, a union or an Option, or in a field of an exported Schema or Model class at any depth, including a class that holds itself, naming the field's path, and writes no file for the module",
 	[serverOnlyProject()],
 	function* ({ generatedFile, generates }) {
 		const outcome = yield* generates();
