@@ -91,6 +91,11 @@
 - `@shivaedev/test-story`: Require Effect 4.1.4 and its matching platform packages.
 - `@shivaedev/vitest-rerun`: Require Effect 4.1.4 and its matching platform packages.
 - `@shivaedev/webhooks`: Require Effect 4.1.4 and its matching platform packages.
+- `@shivaedev/sql`: closing a `postgresLayer` pool no longer waits for PostgreSQL to acknowledge each disconnect. Effect 4.1.4's PostgreSQL client destroys a connection's socket once its `Terminate` has flushed, so a half-open peer cannot hold shutdown.
+- `@shivaedev/server`: closing `appDatabase`, and interrupting a host that waits for migrations, end the pool's connections without waiting for PostgreSQL's disconnect acknowledgements.
+- `@shivaedev/contract`: a handler may also fail with an error that one of its contract's RPC middleware declares, as native Effect 4.1.4 `Rpc` handlers do. Any other undeclared error still fails compilation.
+- `@shivaedev/mcp`: a stdio server whose client closes its input interrupts in-flight tools, releases their resources and exits with code 0 instead of 130. An invalid numeric tool argument is reported against Effect 4.1.4's JSON number codec, such as `Expected "Infinity" | "-Infinity" | "NaN"`, instead of `Expected number`.
+- `@shivaedev/test-story`: an OTLP span that succeeded arrives with status code 0 (unset) instead of 1 (ok), because Effect 4.1.4's OTLP tracer leaves the status of successful spans unset.
 
 ### Breaking
 
