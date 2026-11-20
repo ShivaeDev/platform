@@ -1,4 +1,4 @@
-import { DateTime } from "effect";
+import { DateTime, Option } from "effect";
 import type { Holder } from "#holder.ts";
 
 export function elapsed(fromMs: number, toMs: number): string {
@@ -8,7 +8,10 @@ export function elapsed(fromMs: number, toMs: number): string {
 }
 
 function localTime(ms: number): string {
-	return DateTime.formatLocal(DateTime.makeUnsafe(ms), { locale: "en-GB", timeStyle: "medium" });
+	return Option.match(DateTime.make(ms), {
+		onNone: () => "an unknown time",
+		onSome: (time) => DateTime.formatLocal(time, { locale: "en-GB", timeStyle: "medium" }),
+	});
 }
 
 export function waitingLine(holder: Holder, nowMs: number, mayBeHung = false): string {

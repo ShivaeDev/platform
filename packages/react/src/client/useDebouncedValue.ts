@@ -22,7 +22,7 @@ function debounce<A>(value: A, millis: number, runtime: TimerRuntime) {
 
 export function useDebouncedValue<A>(value: A, duration: Duration.Input, runtime: TimerRuntime = defaultRuntime): A {
 	const registry = useContext(RegistryContext);
-	const millis = Duration.toMillis(Duration.fromInputUnsafe(duration));
+	const millis = Duration.toMillis(duration);
 	const [held, hold] = useState(() => ({ ...debounce(value, millis, runtime), registry, runtime }));
 	let owner = held;
 	if (held.registry !== registry || held.runtime !== runtime) {

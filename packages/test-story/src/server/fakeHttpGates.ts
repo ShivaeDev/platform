@@ -21,27 +21,31 @@ export function fakeHttpGates(tell: (line: string) => void, kind: "hold" | "stal
 					new Error(`Fake HTTP route "${route}" already has a ${kind}.\nhelp: Release its current ${kind} before scripting another.`),
 				);
 			}
-			const waiting = Deferred.makeUnsafe<void>();
-			const released = Promise.withResolvers<void>();
-			let entered = false;
-			const gate = {
-				enter: () => {
-					entered = true;
-					tell(kind === "hold" ? `fake HTTP ${label} has a waiting request` : `fake HTTP ${label} body stalled`);
-					Deferred.doneUnsafe(waiting, Effect.void);
-					return released.promise;
-				},
-				matches: (name: string, request: FakeHttpRequest) => !(once && entered) && selection.matches(name, request),
-				release: () => {
-					if (gates.get(label) !== gate) {
-						return;
-					}
-					gates.delete(label);
-					released.resolve();
-					tell(kind === "hold" ? `fake HTTP ${label} released` : `fake HTTP ${label} body released`);
-				},
-			};
-			gates.set(label, gate);
+			const waiting = yield* Deferred.make<void>();
+			// The server enters a gate from its request callback, so registering the gate is a side effect.
+			const gate = yield* Effect.sync(() => {
+				const released = Promise.withResolvers<void>();
+				let entered = false;
+				const registered = {
+					enter: () => {
+						entered = true;
+						tell(kind === "hold" ? `fake HTTP ${label} has a waiting request` : `fake HTTP ${label} body stalled`);
+						Deferred.doneUnsafe(waiting, Effect.void);
+						return released.promise;
+					},
+					matches: (name: string, request: FakeHttpRequest) => !(once && entered) && selection.matches(name, request),
+					release: () => {
+						if (gates.get(label) !== registered) {
+							return;
+						}
+						gates.delete(label);
+						released.resolve();
+						tell(kind === "hold" ? `fake HTTP ${label} released` : `fake HTTP ${label} body released`);
+					},
+				};
+				gates.set(label, registered);
+				return registered;
+			});
 			tell(kind === "hold" ? `fake HTTP ${label} held` : `fake HTTP ${label} body will stall`);
 			return { release: Effect.sync(gate.release), waiting: Deferred.await(waiting) } satisfies FakeHttpHold;
 		}),

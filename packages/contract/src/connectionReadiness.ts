@@ -4,7 +4,7 @@ import { SocketOpenError } from "effect/socket/Socket";
 
 export const connectionReadiness = Effect.gen(function* () {
 	const clock = yield* Clock.Clock;
-	const ready = Latch.makeUnsafe(true);
+	const ready = yield* Latch.make(true);
 	return {
 		close: Effect.asVoid(ready.close),
 		isReady: () => ready.isOpen(),

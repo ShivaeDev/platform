@@ -20,7 +20,7 @@ export function prepareMigrations<R, E>(migrations: MigrationOptions<R, E>) {
 
 function waitForMigrations<R, E>(migrations: MigrationOptions<R, E>) {
 	return Effect.gen(function* () {
-		const progressInterval = Duration.fromInputUnsafe(migrations.progressInterval ?? "30 seconds");
+		const progressInterval = migrations.progressInterval ?? Duration.seconds(30);
 		let pending: PendingPostgresMigrations = { components: [], migrations: [] };
 		let progress: Fiber.Fiber<never> | undefined;
 		function log(message: string) {

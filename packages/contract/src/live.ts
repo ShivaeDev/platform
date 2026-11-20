@@ -33,6 +33,17 @@ export function isLiveConnection(atom: Atom.Atom<unknown>): boolean {
 	return connections.has(atom);
 }
 
+// The registry calls its subscribers synchronously, so subscribing is a side effect.
+function wakeOnChange(get: Atom.AtomContext, atom: Atom.Atom<unknown>, wakes: () => boolean, woken: Queue.Queue<void>) {
+	return Effect.sync(() =>
+		get.subscribe(atom, () => {
+			if (wakes()) {
+				Queue.offerUnsafe(woken, undefined);
+			}
+		}),
+	);
+}
+
 export function live<R, E, TRuntimeError>(runtime: Atom.AtomRuntime<R, TRuntimeError>, options: LiveOptions<E, R>) {
 	const paused = Atom.make(false);
 	const status = Atom.make<LiveStatus<E>>({ connection: "connecting", failure: Option.none(), needsResync: true, pending: 0 });
@@ -51,14 +62,16 @@ export function live<R, E, TRuntimeError>(runtime: Atom.AtomRuntime<R, TRuntimeE
 						update({ connection: "connecting", failure: Option.none(), needsResync: true, pending: 0 });
 					}
 				});
+				function resyncsOnResume() {
+					if (get.once(paused) || get.once(status).connection === "failed") {
+						return false;
+					}
+					update({ needsResync: true });
+					return true;
+				}
 				if (options.resume !== undefined) {
 					get.once(options.resume);
-					get.subscribe(options.resume, () => {
-						if (!get.once(paused) && get.once(status).connection !== "failed") {
-							update({ needsResync: true });
-							Queue.offerUnsafe(resumed, undefined);
-						}
-					});
+					yield* wakeOnChange(get, options.resume, resyncsOnResume, resumed);
 				}
 				const attempt = liveAttempt(options.stream, {
 					delivered: () => update({ connection: "live", failure: Option.none(), needsResync: false, pending: 0 }),

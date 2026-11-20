@@ -31,7 +31,13 @@ export function querySubscription<TRpc extends Rpc.Any>(
 >;
 export function querySubscription(rpc: Rpc.Any, references: readonly QueryReference[], viewer: Option.Option<Viewer>) {
 	return Effect.fnUntraced(function* () {
-		const queries = yield* Context.getUnsafe(rpc.annotations, ChangesQueries).resolve(references);
+		const changes = Context.getOption(rpc.annotations, ChangesQueries);
+		if (Option.isNone(changes)) {
+			return yield* Effect.die(
+				new Error(`${rpc._tag} carries no changes queries.\nhelp: Subscribe through the $changes RPC that changesRpc declares.`),
+			);
+		}
+		const queries = yield* changes.value.resolve(references);
 		const prefix = rpc._tag.slice(0, -"$changes".length);
 		const policies = yield* Effect.forEach(
 			queries,

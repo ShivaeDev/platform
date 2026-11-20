@@ -17,7 +17,7 @@ export function checkFeedback<TFields extends Fields, R, E>(
 			return Atom.make((): string | undefined => undefined);
 		}
 		const current = fromRef(refFor(name));
-		const settled = Duration.isZero(Duration.fromInputUnsafe(debounce)) ? current : Atom.debounce(current, debounce);
+		const settled = Duration.toMillis(debounce) === 0 ? current : Atom.debounce(current, debounce);
 		const answered = runtime.atom((get) => {
 			const input = get(settled);
 			return Effect.map(check(input), (message) => ({

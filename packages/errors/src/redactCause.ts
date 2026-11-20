@@ -35,7 +35,7 @@ export function redactCause<E>(cause: Cause.Cause<E>, sensitive: SensitiveKey = 
 	return Cause.fromReasons(
 		cause.reasons.flatMap<Cause.Reason<E>>((reason) =>
 			Cause.isDieReason(reason)
-				? Cause.annotate(Cause.die(redactDefect(reason.defect, sensitive)), Context.makeUnsafe(reason.annotations)).reasons
+				? Cause.annotate(Cause.die(redactDefect(reason.defect, sensitive)), Cause.reasonAnnotations(reason)).reasons
 				: [reason],
 		),
 	);

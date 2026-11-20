@@ -24,7 +24,11 @@ function waitUntil<A, E, R>(
 	read: Effect.Effect<Reading<A>, E, R>,
 	options: PgBossTestingWaitOptions | undefined,
 ) {
-	const within = Duration.fromInputUnsafe(options?.within ?? "20 seconds");
+	const parsed = Duration.fromInput(options?.within ?? "20 seconds");
+	if (Option.isNone(parsed)) {
+		return Effect.die(new Error('The within option is not a duration.\nhelp: Pass a Duration or a string such as "20 seconds".'));
+	}
+	const within = parsed.value;
 	return Effect.suspend(() => {
 		let lastSeen = "nothing yet";
 		const wait = Effect.gen(function* () {

@@ -9,6 +9,7 @@ import { serviceIds } from "#rules/effect/serviceIds.ts";
 import { serviceModel } from "#rules/effect/serviceModel.ts";
 import { serviceParameters } from "#rules/effect/serviceParameters.ts";
 import { sharedErrorClasses } from "#rules/effect/sharedErrorClasses.ts";
+import { unsafeCalls } from "#rules/effect/unsafeCalls.ts";
 
 export const effectPolicy = [
 	adapterImports,
@@ -22,4 +23,5 @@ export const effectPolicy = [
 	serviceModel,
 	serviceParameters,
 	sharedErrorClasses,
+	unsafeCalls,
 ] as const;
