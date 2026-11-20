@@ -25,6 +25,20 @@ it.each([
 });
 
 it.each([
+	[String.raw`{"error":"line one\npin=1234 is wrong"}`, String.raw`{"error":"line one\npin=<redacted> is wrong"}`],
+	[String.raw`{"error":"line one\tsession=abc expired"}`, String.raw`{"error":"line one\tsession=<redacted> expired"}`],
+	[String.raw`{"error":"line one\rsig: abc"}`, String.raw`{"error":"line one\rsig: <redacted>"}`],
+	[String.raw`{"error":"line one\npin=\"12 34\" is wrong"}`, String.raw`{"error":"line one\npin=\"<redacted>\" is wrong"}`],
+	[String.raw`{"error":"line one\tsig: \"a b\" expired"}`, String.raw`{"error":"line one\tsig: \"<redacted>\" expired"}`],
+])("reads the name after a whitespace escape in %s", (input, expected) => {
+	expect(redactText(input, isSensitiveKey)).toBe(expected);
+});
+
+it("reads the caller's own name after a whitespace escape", () => {
+	expect(redactText(String.raw`first\nnote=a b`, (key) => key === "note")).toBe(String.raw`first\nnote=<redacted> b`);
+});
+
+it.each([
 	[String.raw`{\"status\":\"a b c\",\"note\":\"ready\"}`],
 	[String.raw`note="\"password\": Cannot encode"`],
 	[String.raw`\"user.password\": Cannot encode Redacted`],
