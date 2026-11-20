@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.46.5 - 2026-11-20
+
+### Changed
+
+- generated apps mount one notice host in `src/client/Notices.tsx`, and their note screens carry no failure wiring: a conflict, a refused session and a defect each appear as a notice.
+- the starter's notes screens call `useCreate(client.api.create, …)`, `useEditor(client.api.update, …)` and `useAction(client.api.delete, …)`, and its sessions page passes the bound revoke command.
+- `create-app` writes a resource module without `requires` or the repository import it needed.
+
 ## 0.46.4 - 2026-11-20
 
 ### Changed

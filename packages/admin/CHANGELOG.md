@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.27.0 - 2026-11-20
+
+### Breaking
+
+- `SessionsView` takes the bound revoke command as `revoke` and no longer takes `runtime`. Before: `<SessionsView revoke={client.sessions.revoke.run} runtime={client.runtime} … />`. After: `<SessionsView revoke={client.sessions.revoke} … />`.
+
 ## 0.26.4 - 2026-11-20
 
 ### Changed

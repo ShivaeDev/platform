@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.20.0 - 2026-11-20
+
+### Breaking
+
+- `FieldRejectionMapping` is removed; the React form hooks no longer take `rejectField`. `rejecting` and `RejectField` are unchanged for a form used directly.
+
 ## 0.19.5 - 2026-11-20
 
 ### Changed

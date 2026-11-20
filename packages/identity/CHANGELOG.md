@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.34.1 - 2026-11-20
+
+### Changed
+
+- Update `@shivaedev/access` from 0.6.5 to 0.6.6.
+- Update `@shivaedev/contract` from 0.49.0 to 0.50.0.
+- Update `@shivaedev/errors` from 0.13.1 to 0.14.0.
+- Update `@shivaedev/rate-limit` from 0.6.14 to 0.6.15.
+- Update `@shivaedev/sql` from 0.51.0 to 0.52.0.
+
 ## 0.34.0 - 2026-11-20
 
 ### Added

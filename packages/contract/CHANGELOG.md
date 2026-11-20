@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.50.0 - 2026-11-20
+
+### Added
+
+- `failureKind(error)` in `failureKind.ts` returns `"request"`, `"framework"` or `"app"`, with the `FrameworkFailure` and `AppRejection<E>` types and the `isFrameworkFailure` guard.
+- a bound command carries `runtime`, the atom runtime of its client, and `payload`, its declared payload schema. Bound queries and streams carry `runtime` too.
+
+### Breaking
+
+- `defineModule` no longer takes `requires`: delete the `requires` line from every `defineModule({ ... })`, and the imports only it used. The module's type now carries, for each operation, the services its `run` and read policy yield, less what its middleware and subject provide per call, and `moduleHandlers(module)` requires exactly those services. An operation that starts to yield another service needs no other edit.
+- `OperationNeedsUndeclaredServices` and `Allowed` are removed from `@shivaedev/contract/moduleProof.ts`, and `NameProof` takes the operations and the wire only. A module's `"~requires"` is now a record from each operation's name to the services it needs, and `AnyModule["~requires"]` is `ModuleServices`.
+
 ## 0.49.0 - 2026-11-20
 
 ### Added
