@@ -86,7 +86,12 @@ export function InvoiceLineScreen({ id, server: { api } }: { readonly id: number
 		Option.map(AsyncResult.value(useAtomValue(api.get.query({ id }))), (line) => line.version),
 		() => 1,
 	);
-	const editor = useEditor(api.save, { fields: InvoiceLineDraft, fixed: { expectedVersion: version, id }, query: api.get.query({ id }) });
+	const editor = useEditor(api.save, {
+		failures: { InvoiceLineNotFound: "silent", Unavailable: "silent" },
+		fields: InvoiceLineDraft,
+		fixed: { expectedVersion: version, id },
+		query: api.get.query({ id }),
+	});
 	const { query, form } = editor;
 	return createElement(
 		"section",
@@ -113,7 +118,7 @@ export function InvoiceLineScreen({ id, server: { api } }: { readonly id: number
 	);
 }
 export function InvoiceLineCreate({ server: { api } }: { readonly server: Server }) {
-	const create = useCreate(api.create, { fields: InvoiceLineDraft, initialValues: { name: "", quantity: "" } });
+	const create = useCreate(api.create, { failures: { Unavailable: "silent" }, fields: InvoiceLineDraft, initialValues: { name: "", quantity: "" } });
 	const created = Option.map(create.created, (line) => createElement("output", null, `Created ${line.id}: ${line.name}`));
 	return createElement(InvoiceLineForm, { editor: create }, Option.getOrNull(created));
 }

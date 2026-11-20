@@ -7,6 +7,7 @@ import { useAnonymousConnection } from "#client/adapters/useAnonymousConnection.
 import { type Routing, useAppRouter } from "#client/adapters/useAppRouter.ts";
 import type { ClientConnection } from "#client/Module.ts";
 import { clientModules } from "#client/modules.ts";
+import { Notices } from "#client/Notices.tsx";
 
 const defaultConnection: ClientConnection = (session) => clientModules(session);
 
@@ -15,7 +16,11 @@ interface Session {
 }
 function RoutedApp(routing: Routing) {
 	const router = useAppRouter(routing);
-	return <RouterProvider router={router} />;
+	return (
+		<Notices>
+			<RouterProvider router={router} />
+		</Notices>
+	);
 }
 
 function identify(session: Session) {

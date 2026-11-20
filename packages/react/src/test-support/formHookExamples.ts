@@ -1,4 +1,5 @@
 import { Effect } from "effect";
+import type { Conflict } from "@shivaedev/errors/taxonomy.ts";
 import { useCreate } from "#client/create.ts";
 import { useEditor } from "#client/editor.ts";
 import {
@@ -14,20 +15,23 @@ import {
 	TitleConflict,
 } from "#test/formHookFixtures.ts";
 
+function onTitle(error: StaleRejected) {
+	return { field: "title" as const, message: error.message };
+}
+function onConflict(error: Conflict) {
+	return error.field === "title" ? { field: "title" as const, message: error.message } : { message: error.message };
+}
+
 export function useEditorExample() {
 	const editor = useEditor(
 		{ run: saveTitle, runtime },
 		{
 			fields: Title,
 			query,
-			rejectField: (error) => (error === "Rejected" ? { field: "title", message: "Required" } : undefined),
 			values: (record) => ({ title: record.title }),
 		},
 	);
-	const create = useCreate(
-		{ run: saveTitle, runtime },
-		{ fields: Title, initialValues: { title: "" }, rejectField: () => ({ field: "title" as const, message: "Unknown" }) },
-	);
+	const create = useCreate({ run: saveTitle, runtime }, { fields: Title, initialValues: { title: "" } });
 	return { create, editor };
 }
 
@@ -36,9 +40,9 @@ export function useRejectionExample() {
 	const mapped = useEditor(
 		{ run: (values: typeof Title.Type) => Effect.as(saveStale(values), { id: 1, title: values.title }), runtime },
 		{
+			failures: { StaleRejected: onTitle },
 			fields: Title,
 			query,
-			rejectField: (error: StaleRejected) => ({ field: "title", message: error.message }),
 			values: (record) => ({ title: record.title }),
 		},
 	);
@@ -49,18 +53,18 @@ export function useOptionalFieldExample() {
 	const mapped = useCreate(
 		{ run: saveConflict, runtime },
 		{
+			failures: { Conflict: onConflict },
 			fields: Title,
 			initialValues: { title: "" },
-			rejectField: (error) => (error.field === "title" ? { field: "title", message: error.message } : undefined),
 		},
 	);
 	const titled = useCreate(
 		{ run: () => Effect.fail(new TitleConflict({ message: "Taken" })), runtime },
-		{ fields: Title, initialValues: { title: "" } },
+		{ failures: { TitleConflict: "message" }, fields: Title, initialValues: { title: "" } },
 	);
 	const described = useCreate(
 		{ run: () => Effect.fail(new Described({ message: "Gone" })), runtime },
-		{ fields: Title, initialValues: { title: "" } },
+		{ failures: { Described: "message" }, fields: Title, initialValues: { title: "" } },
 	);
 	return { described, mapped, titled };
 }

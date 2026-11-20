@@ -60,7 +60,6 @@ export function useCompletionTypes() {
 		{ run, runtime },
 		{
 			notices: {
-				onFailure: (error, input) => ({ message: `${input.title}: ${error}` }),
 				onSuccess: (value, input) => ({ action: { label: "Undo", run: run(input) }, message: value.title }),
 			},
 		},

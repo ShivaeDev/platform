@@ -5,11 +5,12 @@ import type * as Atom from "effect/reactivity/Atom";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { useContext, useEffect, useState } from "react";
 import { isUnauthorized } from "@shivaedev/errors/taxonomy.ts";
-import { type ActionOptions, useActionSource } from "#client/actionCompletion.ts";
+import { type ActionOptions, type OperationActionOptions, useActionSource } from "#client/actionCompletion.ts";
 import { useActionResult } from "#client/adapters/useActionResult.ts";
 import { usePermissionFailure } from "#client/adapters/usePermissionFailure.ts";
 import { useQueryNotice } from "#client/adapters/useQueryNotice.ts";
 import type { BoundOperation } from "#client/boundOperation.ts";
+import type { FailureChoices, FailuresChecked } from "#client/failures.ts";
 import type { NoticeDescriptor } from "#client/notices.ts";
 import { useSessionRecheck } from "#client/sessionBoundary.ts";
 
@@ -89,17 +90,26 @@ export interface ActionState<TInput, A, E> extends ResultState<A, E> {
 	readonly dispatch: (input: TInput) => void;
 }
 export function useAction<TInput, A, E>(atom: Atom.AtomResultFn<TInput, A, E>): ActionState<TInput, A, E>;
-export function useAction<TInput, A, E, R, TRuntimeError>(
+export function useAction<TInput, A, E, R, TRuntimeError, TSilent extends boolean = false>(
 	operation: BoundOperation<TInput, A, E, R, TRuntimeError>,
-	options?: ActionOptions<NoInfer<TInput>, NoInfer<A>, NoInfer<E>, R>,
+	options: OperationActionOptions<TInput, A, E, R, TSilent>,
+): ActionState<TInput, A, E | TRuntimeError>;
+// Declared last so that a call without options reports this overload's error, which names each rejection that needs `failures`.
+export function useAction<TInput, A, E, R, TRuntimeError>(
+	operation: BoundOperation<TInput, A, E, R, TRuntimeError> & FailuresChecked<E>,
 ): ActionState<TInput, A, E | TRuntimeError>;
 export function useAction<TInput, A, E, R, TRuntimeError>(
 	source: Atom.AtomResultFn<TInput, A, E> | BoundOperation<TInput, A, E, R, TRuntimeError>,
-	options: ActionOptions<TInput, A, E, R> = {},
+	options: ActionOptions<TInput, A, E, R> & FailureChoices = {},
+): ActionState<TInput, A, E | TRuntimeError> {
+	return useActionState(source, options);
+}
+export function useActionState<TInput, A, E, R, TRuntimeError>(
+	source: Atom.AtomResultFn<TInput, A, E> | BoundOperation<TInput, A, E, R, TRuntimeError>,
+	options: ActionOptions<TInput, A, E, R> & FailureChoices = {},
 ): ActionState<TInput, A, E | TRuntimeError> {
 	const atom = useActionSource(source, options);
 	const result = useActionResult(atom);
-	// An operation's own failure handling already asked for the recheck once.
 	useRecheckOnUnauthorized(result, !("runtime" in source));
 	return { ...state(result), dispatch: useAtomSet(atom) };
 }

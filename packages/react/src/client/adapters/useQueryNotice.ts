@@ -26,7 +26,7 @@ export function useQueryNotice<A, E>(
 		seenRef.current = result;
 		if (store?.active && AsyncResult.isFailure(result)) {
 			const descriptor = latestRef.current?.({ cause: result.cause, refreshing });
-			publishNotice(store, runtime, descriptor);
+			publishNotice(store, runtime, descriptor, "rejection");
 		}
 	}, [result, refreshing, store]);
 }

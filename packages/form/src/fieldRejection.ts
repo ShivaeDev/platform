@@ -9,20 +9,6 @@ export interface FieldRejection<TName extends string> {
 
 export type RejectField<TFields extends Fields, TError> = (error: TError) => FieldRejection<Name<TFields>> | undefined;
 
-type Unmatched<TFields extends Fields, TError> = TError extends { readonly _tag: string; readonly message: string }
-	? "field" extends keyof TError
-		? string extends TError["field"]
-			? never
-			: Exclude<TError["field"], Name<TFields> | undefined>
-		: never
-	: never;
-
-export type FieldRejectionMapping<TFields extends Fields, TError> = { readonly rejectField?: RejectField<TFields, TError> } & ([
-	Unmatched<TFields, TError>,
-] extends [never]
-	? unknown
-	: { readonly rejectField: RejectField<TFields, TError> });
-
 export function fieldRejectionOf<TFields extends Fields>(schema: Schema.Struct<TFields>) {
 	return (error: unknown): FieldRejection<Name<TFields>> | undefined => {
 		function isName(name: string): name is Name<TFields> {

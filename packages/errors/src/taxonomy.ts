@@ -47,3 +47,22 @@ export function isInternalServerError(value: unknown): value is InternalServerEr
 export function isServiceUnavailable(value: unknown): value is ServiceUnavailable {
 	return value instanceof ServiceUnavailable;
 }
+
+// A request rejection answers what the person asked for, so its message is for them; a server failure says the service could not answer.
+export type RequestRejection = NotFound | Unauthorized | Forbidden | BadRequest | Conflict | PreconditionFailed | TooManyRequests;
+export type ServerFailure = AuthUnavailable | InternalServerError | ServiceUnavailable;
+
+export function isRequestRejection(value: unknown): value is RequestRejection {
+	return (
+		isNotFound(value)
+		|| isUnauthorized(value)
+		|| isForbidden(value)
+		|| isBadRequest(value)
+		|| isConflict(value)
+		|| isPreconditionFailed(value)
+		|| isTooManyRequests(value)
+	);
+}
+export function isServerFailure(value: unknown): value is ServerFailure {
+	return isAuthUnavailable(value) || isInternalServerError(value) || isServiceUnavailable(value);
+}

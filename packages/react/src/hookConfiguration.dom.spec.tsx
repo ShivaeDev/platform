@@ -35,7 +35,7 @@ for (const kind of ["create", "editor"] as const) {
 	for (const [change, error] of [
 		[undefined, "before"],
 		["inline callbacks", "after"],
-		["removing the rejection mapper", "automatic"],
+		["removing the failures handler", "automatic"],
 	] as const) {
 		configurations.it(
 			`a ${kind} form ${change ? `rerendered with ${change} changed ` : ""}maps a rejected save to "${error}"`,
@@ -53,7 +53,7 @@ for (const kind of ["create", "editor"] as const) {
 	}
 
 	configurations.it(
-		`a ${kind} form maps a rejection that arrives after a mapper change with the new mapper`,
+		`a ${kind} form maps a rejection that arrives after a failures handler change with the new handler`,
 		[rejectedSaveWaiting(kind)],
 		function* ({ fieldError, finishSave, reconfigure }) {
 			yield* reconfigure("inline callbacks");

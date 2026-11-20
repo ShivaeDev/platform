@@ -5,7 +5,9 @@ import * as Atom from "effect/reactivity/Atom";
 import { useContext, useMemo } from "react";
 import type { BoundOperation } from "#client/boundOperation.ts";
 import type { deployUpdate } from "#client/deployUpdate.ts";
-import { useAction } from "#client/resultState.ts";
+import type { FailureChoices, FailuresOption } from "#client/failures.ts";
+import type { NoticeDescriptor } from "#client/notices.ts";
+import { useActionState } from "#client/resultState.ts";
 
 type DeployUpdate = Pick<ReturnType<typeof deployUpdate>, "block">;
 
@@ -26,17 +28,44 @@ export interface UndoableChange<TInput, A, E, TInverse extends readonly unknown[
 	readonly undoResult: AsyncResult.AsyncResult<A, E>;
 }
 
-export function useUndoableChange<TInput, A, E, R, TRuntimeError>(
+function failuresFor<TAction>(choices: FailureChoices, input: (action: TAction) => unknown): FailureChoices {
+	const { failures, silent } = choices;
+	const handlers =
+		failures
+		&& Object.fromEntries(
+			Object.entries(failures).map(([tag, choice]) => [
+				tag,
+				typeof choice === "function" ? (error: unknown, action: TAction) => choice(error, input(action)) : choice,
+			]),
+		);
+	return { failures: handlers, silent };
+}
+// A failed removal or Undo hands the change's own input to `failures`.
+type UndoableFailures<TInput, E, R, TSilent extends boolean> = FailuresOption<E, TInput, NoticeDescriptor<R>, TSilent>;
+
+export function useUndoableChange<TInput, A, E, R, TRuntimeError, TSilent extends boolean = false>(
 	command: BoundOperation<TInput, A, E, R, TRuntimeError>,
 	options: {
 		readonly describe: (value: NoInfer<A>, input: NoInfer<TInput>) => string;
 		readonly undoInput: (value: NoInfer<A>, input: NoInfer<TInput>) => NoInfer<TInput>;
 		readonly update: DeployUpdate;
-	},
+	} & UndoableFailures<NoInfer<TInput>, E, R, TSilent>,
 ): UndoableChange<TInput, A, E | TRuntimeError, []>;
-export function useUndoableChange<TInput extends { readonly expectedVersion: number }, A extends { readonly version: number }, E, R, TRuntimeError>(
+export function useUndoableChange<
+	TInput extends { readonly expectedVersion: number },
+	A extends { readonly version: number },
+	E,
+	R,
+	TRuntimeError,
+	TSilent extends boolean = false,
+>(
 	command: BoundOperation<TInput, A, E, R, TRuntimeError>,
-	options: { readonly describe: (value: NoInfer<A>, input: NoInfer<TInput>) => string; readonly update: DeployUpdate },
+	options: { readonly describe: (value: NoInfer<A>, input: NoInfer<TInput>) => string; readonly update: DeployUpdate } & UndoableFailures<
+		NoInfer<TInput>,
+		E,
+		R,
+		TSilent
+	>,
 ): UndoableChange<TInput, A, E | TRuntimeError, [inverse: Omit<TInput, "expectedVersion">]>;
 export function useUndoableChange<TInput, A extends { readonly version: number }, E, R, TRuntimeError>(
 	command: BoundOperation<TInput, A, E, R, TRuntimeError>,
@@ -44,7 +73,7 @@ export function useUndoableChange<TInput, A extends { readonly version: number }
 		readonly describe: (value: A, input: TInput) => string;
 		readonly undoInput?: (value: A, input: TInput) => TInput;
 		readonly update: DeployUpdate;
-	},
+	} & FailureChoices,
 ) {
 	const { run, runtime } = command;
 	const { update } = options;
@@ -70,9 +99,10 @@ export function useUndoableChange<TInput, A extends { readonly version: number }
 	);
 	const removeRun = useMemo(() => (request: Removal) => execute(request.input), [execute]);
 	const undoRun = useMemo(() => (entry: Entry) => execute(entry.inverse), [execute]);
-	const removal = useAction(
+	const removal = useActionState(
 		{ run: removeRun, runtime: owner.runtime },
 		{
+			...failuresFor(options, (request: Removal) => request.input),
 			concurrent: true,
 			onSuccess: (value, { input, inverse, sequence }) => {
 				if (sequence === owner.sequence) {
@@ -82,9 +112,10 @@ export function useUndoableChange<TInput, A extends { readonly version: number }
 			},
 		},
 	);
-	const restoration = useAction(
+	const restoration = useActionState(
 		{ run: undoRun, runtime: owner.runtime },
 		{
+			...failuresFor(options, (entry: Entry) => entry.inverse),
 			onSuccess: (_value, entry) => {
 				if (Option.getOrUndefined(owner.registry.get(owner.notice)) === entry) {
 					owner.registry.set(owner.notice, Option.none());

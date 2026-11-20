@@ -47,12 +47,15 @@ export function NoticeCard(notice: Notice) {
 	);
 }
 const load = Atom.make(Effect.fail("Load unavailable"));
+function commandFailed() {
+	return { message: "Command failed" };
+}
 function Operations({ state }: { readonly state: NoticeScreen }) {
 	const { client } = state;
 	const list = useQuery(client.api.list.query(), { notice: ({ refreshing }) => ({ message: refreshing ? "Refresh failed" : "Load failed" }) });
 	useQuery(load, { notice: () => (state.queryFailure ? { message: "Initial load failed" } : undefined) });
+	const failures = { Rejected: commandFailed };
 	const notices = {
-		onFailure: () => ({ message: "Command failed" }),
 		onSuccess: (removed: { readonly title: string; readonly expectedVersion: number }) => ({
 			action: {
 				label: `Undo ${removed.title}`,
@@ -62,10 +65,10 @@ function Operations({ state }: { readonly state: NoticeScreen }) {
 			message: `Removed ${removed.title}`,
 		}),
 	};
-	const remove = useAction(client.api.remove, { concurrent: true, notices });
+	const remove = useAction(client.api.remove, { concurrent: true, failures, notices });
 	const edit = useAction(client.api.edit);
 	const breakReads = useAction(client.api.breakReads);
-	const form = useCreate(client.api.remove, { initialValues: { title: "blocked" }, notices });
+	const form = useCreate(client.api.remove, { failures, initialValues: { title: "blocked" }, notices });
 	const titleField = useField(form.form, "title");
 	return (
 		<>

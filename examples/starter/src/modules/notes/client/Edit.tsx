@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Cause, Option, Predicate } from "effect";
+import { Option } from "effect";
 import { useId } from "react";
 import { useField } from "@shivaedev/form/adapters/react.ts";
 import type { Form } from "@shivaedev/form/shape.ts";
@@ -49,21 +49,7 @@ export function NoteEdit({
 	const noteId = loaded.id;
 	const editor = useEditor(client.api.update, { fixed: { id: noteId }, loaded, query: client.api.get.query({ id: noteId }) });
 	const currentNote = editor.query.data;
-	const failure = Option.map(editor.failure, (error) => {
-		if (Predicate.isTagged(error, "Conflict")) {
-			return error.message;
-		}
-		if (Predicate.isTagged(error, "Unauthorized")) {
-			return "Sign in to save this note.";
-		}
-		return "Could not save the note. Try again.";
-	}).pipe(Option.orElse(() => Option.map(Option.filter(editor.cause, Cause.hasDies), () => "Could not save the note. Try again.")));
 	const loadFailure = Option.isSome(editor.query.cause) && <p role="alert">Could not load this note. Try refreshing.</p>;
-	const saveFailure = Option.isSome(failure) && (
-		<p className="text-destructive text-sm" role="alert">
-			{failure.value}
-		</p>
-	);
 	return (
 		<main className="mx-auto w-full max-w-2xl space-y-6 px-4 py-12 sm:px-6">
 			<Link className="underline" to="/">
@@ -86,7 +72,6 @@ export function NoteEdit({
 				<Button disabled={editor.saving} type="submit">
 					{editor.saving ? "Saving…" : "Save note"}
 				</Button>
-				{saveFailure}
 				<p aria-live="polite" className="text-muted-foreground text-sm">
 					{editor.dirty ? "Unsaved changes" : "All changes saved"}
 				</p>

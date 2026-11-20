@@ -35,8 +35,11 @@ function Commands({ state }: { readonly state: CompletionScreen }) {
 		{ run, runtime: client.runtime },
 		{
 			concurrent: state.concurrent,
+			failures: {
+				Rejected: (error, input) => ({ message: `${callback}: ${input.title} rejected: ${error._tag} / ${currentList}` }),
+				Unauthorized: (error, input) => ({ message: `${callback}: ${input.title} rejected: ${error._tag} / ${currentList}` }),
+			},
 			notices: {
-				onFailure: (error, input) => ({ message: `${callback}: ${input.title} rejected: ${error._tag} / ${currentList}` }),
 				onSuccess: (value, input) => ({ message: `${callback}: ${input.title} -> ${value} / ${currentList}` }),
 			},
 			onFailure: (error, input) => {

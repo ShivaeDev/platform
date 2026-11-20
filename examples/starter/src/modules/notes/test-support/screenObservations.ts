@@ -11,7 +11,12 @@ export function screenObservations(engine: ScreenSurface) {
 	}
 	return {
 		addNoteForm: () => Effect.sync(() => (container().querySelector('section[aria-label="Add a note"] form') === null ? "hidden" : "shown")),
-		alert: () => Effect.sync(() => container().querySelector("[role=alert]")?.textContent ?? "no alert"),
+		// A notice's message is its own paragraph; the Dismiss button beside it is not part of what it says.
+		alert: () =>
+			Effect.sync(() => {
+				const shown = container().querySelector("[role=alert]");
+				return (shown?.querySelector("p") ?? shown)?.textContent ?? "no alert";
+			}),
 		draft: (label?: string) => Effect.sync(() => screenInput(engine, label).value),
 		noteLinks: () =>
 			Effect.sync(() =>

@@ -3,6 +3,7 @@ import { expectTypeOf } from "vitest";
 import type { Conflict } from "@shivaedev/errors/taxonomy.ts";
 import type { CreateOptions } from "#client/create.ts";
 import type { EditorOptions } from "#client/editor.ts";
+import type { FormFailuresOption } from "#client/failures.ts";
 import type { useEditorExample, useOptionalFieldExample, useRejectionExample } from "#test/formHookExamples.ts";
 import type { Described, NameRejected, query, StaleRejected, Title, TitleConflict } from "#test/formHookFixtures.ts";
 
@@ -24,10 +25,11 @@ expectTypeOf<OptionalFields["mapped"]["failure"]>().toEqualTypeOf<Option.Option<
 expectTypeOf<OptionalFields["titled"]["failure"]>().toEqualTypeOf<Option.Option<TitleConflict>>();
 expectTypeOf<OptionalFields["described"]["failure"]>().toEqualTypeOf<Option.Option<Described>>();
 
-expectTypeOf<{ rejectField: () => { field: "missing"; message: string } }>().not.toExtend<
-	Pick<CreateOptions<Fields, Row, "Rejected", never, never>, "rejectField">
+type Checked<E> = FormFailuresOption<Fields, E, never, false>;
+// A rejection the app declared needs a handler unless it can only name one of the form's fields.
+expectTypeOf<{ initialValues: { title: string } }>().not.toExtend<
+	CreateOptions<Fields, never, StaleRejected, never, never> & Checked<StaleRejected>
 >();
-// A failure that names a field must say which form field it belongs to.
-expectTypeOf<{ initialValues: { title: string } }>().not.toExtend<CreateOptions<Fields, never, StaleRejected, never, never>>();
-expectTypeOf<{ query: typeof query }>().not.toExtend<EditorOptions<Fields, Row, never, Row, StaleRejected, never, never>>();
-expectTypeOf<{ initialValues: { title: string } }>().toExtend<CreateOptions<Fields, never, Conflict, never, never>>();
+expectTypeOf<{ query: typeof query }>().not.toExtend<EditorOptions<Fields, Row, never, Row, StaleRejected, never, never> & Checked<StaleRejected>>();
+expectTypeOf<{ initialValues: { title: string } }>().toExtend<CreateOptions<Fields, never, Conflict, never, never> & Checked<Conflict>>();
+expectTypeOf<{ initialValues: { title: string } }>().toExtend<CreateOptions<Fields, never, NameRejected, never, never> & Checked<NameRejected>>();

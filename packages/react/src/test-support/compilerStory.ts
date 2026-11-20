@@ -30,7 +30,7 @@ export const compilerStory = storyKit({
 			}),
 		compileValid: () =>
 			Effect.sync(() => {
-				story.tell("tsc checks hooks that take bound commands, a custom operation, fixed payload fields and an undoable change");
+				story.tell("tsc checks hooks that take bound commands, a custom operation, fixed payload fields, an undoable change and failure handlers");
 				const diagnostics = engine.diagnosticsOf("useBoundOperations");
 				return diagnostics === "" ? "compiled cleanly" : diagnostics;
 			}),

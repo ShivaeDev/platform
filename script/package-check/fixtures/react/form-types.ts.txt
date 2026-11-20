@@ -12,20 +12,21 @@ const saveTitle = (values: { readonly title: string }) =>
 export const useEditorExample = () => {
 	const editor = useEditor(
 		{ run: saveTitle, runtime },
-		{ query, fields, rejectField: (error) => (error === "Rejected" ? { field: "title", message: "Required" } : undefined) },
+		// An untagged failure is the framework's to report, so it needs no handler.
+		{ query, fields },
 	);
 	const failure: Option.Option<"Rejected"> = editor.failure;
 	const row: Option.Option<{ id: number; title: string }> = editor.query.data;
 	const create = useCreate(
-		{ run: saveTitle, runtime },
+		{ run: saveNamed, runtime },
 		{
 			fields,
 			initialValues: { title: "" },
-			// @ts-expect-error Field rejections name a declared field.
-			rejectField: () => ({ field: "missing", message: "Unknown" }),
+			// @ts-expect-error A handler returns a field rejection only for a declared field.
+			failures: { NameRejected: () => ({ field: "missing", message: "Unknown" }) },
 		},
 	);
-	const created: Option.Option<{ id: number; title: string }> = create.created;
+	const created: Option.Option<never> = create.created;
 	return { failure, row, created, save: editor.save };
 };
 
@@ -38,9 +39,12 @@ const saveStaleRow = (values: { readonly title: string }) => Effect.as(saveStale
 
 export const useRejectionExample = () => {
 	const named = useCreate({ run: saveNamed, runtime }, { fields, initialValues: { title: "" } });
-	// @ts-expect-error A tagged field rejection naming a field the form lacks needs an explicit rejectField.
+	// @ts-expect-error A tagged rejection naming a field the form lacks is the app's own, so it needs a failures handler.
 	const stale = useCreate({ run: saveStale, runtime }, { fields, initialValues: { title: "" } });
-	const mapped = useEditor({ run: saveStaleRow, runtime }, { query, fields, rejectField: (error) => ({ field: "title", message: error.message }) });
+	const mapped = useEditor(
+		{ run: saveStaleRow, runtime },
+		{ query, fields, failures: { StaleRejected: (error) => ({ field: "title", message: error.message }) } },
+	);
 	// @ts-expect-error The editor applies the same constraint to its save command.
 	const unmapped = useEditor({ run: saveStaleRow, runtime }, { query, fields });
 	return { named, stale, mapped, unmapped };
@@ -66,10 +70,14 @@ export const useOptionalFieldExample = () => {
 		{
 			fields,
 			initialValues: { title: "" },
-			rejectField: (error) => (error.field === "title" ? { field: "title", message: error.message } : undefined),
+			failures: { Conflict: (error) => (error.field === "title" ? { field: "title", message: error.message } : { message: error.message }) },
 		},
 	);
-	const titled = useCreate({ run: saveTitled, runtime }, { fields, initialValues: { title: "" } });
-	const described = useCreate({ run: saveDescribed, runtime }, { fields, initialValues: { title: "" } });
-	return { unmapped, mapped, titled, described };
+	// The app's own rejections say what they show; "message" shows the error's message as a notice.
+	const titled = useCreate({ run: saveTitled, runtime }, { fields, initialValues: { title: "" }, failures: { TitleConflict: "message" } });
+	const described = useCreate({ run: saveDescribed, runtime }, { fields, initialValues: { title: "" }, failures: { Described: "message" } });
+	// @ts-expect-error Leaving out the handler for an app-defined rejection does not compile.
+	const unhandled = useCreate({ run: saveDescribed, runtime }, { fields, initialValues: { title: "" } });
+	const quiet = useCreate({ run: saveDescribed, runtime }, { fields, initialValues: { title: "" }, silent: true });
+	return { unmapped, mapped, titled, described, unhandled, quiet };
 };

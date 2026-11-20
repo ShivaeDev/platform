@@ -5,7 +5,7 @@
 ```ts
 const editor = useEditor(api.save, { query: api.get.query({ id }), fields: InvoiceLineFields, fixed: { id } });
 if (editor.form === undefined) return editor.query.pending ? <Loading /> : <LoadFailed retry={editor.query.refresh} />;
-return <InvoiceLineForm form={editor.form} save={editor.save} saving={editor.saving} failure={editor.failure} />;
+return <InvoiceLineForm form={editor.form} save={editor.save} saving={editor.saving} />;
 ```
 
 `InvoiceLineFields` holds the quantity as text; without it the fields would be the command's payload fields minus `fixed`. The editor fills the inputs by encoding each row with those fields, and every save sends `{ ...fixed, ...values }`. `fixed` and the fields must cover the payload exactly, or the call does not compile and the error names the key. Inside `InvoiceLineForm`, `useField(form, "name")` from `@shivaedev/form/adapters/react.ts` supplies value, change, blur and message.
@@ -15,10 +15,11 @@ return <InvoiceLineForm form={editor.form} save={editor.save} saving={editor.sav
 - The form is created from the first successful query value and replaced when the query atom changes (a different id), so drafts never cross records.
 - Each new query value and each saved result go through the draft's per-field merge: untouched fields adopt it, fields edited meanwhile keep local input. The server's normalized save therefore appears, while an edit made during the save stays dirty.
 - A refresh failure keeps the previous value and the draft; `query.cause` holds the failure and `query.refresh()` retries.
-- A tagged rejection shaped `{ _tag, field, message }` whose `field` names a form field (such as a contract `fieldRejection(Draft)`) becomes that field's message; this is the same shape `rejectedField` in `@shivaedev/errors/rejectedField.ts` recognizes. `rejectField` overrides the mapping. Other failures appear in `failure`.
-- If a save's error type contains a tagged rejection whose `field` type includes literal names that are not the form's field names (such as a `fieldRejection` over a different struct), `rejectField` becomes required and the call does not compile without it. A plain `string` field, required or optional as on `Conflict` and `BadRequest` from `@shivaedev/errors/taxonomy.ts`, needs no `rejectField`: the default mapping shows it on the named form field, and a rejection naming no form field, or no field at all, stays in `failure`.
+- A tagged rejection shaped `{ _tag, field, message }` whose `field` names a form field (such as a contract `fieldRejection(Draft)`, or a `Conflict` with a `field`) becomes that field's message; this is the same shape `rejectedField` in `@shivaedev/errors/rejectedField.ts` recognizes.
+- Any other shared rejection from `@shivaedev/errors/taxonomy.ts` publishes its server message through the application's `NoticeHost`, and a lost connection, a server outage or a defect reaches the host's one failure wording. The screen writes no failure handling for these; the typed error also stays in `failure`.
+- A rejection the application declared for itself, including one whose `field` can only name fields the form lacks, needs a handler keyed by its tag in `failures`, and the call does not compile without it: `failures: { SubtitleRejected: onTitle }`, with `function onTitle(error: SubtitleRejected) { return { field: "title" as const, message: error.message }; }` declared outside the component so Biome does not read it as a nested component. A handler returns a notice, a field rejection or `"silent"`, and `"message"` shows the error's own message. `silent: true` shows nothing for the whole save. The [react README](../../packages/react/README.md#failures-of-commands-and-saves) has the full rule.
 - `save()` does nothing while a save is running. Submitting through form's own API (`useSubmit(form).run()` or setting `form.submit`) settles the same way: the editor receives the saved row and a create resets.
-- `Unauthorized` from the query or the save asks the enclosing `SessionBoundary` to re-check the session.
+- `Unauthorized` from the query or the save asks the enclosing `SessionBoundary` to re-check the session; a save also shows its message.
 
 `useCreate(api.create, { initialValues })` has the same save state with a permanent `form` and `created: Option<A>`. After success it replaces the form with a fresh one at `initialValues`, carrying over fields changed after the submit was pressed (while its schema decoded or the create ran). The fresh form has no touched or submitted state, so empty required fields do not show messages after a reset.
 

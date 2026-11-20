@@ -1,6 +1,7 @@
 import { Effect } from "effect";
 import { act } from "react";
 import { loadQuery } from "@shivaedev/react/adapters/loadQuery.ts";
+import { Notices } from "#client/Notices.tsx";
 import { DeleteControl } from "#modules/notes/test-support/DeleteControl.tsx";
 import type { Screen } from "#modules/notes/test-support/screenState.ts";
 import { acquireScreen, screenView } from "#test-support/screenState.ts";
@@ -8,7 +9,15 @@ import { acquireScreen, screenView } from "#test-support/screenState.ts";
 export const deleteControls = Effect.fnUntraced(function* (engine: Screen) {
 	const view = yield* acquireScreen(engine);
 	const notes = yield* Effect.promise(() => loadQuery(view.registry, engine.client.api.list.query(), { abortController: new AbortController() }));
-	yield* Effect.promise(() => view.render(notes.map((note) => <DeleteControl client={engine.client} key={note.id} note={note} />)));
+	yield* Effect.promise(() =>
+		view.render(
+			<Notices>
+				{notes.map((note) => (
+					<DeleteControl client={engine.client} key={note.id} note={note} />
+				))}
+			</Notices>,
+		),
+	);
 });
 
 export function deleteControlVerbs(engine: Screen, tell: (line: string) => void) {

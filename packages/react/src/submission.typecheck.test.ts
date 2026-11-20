@@ -87,7 +87,6 @@ export function useFormOptionsExamples() {
 				return Effect.map(Check, ({ message }) => message);
 			},
 		},
-		rejectField: undefined,
 		runtime,
 		save: (values) => Effect.succeed(values.title),
 	});
@@ -99,7 +98,7 @@ export function useFormOptionsExamples() {
 	// @ts-expect-error Checks need their service in addition to schema decoding services.
 	useEditor({ run: save, runtime: decodeRuntime }, { ...missingCheck, query, values: (row) => row });
 	// @ts-expect-error Checks need their service in addition to schema decoding services.
-	submission({ ...missingCheck, rejectField: undefined, runtime: decodeRuntime, save: Effect.succeed });
+	submission({ ...missingCheck, runtime: decodeRuntime, save: Effect.succeed });
 	return { created, editor, submitted };
 }
 

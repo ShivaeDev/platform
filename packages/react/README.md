@@ -178,11 +178,12 @@ Each `useUpdateBlocker(update, true)` holds its own blocker until it becomes fal
 
 #### Mount the notice host
 
-Mount the optional `NoticeHost` from `@shivaedev/react/client/notices.ts` inside `SessionBoundary`, above the screens. The host owns a native atom collection, dismissal, expiry and each notice action's native `AsyncResult`. Supply `render(notice)` to choose markup, wording for action outcomes and labels. Render `notice.action.run` as a button handler and disable that control with `notice.action.pending`; `notice.dismiss` removes the entry. No command requires a host. Expiry sleeps on the `Clock` of the optional `runtime` prop, an atom runtime such as `client.runtime`; without it, the host uses Effect's default clock. A story can pass a runtime built with `Layer.succeed(Clock.Clock, clock)` and drive expiry with `TestClock.adjust`.
+Mount `NoticeHost` from `@shivaedev/react/client/notices.ts` once, inside `SessionBoundary` and above the screens. Every bound command and form save publishes the failures its screen does not handle there, so ordinary screens carry no failure wiring; [Failures of commands and saves](#failures-of-commands-and-saves) says which failure goes where. The host owns a native atom collection, dismissal, expiry and each notice action's native `AsyncResult`. Without `render`, a notice renders as a `div` whose `data-notice` is its kind, with `role="status"` for a success and `role="alert"` otherwise, its message in a paragraph, its action button and a Dismiss button. Supply `render(notice)` to choose markup, wording for action outcomes and labels. Render `notice.action.run` as a button handler and disable that control with `notice.action.pending`; `notice.dismiss` removes the entry. No command requires a host. Expiry sleeps on the `Clock` of the optional `runtime` prop, an atom runtime such as `client.runtime`; without it, the host uses Effect's default clock. A story can pass a runtime built with `Layer.succeed(Clock.Clock, clock)` and drive expiry with `TestClock.adjust`.
 
 ```tsx
 import { Cause } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
+import type { UnexpectedFailure } from "@shivaedev/react/client/unexpectedFailure.ts";
 import { NoticeHost, type Notice } from "@shivaedev/react/client/notices.ts";
 
 function renderNotice(notice: Notice) {
@@ -202,16 +203,22 @@ function renderNotice(notice: Notice) {
 	);
 }
 
+function failureNotice(failure: UnexpectedFailure) {
+	return failure.kind === "connection" ? { message: "You are offline. Your changes were not sent." } : { message: failure.message };
+}
+
 function SessionScreens({ client }: { readonly client: AppClient }) {
 	return (
-		<NoticeHost render={renderNotice}>
+		<NoticeHost failure={failureNotice} render={renderNotice}>
 			<OrderScreens client={client} />
 		</NoticeHost>
 	);
 }
 ```
 
-`AppClient` and `OrderScreens` belong to the application; return `SessionScreens` from the session boundary's child function. The renderer receives `id`, `message`, `dismiss` and an optional action with `label`, `run`, `pending` and `result`. Action results retain the native success value or failure cause as `unknown`; narrow domain errors in your renderer to choose their wording.
+`AppClient` and `OrderScreens` belong to the application; return `SessionScreens` from the session boundary's child function. The renderer receives `id`, `kind` (`"success"`, `"rejection"` for a rejection the server sent, `"failure"` for a failure the host worded), `message`, `dismiss` and an optional action with `label`, `run`, `pending` and `result`.
+
+`failure(unexpected)` is the application's one place for the failures that belong to the framework rather than to a screen: a lost connection (`RpcClientError` or `WebSocketRequired`), a server outage (`ServiceUnavailable` or `AuthUnavailable`), an `InternalServerError`, a defect and any untagged failure. It receives `{ kind, message, cause }` with `kind` `"connection"`, `"unavailable"` or `"unexpected"`, and returns a descriptor without an action, or `"silent"`. The default shows `message`: `Could not reach the server. Check your connection and try again.` for a lost connection, the server's own message for an outage or an `InternalServerError`, which the server's handler edge has already redacted, and `Something went wrong. Try again.` for a defect or an untagged failure. It never shows a cause or a stack trace; `cause` is there for the application's diagnostics. One failed invocation publishes one notice, however many hooks hold the same operation. Without a mounted host nothing is published, and the failure stays in the hook's `cause`. Action results retain the native success value or failure cause as `unknown`; narrow domain errors in your renderer to choose their wording.
 
 ### 2. Once per feature
 
@@ -238,19 +245,7 @@ function Report() {
 	const action = useAction(rename);
 	return (
 		<section>
-			<QueryView
-				query={query}
-				content={(row) => <h1>{row.title}</h1>}
-				loading={(state) => <p>{state.refreshing ? "Refreshing…" : "Loading…"}</p>}
-				failure={(error, state) => (
-					<p role="alert">
-						{String(error)}{" "}
-						<button disabled={state.pending} onClick={state.refresh}>
-							Retry
-						</button>
-					</p>
-				)}
-			/>
+			<QueryView query={query} content={(row) => <h1>{row.title}</h1>} />
 			<button onClick={query.refresh}>Refresh</button>
 			<button disabled={action.pending} onClick={() => action.dispatch("Annual report")}>
 				Rename
@@ -270,7 +265,9 @@ export function App() {
 }
 ```
 
-`QueryView` from `client/QueryView.ts` is stateless presentation over `QueryState<A, E>`, including an editor's `query`. Supply `content(data, query)`, `loading(query)` and `failure(error, query)` renderers. Loading renders while pending, including refreshes, or before the first result; a settled initial rejection renders failure without loading. The failure renderer receives the typed rejection and can call the query's native `refresh` to retry. The component keeps successful content in the same React position through refresh, failure and recovery, preserving mounted inputs. Keep content component types and keys stable as usual.
+`QueryView` from `client/QueryView.ts` is stateless presentation over `QueryState<A, E>`, including an editor's `query`. Supply `content(data, query)`; `loading(query)` and `failure(error, query)` are optional. Without them the view uses the application's defaults, or the package's own: a `role="status"` paragraph reading `Loading…` (`Refreshing…` while retained data shows), and a `role="alert"` paragraph with the failure's message and a Retry button that calls the query's `refresh`. While the retry reads, the loading paragraph shows beside the failure. The default failure shows the message of a shared request rejection or a server failure from `@shivaedev/errors/taxonomy.ts`, and `Could not load. Try again.` for anything else. A query that can fail with a rejection the app declared for itself requires `failure`: the call does not compile without it. Wrap the screens once in `QueryViewDefaults` from the same module, with `failure` or `loading` or both, to choose the application's rendering; a view's own renderer still wins.
+
+The example's action is a native atom, so its failure stays in `cause` and nothing is published; a bound command reports its failures as [Failures of commands and saves](#failures-of-commands-and-saves) describes. Loading renders while pending, including refreshes, or before the first result; a settled initial rejection renders failure without loading. The failure renderer receives the typed rejection and can call the query's native `refresh` to retry. The component keeps successful content in the same React position through refresh, failure and recovery, preserving mounted inputs. Keep content component types and keys stable as usual.
 
 The hook owns retained display data and the native atom owns execution and caching. `QueryView` creates neither. Expected query rejections stay in its failure renderer; defects are thrown to the application's error boundary. It leaves field and command failures with the editor, form or action that owns them. Native `useAtomSuspense` is unchanged and still throws failures.
 
@@ -339,15 +336,6 @@ export function InvoiceLineEditor({ id }: { readonly id: number }) {
 	return (
 		<QueryView
 			query={editor.query}
-			loading={(query) => <p>{query.refreshing ? "Refreshing…" : "Loading…"}</p>}
-			failure={(_error, query) => (
-				<p role="alert">
-					Could not load{" "}
-					<button disabled={query.pending} onClick={query.refresh}>
-						Retry
-					</button>
-				</p>
-			)}
 			content={() =>
 				editor.form && (
 					<form
@@ -357,7 +345,6 @@ export function InvoiceLineEditor({ id }: { readonly id: number }) {
 						}}
 					>
 						<Inputs form={editor.form} />
-						{Option.isSome(editor.cause) && <p role="alert">Could not save</p>}
 						<button type="submit" disabled={editor.saving}>
 							Save
 						</button>
@@ -385,7 +372,6 @@ export function InvoiceLineCreate() {
 			}}
 		>
 			<Inputs form={create.form} />
-			{Option.isSome(create.cause) && <p role="alert">Could not create</p>}
 			<button type="submit" disabled={create.saving}>
 				Create
 			</button>
@@ -445,9 +431,6 @@ export function OneShotEdit({ opening, onSaved }: { readonly opening: VersionedL
 			}}
 		>
 			<Inputs form={edit.form} />
-			{Option.isSome(edit.failure) && (
-				<p role="alert">{edit.failure.value._tag === "Conflict" ? "This line changed. Reopen it to use the latest version." : "Could not save"}</p>
-			)}
 			<button type="submit" disabled={edit.saving}>
 				Save
 			</button>
@@ -456,29 +439,42 @@ export function OneShotEdit({ opening, onSaved }: { readonly opening: VersionedL
 }
 ```
 
-The app captures the opening record once. Pass a stable `onSaved` callback to close the dialog, navigate or record a completion message; mount a new form for another opening. Domain data, including expected versions and any Undo payload, stays in the app. A conflict exposes `failure` and keeps the input. Field rejections stay on the submitted form until corrected; stale-rejection matching belongs to form. Success uses `useCreate`'s normal reset to opening values while preserving input changed during submission, so `onSaved` owns what happens next rather than turning this into a continuing editor.
+The app captures the opening record once. Pass a stable `onSaved` callback to close the dialog, navigate or record a completion message; mount a new form for another opening. Domain data, including expected versions and any Undo payload, stays in the app. A `Conflict` shows the server's message through the notice host and keeps the input; the typed error is also in `failure`. Field rejections stay on the submitted form until corrected; stale-rejection matching belongs to form. Success uses `useCreate`'s normal reset to opening values while preserving input changed during submission, so `onSaved` owns what happens next rather than turning this into a continuing editor.
 
 Use `useEditor` for a continuing editor that subscribes to a record, merges refreshes and receives saved rows as its new baseline. Its `loaded` option supplies the initial row, usually from a route loader; it still requires `query` because the query owns identity, refresh and invalidation. Supplying `loaded` does not make an editor query-free. In either pattern contract owns the command Effect and invalidation, form owns submission and field errors, and react exposes query state where a query exists.
 
-#### Field rejections and other failures
+#### Failures of commands and saves
 
-A tagged error with string `_tag` and `message`, and a `field` naming a form field, becomes that field's message by default. Other typed save failures appear in `failure`. The native `cause` also exposes defects, interruptions and form validation failures; use it for a general failure alert so a save that dies is visible. Use `rejectField` when the server uses a different shape or field name:
+A bound command given to `useAction`, `usePendingCommand` or `useUndoableChange`, and the save of `useCreate` or `useEditor`, decide what each failure shows from its class, so the ordinary screen writes no failure handling:
 
-```ts
-const editor = useEditor(api.retitle, {
-	query,
-	fixed: { id },
-	rejectField: (error) => (error._tag === "SubtitleRejected" ? { field: "title", message: error.message } : undefined),
-});
+- A rejection whose `field` names one of the form's fields becomes that field's message (form saves only). `Conflict` and `BadRequest` from `@shivaedev/errors/taxonomy.ts` with a `field`, and a contract `fieldRejection` over the form's fields, land there.
+- A shared request rejection from `@shivaedev/errors/taxonomy.ts` (`NotFound`, `Unauthorized`, `Forbidden`, `BadRequest`, `Conflict`, `PreconditionFailed` or `TooManyRequests`) publishes a notice with the error's `message`. `Unauthorized` also asks the session to recheck.
+- A framework failure goes to the notice host's `failure` wording: `RpcClientError`, `ServiceUnavailable`, `AuthUnavailable`, `InternalServerError`, contract's `MissingReadPolicy`, `MissingReadPolicies`, `QueryReadDenied` and `WebSocketRequired`, a defect and any untagged failure.
+- A rejection the app declared for itself has no default. The call does not compile until `failures` says what it shows.
+- Interrupted work shows nothing.
+
+`failureKind` from `@shivaedev/contract/failureKind.ts` holds that classification, `AppRejection<E>` names the app's own rejections in an error type, and `RequestRejection` and `ServerFailure` in `@shivaedev/errors/taxonomy.ts` name the shared ones.
+
+```tsx
+function onTitle(error: SubtitleRejected) {
+	return { field: "title" as const, message: error.message };
+}
+
+function Retitle({ id }: { readonly id: number }) {
+	const editor = useEditor(api.retitle, { query: api.get.query({ id }), fixed: { id }, failures: { SubtitleRejected: onTitle } });
+	return <TitleForm form={editor.form} save={editor.save} />;
+}
 ```
 
-Here `api.retitle` takes `{ id, title }` and has a tagged `SubtitleRejected` failure referring to the server's `subtitle`, while the form calls the input `title`. If a tagged error's field type includes literal names outside the form, `rejectField` is required at compile time. A plain `string` field, required or optional as on `Conflict` and `BadRequest` from `@shivaedev/errors/taxonomy.ts`, does not require it: the default mapping shows a rejection naming a form field on that field and leaves any other rejection in `failure`. The mapper can return `undefined` to leave an error as a non-field failure.
+Here `api.retitle` takes `{ id, title }` and can fail with the app's tagged `SubtitleRejected`, which refers to the server's `subtitle` while the form calls the input `title`; `api`, `SubtitleRejected` and `TitleForm` belong to the application. Declare a handler that takes only the error outside the component, as `onTitle` is here, or give it the input as a second parameter: Biome's `noNestedComponentDefinitions` and `noComponentHookFactories`, which Quality's preset enables, read a function of at most one parameter under a PascalCase key inside a component or hook as a component definition. A handler is keyed by the failure's tag and receives the error and the invocation's input, which for a form is its decoded values. It returns a notice descriptor, a field rejection `{ field, message }` naming one of the form's fields (form hooks only), or `"silent"`. In place of a function, `"message"` shows the error's own message as a notice and `"silent"` shows nothing for that tag. A handler may also be given for a shared rejection to word it differently for that call. `silent: true` shows nothing for any failure of the call, which differs from leaving `failures` out: that uses the defaults. The typed failure stays in the hook's `failure` and `cause` in every case.
+
+A missing handler is a compile error that names the tag. `useAction(api.retitle)` with no options reports `Property '"failures.SubtitleRejected"' is missing`, followed by `the operation can fail with SubtitleRejected, a rejection the app declared: say what it shows, for example failures: { SubtitleRejected: "message" }`. Options without `failures` report `Property 'failures' is missing` for a type `HandleAppRejections<"SubtitleRejected", …>`, `failures: {}` reports `Property 'SubtitleRejected' is missing`, and a key that is not a failure of the operation is an unknown property. A form's rejection whose `field` can only name a field the form lacks counts as the app's own and needs a handler.
 
 #### Query, command and form feedback
 
-Use `useQuery` with `QueryView` for reads, `useAction` with a bound command for commands, and `useCreate` or `useEditor` for form submissions. Give these owners notice descriptors and mount one `NoticeHost` inside the session boundary. contract still runs commands and invalidates queries; form still owns submission, fields and drafts. The app supplies wording, Undo payloads and expected versions.
+Use `useQuery` with `QueryView` for reads, `useAction` with a bound command for commands, and `useCreate` or `useEditor` for form submissions. Give these owners success notice descriptors and mount one `NoticeHost` inside the session boundary; failures reach it as the previous section describes. contract still runs commands and invalidates queries; form still owns submission, fields and drafts. The app supplies wording, Undo payloads and expected versions.
 
-`useAction` with a command accepts `notices.onSuccess(value, input)` and `notices.onFailure(error, input)`. Each callback returns a descriptor or `undefined`. Independent concurrent completions publish independently, preserving the invocation's input. `useCreate` and `useEditor` accept the same `notices` option around their existing save Effects. Use the descriptors instead of screen-local notice state, expiry timers or result-watching effects:
+`useAction` with a command accepts `notices.onSuccess(value, input)`, which returns a descriptor or `undefined`. Independent concurrent completions publish independently, preserving the invocation's input. `useCreate` and `useEditor` accept the same `notices` option around their existing save Effects. Use the descriptors instead of screen-local notice state, expiry timers or result-watching effects:
 
 ```ts
 const remove = useAction(api.remove, {
@@ -495,7 +491,6 @@ const remove = useAction(api.remove, {
 				}),
 			},
 		}),
-		onFailure: () => ({ message: "Could not remove this order" }),
 	},
 });
 ```
@@ -532,12 +527,11 @@ Pass the bound command to `useAction` when the screen needs feedback for each in
 const rename = useAction(api.rename, {
 	notices: {
 		onSuccess: (saved, input) => ({ message: `Renamed ${input.id} to ${saved.title}` }),
-		onFailure: (_error, input) => ({ message: `Could not rename ${input.id}` }),
 	},
 });
 ```
 
-`api` belongs to the application. Input, success, typed failure and runtime requirements are inferred from the command. Use `notices` for the feedback path above. The optional synchronous `onSuccess(value, input)` and `onFailure(error, input)` callbacks are also available for application completion work. They run inside each invocation using the latest committed callbacks and that invocation's input and outcome. Rerendering a result does not replay completion, and an abandoned render cannot replace the committed callback. A callback that throws becomes a native defect; it does not call `onFailure` as a domain rejection.
+`api` belongs to the application. Input, success, typed failure and runtime requirements are inferred from the command. Use `notices` for success notices and `failures` for the wording of a failure. The optional synchronous `onSuccess(value, input)` and `onFailure(error, input)` callbacks are also available for application completion work. They run inside each invocation using the latest committed callbacks and that invocation's input and outcome. Rerendering a result does not replay completion, and an abandoned render cannot replace the committed callback. A callback that throws becomes a native defect; it does not call `onFailure` as a domain rejection.
 
 The command's identity is the native action atom, or the operation's `run` function and `runtime`. A bound command such as `api.rename` keeps both; memoize a custom `run` in `{ run, runtime }` with `useCallback` or `useMemo`. A `run` written inline in the component is a new function on every render: its next render fails with an error that names `useAction`, says `run` must stay the same function and gives this fix, where React alone reports only `Too many re-renders`. Changing the command on a mounted control keeps `pending` true until its outgoing request settles. Its result, data and cause stay with the outgoing command: a refusal or success from Launch never appears on a replacement Resume control. Resume dispatches its own function and input. Completion callbacks for the outgoing runtime command stop when it is replaced; callbacks for the same command still use the latest committed props.
 
@@ -545,7 +539,7 @@ The hook calls the supplied Effect once. A bound contract command still owns inv
 
 A newer dispatch interrupts the earlier command by default. Interrupted work produces no completion feedback. Pass `{ concurrent: true, onSuccess, onFailure }` to let invocations overlap and report their own outcomes. `result`, `data`, `cause` and `pending` remain the native action atom's aggregate state, including its native result selection during concurrent execution; they do not identify an invocation. Use notice descriptors for per-invocation messages and completion callbacks for application work. Keep the runtime and concurrency policy stable for the same owner.
 
-A typed `Unauthorized` failure asks the session owner to recheck once per failed invocation, even with concurrent commands. The hook does not sign out. Session replacement discards outgoing callbacks and rechecks, including when outgoing work cannot be interrupted.
+A typed `Unauthorized` failure shows its message and asks the session owner to recheck once per failed invocation, even with concurrent commands. The hook does not sign out. Session replacement discards outgoing callbacks and rechecks, including when outgoing work cannot be interrupted.
 
 #### Remove with a version-guarded Undo
 
@@ -944,7 +938,7 @@ These rules apply to each component and test you write.
 
 #### Hook configuration between renders
 
-`useCreate` and `useEditor` call the latest committed render's operation `run` with that render's `fixed` values. Both hooks use the latest `rejectField` when a save fails, including when the mapper is removed to restore automatic field mapping. An inline `run` or callback may close over changing props or state without replacing the form or losing edits.
+`useCreate` and `useEditor` call the latest committed render's operation `run` with that render's `fixed` values. Both hooks use the latest `failures` handlers when a save fails, including when a handler is removed to restore the default field mapping. An inline `run` or callback may close over changing props or state without replacing the form or losing edits.
 
 Changing the `fields` schema or the operation's `runtime` replaces either hook's form and discards its in-memory draft and submission state. A changed editor `query` also starts a new form. Keep schemas, runtimes and query atoms outside components or memoize them; constructing a schema on every render continually replaces the form.
 
@@ -1205,11 +1199,11 @@ const screen = screenDriver({ act, pending, root: view.container, tell: story.te
 | `pending`    | The native result is waiting.                                                                                                   |
 | `refreshing` | The result is waiting and successful data is available.                                                                         |
 
-`useQuery(atom, options?)` adds `refresh(): void`; `useAction` adds `dispatch(input): void`. `QueryOptions.notice` publishes a notice descriptor for a failed result. `QueryOptions.keepPreviousData` defaults to `false` and controls retention across query atom changes. Same-identity refresh retention is always enabled. `result` and `cause` describe the current native query even when `data` displays a previous atom's success. Success, input and typed failure types are inferred from the supplied atom. The Effect overload is `useAction(runtime, run, options?)`, where `ActionOptions` supplies `concurrent`, `notices`, `onSuccess(value, input)` and `onFailure(error, input)`; its shared state also includes the native runtime's typed failure.
+`useQuery(atom, options?)` adds `refresh(): void`; `useAction` adds `dispatch(input): void`. `QueryOptions.notice` publishes a notice descriptor for a failed result. `QueryOptions.keepPreviousData` defaults to `false` and controls retention across query atom changes. Same-identity refresh retention is always enabled. `result` and `cause` describe the current native query even when `data` displays a previous atom's success. Success, input and typed failure types are inferred from the supplied atom. `useAction(atom)` takes a native action atom and publishes nothing; its failures stay in `cause`. `useAction(operation, options)` takes a bound command or `{ run, runtime }`, and its options supply `concurrent`, `notices.onSuccess`, `failures`, `silent`, `onSuccess(value, input)` and `onFailure(error, input)`; the options may be left out when the operation has no rejection of the app's own. Its shared state also includes the runtime's typed failure.
 
 Import the defining `.ts` module, such as `@shivaedev/react/client/editor.ts`. There is no root import. `useSessionRecheck()` from `client/sessionBoundary.ts` requests the boundary’s shared session check.
 
-Prefer `useEditor` and `useCreate` when binding a form to a command. The lower-level modules expose the same composition pieces: `submission` from `submission.ts` makes a form and its submission snapshot reader, `rejecting` from `@shivaedev/form/fieldRejection.ts` maps save failures through a submitter, and `useSaveState` from `client/saveState.ts` observes submission and invokes a success callback. Field-rejection mapping types and `fieldRejectionOf` also belong to `@shivaedev/form/fieldRejection.ts`; `AtomServices` belongs to `AtomServices.ts`.
+Prefer `useEditor` and `useCreate` when binding a form to a command. The lower-level modules expose the same composition pieces: `submission` from `submission.ts` makes a form and its submission snapshot reader, `rejecting` from `@shivaedev/form/fieldRejection.ts` maps save failures through a submitter, and `useSaveState` from `client/saveState.ts` observes submission and invokes a success callback. `FieldRejection`, `RejectField` and `fieldRejectionOf` also belong to `@shivaedev/form/fieldRejection.ts`; `AtomServices` belongs to `AtomServices.ts`.
 
 ### Install, setup and limits
 

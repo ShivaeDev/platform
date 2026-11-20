@@ -1,4 +1,4 @@
-import { type Effect, Option } from "effect";
+import { Option } from "effect";
 import { createElement } from "react";
 import { useEditor } from "#client/editor.ts";
 import { useAction, useQuery } from "#client/resultState.ts";
@@ -10,11 +10,10 @@ type OrderClient = ReturnType<typeof makeClient>;
 
 export function Editor({ id, client: { api } }: { readonly id: number; readonly client: OrderClient }) {
 	const editor = useEditor(api.save, {
+		failures: { OrderNotFound: "silent", StorageUnavailable: "silent" },
 		fields: DraftFields,
 		fixed: { id },
 		query: api.get.query({ id }),
-		rejectField: (error: Effect.Error<ReturnType<typeof api.save.run>>) =>
-			error._tag === "OrderValidation" ? { field: error.field, message: error.message } : undefined,
 	});
 	const { query, form } = editor;
 	const order = Option.getOrUndefined(query.data);
