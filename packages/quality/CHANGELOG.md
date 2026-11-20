@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.81.0 - 2026-11-20
+
+### Added
+
+- `effect/boundary` reports, in its typed half, every call whose resolved signature an installed library declares and whose return type has a callable `then`, alone or in a union (a `Promise`, a `PromiseLike`, a subclass such as an SDK's `APIPromise`, an intersection with a Promise or a thenable query builder), outside `adapters/`, `test-support/` and tests. It sees what the import-based bridge check could not: a received library value's method, such as `client.createQueue()`, called inside `Effect.tryPromise` or anywhere else, and a function that returns a library's Promise to its caller. A call that is awaited, chained with `.then` or bridged from an imported binding keeps its single finding from the local half. Declarations from `effect`, `@effect/*`, `@shivaedev/*`, workspace packages, TypeScript's default library and globals are not library Promises.
+- Applications get new findings in CI and in `quality lint --full` where their core code calls a library that returns a Promise. Move each call into a module under `adapters/` that returns an Effect, for example `Effect.tryPromise(() => auth.api.signUpEmail({ body }))` behind a `signUpEmail(auth, account)` adapter, and record the rest as existing debt with `quality baseline write --rule effect/boundary`.
+
+## 0.80.0 - 2026-11-20
+
+### Added
+
+- `effect/boundary` reports every way to start Effects outside the caller's runtime, not only `Effect.run*`: `ManagedRuntime.make`, `Runtime.makeRunMain`, the `makeRuntime`, `makeRuntimePromise`, `runtime` and `runtimePromise` of `FiberSet`, `FiberMap` and `FiberHandle`, and a platform runtime's `runMain`, through imports and aliases, outside entry modules, `adapters/`, `test-support/`, tool configs and tests.
+- An entry module is now named `cli`, `main`, `entry` or `*-cli`, calls `runMain` at its top level, or has an `import.meta.main` or `fileURLToPath(import.meta.url) === process.argv[1]` guard. A `runMain` inside a function or an export, such as `export function start() { NodeRuntime.runMain(program) }` or `export const run = NodeRuntime.runMain({ teardown })`, no longer makes its module an entry module: `effect/boundary` reports it, and the module loses the entry-module allowances of `effect/adapter-imports` (`node:process`) and of the `ambient-runtime` plugin.
+- The `ambient-runtime` Biome plugin reports `setInterval`, `clearInterval`, `clearTimeout`, `requestAnimationFrame`, `cancelAnimationFrame`, `requestIdleCallback` and `cancelIdleCallback`, bare or through `globalThis.` or `window.`, beside `setTimeout` and `queueMicrotask`, and `crypto.getRandomValues`, bare or through `globalThis.`, beside the other cryptographic randomness. Use Effect's sleep, schedules and fibers, and `SecureRandom`.
+- The `ambient-runtime` Biome plugin reports the browser I/O globals `fetch`, `localStorage`, `sessionStorage`, `indexedDB`, `WebSocket`, `EventSource`, `Worker` and `SharedWorker`, bare or through `globalThis.`, `window.` or `self.`, in client, server and shared code alike, outside `adapters/`, `test-support/` and tests. Send requests through Effect's `HttpClient` and bridge storage, sockets and workers in an `adapters/` module that returns an Effect. A name the file binds itself, such as a parameter named `fetch`, a property such as `target.fetch`, and DOM access in client code are not reported.
+- Applications get new findings where their core code uses these things. Fix each one where Effect has an equivalent, move what a library forces into `adapters/`, and record the rest as existing debt with `quality baseline write --rule effect/boundary --rule effect/adapter-imports --rule biome/plugin`.
+
 ## 0.79.0 - 2026-11-20
 
 ### Added

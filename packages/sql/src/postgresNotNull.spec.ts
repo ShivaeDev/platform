@@ -1,4 +1,5 @@
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { queries, queryTables, testResults } from "#test/queries.ts";
 
 const notes = [{ note: "paid" }, { note: null }, { note: "" }, { note: "late", sequence: 1n }];
@@ -81,14 +82,79 @@ for (const { where, name } of invalid) {
 }
 
 queries.it(
-	"delete rejects a not-null filter with a schema error and removes no payment",
+	"delete with a not-null filter removes the payments holding a note and keeps the payment without one",
 	[queryTables("payments")],
-	function* ({ deleteUnknownPayments, paymentNotes, savePayments }) {
+	function* ({ deletePayments, paymentNotes, savePayments }) {
 		yield* savePayments(notes);
 
-		const deleted = yield* deleteUnknownPayments({ note: { not: null } });
+		yield* deletePayments({ note: { not: null } });
 
-		expect(deleted).toBe("failed with a schema error");
-		expect(yield* paymentNotes()).toEqual([{ note: "paid" }, { note: null }, { note: "" }, { note: "late" }]);
+		expect(yield* paymentNotes()).toEqual([{ note: null }]);
+	},
+);
+
+queries.it(
+	"deleteBatched with a not-null filter removes the three payments holding a note and keeps the payment without one",
+	[queryTables("payments")],
+	function* ({ lastResult, paymentNotes, purgePayments, savePayments }) {
+		yield* savePayments(notes);
+
+		yield* purgePayments({ note: { not: null } });
+
+		yield* outcomes([
+			["removed payments", () => lastResult(), 3],
+			["payment notes", () => paymentNotes(), [{ note: null }]],
+		]);
+	},
+);
+
+queries.it(
+	"latestPerGroup with a not-null filter beside pinned names reads the highest-amount noted line of each name, skipping lines without a note",
+	[queryTables("lines")],
+	function* ({ latestLines, saveLines }) {
+		yield* saveLines([
+			{ amount: 1, name: "A", note: "x" },
+			{ amount: 2, name: "A", note: "y" },
+			{ amount: 3, name: "A", note: null },
+			{ amount: 1, name: "B", note: "x" },
+			{ amount: 2, name: "B", note: null },
+		]);
+
+		const latest = yield* latestLines({
+			limit: 1,
+			orderBy: [{ direction: "desc", field: "amount" }],
+			partitionBy: ["name"],
+			where: { name: { in: ["A", "B"] }, note: { not: null } },
+		});
+
+		expect(latest).toEqual([
+			{ amount: 2, id: 2, name: "A", note: "y" },
+			{ amount: 1, id: 4, name: "B", note: "x" },
+		]);
+	},
+);
+
+queries.it(
+	"latestPerGroup partitioned by note with a not-null filter on it reads the highest-amount line of each note and no group for lines without one",
+	[queryTables("lines")],
+	function* ({ latestLines, saveLines }) {
+		yield* saveLines([
+			{ amount: 1, name: "A", note: "build" },
+			{ amount: 2, name: "A", note: "build" },
+			{ amount: 1, name: "A", note: "deploy" },
+			{ amount: 5, name: "A", note: null },
+		]);
+
+		const latest = yield* latestLines({
+			limit: 1,
+			orderBy: [{ direction: "desc", field: "amount" }],
+			partitionBy: ["note"],
+			where: { note: { not: null } },
+		});
+
+		expect(latest).toEqual([
+			{ amount: 2, id: 2, name: "A", note: "build" },
+			{ amount: 1, id: 3, name: "A", note: "deploy" },
+		]);
 	},
 );

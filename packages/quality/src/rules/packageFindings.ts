@@ -5,16 +5,19 @@ import { projectsFor } from "#adapters/imports/projects.ts";
 import { sourcesProgram } from "#adapters/typeScriptProgram.ts";
 import { packageOf, workspacePackages } from "#imports/workspace.ts";
 import type { Finding, RuleInputs, SourceFile, TypeScriptProgram } from "#rule.ts";
+import { boundaryCheck } from "#rules/effect/boundaryCheck.ts";
 import { serviceParameterCheck } from "#rules/effect/serviceParameterCheck.ts";
 import { typedCastCheck } from "#rules/suppressions/typedCastCheck.ts";
 
 export interface PackageCheck {
 	readonly checks: (file: SourceFile) => boolean;
+	readonly eachFile?: true;
 	readonly findings: (files: readonly SourceFile[], typeScript: TypeScriptProgram) => readonly Finding[];
 }
 
 const CHECKS = [
 	{ id: "boundaries/imported-change-keys", prepare: changeKeyCheck },
+	{ id: "effect/boundary", prepare: boundaryCheck },
 	{ id: "effect/service-parameters", prepare: serviceParameterCheck },
 	{ id: "suppressions/no-double-cast", prepare: typedCastCheck },
 ] as const;
@@ -59,10 +62,13 @@ const walk = Effect.fn("PackageChecks.walk")(function* (inputs: RuleInputs, ids:
 			projectOf,
 		);
 		for (const { check, files: chosen, id } of selected) {
-			const findings = yield* Effect.sync(() => check.findings(chosen, typeScript)).pipe(
-				Effect.catchDefect((cause) => Effect.die(new Error(`${id} failed in ${directory}: ${messageOf(cause)}`, { cause }))),
+			const batches = check.eachFile === true ? chosen.map((file) => ({ files: [file], place: file.path })) : [{ files: chosen, place: directory }];
+			const findings = yield* Effect.forEach(batches, ({ files: batch, place }) =>
+				Effect.sync(() => check.findings(batch, typeScript)).pipe(
+					Effect.catchDefect((cause) => Effect.die(new Error(`${id} failed in ${place}: ${messageOf(cause)}`, { cause }))),
+				),
 			);
-			found.get(id)?.push(...findings);
+			found.get(id)?.push(...findings.flat());
 		}
 	}
 	const checked: Checked = new Map(

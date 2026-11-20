@@ -9,13 +9,6 @@ export type RepositoryFilter<TModel extends Model.Any> = {
 	readonly [TField in keyof Schema.Struct.Type<TModel["fields"]>]?: Schema.Struct.Type<TModel["fields"]>[TField] | undefined;
 };
 
-export type RepositoryListFilter<TModel extends Model.Any> = Partial<TupleFilter<TModel>> & {
-	readonly [TField in keyof Schema.Struct.Type<TModel["fields"]>]?:
-		| Schema.Struct.Type<TModel["fields"]>[TField]
-		| Listed<Schema.Struct.Type<TModel["fields"]>[TField]>
-		| undefined;
-};
-
 const Ordered = Schema.Union([Schema.String, Schema.Number, Schema.BigInt, Schema.Date, Schema.BigDecimal, Schema.DateTimeUtc]);
 export type OrderedValue = typeof Ordered.Type;
 export type Comparisons<T, TOperand = NonNullable<T>> = ([NonNullable<T>] extends [OrderedValue]

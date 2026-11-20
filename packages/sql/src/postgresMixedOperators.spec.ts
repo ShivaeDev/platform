@@ -1,4 +1,5 @@
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { queries, queryTables, testResults } from "#test/queries.ts";
 
 const mixed = [
@@ -53,3 +54,29 @@ for (const { name, where } of [
 		},
 	);
 }
+
+queries.it(
+	"deleteBatched rejects an in list beside a not-null filter with a schema error and removes no payment",
+	[queryTables("payments")],
+	function* ({ lastResult, paymentNotes, purgeUnknownPayments, savePayments }) {
+		yield* savePayments([{ note: "paid" }, { note: "late" }]);
+
+		yield* purgeUnknownPayments({ "note": { "in": ["paid", "late"], "not": null } });
+
+		yield* outcomes([
+			["purge result", () => lastResult(), "failed with a schema error"],
+			["payment notes", () => paymentNotes(), [{ note: "paid" }, { note: "late" }]],
+		]);
+	},
+);
+
+queries.it("latestPerGroup rejects an in list beside a not-null filter with a schema error", [], function* ({ latestUnknownLines }) {
+	const latest = yield* latestUnknownLines({
+		limit: 1,
+		orderBy: [{ direction: "desc", field: "amount" }],
+		partitionBy: ["name"],
+		where: { "note": { "in": ["build"], "not": null } },
+	});
+
+	expect(latest).toBe("failed with a schema error");
+});

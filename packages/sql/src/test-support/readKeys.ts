@@ -7,7 +7,7 @@ import { type BucketKey, collection, compositeId, type ItemKey, type Key } from 
 import { ReadRecorder } from "@shivaedev/changes/readRecorder.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { type MultiColumnKeyParameter, readSql } from "#readSql.ts";
-import type { FindManyFilter, RepositoryListFilter } from "#repositoryFilter.ts";
+import type { FindManyFilter } from "#repositoryFilter.ts";
 import { type BucketRow, bucketRows } from "#test/bucketRows.ts";
 import { compositeLedger } from "#test/compositeLedger.ts";
 import { type DiaryEntry, diaryEntries } from "#test/diaryEntries.ts";
@@ -45,7 +45,7 @@ export type Read =
 	| { readonly call: "findById"; readonly id: number }
 	| { readonly call: "aggregate" | "count" | "findOne" | "select"; readonly where: FindManyFilter<typeof BucketRow> }
 	| { readonly call: "findMany"; readonly where?: FindManyFilter<typeof BucketRow> }
-	| { readonly call: "latestPerGroup"; readonly where: RepositoryListFilter<typeof BucketRow> }
+	| { readonly call: "latestPerGroup"; readonly where: FindManyFilter<typeof BucketRow> }
 	| { readonly call: "findDiaryEntries"; readonly where: FindManyFilter<typeof DiaryEntry> }
 	| { readonly call: "findDiaryDays"; readonly owners: readonly string[]; readonly days: number }
 	| { readonly call: "findDiaryOwners"; readonly owners: number }

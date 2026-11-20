@@ -843,6 +843,7 @@ import { can } from "@shivaedev/react/can.ts";
 import { queryRoute } from "@shivaedev/react/client/adapters/queryRoute.ts";
 import { api, registry } from "./notes-client.ts";
 import { auth, SignIn } from "./auth.tsx";
+import { navigateTo } from "./adapters/navigateTo.ts";
 
 const ReadNotes = permission("notes.read");
 const root = createRootRouteWithContext<{
@@ -881,7 +882,7 @@ const login = createRoute({
 	}),
 	component: () => {
 		const { returnTo } = login.useSearch();
-		return <SignIn onSignedIn={() => router.navigate({ href: returnTo })} />;
+		return <SignIn onSignedIn={() => navigateTo(router, returnTo)} />;
 	},
 });
 const router = createRouter({
@@ -925,6 +926,17 @@ export function App({ session }: { readonly session: PermissionSession | undefin
 }
 
 const showNotes = can(auth.session, ReadNotes);
+```
+
+TanStack's `navigate` answers with a Promise, so the sign-in callback starts the navigation through a module in `adapters/`:
+
+```ts
+// adapters/navigateTo.ts
+import type { AnyRouter } from "@tanstack/react-router";
+
+export function navigateTo(router: AnyRouter, href: string): void {
+	void router.navigate({ href });
+}
 ```
 
 `auth` owns the current session and passes it to `App`; `SignIn` updates that session before invoking `onSignedIn`. Use the session's registry for router context and React, as with other query routes. Importing `permissionGuard` augments TanStack's `StaticDataRouteOption`; route options and their inference remain native. The guard returns `void` explicitly, so `beforeLoad` needs no return annotation, including when it reads the session from route context.
