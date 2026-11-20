@@ -8,5 +8,4 @@ command("parsesDraft", {
 		yield* SessionUser;
 		return JSON.parse(raw);
 	},
-	success: Schema.Struct({ title: Schema.String }),
 });

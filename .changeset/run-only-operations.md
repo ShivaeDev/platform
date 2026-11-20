@@ -1,0 +1,10 @@
+---
+"@shivaedev/contract": minor
+---
+
+### Breaking
+
+- An operation written with `run` no longer accepts `success` or `rejections`; its module's wire supplies both. Delete the two fields from every `query(name, { ..., *run })` and `command(name, { ..., *run })`. An operation declared without `run` keeps them, as before.
+- A run-form command's `invalidates` no longer receives the result: it is `invalidates(payload, viewer?)`. Move keys computed from the result into `run` and return through `commandResult` from `@shivaedev/contract/commandResult.ts`: change `invalidates: (_draft, note) => [notes.item(note.id)]` to `return yield* commandResult({ invalidates: [notes.item(note.id)], result: note })` at the end of `run`. Those keys are published on the server after success and reach live subscriptions; they do not enter the browser's `invalidates`. A command whose `invalidates` read the viewer from its third argument reads it from the second. `clientContract`'s `commands` take the same `invalidates(payload, viewer?)`; files written by `@shivaedev/build` copy the operation's `invalidates` and need only `pnpm generate`.
+- `defineModule` requires `wire`. A module without one passes its generated wire, as in `defineModule({ ..., wire: notesWire })` with `notesWire` from `#generated/modules/<module>/<Module>.ts`, or writes `wire: { <operation>: { rejections: { ... }, success: <schema> } }` by hand for each operation that returns a value or raises a rejection. An operation missing from the wire is `OperationMissingFromWire` when its `run` returns a value or raises a rejection; `OperationFailsOutsideItsRejections` no longer exists.
+- `ResultNeedsDeclaredSuccess`, `RunDeclaration`'s success and rejection parameters, `SuccessSchema`, `Pending`, `RejectionProblem` and the problems `SuccessDiffersFromRun`, `SuccessClassNotReturned`, `ArrayMutabilityDiffers`, `RunFailsOutsideRejections`, `RejectionsRunNeverRaises`, `RejectionClassDiffers` and `RejectionAutomatic` are removed; a stale wire still reports `WireSuccessStale` or `WireRejectionsStale`. `successProof.ts` is now `wireProof.ts`, exporting `SuccessDiffers` and `RejectionsDiffer`.

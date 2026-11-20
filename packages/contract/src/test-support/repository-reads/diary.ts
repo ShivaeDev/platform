@@ -34,7 +34,6 @@ export const DiaryDay = query("diaryDay", {
 		const diary = yield* Diary;
 		return (yield* Effect.orDie(diary.findMany({ ...byId, where: { day, ownerId } }))).map(({ note }) => note);
 	},
-	success: Notes,
 });
 export const EveryDiaryEntry = query("everyDiaryEntry", {
 	readPolicy: signedIn,
@@ -42,7 +41,6 @@ export const EveryDiaryEntry = query("everyDiaryEntry", {
 		const diary = yield* Diary;
 		return (yield* Effect.orDie(diary.findMany(byId))).map(({ note }) => note);
 	},
-	success: Notes,
 });
 export const WriteDiary = command("writeDiary", {
 	payload: { day: Schema.Number, id: Schema.Number, note: Schema.String, ownerId: Schema.String },
@@ -51,6 +49,11 @@ export const WriteDiary = command("writeDiary", {
 		yield* Effect.orDie(diary.insertVoid(entry));
 	},
 });
+
+export const diaryWire = {
+	diaryDay: { rejections: {}, success: Notes },
+	everyDiaryEntry: { rejections: {}, success: Notes },
+} as const;
 
 export const diaryMigration = Effect.gen(function* () {
 	const sql = yield* SqlClient.SqlClient;

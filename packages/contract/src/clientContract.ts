@@ -26,8 +26,8 @@ interface QueryKeys<TPayload> {
 	readonly readsCollections?: readonly { readonly name: string }[];
 }
 
-interface CommandKeys<TPayload, TResult> {
-	readonly invalidates?: (payload: TPayload, result: TResult, viewer?: Option.Option<Viewer>) => readonly Key[];
+interface CommandKeys<TPayload> {
+	readonly invalidates?: (payload: TPayload, viewer?: Option.Option<Viewer>) => readonly Key[];
 }
 
 type ClientQueries<TWire, TPayloads, TQueries extends string> = {
@@ -59,7 +59,7 @@ export interface ClientContractDefinition<
 	TScope extends "session" | undefined,
 > {
 	readonly commands?: {
-		readonly [TOperation in TCommands]: CommandKeys<PayloadOf<TPayloads, TOperation>["Type"], EntryOf<TWire, TOperation>["success"]["Type"]>;
+		readonly [TOperation in TCommands]: CommandKeys<PayloadOf<TPayloads, TOperation>["Type"]>;
 	};
 	readonly keyScope?: TScope;
 	readonly middleware?: TMiddleware;
@@ -90,7 +90,7 @@ export function clientContract<
 	TScope
 >;
 export function clientContract(definition: {
-	readonly commands?: { readonly [operation: string]: CommandKeys<unknown, unknown> };
+	readonly commands?: { readonly [operation: string]: CommandKeys<unknown> };
 	readonly keyScope?: "session";
 	readonly middleware?: RpcMiddleware.AnyService;
 	readonly name: string;
@@ -116,7 +116,7 @@ export function clientContract(definition: {
 	});
 	const commands = Object.entries(definition.commands ?? {}).map(([name, { invalidates }]) => ({
 		...operation("command", name, declared(name)),
-		invalidates: invalidates ?? (() => []),
+		invalidates: (payload: unknown, _result: unknown, viewer?: Option.Option<Viewer>) => invalidates?.(payload, viewer) ?? [],
 	}));
 	const group = declaredGroup(definition.name, {
 		commands,
