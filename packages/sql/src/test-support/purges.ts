@@ -1,5 +1,6 @@
 import { Deferred, Effect } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { allRows } from "#allRows.ts";
 import { makeRepository } from "#repository.ts";
 import { onPostgres, onSqlite } from "#test/engines.ts";
 import { purgeEngine, RetainedRow } from "#test/purgeEngine.ts";
@@ -47,7 +48,7 @@ export const sqlitePurges = storyKit({
 		attemptPurge: () =>
 			Effect.suspend(() => {
 				story.tell("a SQLite repository receives a PostgreSQL retention purge");
-				return rows.deleteBatched({ batchSize: 1, maxRows: 1, pause: 0, where: {} }).pipe(
+				return rows.deleteBatched({ batchSize: 1, maxRows: 1, pause: 0, where: allRows }).pipe(
 					Effect.as("succeeded"),
 					Effect.catchTag("BatchedDeleteUnavailable", (error) => Effect.succeed(`purge unavailable: ${error.reason}`)),
 				);

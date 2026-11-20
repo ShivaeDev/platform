@@ -1,10 +1,11 @@
-import { Context, Effect, Schema, SchemaGetter } from "effect";
+import { Context, Effect, Option, Schema, SchemaGetter } from "effect";
 import type * as Reactivity from "effect/reactivity/Reactivity";
 import { Model } from "effect/schema";
 import type { SqlClient } from "effect/sql";
 import type { SqlError } from "effect/sql/SqlError";
 import { expectTypeOf, it } from "vitest";
-import type { BatchedDeleteUnavailable } from "#batchedDelete.ts";
+import { allRows } from "#allRows.ts";
+import type { BatchedDeleteOptions, BatchedDeleteUnavailable } from "#batchedDelete.ts";
 import { deleteGroupsBatched } from "#deleteGroupsBatched.ts";
 import { makeRepository } from "#repository.ts";
 
@@ -32,6 +33,19 @@ const program = Effect.gen(function* () {
 	rows.deleteBatched({ ...options, where: { id: { lt: "5" } } });
 	// @ts-expect-error Filters must name model fields.
 	rows.deleteBatched({ ...options, where: { missing: 1 } });
+	// @ts-expect-error A purge needs at least one defined filter entry.
+	rows.deleteBatched({ ...options, where: {} });
+	rows.deleteBatched({ ...options, where: allRows });
+	const typedOptions: BatchedDeleteOptions<typeof RetentionRow> = { ...options, where: { label: "old" } };
+	rows.deleteBatched(typedOptions);
+	// @ts-expect-error Purge operator objects name known operators.
+	rows.deleteBatched({ ...options, where: { id: { gtt: 1, lt: 5 } } });
+	const either = Option.isSome(Option.some(1));
+	const maybeLabel = Option.getOrUndefined(Option.some("old"));
+	// @ts-expect-error Every branch of a conditional purge filter needs a defined entry.
+	rows.deleteBatched({ ...options, where: either ? { id: 1 } : { label: maybeLabel } });
+	// @ts-expect-error allRows in one branch does not excuse an undefined entry in the other.
+	rows.deleteBatched({ ...options, where: either ? allRows : { label: maybeLabel } });
 
 	const versioned = yield* makeRepository(RetentionRow, {
 		idColumn: "id",

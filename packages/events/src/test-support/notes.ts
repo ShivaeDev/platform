@@ -2,6 +2,7 @@ import { Data, Deferred, Effect, Schema } from "effect";
 import { Model } from "effect/schema";
 import { SqlClient } from "effect/sql";
 import { collection } from "@shivaedev/changes/keys.ts";
+import { allRows } from "@shivaedev/sql/allRows.ts";
 import { makeRepository } from "@shivaedev/sql/repository.ts";
 import { makeEventStore } from "#makeEventStore.ts";
 import type { Event } from "#types.ts";
@@ -34,7 +35,7 @@ export const noteEngine = Effect.gen(function* () {
 			}),
 		name: "notes",
 		reset: Effect.gen(function* () {
-			yield* rows.delete({});
+			yield* rows.delete(allRows);
 			const pause = resetPause.current;
 			if (pause !== undefined) {
 				const sql = yield* SqlClient.SqlClient;
@@ -57,7 +58,7 @@ export const noteEngine = Effect.gen(function* () {
 				});
 			}),
 		name: "audit",
-		reset: audit.delete({}),
+		reset: audit.delete(allRows),
 	};
 	const auditStore = yield* makeEventStore({ ...options, projections: [auditProjection] });
 	const combined = yield* makeEventStore({ ...options, projections: [projection, auditProjection] });

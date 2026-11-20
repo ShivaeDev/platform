@@ -2,6 +2,7 @@ import { Effect, Schema } from "effect";
 import { Model } from "effect/schema";
 import { SqlClient } from "effect/sql";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import type { DeleteFilter } from "#deleteFilter.ts";
 import { jsonb } from "#jsonb.ts";
 import { makeRepository } from "#repository.ts";
 import type { FindManyFilter } from "#repositoryFilter.ts";
@@ -42,7 +43,7 @@ export const jsonbFilters = storyKit({
 				story.tell("the repository counts profiles matching the details filter");
 				return profiles.count({ where });
 			}),
-		deleteProfiles: (where: FindManyFilter<typeof Profile>) =>
+		deleteProfiles: (where: DeleteFilter<typeof Profile>) =>
 			Effect.suspend(() => {
 				story.tell("the repository deletes profiles matching the details filter");
 				return profiles.delete(where);
