@@ -10,7 +10,7 @@ type ActivityTracker = ReturnType<typeof makeActivity>;
 export const clientActivities = new WeakMap<object, ActivityTracker>();
 
 export function makeActivity(factory: Atom.RuntimeFactory) {
-	const { activity, answered, change, hold, setConnection, warming } = activityState();
+	const { activity, change, hold, rendered, setConnection, warming } = activityState();
 	const connection = clientConnection(factory, setConnection, activity);
 	function begin(key: "rpcCalls" | "commands" | "unreflectedCommands") {
 		change(key, 1);
@@ -53,14 +53,10 @@ export function makeActivity(factory: Atom.RuntimeFactory) {
 				if (!active) {
 					return;
 				}
-				const first = !(received || AsyncResult.isInitial(result));
-				received ||= first;
+				received ||= !AsyncResult.isInitial(result);
 				initial.set(!received);
 				warmInitial.set(!received && warm(get));
 				refreshing.set(result.waiting || AsyncResult.isInitial(result));
-				if (first) {
-					answered();
-				}
 			}
 			get.addFinalizer(() => {
 				active = false;
@@ -85,7 +81,7 @@ export function makeActivity(factory: Atom.RuntimeFactory) {
 		return watched;
 	}
 	return {
-		activity: Object.assign(activity, { connectionStatus: connection.status, firstSettled: connection.firstSettled }),
+		activity: Object.assign(activity, { connectionStatus: connection.status, firstSettled: connection.firstSettled, rendered }),
 		hint: () => change("liveHints", 1),
 		hold: <A, E, R>(effect: Effect.Effect<A, E, R>) =>
 			track(

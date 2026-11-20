@@ -1,7 +1,7 @@
 import { Option } from "effect";
 import type * as AsyncResult from "effect/reactivity/AsyncResult";
 import type * as Atom from "effect/reactivity/Atom";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useFirstSettled } from "#client/adapters/useFirstSettled.ts";
 import { useAction, useQuery } from "#client/resultState.ts";
 import { SessionBoundary } from "#client/sessionBoundary.ts";
@@ -12,17 +12,25 @@ function Answer({ name, query }: { readonly name: string; readonly query: Atom.A
 	return <output data-answer={name}>{Option.getOrElse(answer.data, () => "waiting")}</output>;
 }
 
-function Notes({ notes, reads }: { readonly notes: FirstSettledClient; readonly reads: boolean }) {
+export type FirstReads = "title and author" | "no query" | "count after its first render";
+
+function Notes({ notes, reads }: { readonly notes: FirstSettledClient; readonly reads: FirstReads }) {
 	const settled = useFirstSettled(notes.client);
 	const rename = useAction(notes.rename);
 	const [counting, setCounting] = useState(false);
+	useEffect(() => {
+		if (reads === "count after its first render") {
+			setCounting(true);
+		}
+	}, [reads]);
 	const { api } = notes.client;
-	const first = reads ? (
-		<>
-			<Answer name="title" query={api.title.query()} />
-			<Answer name="author" query={api.author.query()} />
-		</>
-	) : null;
+	const first =
+		reads === "title and author" ? (
+			<>
+				<Answer name="title" query={api.title.query()} />
+				<Answer name="author" query={api.author.query()} />
+			</>
+		) : null;
 	const count = counting ? <Answer name="count" query={api.count.query()} /> : null;
 	return (
 		<article>
@@ -47,7 +55,7 @@ export function View({
 	warmCount,
 }: {
 	readonly connect: (session: string) => FirstSettledClient;
-	readonly reads: boolean;
+	readonly reads: FirstReads;
 	readonly session: string;
 	readonly warmCount: boolean;
 }) {

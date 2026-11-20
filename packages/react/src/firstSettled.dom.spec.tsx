@@ -51,17 +51,16 @@ firstSettledScreens.it(
 );
 
 firstSettledScreens.it(
-	"a screen that reads no query keeps useFirstSettled false, also after a command finished",
+	"a screen that reads no query turns useFirstSettled true once it has rendered, and a later command does not turn it back",
 	[aliceOpens("no query")],
-	function* ({ command, renameFinishes, signal, startRename }) {
-		expect(yield* signal()).toBe(WAITING);
+	function* ({ command, signal, startRename }) {
+		expect(yield* signal()).toBe(SETTLED);
 
 		yield* startRename();
-		yield* renameFinishes();
 
 		yield* outcomes([
-			["command", () => command(), "finished"],
-			["signal", () => signal(), WAITING],
+			["command", () => command(), "unfinished"],
+			["signal", () => signal(), SETTLED],
 		]);
 	},
 );
@@ -89,6 +88,28 @@ firstSettledScreens.it(
 
 		yield* answers("author", "alice");
 
+		yield* outcomes([
+			["client activity", () => activity(), { commands: 0, initialQueries: 1 }],
+			["signal", () => signal(), SETTLED],
+		]);
+	},
+);
+
+firstSettledScreens.it(
+	"a query the first screen mounts only after its first render shows its own loading state while useFirstSettled is already true",
+	[aliceOpens("count after its first render")],
+	function* ({ count, signal }) {
+		yield* outcomes([
+			["count", () => count(), "waiting"],
+			["signal", () => signal(), SETTLED],
+		]);
+	},
+);
+
+firstSettledScreens.it(
+	"a screen that reads no query turns useFirstSettled true while the session's warm query still waits for its first result",
+	[aliceOpens("no query", "count")],
+	function* ({ activity, signal }) {
 		yield* outcomes([
 			["client activity", () => activity(), { commands: 0, initialQueries: 1 }],
 			["signal", () => signal(), SETTLED],

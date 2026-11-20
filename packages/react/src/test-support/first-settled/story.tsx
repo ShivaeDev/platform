@@ -3,7 +3,7 @@ import { clientActivity } from "@shivaedev/contract/clientActivity.ts";
 import type { Rendered } from "@shivaedev/test-story/client/adapters/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { type FirstSettledClient, firstSettledClient } from "#test/first-settled/client.ts";
-import { View } from "#test/first-settled/View.tsx";
+import { type FirstReads, View } from "#test/first-settled/View.tsx";
 import type { Screen } from "#test/Screen.ts";
 import { screenKit } from "#test/screenKit.ts";
 import { settleScreen } from "#test/settleScreen.ts";
@@ -13,7 +13,7 @@ type Query = "author" | "count" | "title";
 
 interface State {
 	readonly clients: Map<string, FirstSettledClient>;
-	reads: boolean;
+	reads: FirstReads;
 	user?: User;
 	view?: Rendered;
 	warmCount: boolean;
@@ -68,6 +68,7 @@ function verbs(state: State, screen: Screen) {
 			Effect.sync(() =>
 				opened(state).container.querySelector("[data-command]")?.getAttribute("data-command") === "Success" ? "finished" : "unfinished",
 			),
+		count: () => Effect.sync(() => opened(state).container.querySelector('[data-answer="count"]')?.textContent ?? "not shown"),
 		renameFinishes: () =>
 			Effect.suspend(() => {
 				const { client, container } = opened(state);
@@ -94,14 +95,18 @@ function verbs(state: State, screen: Screen) {
 }
 
 export const firstSettledScreens = storyKit(
-	screenKit("first results screen", (): State => ({ clients: new Map(), reads: true, warmCount: false }), verbs),
+	screenKit("first results screen", (): State => ({ clients: new Map(), reads: "title and author", warmCount: false }), verbs),
 );
 
-export function aliceOpens(reads: "title and author" | "no query" = "title and author", warm: "count" | "nothing" = "nothing") {
-	const waiting = reads === "no query" ? "" : ", and the server has answered neither";
+export function aliceOpens(reads: FirstReads = "title and author", warm: "count" | "nothing" = "nothing") {
+	const waiting = {
+		"count after its first render": ", and the server has not answered it",
+		"no query": "",
+		"title and author": ", and the server has answered neither",
+	}[reads];
 	const kept = warm === "count" ? ", while her session keeps the count query warm and the server has not answered it" : "";
 	return firstSettledScreens.trait("screen", `alice opens a screen that reads ${reads} through her client${waiting}${kept}`, ({ screen, state }) => {
-		state.reads = reads !== "no query";
+		state.reads = reads;
 		state.warmCount = warm === "count";
 		return show(state, screen, "alice", "alice opens the screen");
 	});
