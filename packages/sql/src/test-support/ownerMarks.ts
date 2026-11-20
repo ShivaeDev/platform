@@ -9,7 +9,7 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { clientOptions } from "#clientOptions.ts";
 import { makeOrderedChildren } from "#makeOrderedChildren.ts";
 import { owner } from "#owner.ts";
-import { type RepositoryModel, RepositoryModels } from "#RepositoryModels.ts";
+import { collectRepositoryModels, RepositoryModels } from "#RepositoryModels.ts";
 import { makeRepository } from "#repository.ts";
 import type { RepositoryBuildError } from "#repositoryCollection.ts";
 import { serverOnly } from "#serverOnly.ts";
@@ -18,6 +18,11 @@ class Note extends Model.Class<Note>("OwnedNote")({
 	authorId: owner(bucket(Schema.String)),
 	id: Schema.Number,
 	title: Schema.String,
+}) {}
+
+class NoteHeading extends Model.Class<NoteHeading>("OwnedNoteHeading")({
+	authorId: owner(Schema.String),
+	id: Schema.Number,
 }) {}
 
 class Step extends Model.Class<Step>("OwnedStep")({
@@ -53,6 +58,7 @@ const models = new Map<Model.Any, string>([
 	[CoAuthored, "CoAuthored"],
 	[HiddenOwner, "HiddenOwner"],
 	[Note, "Note"],
+	[NoteHeading, "NoteHeading"],
 	[Step, "Step"],
 	[Tag, "Tag"],
 ]);
@@ -60,6 +66,7 @@ const models = new Map<Model.Any, string>([
 export type Built =
 	| "checklist steps through makeOrderedChildren"
 	| "co-authored notes with two owner fields"
+	| "note headings over the notes table"
 	| "notes keyed by tableName in place of their collection"
 	| "notes owned by a server-only token"
 	| "notes owned by their author bucket"
@@ -69,40 +76,37 @@ const repositories: Record<Built, () => Effect.Effect<unknown, RepositoryBuildEr
 	"checklist steps through makeOrderedChildren": () =>
 		makeOrderedChildren(Step, { parentColumn: "checklistId", parentTable: "checklists", positionColumn: "position", tableName: "checklist_steps" }),
 	"co-authored notes with two owner fields": () => makeRepository(CoAuthored, { tableName: "co_authored_notes" }),
+	"note headings over the notes table": () => makeRepository(NoteHeading, { tableName: "notes" }),
 	"notes keyed by tableName in place of their collection": () => makeRepository(Note, { tableName: "notes" }),
 	"notes owned by a server-only token": () => makeRepository(HiddenOwner, { tableName: "hidden_owner_notes" }),
 	"notes owned by their author bucket": () => makeRepository(Note, { collection: collection("notes", Schema.Number, { authorId: Schema.String }) }),
 	"unowned note tags": () => makeRepository(Tag, { tableName: "noteTags" }),
 };
 
-const snakeCaseSqlite = Layer.merge(SqliteClient.layer(clientOptions({ filename: ":memory:" })), Reactivity.layer);
+// Repositories report to sql's own collector, as they do outside a host.
+const snakeCaseSqlite = Layer.mergeAll(
+	SqliteClient.layer(clientOptions({ filename: ":memory:" })),
+	Reactivity.layer,
+	Layer.fresh(collectRepositoryModels),
+);
 
 export const ownerMarks = storyKit({
 	around: <A, E, R>(effect: Effect.Effect<A, E, R>) => Effect.provide(effect, Layer.fresh(snakeCaseSqlite)),
 	clock: "test",
-	create: (): { readonly reports: RepositoryModel[] } => ({ reports: [] }),
+	create: () => ({}),
 	layer: snakeCaseSqlite,
 	name: "repository owner marks on a snake-case client",
 	stages: [],
-	verbs: (engine, story) => ({
+	verbs: (_engine, story) => ({
 		build: (repository: Built) =>
 			Effect.suspend(() => {
 				story.tell(`the host builds the repository of ${repository}`);
-				return repositories[repository]().pipe(
-					Effect.provideService(RepositoryModels, {
-						declare: (report) => Effect.sync(() => engine.reports.push(report)),
-						owned: Effect.succeed([]),
-					}),
-					Effect.match({ onFailure: (error) => `${error._tag}: ${error.message}`, onSuccess: () => "built" }),
-				);
+				return repositories[repository]().pipe(Effect.match({ onFailure: (error) => `${error._tag}: ${error.message}`, onSuccess: () => "built" }));
 			}),
-		reported: () =>
-			Effect.sync(() =>
-				engine.reports.map((report) => ({
-					model: models.get(report.model) ?? "an unknown model",
-					owner: report.owner ?? "none",
-					table: report.table,
-				})),
-			),
+		owned: () =>
+			Effect.gen(function* () {
+				const collected = yield* (yield* RepositoryModels).owned;
+				return collected.map((entry) => ({ model: models.get(entry.model) ?? "an unknown model", owner: entry.owner, table: entry.table }));
+			}),
 	}),
 });
