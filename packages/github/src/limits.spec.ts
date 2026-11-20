@@ -5,6 +5,7 @@ import {
 	bareTooManyRequests,
 	clockReadsTenSeconds,
 	coreBudget,
+	coreSpentPastLastDate,
 	coreSpentWithoutRetryAfter,
 	coreSpentWithRetryAfter,
 	searchBudgetSpentUntil,
@@ -154,6 +155,24 @@ github.it(
 	[coreSpentWithoutRetryAfter],
 	function* ({ readPull }) {
 		expect(yield* readPull()).toBe("rate limited on core until 00:02:00");
+	},
+);
+
+github.it(
+	"a 429 whose spent core budget resets past the last date a DateTime holds backs off for one minute",
+	[coreSpentPastLastDate],
+	function* ({ readPull }) {
+		expect(yield* readPull()).toBe("rate limited on core until 00:01:00");
+	},
+);
+
+github.it(
+	"a budget whose reset lies past the last date a DateTime holds is not recorded",
+	[coreSpentPastLastDate],
+	function* ({ observations, readPull }) {
+		yield* readPull();
+
+		expect(yield* observations()).toEqual([]);
 	},
 );
 

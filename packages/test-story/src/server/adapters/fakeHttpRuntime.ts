@@ -11,7 +11,7 @@ export const fakeHttpRuntime = Effect.fnUntraced(function* (options: FakeHttpSer
 	const clock = yield* Clock.Clock;
 	const requests: FakeHttpRequestRecord[] = [];
 	const controls = fakeHttpControls(tell, () => clock.currentTimeMillisUnsafe());
-	const signals = fakeHttpSignals();
+	const signals = yield* fakeHttpSignals;
 	const server = createServer((request, response) => fakeHttpReceive(request, response, options, requests, controls, tell, signals.record));
 	const url = yield* loopbackServer(server);
 	yield* Effect.addFinalizer(() => Effect.sync(signals.close));

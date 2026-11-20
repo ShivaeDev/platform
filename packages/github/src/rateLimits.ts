@@ -1,4 +1,4 @@
-import { Clock, DateTime, Effect } from "effect";
+import { Clock, DateTime, Effect, Option } from "effect";
 import type { HttpClientResponse } from "effect/http";
 import type { GitHubRateLimited } from "#errors.ts";
 
@@ -34,12 +34,13 @@ export function rateLimits() {
 			const path = new URL(response.request.url).pathname;
 			const name = headers["x-ratelimit-resource"] ?? resource(path);
 			resources.set(path, name);
-			const values = ["limit", "remaining", "used", "reset"].map((key) => headers[`x-ratelimit-${key}`]);
-			if (values.every((value) => value !== undefined && Number.isFinite(Number(value)))) {
+			const values = ["limit", "remaining", "used"].map((key) => headers[`x-ratelimit-${key}`]);
+			const reset = DateTime.make(Number(headers["x-ratelimit-reset"] ?? Number.NaN) * 1000);
+			if (values.every((value) => value !== undefined && Number.isFinite(Number(value))) && Option.isSome(reset)) {
 				observations.set(name, {
 					limit: Number(headers["x-ratelimit-limit"]),
 					remaining: Number(headers["x-ratelimit-remaining"]),
-					reset: DateTime.makeUnsafe(Number(headers["x-ratelimit-reset"]) * 1000),
+					reset: reset.value,
 					resource: name,
 					used: Number(headers["x-ratelimit-used"]),
 				});

@@ -103,6 +103,15 @@ export const coreSpentWithoutRetryAfter = pullAnswers("with 429, a spent core bu
 	status: HttpStatus.fromLiteral("TooManyRequests"),
 });
 
+export const coreSpentPastLastDate = pullAnswers(
+	"with 429, a spent core budget whose reset lies past the last date a DateTime holds and no Retry-After",
+	{
+		body: { message: "API rate limit exceeded for user ID 1." },
+		headers: core({ remaining: 0, reset: 9_000_000_000_000 }),
+		status: HttpStatus.fromLiteral("TooManyRequests"),
+	},
+);
+
 export const coreSpentWithRetryAfter = pullAnswers("with 429, a spent core budget that resets at 00:15:00 and Retry-After: 120", {
 	body: { message: "API rate limit exceeded for user ID 1." },
 	headers: { ...core({ remaining: 0, reset: 900 }), "Retry-After": "120" },

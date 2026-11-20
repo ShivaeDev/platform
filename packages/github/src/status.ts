@@ -56,11 +56,11 @@ function githubRefusal(message: string | undefined, path: string) {
 const refuseRateLimit = Effect.fnUntraced(function* (response: HttpClientResponse.HttpClientResponse, resource: string, failures: number) {
 	const { headers } = response;
 	const now = yield* DateTime.now;
-	const reset = Number(headers["x-ratelimit-reset"] ?? 0) * 1000;
-	const fallback =
-		headers["x-ratelimit-remaining"] === "0" && reset > DateTime.toEpochMillis(now)
-			? reset
-			: DateTime.toEpochMillis(now) + Math.min(15 * 60_000, 60_000 * 2 ** failures);
-	const retryAt = parseRetryAfter(headers["retry-after"], now) ?? DateTime.makeUnsafe(fallback);
+	const reset = DateTime.make(Number(headers["x-ratelimit-reset"] ?? 0) * 1000).pipe(
+		Option.filter((at) => headers["x-ratelimit-remaining"] === "0" && DateTime.isGreaterThan(at, now)),
+	);
+	const retryAt =
+		parseRetryAfter(headers["retry-after"], now)
+		?? Option.getOrElse(reset, () => DateTime.add(now, { milliseconds: Math.min(15 * 60_000, 60_000 * 2 ** failures) }));
 	return yield* new GitHubRateLimited({ resource, retryAt });
 });

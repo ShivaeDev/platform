@@ -40,7 +40,7 @@ export const observeUntil = Effect.fn("PostgresTest.observeUntil")(function* <A,
 	waitingFor: string,
 	options?: ObserveOptions,
 ) {
-	const within = Duration.fromInputUnsafe(options?.within ?? "5 seconds");
+	const within = Duration.millis(Duration.toMillis(options?.within ?? "5 seconds"));
 	const stableReads = options?.stableReads ?? 2;
 	const clock = options?.clock === "test" ? { deadline: Effect.sleep, pause: TestClock.adjust } : yield* CatalogClock;
 	const pause = clock.pause(options?.every ?? "25 millis");

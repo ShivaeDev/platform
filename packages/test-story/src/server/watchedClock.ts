@@ -68,10 +68,10 @@ function isWatchedClock(clock: Clock.Clock): clock is WatchedClock {
 }
 
 export function untilTimer(interval: Duration.Input, options?: Omit<UntilOptions, "name">) {
-	const duration = Duration.fromInputUnsafe(interval);
+	const millis = Duration.toMillis(interval);
 	return Clock.clockWith((clock) =>
 		isWatchedClock(clock)
-			? until(clock.sleepStarts, Duration.equals(duration), { ...options, name: `sleep for ${Duration.toMillis(duration)}ms` })
+			? until(clock.sleepStarts, (started) => Duration.toMillis(started) === millis, { ...options, name: `sleep for ${millis}ms` })
 			: Effect.die(new Error('untilTimer requires a watched TestClock.\nhelp: Use clock: "test" on storyKit or provide watchedClock as Clock.')),
 	);
 }

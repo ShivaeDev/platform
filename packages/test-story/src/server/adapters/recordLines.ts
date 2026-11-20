@@ -4,7 +4,7 @@ import * as Effect from "effect/Effect";
 import { recordedSignals } from "#server/recordedSignals.ts";
 
 export const recordLines = Effect.fnUntraced(function* (output: Readable) {
-	const signals = recordedSignals<string, Error>();
+	const signals = yield* recordedSignals<string, Error>();
 	yield* Effect.acquireRelease(
 		Effect.sync(() => {
 			const reader = createInterface({ crlfDelay: Number.POSITIVE_INFINITY, input: output });

@@ -1,4 +1,4 @@
-import { DateTime, Effect, Option, Schema } from "effect";
+import { Effect, Option, Schema } from "effect";
 import { query } from "@shivaedev/contract/operation.ts";
 import type { JobPage } from "@shivaedev/jobs/server/health.ts";
 import { readJobFailure } from "@shivaedev/jobs/server/readJobFailure.ts";
@@ -7,6 +7,12 @@ import { jobsKeys } from "#jobs/keys.ts";
 import { JobsRow } from "#jobs/Row.ts";
 import { JobsPayloadInvalid, PageFields } from "#jobs/schemas.ts";
 import { RegisteredQueues } from "#server/RegisteredQueues.ts";
+
+const JobTimes = Schema.Struct({
+	completedOn: Schema.OptionFromNullOr(Schema.DateTimeUtcFromDate),
+	createdOn: Schema.DateTimeUtcFromDate,
+	startedOn: Schema.OptionFromNullOr(Schema.DateTimeUtcFromDate),
+});
 
 export const Health = query("health", {
 	reads: () => [jobsKeys.health.list],
@@ -53,18 +59,17 @@ export const Detail = query("job", {
 		}
 		const job = found.value;
 		const output = yield* readJobFailure(queue, job.output).pipe(Effect.mapError(() => new JobsPayloadInvalid({ queue })));
+		const times = yield* Schema.decodeUnknownEffect(JobTimes)(job).pipe(Effect.mapError(() => new JobsPayloadInvalid({ queue })));
 		return Option.some(
 			new JobsRow({
+				...times,
 				attempt: job.startedOn === null ? 0 : job.retryCount + 1,
-				completedOn: Option.map(Option.fromNullishOr(job.completedOn), DateTime.makeUnsafe),
-				createdOn: DateTime.makeUnsafe(job.createdOn),
 				data: job.data,
 				id: job.id,
 				output,
 				queue: job.name,
 				retryCount: job.retryCount,
 				retryLimit: job.retryLimit,
-				startedOn: Option.map(Option.fromNullishOr(job.startedOn), DateTime.makeUnsafe),
 				state: job.state,
 			}),
 		);

@@ -1,4 +1,4 @@
-import { Cause, Context, Effect, ErrorReporter, Predicate, Schema } from "effect";
+import { Cause, Effect, ErrorReporter, Predicate, Schema } from "effect";
 import { infrastructureRejection } from "#infrastructure.ts";
 import { redactDiagnosticCause } from "#redactCause.ts";
 import { isSensitiveKey, redactText } from "#sensitive.ts";
@@ -35,7 +35,7 @@ function reportUnexpected(cause: Cause.Cause<unknown>): Effect.Effect<void> {
 					return reason;
 				}
 				const reported = Cause.isFailReason(reason) ? Cause.makeFailReason(reportable(reason.error)) : Cause.makeDieReason(reportable(reason.defect));
-				return reported.annotate(Context.makeUnsafe(reason.annotations));
+				return reported.annotate(Cause.reasonAnnotations(reason));
 			}),
 		),
 	);
@@ -59,7 +59,7 @@ function declaredCause<E>(cause: Cause.Cause<unknown>, declared: (value: unknown
 		if (rejection !== undefined) {
 			infrastructure.push(reason);
 		}
-		reasons.push(Cause.makeFailReason(answer).annotate(Context.makeUnsafe(reason.annotations)));
+		reasons.push(Cause.makeFailReason(answer).annotate(Cause.reasonAnnotations(reason)));
 	}
 	return { cause: Cause.fromReasons(reasons), infrastructure };
 }

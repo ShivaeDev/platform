@@ -18,7 +18,7 @@ export const waitForScreen = Effect.fnUntraced(function* <A, E>(options: WaitOpt
 	const { act, root } = options;
 	const supplied = options.pending !== undefined || options.activity !== undefined || options.transport !== undefined;
 	const changes = yield* Queue.sliding<void>(1);
-	yield* screenMutations(root(), () => Queue.offerUnsafe(changes, undefined));
+	yield* screenMutations(root(), changes);
 	const isBusy = yield* observeScreen(options, changes);
 	do {
 		if (supplied) {

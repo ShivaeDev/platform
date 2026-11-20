@@ -1,11 +1,12 @@
 import type { ServerResponse } from "node:http";
+import * as Effect from "effect/Effect";
 import type { FakeHttpRequestRecord } from "#server/fakeHttpService.ts";
 import { recordedSignals } from "#server/recordedSignals.ts";
 
-export function fakeHttpSignals() {
-	const received = recordedSignals<FakeHttpRequestRecord>();
-	const completed = recordedSignals<FakeHttpRequestRecord>();
-	const abandoned = recordedSignals<FakeHttpRequestRecord>();
+export const fakeHttpSignals = Effect.gen(function* () {
+	const received = yield* recordedSignals<FakeHttpRequestRecord>();
+	const completed = yield* recordedSignals<FakeHttpRequestRecord>();
+	const abandoned = yield* recordedSignals<FakeHttpRequestRecord>();
 	return {
 		abandoned: abandoned.stream,
 		close: () => {
@@ -25,4 +26,4 @@ export function fakeHttpSignals() {
 			received.push(request);
 		},
 	};
-}
+});

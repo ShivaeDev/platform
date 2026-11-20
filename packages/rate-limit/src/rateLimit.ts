@@ -8,7 +8,7 @@ export interface RateLimitOptions {
 }
 
 export const rateLimit = Effect.fn("RateLimit.rateLimit")(function* ({ key, per, window }: RateLimitOptions) {
-	const windowMillis = Duration.toMillis(Duration.fromInputUnsafe(window));
+	const windowMillis = Duration.toMillis(window);
 	if (!Number.isSafeInteger(per) || per < 1 || !Number.isFinite(windowMillis) || windowMillis <= 0) {
 		return yield* Effect.die(new RangeError("Rate limits require a positive integer per and a finite positive window"));
 	}

@@ -62,7 +62,7 @@ const protocols = Atom.family(
 				const clock = yield* SocketClock;
 				let memo = socketMemoMaps.get(clock);
 				if (memo === undefined) {
-					memo = Layer.makeMemoMapUnsafe();
+					memo = yield* Layer.makeMemoMap;
 					socketMemoMaps.set(clock, memo);
 				}
 				const protocol = managed.pipe(Layer.provide(Layer.succeed(Clock.Clock, clock)));
