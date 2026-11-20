@@ -48,6 +48,21 @@ export const nestedRejected = [
 		message: nested("Row"),
 		name: "a component that returns JSX in one branch",
 	},
+	{
+		code: "function Screen() { const Row = (p) => p.on && <li />; return <ul />; }",
+		message: nested("Row"),
+		name: "a component that returns JSX after &&",
+	},
+	{
+		code: 'function Screen() { const Rows = () => [<li key="a" />, <li key="b" />]; return <ul />; }',
+		message: nested("Rows"),
+		name: "a component that returns an array of elements",
+	},
+	{
+		code: "function Screen() { const Sheet = () => createPortal(<div />, document.body); return <ul />; }",
+		message: nested("Sheet"),
+		name: "a component that returns a portal of JSX",
+	},
 	{ code: "function Screen() { const Row = memo(() => <li />); return <ul />; }", message: nested("Row"), name: "a memo-wrapped component" },
 	{
 		code: "function Screen() { const Row = forwardRef((p, ref) => <li ref={ref} />); return <ul />; }",
