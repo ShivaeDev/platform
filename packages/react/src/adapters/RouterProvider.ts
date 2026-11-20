@@ -1,7 +1,7 @@
 import { RegistryContext } from "@effect/atom-react";
 import { type AnyRouter, type RegisteredRouter, type RouterProps, RouterProvider as TanStackRouterProvider } from "@tanstack/react-router";
 import { createElement, useContext, useLayoutEffect } from "react";
-import { firstRoutesPending } from "#client/firstRoutes.ts";
+import { firstRoutesPending } from "#firstRoutesPending.ts";
 
 export function RouterProvider<TRouter extends AnyRouter = RegisteredRouter, TDehydrated extends Record<string, unknown> = Record<string, unknown>>(
 	props: RouterProps<TRouter, TDehydrated>,

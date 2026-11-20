@@ -2,7 +2,7 @@ import { RegistryContext, useAtomValue } from "@effect/atom-react";
 import { Effect } from "effect";
 import { useContext, useEffect } from "react";
 import { type ActiveClient, clientActivity } from "@shivaedev/contract/clientActivity.ts";
-import { firstRoutesPending } from "#client/firstRoutes.ts";
+import { firstRoutesPending } from "#firstRoutesPending.ts";
 
 export function useFirstSettled(client: ActiveClient): boolean {
 	const activity = clientActivity(client);

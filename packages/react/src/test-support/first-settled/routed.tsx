@@ -7,9 +7,10 @@ import {
 	Outlet,
 	RouterProvider as TanStackRouterProvider,
 } from "@tanstack/react-router";
+import { Option } from "effect";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { useContext, useState } from "react";
-import { RouterProvider } from "#adapters/routerProvider.ts";
+import { RouterProvider } from "#adapters/RouterProvider.ts";
 import { queryRoute } from "#client/adapters/queryRoute.ts";
 import { useFirstSettled } from "#client/adapters/useFirstSettled.ts";
 import { useQuery } from "#client/resultState.ts";
@@ -38,7 +39,8 @@ function LoadedTitle() {
 function ReadTitle() {
 	const context: RouteContext = root.useRouteContext();
 	const title = useQuery(context.notes.client.api.title.query());
-	return <output data-answer="title">{title.data._tag === "Some" ? title.data.value : "waiting"}</output>;
+	const shown = Option.getOrElse(title.data, () => "waiting");
+	return <output data-answer="title">{shown}</output>;
 }
 function Blank() {
 	return <output data-answer="blank">blank form</output>;
@@ -69,10 +71,12 @@ export function RoutedNotes({
 			routeTree,
 		}),
 	);
+	const status = settled ? "first results settled" : "waiting for first results";
+	const routes = provider === "react's" ? <RouterProvider router={router} /> : <TanStackRouterProvider router={router} />;
 	return (
 		<article>
-			<p role="status">{settled ? "first results settled" : "waiting for first results"}</p>
-			{provider === "react's" ? <RouterProvider router={router} /> : <TanStackRouterProvider router={router} />}
+			<p role="status">{status}</p>
+			{routes}
 		</article>
 	);
 }

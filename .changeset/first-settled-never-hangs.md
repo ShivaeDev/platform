@@ -6,7 +6,7 @@
 ### Added
 
 - `@shivaedev/contract`: `clientActivity(client).rendered` is an Effect that tells the client its first screen has been drawn. The activity's `firstSettled` flag turns `true` once it has run and nothing on the client is waiting.
-- `@shivaedev/react`: `RouterProvider` from `@shivaedev/react/adapters/routerProvider.ts` takes TanStack's `RouterProvider` props and renders it, and holds `useFirstSettled` until the first route has rendered, so the hook reveals a routed first screen in one step wherever it is called. Swap the import of TanStack's `RouterProvider` for this one; nothing else changes.
+- `@shivaedev/react`: `RouterProvider` from `@shivaedev/react/adapters/RouterProvider.ts` takes TanStack's `RouterProvider` props and renders it, and holds `useFirstSettled` until the first route has rendered, so the hook reveals a routed first screen in one step wherever it is called. Swap the import of TanStack's `RouterProvider` for this one; nothing else changes.
 
 ### Changed
 

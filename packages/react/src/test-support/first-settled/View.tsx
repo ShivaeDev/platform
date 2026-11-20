@@ -7,7 +7,7 @@ import { useFirstSettled } from "#client/adapters/useFirstSettled.ts";
 import { useAction, useQuery } from "#client/resultState.ts";
 import { SessionBoundary } from "#client/sessionBoundary.ts";
 import type { FirstSettledClient } from "#test/first-settled/client.ts";
-import { type FirstRoute, type Provider, RoutedNotes } from "#test/first-settled/Routed.tsx";
+import { type FirstRoute, type Provider, RoutedNotes } from "#test/first-settled/routed.tsx";
 
 function Answer({ name, query }: { readonly name: string; readonly query: Atom.Atom<AsyncResult.AsyncResult<string, unknown>> }) {
 	const answer = useQuery(query);

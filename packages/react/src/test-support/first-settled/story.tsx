@@ -4,7 +4,7 @@ import type { QueryStorageProvider } from "@shivaedev/contract/QueryStorage.ts";
 import type { Rendered } from "@shivaedev/test-story/client/adapters/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { type FirstSettledClient, firstSettledClient, storedResults } from "#test/first-settled/client.ts";
-import type { FirstRoute, Provider } from "#test/first-settled/Routed.tsx";
+import type { FirstRoute, Provider } from "#test/first-settled/routed.tsx";
 import { type FirstReads, View } from "#test/first-settled/View.tsx";
 import type { Screen } from "#test/Screen.ts";
 import { screenKit } from "#test/screenKit.ts";

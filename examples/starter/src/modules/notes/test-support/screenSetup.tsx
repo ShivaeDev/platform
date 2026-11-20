@@ -8,7 +8,7 @@ import { authCall } from "@shivaedev/identity/client/adapters/authCall.ts";
 import { browserSessionMemory } from "@shivaedev/identity/client/adapters/browserSessionMemory.ts";
 import { rememberSession } from "@shivaedev/identity/client/SessionMemory.ts";
 import { loadQuery } from "@shivaedev/react/adapters/loadQuery.ts";
-import { RouterProvider } from "@shivaedev/react/adapters/routerProvider.ts";
+import { RouterProvider } from "@shivaedev/react/adapters/RouterProvider.ts";
 import { authAction } from "@shivaedev/react/client/authAction.ts";
 import type { Rendered } from "@shivaedev/test-story/client/adapters/react.ts";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
