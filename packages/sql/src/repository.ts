@@ -8,7 +8,7 @@ import { type ConflictColumns, type ConflictWrites, makeConflictWrites } from "#
 import { makeInsertFromSelect, type SelectWrites } from "#insertFromSelect.ts";
 import { makeRecordRead } from "#recordRepositoryRead.ts";
 import { repositoryChanges } from "#repositoryChanges.ts";
-import { type RepositoryBuildError, type RepositoryOptions, validateRepositoryCollection } from "#repositoryCollection.ts";
+import { type RepositoryBuildError, type RepositoryOptions, resolveRepositoryOptions, validateRepositoryCollection } from "#repositoryCollection.ts";
 import type { FindManyFilter, RepositoryFilter, RepositoryListFilter } from "#repositoryFilter.ts";
 import { makeQueries, type Queries } from "#repositoryQueries.ts";
 import { refuseServerOnlyKeys } from "#serverOnly.ts";
@@ -48,13 +48,13 @@ export class OptimisticConcurrencyError extends Data.TaggedError("OptimisticConc
 
 export function makeRepository<
 	TModel extends Model.Any,
-	const TId extends PrimaryKey<TModel>,
 	const TConflict extends ConflictColumns<TModel>,
+	const TId extends PrimaryKey<TModel> = Extract<PrimaryKey<TModel>, "id">,
 	const TWhere extends keyof RepositoryFilter<TModel> = never,
 	const TVersion extends VersionColumn<TModel, TId> = VersionColumn<TModel, TId>,
 >(
 	model: TModel,
-	options: RepositoryOptions<TId> & {
+	options: RepositoryOptions<TModel, TId> & {
 		readonly versionColumn: TVersion;
 		readonly conflictColumns: TConflict;
 		readonly conflictWhere?: Pick<RepositoryFilter<TModel>, TWhere>;
@@ -67,11 +67,11 @@ export function makeRepository<
 >;
 export function makeRepository<
 	TModel extends Model.Any,
-	const TId extends PrimaryKey<TModel>,
+	const TId extends PrimaryKey<TModel> = Extract<PrimaryKey<TModel>, "id">,
 	const TVersion extends VersionColumn<TModel, TId> = VersionColumn<TModel, TId>,
 >(
 	model: TModel,
-	options: RepositoryOptions<TId> & {
+	options: RepositoryOptions<TModel, TId> & {
 		readonly versionColumn: TVersion;
 		readonly conflictColumns?: never;
 		readonly conflictWhere?: never;
@@ -79,12 +79,12 @@ export function makeRepository<
 ): Effect.Effect<VersionedRepositoryShape<TModel, TId, TVersion>, RepositoryBuildError, SqlClient.SqlClient>;
 export function makeRepository<
 	TModel extends Model.Any,
-	const TId extends PrimaryKey<TModel>,
 	const TConflict extends ConflictColumns<TModel>,
+	const TId extends PrimaryKey<TModel> = Extract<PrimaryKey<TModel>, "id">,
 	const TWhere extends keyof RepositoryFilter<TModel> = never,
 >(
 	model: TModel,
-	options: RepositoryOptions<TId> & {
+	options: RepositoryOptions<TModel, TId> & {
 		readonly versionColumn?: never;
 		readonly conflictColumns: TConflict;
 		readonly conflictWhere?: Pick<RepositoryFilter<TModel>, TWhere>;
@@ -102,44 +102,46 @@ export function makeRepository<
 	RepositoryBuildError,
 	SqlClient.SqlClient
 >;
-export function makeRepository<TModel extends Model.Any, const TId extends PrimaryKey<TModel>>(
+export function makeRepository<TModel extends Model.Any, const TId extends PrimaryKey<TModel> = Extract<PrimaryKey<TModel>, "id">>(
 	model: TModel,
-	options: RepositoryOptions<TId> & { readonly versionColumn?: never; readonly conflictColumns?: never; readonly conflictWhere?: never },
+	options: RepositoryOptions<TModel, TId> & { readonly versionColumn?: never; readonly conflictColumns?: never; readonly conflictWhere?: never },
 ): Effect.Effect<Repository<TModel, TId> & BatchWrites<TModel> & SelectWrites<TModel> & Queries<TModel>, RepositoryBuildError, SqlClient.SqlClient>;
 export function makeRepository<TModel extends Model.Any, TId extends IdColumn<TModel>>(
 	model: TModel,
-	options: RepositoryOptions<TId | readonly [TId, TId, ...TId[]]> & {
+	options: RepositoryOptions<TModel, TId | readonly [TId, TId, ...TId[]]> & {
 		readonly versionColumn?: string;
 		readonly conflictColumns?: readonly string[];
 		readonly conflictWhere?: Readonly<Record<string, unknown>>;
 	},
 ): Effect.Effect<unknown, RepositoryBuildError, SqlClient.SqlClient> {
 	return Effect.fnUntraced(function* () {
-		const idColumns = (typeof options.idColumn === "object" ? options.idColumn : [options.idColumn]).map(String);
-		yield* refuseServerOnlyKeys(options.tableName, idColumns, model.fields, options.collection?.tuples);
-		yield* validateRepositoryCollection(model.fields, options);
-		const changes = yield* repositoryChanges(options.tableName, idColumns, model.fields, options.collection?.tuples);
-		const recordRead = makeRecordRead(model, { idColumns, tableName: options.tableName, tuples: options.collection?.tuples });
+		const resolved = resolveRepositoryOptions(options);
+		const { idColumn, tableName } = resolved;
+		const idColumns = (typeof idColumn === "object" ? idColumn : [idColumn]).map(String);
+		yield* refuseServerOnlyKeys(tableName, idColumns, model.fields, options.collection?.tuples);
+		yield* validateRepositoryCollection(model.fields, resolved);
+		const changes = yield* repositoryChanges(tableName, idColumns, model.fields, options.collection?.tuples);
+		const recordRead = makeRecordRead(model, { idColumns, tableName, tuples: options.collection?.tuples });
 		const crud = {
-			...(yield* makeCompositeCrud(model, { ...options, columns: idColumns, recordRead }, changes)),
-			deleteBatched: yield* makeBatchedDelete(model, options, changes),
+			...(yield* makeCompositeCrud(model, { ...resolved, columns: idColumns, recordRead }, changes)),
+			deleteBatched: yield* makeBatchedDelete(model, resolved, changes),
 		};
-		const queries = yield* makeQueries(model, { ...options, recordRead });
+		const queries = yield* makeQueries(model, { ...resolved, recordRead });
 		return {
 			...crud,
 			...queries,
 			...(options.versionColumn === undefined
 				? {
-						insertFromSelect: yield* makeInsertFromSelect(model, { ...options, changes }, "insertFromSelect"),
-						insertMany: yield* makeInsertMany(model, { ...options, changes }, "insertMany"),
+						insertFromSelect: yield* makeInsertFromSelect(model, { ...resolved, changes }, "insertFromSelect"),
+						insertMany: yield* makeInsertMany(model, { ...resolved, changes }, "insertMany"),
 						...(options.conflictColumns === undefined
 							? {}
-							: yield* makeConflictWrites(model, { ...options, changes, conflictColumns: options.conflictColumns, idColumns })),
+							: yield* makeConflictWrites(model, { ...resolved, changes, conflictColumns: options.conflictColumns, idColumns })),
 					}
 				: yield* makeVersionedWrites(model, {
-						...options,
+						...resolved,
 						changes,
-						conflict: (id, expectedVersion, reason) => new OptimisticConcurrencyError({ expectedVersion, id, reason, tableName: options.tableName }),
+						conflict: (id, expectedVersion, reason) => new OptimisticConcurrencyError({ expectedVersion, id, reason, tableName }),
 						idColumns,
 						versionColumn: options.versionColumn,
 					})),

@@ -344,7 +344,7 @@ const refused = Rename.reject.Invalid({ field: "title", message: "Enter a title"
 const missing = Get.reject.NoteMissing({ id: 9 });
 ```
 
-`invalid` is the generated class instance. `refused` and `missing` are failed Effects, with the corresponding rejection in their error channel. Each operation also exposes `payload`, `success` and `error`, so another boundary can use its schemas directly. A handler returning an undeclared rejection fails compilation.
+`invalid` is the generated class instance. `refused` and `missing` are failed Effects, with the corresponding rejection in their error channel. Each operation also exposes `payload`, `success` and `error`, so another boundary can use its schemas directly. A handler may fail with its declared rejections or with an error that one of the contract's RPC middleware declares, as native `Rpc` handlers do; failing with any other error fails compilation.
 
 ### 2. Once per host: native handlers and transport
 

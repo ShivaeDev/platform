@@ -9,3 +9,5 @@ export const LIVE_SYNC: string = LIVE_SYNC_TAG;
 
 // The browser's copy of the sync command: the host's declaration in LiveSync.ts is an operation file, which a browser bundle refuses.
 export const liveSyncRpc = RpcGroup.make(Rpc.make(LIVE_SYNC_TAG, { success: Schema.Void }).annotate(CommandInvalidation, { invalidates: () => [] }));
+
+export type LiveSyncRpc = RpcGroup.Rpcs<typeof liveSyncRpc>;

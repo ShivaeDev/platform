@@ -7,7 +7,7 @@ export const postgresStream = Effect.fn("Sql.postgresStream")(function* (
 	address: Pick<PgPoolConfig, "host" | "port">,
 ) {
 	const disconnected = new Set<Promise<void>>();
-	// Native pool shutdown sends Terminate without waiting for its sockets to close.
+	// Native pool shutdown destroys each socket once its Terminate flushes, after release has returned, so closing waits for that.
 	yield* Effect.addFinalizer(() => Effect.promise(() => Promise.all([...disconnected])));
 	return () => {
 		const target = new URL(Redacted.value(url));

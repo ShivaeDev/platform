@@ -38,7 +38,7 @@ A stored model can carry a value only the server may hold, such as a provider re
 
 `src/modules/bookmarks/server/Repository.ts` defines `StoredItem` with the public fields, `...Model.fields(Item)`, plus `userId: bucket(Schema.String)`, importing `bucket` from `@shivaedev/changes/buckets.ts`, as `StoredNote` in [the notes repository](../../examples/starter/src/modules/notes/server/Repository.ts) does. Notes allows a null owner; the bookmarks table requires one. The owner stays in the stored model and out of the public JSON model, and the bucket metadata lets repository writes announce changes to each affected owner's list.
 
-It calls `makeRepository(StoredItem, { collection: keys, idColumn: "id", spanPrefix: "Bookmarks", tableName: "bookmarks" })` from `@shivaedev/sql/repository.ts`; its insert and query shapes come from the stored model, so there is no second ORM description. `defineRepository` from `@shivaedev/sql/defineRepository.ts` gives it its own service, `BookmarksRepository`, which operations yield, as the [sql guide](../../packages/sql/README.md#share-a-tables-repository-and-domain-reads-between-services) shows.
+It calls `makeRepository(StoredItem, { collection: keys })` from `@shivaedev/sql/repository.ts`. The `bookmarks` collection names the table, the model's `id` field keys its rows, and its operation spans are named after the table, such as `bookmarks.findById`; its insert and query shapes come from the stored model, so there is no second ORM description. `defineRepository` from `@shivaedev/sql/defineRepository.ts` gives it its own service, `BookmarksRepository`, which operations yield, as the [sql guide](../../packages/sql/README.md#share-a-tables-repository-and-domain-reads-between-services) shows.
 
 ## 4. Write the operations
 

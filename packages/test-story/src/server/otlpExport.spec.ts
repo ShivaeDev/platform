@@ -48,7 +48,7 @@ for (const [format, contentType] of [
 				},
 			],
 			resourceAttributes: expect.arrayContaining([{ key: "service.name", value: { stringValue: "story-exporter" } }]),
-			status: { code: 1 },
+			status: { code: 0 },
 		});
 	});
 

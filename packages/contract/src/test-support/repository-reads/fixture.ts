@@ -22,8 +22,8 @@ export const books = collection("library_books", Schema.Number, { shelf: Schema.
 const readerRows = collection("library_readers", Schema.String);
 const loans = collection("library_loans", Schema.Number, { reader: Schema.String });
 
-export const makeBooks = makeRepository(StoredBook, { collection: books, idColumn: "id", spanPrefix: "LibraryBooks", tableName: "library_books" });
-export const makeLoans = makeRepository(StoredLoan, { collection: loans, idColumn: "id", spanPrefix: "LibraryLoans", tableName: "library_loans" });
+export const makeBooks = makeRepository(StoredBook, { collection: books });
+export const makeLoans = makeRepository(StoredLoan, { collection: loans });
 export const makeReaders = makeRepository(StoredReader, { idColumn: "name", spanPrefix: "LibraryReaders", tableName: "library_readers" });
 
 export class Library extends Context.Service<

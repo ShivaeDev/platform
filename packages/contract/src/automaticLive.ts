@@ -1,12 +1,13 @@
-import { Cause, Effect, Option, type Schema, Stream } from "effect";
+import { Cause, Effect, Option, Stream } from "effect";
 import type { Headers } from "effect/http";
 import type * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as Atom from "effect/reactivity/Atom";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import type * as AtomRpc from "effect/reactivity/AtomRpc";
-import type { Rpc, RpcSchema } from "effect/rpc";
+import type { Rpc } from "effect/rpc";
 import type { Key } from "@shivaedev/changes/keys.ts";
 import type { BindingOwner } from "#adapters/bindingOwner.ts";
+import { changesClient } from "#adapters/erasedClient.ts";
 import { aggregateLiveStatus } from "#aggregateLiveStatus.ts";
 import { automaticQuery } from "#automaticQuery.ts";
 import { clientActivities } from "#clientActivities.ts";
@@ -14,7 +15,6 @@ import { type LiveStatus, live } from "#live.ts";
 import { queryDelivery } from "#queryDelivery.ts";
 import { queryProgress } from "#queryProgress.ts";
 import { querySignals, shareQuerySignals } from "#querySignals.ts";
-import type { QueryUpdate } from "#queryUpdate.ts";
 import { followReflection, type StreamAnchor } from "#reflectedStream.ts";
 import { type ResumeSource, type ResumeWindow, resumeSignal } from "#resume.ts";
 import { socketIdentity } from "#rpcClient.ts";
@@ -34,25 +34,15 @@ export interface LiveBound {
 
 const pausedByRuntime = Atom.family((_runtime: object) => Atom.keepAlive(Atom.make(false)));
 
-export type ChangesClient = AtomRpc.AtomRpcClient<
-	unknown,
-	string,
-	Rpc.Rpc<
-		`${string}.$changes`,
-		Schema.Struct<{ queries: Schema.$Array<Schema.Struct<{ query: Schema.String; payload: Schema.Unknown }>> }>,
-		RpcSchema.Stream<Schema.Schema<QueryUpdate>, Schema.Unknown>,
-		Schema.Never
-	>
->;
-
 export function automaticLive(
-	service: ChangesClient,
+	operations: AtomRpc.AtomRpcClient<unknown, string, Rpc.Any>,
 	name: string,
 	owner?: BindingOwner,
 	resume?: ResumeSource,
 	enabled = true,
 	resumeWindow?: ResumeWindow,
 ) {
+	const service = changesClient(operations);
 	function ownerFailure(get: Atom.AtomContext) {
 		return owner !== undefined && owner.registry !== get.registry ? new Error("A session-scoped query belongs to its binding registry") : undefined;
 	}

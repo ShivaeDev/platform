@@ -23,7 +23,7 @@ function get<const TName extends string>(name: TName) {
 	});
 }
 export const Api = contract("sessionNotes", { keyScope: "session", queries: [get("get"), get("compared")] }).middleware(Authenticated);
-export const repository = makeRepository(Note, { collection: notes, idColumn: "id", spanPrefix: "SessionNotes", tableName: notes.name });
+export const repository = makeRepository(Note, { collection: notes });
 export const migrations = {
 	loader: Migrator.fromRecord({
 		"1_session_notes": Effect.gen(function* () {
