@@ -59,7 +59,7 @@ export function handlers(reads: ReadGate) {
 					if (reject) {
 						return yield* new Conflict({ message: `${title} is refused` });
 					}
-				}).pipe(transact({ onSqlError: (error) => error }), Effect.catchTag("SqlError", Effect.die));
+				}).pipe(transact(), Effect.catchTag("SqlError", Effect.die));
 			}
 			return {
 				"entries.add": ({ reject, titles }) => Effect.forEach(titles, (title) => add(title, reject), { discard: true }),

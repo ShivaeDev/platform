@@ -54,7 +54,7 @@ export function abortHandlers(state: ClientAbortState) {
 		changed(state);
 		yield* Effect.never;
 	}).pipe(
-		transact({ onSqlError: (error) => error }),
+		transact(),
 		Effect.orDie,
 		Effect.onExit((exit) =>
 			Effect.sync(() => {
@@ -70,7 +70,7 @@ export function abortHandlers(state: ClientAbortState) {
 				const sql = yield* SqlClient.SqlClient;
 				yield* sql`insert into ${sql(state.table)} values ('committed')`;
 				yield* invalidateOnCommit([CHANGED_KEY]);
-			}).pipe(transact({ onSqlError: (error) => error }), Effect.orDie),
+			}).pipe(transact(), Effect.orDie),
 		hold: () => transaction,
 		reject: () => Effect.fail("rejected"),
 		rows: () => SqlClient.SqlClient.use((sql) => sql<{ value: string }>`select value from ${sql(state.table)}`).pipe(Effect.orDie),

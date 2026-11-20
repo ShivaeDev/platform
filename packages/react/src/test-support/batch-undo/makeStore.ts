@@ -45,7 +45,7 @@ export const makeStore = Effect.gen(function* () {
 	});
 	function change(input: typeof Input.Type) {
 		return (input._tag === "undo" ? restore(input.token) : edit(input)).pipe(
-			transact({ onSqlError: (error) => error }),
+			transact(),
 			Effect.catchTags({ NoSuchElementError: Effect.die, SchemaError: Effect.die, SqlError: Effect.die }),
 			Effect.provideContext(services),
 		);

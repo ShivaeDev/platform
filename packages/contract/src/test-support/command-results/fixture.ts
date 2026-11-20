@@ -87,7 +87,7 @@ export const handlers = Pots.application.toLayer(
 						return yield* Effect.die("Missing pot");
 					}
 					return result;
-				}).pipe(transact({ onSqlError: (error) => error }), Effect.catchTag("SqlError", Effect.die)),
+				}).pipe(transact(), Effect.catchTag("SqlError", Effect.die)),
 		};
 	}),
 );

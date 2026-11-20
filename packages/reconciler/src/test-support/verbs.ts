@@ -12,7 +12,7 @@ export function verbs(engine: Engine) {
 			if (rollback) {
 				return yield* Effect.fail("rolled back");
 			}
-		}).pipe(transact({ onSqlError: (error) => error }));
+		}).pipe(transact());
 	}
 	return {
 		advance: (duration: Duration.Input) => TestClock.adjust(duration),
@@ -24,7 +24,7 @@ export function verbs(engine: Engine) {
 			Effect.gen(function* () {
 				yield* engine.sql`update tasks set due = null where id = 1`;
 				yield* changes({ tasks: [tasks.item(1)] }).record();
-			}).pipe(transact({ onSqlError: (error) => error })),
+			}).pipe(transact()),
 		close: (name: string) => Scope.close(workerByName(engine, name).scope, Exit.void),
 		commit: (title: string) => edit(title),
 		dueIn: (millis: number) =>
@@ -32,7 +32,7 @@ export function verbs(engine: Engine) {
 				const now = yield* Clock.currentTimeMillis;
 				yield* engine.sql`update tasks set due = ${now + millis} where id = 1`;
 				yield* changes({ tasks: [tasks.item(1)] }).record();
-			}).pipe(transact({ onSqlError: (error) => error })),
+			}).pipe(transact()),
 		failed: (name: string) => waitForFailure(workerByName(engine, name)),
 		failure: (name: string) =>
 			Effect.gen(function* () {

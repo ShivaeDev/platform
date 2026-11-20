@@ -90,7 +90,7 @@ const engine = Effect.gen(function* () {
 		noteIsWritten: () =>
 			SqlClient.SqlClient.use((sql) => sql`insert into notes values (1)`).pipe(
 				Effect.andThen(invalidateOnCommit([notes.item(1)])),
-				transact({ onSqlError: (error) => error }),
+				transact(),
 				Effect.provideContext(services()),
 			),
 		startupOutcome,

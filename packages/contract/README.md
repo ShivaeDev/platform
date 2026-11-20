@@ -552,7 +552,7 @@ const move = ({ id, household }) =>
 			result: pot,
 			invalidates: [...before, ...after].map((viewerId) => pots.bucket.viewerId(viewerId)),
 		});
-	}).pipe(transact({ onSqlError: (error) => error }));
+	}).pipe(transact());
 ```
 
 Here `audienceFor` reads household members and people who ate from the pot from the application's database, `movePot` performs the write, and `pots` declares a `viewerId` bucket. Read the audience after the write to include new readers, and retain the old audience when the write removes access. Each viewer's list reads its own bucket. Keep these reads and the write in the same transaction when they must describe one change.
