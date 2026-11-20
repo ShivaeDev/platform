@@ -784,13 +784,10 @@ Only the chosen columns are assigned, and the version increments once. Other val
 ```ts
 const orderedDays = yield* makeOrderedChildren(Day, {
  tableName: "days",
- idColumn: "id",
  parentColumn: "planId",
  parentTable: "plans",
- parentIdColumn: "id",
  positionColumn: "position",
  versionColumn: "version",
- spanPrefix: "Day",
 });
 
 yield* orderedDays.append(planId, { id: dayId, name: "Training" });
@@ -798,7 +795,7 @@ yield* orderedDays.move(planId, dayId, 0);
 yield* orderedDays.reorder(planId, [thirdDayId, dayId, secondDayId]);
 ```
 
-The native model declares the parent field and numeric position in its insert variant, and keeps its ID in select and update. When configured, the version field follows the versioned repository convention above. `append` supplies the parent and next position, starting at zero for an empty parent, and initializes the configured version to zero. `move` takes a zero-based destination and shifts siblings. `reorder` takes exactly the IDs currently under that parent, once each. These two operations assign positions in one statement without touching content or versions, so an existing versioned edit can still save. They fail with `ChildOrderError` from `@shivaedev/sql/orderedChildStatements.ts` for `membership` or `position`; a missing parent fails with `NoSuchElementError`.
+The native model declares the parent field and numeric position in its insert variant, and keeps its ID in select and update. Like a repository, the helper keys children by the model's `id` field and names its spans after the table, such as `days.reorder`; pass `idColumn` for a different key, which a model without an `id` field must do or the call does not compile, and `spanPrefix` to name the spans differently. It locks the parent row by the parent table's `id` column unless `parentIdColumn` names another. When configured, the version field follows the versioned repository convention above. `append` supplies the parent and next position, starting at zero for an empty parent, and initializes the configured version to zero. `move` takes a zero-based destination and shifts siblings. `reorder` takes exactly the IDs currently under that parent, once each. These two operations assign positions in one statement without touching content or versions, so an existing versioned edit can still save. They fail with `ChildOrderError` from `@shivaedev/sql/orderedChildStatements.ts` for `membership` or `position`; a missing parent fails with `NoSuchElementError`.
 
 The lock is held until the transaction commits, including when called inside `transact`. A concurrent reorder of that parent waits. Use these helpers for ordering writes under the same parent. The application owns the parent foreign key and DDL; if positions are unique within a parent, declare `UNIQUE (plan_id, position) DEFERRABLE INITIALLY DEFERRED` so positions can swap within the transaction.
 
@@ -1061,6 +1058,7 @@ Import the module that defines the name; there is no root entry.
 - `@shivaedev/sql/compositeRecordKey.ts`: `compositeRecordKey(model, { tableName, idColumn }, value)` — Encodes decoded composite key fields into the published record key.
 - `@shivaedev/sql/defineRepository.ts`: `defineRepository({ id, initialize })` — Native Context service and `.layer` for a shared repository shape; the initializer's dependencies, errors and scoped resources belong to its Layer.
 - `@shivaedev/sql/repository.ts`: `makeRepository(model, options)` — `collection` (required for bucket models, and it names the table) or `tableName`, scalar or composite `idColumn` (defaults to `"id"` when the model has that field), `spanPrefix` (defaults to the table name), optional `versionColumn`, `conflictColumns` and `conflictWhere`; requires native `SqlClient`.
+- `@shivaedev/sql/makeOrderedChildren.ts`: `makeOrderedChildren(model, options)` — `tableName`, `parentColumn`, `parentTable` and `positionColumn`, `idColumn` (defaults to `"id"` when the model has that field), `parentIdColumn` (defaults to `"id"`), `spanPrefix` (defaults to the table name) and optional `versionColumn`; returns `append`, `move` and `reorder` and requires native `SqlClient`.
 - `@shivaedev/sql/RepositoryModels.ts`: `RepositoryModels` — Reference that `makeRepository` and `makeOrderedChildren` call with their model while they are built; the application host provides it to mask the model's sensitive fields in every diagnostic, and its default does nothing.
 - `@shivaedev/sql/repository.ts`: `OptimisticConcurrencyError` — Typed stale or missing-row failure for versioned writes, with `tableName`, `id`, `expectedVersion`, `reason: "missing" | "stale"`.
 - `@shivaedev/sql/tupleIn.ts`: `tupleIn(model, fields, tuples, types)` — Filter entry matching two or more fields together against a list of tuples, for `where` in reads and unversioned deletes.

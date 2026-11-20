@@ -1,4 +1,4 @@
-import { Effect, Schema } from "effect";
+import { Effect, Layer, Schema, Tracer } from "effect";
 import { Model } from "effect/schema";
 import { SqlClient } from "effect/sql";
 import { makeOrderedChildren } from "#makeOrderedChildren.ts";
@@ -25,12 +25,22 @@ export const orderedDaysEngine = Effect.fnUntraced(function* () {
 		position integer not null, version integer not null, unique(plan, position) deferrable initially deferred`,
 	);
 	yield* sql`insert into ${sql(parentTable)} (id) values (1), (2)`;
-	const options = { idColumn: "id", spanPrefix: "Day", tableName, versionColumn: "version" } as const;
+	const spans: string[] = [];
+	const tracer = Tracer.make({
+		span: (options) => {
+			spans.push(options.name);
+			return new Tracer.NativeSpan(options);
+		},
+	});
 	return {
-		days: yield* makeRepository(Day, options),
-		order: yield* makeOrderedChildren(Day, { ...options, parentColumn: "plan", parentIdColumn: "id", parentTable, positionColumn: "position" }),
+		days: yield* makeRepository(Day, { idColumn: "id", spanPrefix: "Day", tableName, versionColumn: "version" }),
+		// Left to their defaults, the ID and parent ID columns are both id and the spans are named after the table.
+		order: yield* makeOrderedChildren(Day, { parentColumn: "plan", parentTable, positionColumn: "position", tableName, versionColumn: "version" }),
 		parentTable,
+		spans,
 		sql,
+		tableName,
+		traced: Layer.succeed(Tracer.Tracer, tracer),
 	};
 });
 

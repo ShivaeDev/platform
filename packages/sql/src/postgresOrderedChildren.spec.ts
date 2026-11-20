@@ -34,6 +34,21 @@ orderedDays.it("moving a child shifts sibling positions without changing their v
 	expect(yield* readDays()).toEqual(reordered);
 });
 
+orderedDays.it(
+	"ordered children given only their table, parent and position columns key children and the parent by id and name their spans after the table",
+	[daysStored()],
+	function* ({ append, move, orderSpans, readDays, reorder }) {
+		yield* append(1, 5);
+		yield* move(1, 5, 0);
+		yield* reorder([1, 2, 3, 5]);
+
+		yield* outcomes([
+			["plan one's stored days", () => readDays(), [...original, { id: 5, name: "Day 5", position: 3, version: 0 }]],
+			["ordering spans", () => orderSpans(), ["days.append", "days.move", "days.reorder"]],
+		]);
+	},
+);
+
 orderedDays.it("appending a child places it after its parent's children at version zero", [daysStored()], function* ({ append, readDays }) {
 	yield* append(1, 5);
 

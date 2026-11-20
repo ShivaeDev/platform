@@ -36,3 +36,15 @@ it("the ID column defaults to id and keys the repository by it, while a model wi
 	// @ts-expect-error Setting has no id field, so its repository must name its ID column.
 	makeRepository(Setting, { tableName: "settings" });
 });
+
+class Tag extends Model.Class<Tag>("Tag")({
+	id: Schema.Number,
+	slug: Schema.String,
+}) {}
+
+it("a model with id and another key column keys its repository by id unless it names the other column", () => {
+	const byDefault = Effect.map(makeRepository(Tag, { tableName: "tags" }), (repository) => repository.findById);
+	expectTypeOf<Parameters<Effect.Success<typeof byDefault>>[0]>().toEqualTypeOf<number>();
+	const bySlug = Effect.map(makeRepository(Tag, { idColumn: "slug", tableName: "tags" }), (repository) => repository.findById);
+	expectTypeOf<Parameters<Effect.Success<typeof bySlug>>[0]>().toEqualTypeOf<string>();
+});

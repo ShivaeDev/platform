@@ -5,6 +5,7 @@ import type { SqlError } from "effect/sql/SqlError";
 import { storageSchema } from "#adapters/storageSchema.ts";
 import { type ChildOrderError, orderedChildStatements } from "#orderedChildStatements.ts";
 import { repositoryChanges } from "#repositoryChanges.ts";
+import { type RepositoryKey, resolveRepositoryOptions } from "#repositoryCollection.ts";
 import { sqlNameTransforms } from "#sqlNameTransforms.ts";
 import type { IdColumn, VersionColumn } from "#versionedRepository.ts";
 
@@ -15,29 +16,28 @@ type Position<TModel extends Model.Any> = {
 
 export const makeOrderedChildren = Effect.fn("Sql.makeOrderedChildren")(function* <
 	TModel extends Model.Any,
-	const TId extends Extract<IdColumn<TModel>, string>,
 	const TParent extends Column<TModel>,
 	const TPosition extends Position<TModel>,
+	const TId extends Extract<IdColumn<TModel>, string> = Extract<Extract<IdColumn<TModel>, string>, "id">,
 >(
 	model: TModel,
-	options: {
-		readonly idColumn: TId;
+	options: RepositoryKey<TModel, TId> & {
 		readonly parentColumn: TParent;
 		readonly parentTable: string;
-		readonly parentIdColumn: string;
+		readonly parentIdColumn?: string;
 		readonly positionColumn: TPosition;
-		readonly spanPrefix: string;
 		readonly tableName: string;
 		readonly versionColumn?: VersionColumn<TModel, TId>;
 	},
 ) {
 	const sql = yield* SqlClient.SqlClient;
 	const nameTransforms = yield* sqlNameTransforms;
-	const changes = yield* repositoryChanges(options.tableName, [options.idColumn], model.fields);
-	const statements = yield* orderedChildStatements(model, options, changes);
+	const resolved = { ...resolveRepositoryOptions(options), parentIdColumn: options.parentIdColumn ?? "id" };
+	const changes = yield* repositoryChanges(resolved.tableName, [resolved.idColumn], model.fields);
+	const statements = yield* orderedChildStatements(model, resolved, changes);
 	const encode = Schema.encodeEffect(storageSchema(model.insert, model.fields, nameTransforms));
 	const decode = Schema.decodeUnknownEffect(storageSchema(model, model.fields, nameTransforms));
-	const { parentColumn, positionColumn, versionColumn, tableName, spanPrefix } = options;
+	const { parentColumn, positionColumn, versionColumn, tableName, spanPrefix } = resolved;
 	function append(
 		parent: TModel["fields"][TParent]["Type"],
 		input: Omit<TModel["insert"]["Type"], TParent | TPosition>,
