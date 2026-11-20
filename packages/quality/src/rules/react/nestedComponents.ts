@@ -21,7 +21,7 @@ export const nestedComponents = defineRule({
 							: `Component ${name.text} is defined inside another function. ${COMPONENT_REPAIR}`,
 					}));
 		}),
-	description: `Components and hooks are defined at module level. A component is a PascalCase function or class that returns JSX, or one rendered as an element, passed as a JSX attribute or given to createElement; a hook is a function named use followed by a capital letter or digit. ${COMPONENT_REPAIR} A PascalCase key whose function returns no JSX, such as a failure handler keyed by an error tag, is not a component.`,
+	description: `Components and hooks are defined at module level. A component is a PascalCase function or class that returns JSX (directly, in a branch or an array, through a const that holds it, from a callback such as the one given to .map, or through createElement), or one that the same function renders as an element, passes as a JSX attribute value or gives to createElement; a hook is a function named use followed by a capital letter or digit. ${COMPONENT_REPAIR} A PascalCase key whose function returns no JSX, such as a failure handler keyed by an error tag, is not a component.`,
 	id: "react/nested-components",
 	registrable: false,
 });

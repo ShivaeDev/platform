@@ -18,21 +18,29 @@ export function unwrapped(node: ts.Expression): ts.Expression {
 	return inner === undefined ? node : unwrapped(inner);
 }
 
-function rendersJsx(node: ts.Expression): boolean {
+const NOTHING_HELD: ReadonlySet<string> = new Set();
+
+function rendersJsx(node: ts.Expression, held: ReadonlySet<string> = NOTHING_HELD): boolean {
 	const value = unwrapped(node);
 	if (ts.isJsxElement(value) || ts.isJsxSelfClosingElement(value) || ts.isJsxFragment(value)) {
 		return true;
 	}
+	if (ts.isIdentifier(value)) {
+		return held.has(value.text);
+	}
 	if (ts.isConditionalExpression(value)) {
-		return rendersJsx(value.whenTrue) || rendersJsx(value.whenFalse);
+		return rendersJsx(value.whenTrue, held) || rendersJsx(value.whenFalse, held);
 	}
 	if (ts.isBinaryExpression(value)) {
-		return rendersJsx(value.left) || rendersJsx(value.right);
+		return rendersJsx(value.left, held) || rendersJsx(value.right, held);
 	}
 	if (ts.isArrayLiteralExpression(value)) {
-		return value.elements.some(rendersJsx);
+		return value.elements.some((element) => rendersJsx(element, held));
 	}
-	return ts.isCallExpression(value) && (calleeName(value) === "createElement" || value.arguments.some(rendersJsx));
+	if (ts.isArrowFunction(value) || ts.isFunctionExpression(value)) {
+		return returnsJsx(value);
+	}
+	return ts.isCallExpression(value) && (calleeName(value) === "createElement" || value.arguments.some((argument) => rendersJsx(argument, held)));
 }
 
 export function returnsJsx(definition: Definable): boolean {
@@ -44,17 +52,21 @@ export function returnsJsx(definition: Definable): boolean {
 	if (definition.body === undefined || !ts.isBlock(definition.body)) {
 		return definition.body !== undefined && rendersJsx(definition.body);
 	}
-	let found = false;
+	const held = new Set<string>();
+	const returned: ts.Expression[] = [];
 	function visit(node: ts.Node): void {
-		if (ts.isReturnStatement(node) && node.expression !== undefined && rendersJsx(node.expression)) {
-			found = true;
+		if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name) && node.initializer !== undefined && rendersJsx(node.initializer, held)) {
+			held.add(node.name.text);
 		}
-		if (!(found || ts.isFunctionLike(node) || ts.isClassLike(node))) {
+		if (ts.isReturnStatement(node) && node.expression !== undefined) {
+			returned.push(node.expression);
+		}
+		if (!(ts.isFunctionLike(node) || ts.isClassLike(node))) {
 			ts.forEachChild(node, visit);
 		}
 	}
 	ts.forEachChild(definition.body, visit);
-	return found;
+	return returned.some((expression) => rendersJsx(expression, held));
 }
 
 export function renderedReference(node: ts.Node): ts.Identifier | undefined {

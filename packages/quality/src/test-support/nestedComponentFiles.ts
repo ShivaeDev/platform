@@ -63,6 +63,16 @@ export const nestedRejected = [
 		message: nested("Sheet"),
 		name: "a component that returns a portal of JSX",
 	},
+	{
+		code: "function useList() { const List = (p) => p.items.map((i) => <li key={i} />); return List; }",
+		message: nested("List"),
+		name: "a component that returns mapped elements, which a hook returns",
+	},
+	{
+		code: "function Screen() { const List = () => { const el = <li />; return el; }; return <Md components={{ List }} />; }",
+		message: nested("List"),
+		name: "a component that returns JSX held in a const, passed inside an object",
+	},
 	{ code: "function Screen() { const Row = memo(() => <li />); return <ul />; }", message: nested("Row"), name: "a memo-wrapped component" },
 	{
 		code: "function Screen() { const Row = forwardRef((p, ref) => <li ref={ref} />); return <ul />; }",
