@@ -21,6 +21,7 @@ import { shareQuerySignals } from "#querySignals.ts";
 import { type CommandObserver, reflectCommand } from "#reflectCommand.ts";
 import { retainQuery } from "#retainQuery.ts";
 import { subjectSerializationKey, withSubject } from "#subjectHeader.ts";
+import { warmQueries } from "#warmQueries.ts";
 
 // `runtime.fn(api.save.run)` passes its function context as the second argument, so only an options object selects a subject.
 function runSubject(options: unknown): string | undefined {
@@ -71,7 +72,10 @@ export function clientOperations(
 					(source) => ordinaryClient.runtime.factory.withReactivity(clientReadKeys(dependencies, owner?.context))(source),
 					headers,
 				);
-				const tracked = retainQuery(ordinaryClient.runtime, clientActivities.get(ordinaryClient)?.watch(result) ?? result);
+				function warm(get: Atom.AtomContext): boolean {
+					return get.once(warmQueries).has(tracked);
+				}
+				const tracked = retainQuery(ordinaryClient.runtime, clientActivities.get(ordinaryClient)?.watch(result, warm) ?? result);
 				shareQuerySignals(tracked, result);
 				cached.set(atom, tracked);
 				return tracked;

@@ -64,5 +64,6 @@ function notesModule(client: NotesClient, admin: AdminClient) {
 			});
 			return [parent.addChildren([notes, note]), ...adminRegistration(admin).routes(routeContext)];
 		},
+		warm: [client.api.list.query()],
 	};
 }

@@ -80,3 +80,18 @@ firstSettledScreens.it(
 		expect(yield* signal()).toBe(SETTLED);
 	},
 );
+
+firstSettledScreens.it(
+	"a warm query that no screen reads does not hold back useFirstSettled while it waits for its first result",
+	[aliceOpens("title and author", "count")],
+	function* ({ activity, answers, signal }) {
+		yield* answers("title", "Groceries");
+
+		yield* answers("author", "alice");
+
+		yield* outcomes([
+			["client activity", () => activity(), { commands: 0, initialQueries: 1 }],
+			["signal", () => signal(), SETTLED],
+		]);
+	},
+);
