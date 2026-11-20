@@ -18,6 +18,13 @@ export default defineConfig({
 			"rules": ["biome/files/includes"],
 		},
 		{
+			"files": ["packages/sql/src/loadMigrationsIn.typecheck.test.ts"],
+			"reason":
+				"The type test proves that a call written for the removed migrationsFromDirectory module no longer compiles, so its import must not resolve.",
+			"rules": ["imports/resolvable"],
+			"subject": "#migrationsFromDirectory.ts",
+		},
+		{
 			"files": ["packages/test/src/types.ts"],
 			"reason":
 				"test declares the shared test Layer bound. Layer's output slot is contravariant, so a never-only bound contextually types the caller's Layer.succeed so its service infers as never and the harness loses its types. any preserves service inference, and the never-output member accepts Layers that provide nothing, such as Layer.empty.",
