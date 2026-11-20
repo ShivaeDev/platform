@@ -5,6 +5,7 @@ import type { ReactElement } from "react";
 import { PermissionBoundaryError } from "@shivaedev/react/adapters/permissionBoundary.ts";
 import { signInRedirect } from "@shivaedev/react/adapters/signInRedirect.ts";
 import type { AppSession, AuthActions } from "#client/adapters/auth.ts";
+import { navigateTo } from "#client/adapters/navigateTo.ts";
 import { Shell } from "#client/adapters/Shell.tsx";
 import { Home } from "#client/Home.tsx";
 import { LoginScreen } from "#client/LoginScreen.tsx";
@@ -43,7 +44,7 @@ export const appRouter = Effect.fnUntraced(function* <TRoute extends AnyRoute>(
 			adminPages,
 			auth,
 			modules: client.modules,
-			navigate: (to) => void router.navigate({ href: to }),
+			navigate: (to) => navigateTo(router, to),
 			redirects: { signedOut: signInRedirect("/sign-in") },
 			registry,
 			session,

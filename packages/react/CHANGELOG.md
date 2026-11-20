@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.52.0 - 2026-11-20
+
+### Added
+
+- `authSession(read, { remember: browserSessionMemory })` answers at once with the remembered session, marked as refreshing, and checks the session in the background, so `SessionBoundary` renders and the live socket opens while the check is on the wire. The same user keeps the generation with refreshed permissions, another user starts a new one, a signed-out answer wipes the memory before the signed-out screen renders, a failed check keeps the remembered session rendering, and past the remembered expiry the launch waits for the check. With `remember`, the session's value is `RememberedSession | null`.
+- with `remember`, the session has `signOut(request)`, which wipes the memory as soon as the sign-out request succeeds, so a relaunch starts without a remembered session even when the session check after the sign-out never answers.
+- `SessionBoundary` takes `warm`, a function of the session's client that returns bound query atoms, such as `warm={(client) => [client.water.day.query({ date }), client.notes.list.query()]}`. Each listed query is mounted in the session's registry when the generation commits and stays subscribed until sign-out, another user or unmount, so a screen that reads it later renders its current value in its first render, also after a long idle stretch. The list is read again on every render and compared by atom identity: a changed payload opens the new query and hands the old one to retention. A warm query that no screen reads does not hold back `useFirstSettled`. Each listed query holds one subscription on the host for the whole session. Delete components that only mounted queries to keep them warm and list those queries instead.
+
+### Changed
+
+- `PermissionBoundary` runs the router's guards again when the grants of its session change without a navigation, so a screen that needs a removed grant is replaced by the refusal.
+
 ## 0.51.0 - 2026-11-20
 
 ### Added

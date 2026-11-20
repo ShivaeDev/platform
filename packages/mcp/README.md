@@ -167,6 +167,7 @@ When Better Auth uses a dynamic `baseURL`, give it a `fallback`, for example `{ 
 By default verification fetches the authorization server's JWKS URL. Pass `jwks` to use an in-process public key source instead, including on story hosts whose public origin has no HTTP route:
 
 ```ts
+// In a module under adapters/, because getJwks returns Better Auth's Promise.
 const oauth = yield* betterAuthMcp({
 	auth: mounted.auth,
 	resource,
