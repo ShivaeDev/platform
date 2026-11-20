@@ -102,7 +102,7 @@ const hosts = Effect.gen(function* () {
 });
 ```
 
-A module defined with `defineModule` from `@shivaedev/contract/defineModule.ts` registers as `module:`, and the host builds its group and its handlers with `moduleHandlers`. Its `services` provide what the module's `requires` lists, except the SQL client and the other services the host provides. A module written as a contract with hand-written handlers registers as `group` plus `handlers`; that form is being retired, and both forms can sit in one application while it moves one module at a time:
+A module defined with `defineModule` from `@shivaedev/contract/defineModule.ts` registers as `module:`, and the host builds its group and its handlers with `moduleHandlers`. Its `services` provide what the module's `requires` lists, except the SQL client and the other services the host provides. An RPC group that is not a defined module, such as a contract served by hand-written handlers, registers as `group` plus `handlers` instead, and both kinds sit in one application's module list:
 
 ```ts
 import { Layer } from "effect";
@@ -340,7 +340,7 @@ For a deployment behind a proxy, set `HOST=0.0.0.0` and `TRUSTED_PROXY` to a com
 
 When mounting Better Auth routes yourself on Railway, use `betterAuthMount(authOptions, { clientIp: "railway" })` from `@shivaedev/identity/server/better-auth/adapters/mount.ts` with `TRUSTED_PROXY=100.64.0.0/10`. The `clientIp` preset selects `X-Real-IP` for auth and ignores spoofed `X-Forwarded-For`, overriding `AUTH_CLIENT_IP_HEADER`. Untrusted peers and requests without `X-Real-IP` use the connection address.
 
-Build application handlers with `Api.application.toLayer(...)` (and `Api.application.of(...)` for an Effect-built handler map), then pass the full `Api` to the host and client. `Api.application` is the native RPC group without the reserved `$changes` stream; the host supplies that handler. The explicit `Api.omit("<namespace>.$changes")` form also works.
+A host given an RPC group directly, rather than the `appModules` result, takes handlers for that group: build them with `Api.application.toLayer(...)` (and `Api.application.of(...)` for an Effect-built handler map), then pass the full `Api` to the host and client. `Api.application` is the native RPC group without the reserved `$changes` stream; the host supplies that handler. The explicit `Api.omit("<namespace>.$changes")` form also works.
 
 Set `LISTEN_DATABASE_URL` to a direct or session-mode connection when `DATABASE_URL` uses a transaction pooler. `config.listenDatabaseUrl` overrides that setting; when neither is set, the listener shares the application pool. Both URLs must reach the same database. A separate listener pool reserves one connection; the application pool continues to own migrations, writes and heartbeat publication. Startup waits for the listener to receive its own heartbeat. A timeout fails the host with `PostgresListenerError` from `@shivaedev/sql/PostgresListenerError.ts`, naming the selected connection setting. Fix the URL before restarting; a startup timeout does not fall back to periodic reconnects. Established listeners retain their reconnect and Resync behavior.
 
