@@ -70,7 +70,7 @@ class Described extends Schema.TaggedError<Described>()("Described", { message: 
 const saveConflict = (values: { readonly title: string }) => Effect.fail(new Conflict({ message: values.title }));
 
 export const useOptionalFieldExample = () => {
-	// @ts-expect-error An optional field typed wider than the form's field names needs an explicit rejectField.
+	// A plain string field may name anything, so the default mapping handles it and reports other names as the save failure.
 	const unmapped = useCreate({ fields, initialValues: { title: "" }, create: saveConflict, runtime });
 	const mapped = useCreate({
 		fields,
