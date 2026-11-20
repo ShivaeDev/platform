@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.17.7 - 2026-11-20
+
+### Fixed
+
+- a rate-limit reset header past the last date a `DateTime` holds no longer fails the request with a defect. The client records no budget from it, and a spent-budget refusal backs off as if no reset had been sent.
+
 ## 0.17.6 - 2026-11-20
 
 ### Changed

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.2 - 2026-11-20
+
+### Changed
+
+- Update `@shivaedev/heavy-lock` from 0.11.3 to 0.11.4.
+- Update `@shivaedev/quality` from 0.78.6 to 0.79.0.
+
 ## 0.3.1 - 2026-11-20
 
 ### Changed

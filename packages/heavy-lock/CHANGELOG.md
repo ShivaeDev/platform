@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.11.4 - 2026-11-20
+
+### Fixed
+
+- a waiter prints that the holder has held the lock since an unknown time when the holder's recorded start lies past the last date a `DateTime` holds, instead of failing.
+
 ## 0.11.3 - 2026-11-20
 
 ### Changed

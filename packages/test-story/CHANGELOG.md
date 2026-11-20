@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.50.0 - 2026-11-20
+
+### Breaking
+
+- `recordedSignals()` from `server/recordedSignals.ts` returns an Effect that builds the record, and `fakeHttpSignals` from `server/fakeHttpSignals.ts` is an Effect instead of a function: yield both. `screenMutations` from `server/adapters/screenMutations.ts` takes the `Queue` it offers each change to instead of a callback.
+
 ## 0.49.1 - 2026-11-20
 
 ### Changed
