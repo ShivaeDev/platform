@@ -3,8 +3,8 @@ import { type ClientActivityState, type ConnectionStatus, isClientSettled } from
 
 export function activityState() {
 	let held = 0;
-	let warmWaiting = 0;
-	let answered = false;
+	let excused = 0;
+	let screenRendered = false;
 	let connection: ConnectionStatus = "live";
 	const state = Effect.runSync(
 		SubscriptionRef.make<ClientActivityState>({
@@ -25,17 +25,17 @@ export function activityState() {
 		);
 	}
 	function latched(current: ClientActivityState): ClientActivityState {
-		const settled = isClientSettled({ ...current, initialQueries: current.initialQueries - warmWaiting });
-		return answered && !current.firstSettled && settled ? { ...current, firstSettled: true } : current;
+		const settled = isClientSettled({ ...current, initialQueries: current.initialQueries - excused });
+		return screenRendered && !current.firstSettled && settled ? { ...current, firstSettled: true } : current;
 	}
 	return {
 		activity: Object.assign(SubscriptionRef.changes(state), { current: SubscriptionRef.get(state) }),
-		answered: () => {
-			answered = true;
-			Effect.runSync(SubscriptionRef.update(state, latched));
-		},
 		change: (key: Exclude<keyof ClientActivityState, "connectionStatus" | "firstSettled">, delta: number) => {
 			Effect.runSync(SubscriptionRef.update(state, (current) => latched({ ...current, [key]: current[key] + delta })));
+		},
+		excuse: (delta: number) => {
+			excused += delta;
+			Effect.runSync(SubscriptionRef.update(state, latched));
 		},
 		hold: () => {
 			held += 1;
@@ -45,13 +45,13 @@ export function activityState() {
 				publish();
 			};
 		},
+		rendered: Effect.suspend(() => {
+			screenRendered = true;
+			return SubscriptionRef.update(state, latched);
+		}),
 		setConnection: (connectionStatus: ConnectionStatus) => {
 			connection = connectionStatus;
 			publish();
-		},
-		warming: (delta: number) => {
-			warmWaiting += delta;
-			Effect.runSync(SubscriptionRef.update(state, latched));
 		},
 	};
 }

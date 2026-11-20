@@ -1,4 +1,4 @@
-import { createMemoryHistory, RouterProvider } from "@tanstack/react-router";
+import { createMemoryHistory } from "@tanstack/react-router";
 import { Effect } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
@@ -9,6 +9,7 @@ import { browserSessionMemory } from "@shivaedev/identity/client/adapters/browse
 import { rememberSession } from "@shivaedev/identity/client/SessionMemory.ts";
 import { loadQuery } from "@shivaedev/react/adapters/loadQuery.ts";
 import { authAction } from "@shivaedev/react/client/authAction.ts";
+import { RouterProvider } from "@shivaedev/react/RouterProvider.ts";
 import type { Rendered } from "@shivaedev/test-story/client/adapters/react.ts";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 import { App } from "#client/App.tsx";
