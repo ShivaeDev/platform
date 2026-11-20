@@ -2,7 +2,7 @@ import { Effect } from "effect";
 import ts from "typescript";
 import { isPackageRootConfig } from "#imports/isTooling.ts";
 import { packageOf, workspacePackages } from "#imports/workspace.ts";
-import { inAdaptersOrTestSupport } from "#naming/unsafeFolders.ts";
+import { inTestSupport } from "#naming/unsafeFolders.ts";
 import type { Finding, RuleInputs, SourceFile, TypeScriptProgram } from "#rule.ts";
 import { boundaryGuidance } from "#rules/effect/boundaryFindings.ts";
 import { promiseCall } from "#rules/effect/promiseCall.ts";
@@ -16,7 +16,7 @@ export const boundaryCheck = Effect.fn("Boundary.boundaryCheck")(function* (inpu
 	const workspace = new Set(packages.map((owner) => owner.name));
 	return {
 		checks: (file: SourceFile) =>
-			!(inAdaptersOrTestSupport(file.path) || TEST.test(file.path))
+			!(inTestSupport(file.path) || TEST.test(file.path))
 			&& /\.[cm]?[jt]sx?$/u.test(file.path)
 			&& !isPackageRootConfig(packageOf(packages, file.path)?.directory ?? ".", file.path)
 			&& parses(file),

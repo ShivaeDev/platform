@@ -25,13 +25,15 @@ export const withExceptionConfig = Effect.fn("Biome.withExceptionConfig")(functi
 	declarations: readonly ExceptionDeclaration[],
 	run: (args: readonly string[]) => Effect.Effect<TValue, TError, TRequirements>,
 	nonEffectFolders: readonly string[] = [],
+	liftAdapters = false,
 ) {
 	const { includes, overrides, rules } = exceptionConfig(declarations);
 	const targets = yield* browserOverrides(root);
 	const gitIgnored = (yield* ignoredPaths(root)) ?? [];
 	const gitIgnores = gitIgnored.map((file) => `!${relative(root, file).replaceAll("\\", "/")}`);
 	if (
-		includes.length === 0
+		!liftAdapters
+		&& includes.length === 0
 		&& overrides.length === 0
 		&& Object.keys(rules).length === 0
 		&& nonEffectFolders.length === 0
@@ -70,6 +72,6 @@ export const withExceptionConfig = Effect.fn("Biome.withExceptionConfig")(functi
 		linter: linterWithRulesOff(own.linter, rules),
 		overrides: [...previousOverrides, ...overrides, ...targets],
 	};
-	const path = yield* relocateConfig(root, join(root, config), generated, nonEffectFolders);
+	const path = yield* relocateConfig(root, join(root, config), generated, nonEffectFolders, liftAdapters);
 	return yield* run([`--config-path=${path}`]);
 });

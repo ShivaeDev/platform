@@ -15,6 +15,8 @@ export interface Finding {
 	readonly message: string;
 	readonly subject?: string | undefined;
 	readonly threshold?: number | undefined;
+	// adapters/ permits what an unsafe finding reports, so the engine drops it there and keeps the file as evidence that it belongs in adapters/.
+	readonly unsafe?: true | undefined;
 }
 
 export type Findings = readonly Finding[];
@@ -35,6 +37,7 @@ export interface TypeScriptProgram {
 export interface RuleInputs {
 	readonly configFile?: string;
 	readonly entries?: readonly string[];
+	readonly evidence?: ReadonlySet<string>;
 	readonly exceptions?: readonly ExceptionDeclaration[];
 	readonly files: readonly string[];
 	readonly nonEffectFolders?: readonly string[];
@@ -66,7 +69,7 @@ export type Configured<TServices = RuleServices> =
 
 export type Depth = "deep";
 
-export type Need = "child-process" | "story-program" | "type-checker";
+export type Need = "child-process" | "evidence" | "story-program" | "type-checker";
 
 export interface RegisteredRule<TServices = RuleServices> {
 	readonly depth?: Depth;

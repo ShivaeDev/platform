@@ -2,8 +2,10 @@ import { Deferred, Effect, Fiber } from "effect";
 import { withStoryProgram } from "#adapters/storyProgram.ts";
 import { ChildStarted } from "#engine/childStarted.ts";
 import { type ActiveRule, runRule } from "#engine/runRule.ts";
+import { permitted, reported } from "#engine/unsafeFindings.ts";
 import type { Violation } from "#engine/violation.ts";
 import type { SetupFailure } from "#failure.ts";
+import { inAdapters } from "#naming/unsafeFolders.ts";
 import type { RuleInputs, RuleServices } from "#rule.ts";
 import { PACKAGE_CHECKS, withPackageWalk } from "#rules/packageFindings.ts";
 import { withSharedTrees } from "#rules/parse.ts";
@@ -81,6 +83,19 @@ function runTiers(rules: readonly ActiveRule[], inputs: RuleInputs): RuleRun {
 	);
 }
 
+function readsEvidence(rule: ActiveRule): boolean {
+	return rule.needs === "evidence";
+}
+
+// adapters/ and test-support/ permit what an unsafe finding reports, so it is dropped there; in adapters/ it is the evidence that rules reading it judge after every other rule has run.
+const withEvidence = Effect.fn("Engine.withEvidence")(function* (rules: readonly ActiveRule[], inputs: RuleInputs, results: readonly Violation[]) {
+	const evidence = new Set(results.filter((violation) => permitted(violation) && inAdapters(violation.file)).map((violation) => violation.file));
+	const judged = yield* Effect.forEach(rules.filter(readsEvidence), (rule) =>
+		runRule(rule, { ...inputs, evidence }, inputs.configFile ?? "quality.config.ts"),
+	);
+	return [...results.filter((violation) => !permitted(violation)).map(reported), ...judged.flat()];
+});
+
 export const runRules = Effect.fn("Engine.runRules")(function* (
 	rules: readonly ActiveRule[],
 	inputs: RuleInputs,
@@ -93,9 +108,14 @@ export const runRules = Effect.fn("Engine.runRules")(function* (
 			return failures;
 		}
 	}
-	const results = yield* runTiers(
-		rules.filter((rule) => rule !== validation).flatMap((rule) => runsOf(rule, skippedHalves)),
+	const remaining = rules.filter((rule) => rule !== validation);
+	const results = yield* withEvidence(
+		remaining,
 		inputs,
+		yield* runTiers(
+			remaining.filter((rule) => !readsEvidence(rule)).flatMap((rule) => runsOf(rule, skippedHalves)),
+			inputs,
+		),
 	);
 	const seen = new Set<string>();
 	return results.filter((finding) => {

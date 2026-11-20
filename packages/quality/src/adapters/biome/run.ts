@@ -23,6 +23,7 @@ export const runBiome = Effect.fn("Biome.runBiome")(function* (
 	args: readonly string[],
 	exceptions: readonly ExceptionDeclaration[] = [],
 	nonEffectFolders: readonly string[] = [],
+	liftAdapters = false,
 ) {
 	const files = yield* toolOwnedFiles(root);
 	const copies = (yield* skillCopies(root)).paths.map((file) => posix(relative(root, file)));
@@ -51,6 +52,7 @@ export const runBiome = Effect.fn("Biome.runBiome")(function* (
 					return { code: Number(code), stderr, stdout };
 				}),
 			nonEffectFolders,
+			liftAdapters,
 		),
 	);
 });

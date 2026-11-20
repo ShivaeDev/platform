@@ -5,6 +5,7 @@ import { biomeReport, type Diagnostic, FAILING } from "#biome/report.ts";
 import { needsScanner, SCANNER_RULES } from "#biome/scannerRules.ts";
 import { withoutEntryPointImports } from "#biome/withoutEntryPointImports.ts";
 import type { ExceptionDeclaration } from "#exceptions/declaration.ts";
+import { inAdapters, inTestSupport } from "#naming/unsafeFolders.ts";
 import { defineRule, type Finding, type Rule, type RuleInputs } from "#rule.ts";
 
 function messageOf(diagnostic: Diagnostic): string {
@@ -65,6 +66,41 @@ const WITHOUT_SCANNER: readonly ExceptionDeclaration[] = [...SCANNER_RULES].map(
 	}),
 );
 
+const PLUGGED = /\.[cm]?[jt]sx?$/u;
+
+function located(diagnostic: Diagnostic): string {
+	const { end, path, start } = diagnostic.location;
+	return JSON.stringify([path, start, end, diagnostic.message]);
+}
+
+// What the ambient-runtime plugin reports in adapters/ only once its folder exemption is lifted is evidence that a module belongs there; the unconditional bans fire in both passes and cancel out.
+const adapterEvidence = Effect.fn("Biome.adapterEvidence")(function* ({ exceptions = [], nonEffectFolders, sources, root }: RuleInputs) {
+	const adapters = sources.map((source) => source.path).filter((path) => inAdapters(path) && !inTestSupport(path) && PLUGGED.test(path));
+	if (adapters.length === 0) {
+		return [];
+	}
+	function pass(liftAdapters: boolean) {
+		return biomeReport(
+			root,
+			["lint", "--only=plugin", "--no-errors-on-unmatched"],
+			fileExclusions(exceptions),
+			adapters,
+			nonEffectFolders,
+			liftAdapters,
+		);
+	}
+	const [kept, lifted] = yield* Effect.all([pass(false), pass(true)], { concurrency: "unbounded" });
+	const left = new Map<string, number>();
+	for (const diagnostic of kept.diagnostics) {
+		left.set(located(diagnostic), (left.get(located(diagnostic)) ?? 0) + 1);
+	}
+	return lifted.diagnostics.flatMap((diagnostic): readonly Finding[] => {
+		const count = left.get(located(diagnostic)) ?? 0;
+		left.set(located(diagnostic), count - 1);
+		return count > 0 ? [] : [{ ...findingOf(diagnostic), unsafe: true }];
+	});
+});
+
 const bridge = defineRule({
 	check: ({ exceptions = [], nonEffectFolders, readText, root }) =>
 		Effect.gen(function* () {
@@ -75,15 +111,19 @@ const bridge = defineRule({
 			return [...preset, ...(yield* halfFindings({ exceptions, readText }, report.diagnostics, false))];
 		}),
 	deepHalf: {
-		check: ({ exceptions = [], nonEffectFolders, readText, root }) =>
+		check: (inputs) =>
 			Effect.gen(function* () {
-				const report = yield* biomeReport(root, ["lint", "--skip=plugin"], fileExclusions(exceptions), ["."], nonEffectFolders);
-				return yield* halfFindings({ exceptions, readText }, report.diagnostics, true);
+				const { exceptions = [], nonEffectFolders, readText, root } = inputs;
+				const [report, evidence] = yield* Effect.all(
+					[biomeReport(root, ["lint", "--skip=plugin"], fileExclusions(exceptions), ["."], nonEffectFolders), adapterEvidence(inputs)],
+					{ concurrency: "unbounded" },
+				);
+				return [...(yield* halfFindings({ exceptions, readText }, report.diagnostics, true)), ...evidence];
 			}),
 		name: "scanner half",
 	},
 	description:
-		"Biome's lint, format and assist findings under the shared preset, except undeclared-dependency findings for a piece that an application's entry point brings. The rules that need Biome's project scanner (its project and types domains) run as the scanner half, in CI and with `quality lint --full`. `quality fix` applies Biome's lint fixes, unsafe ones included, its assist actions and formatting.",
+		"Biome's lint, format and assist findings under the shared preset, except undeclared-dependency findings for a piece that an application's entry point brings. The rules that need Biome's project scanner (its project and types domains) run as the scanner half, in CI and with `quality lint --full`; that half also runs the ambient-runtime plugin over adapters/ without its folder exemption, as evidence for effect/adapter-bridges. `quality fix` applies Biome's lint fixes, unsafe ones included, its assist actions and formatting.",
 	id: "biome",
 	needs: "child-process",
 	registrable: false,

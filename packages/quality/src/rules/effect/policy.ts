@@ -1,3 +1,4 @@
+import { adapterBridges } from "#rules/effect/adapterBridges.ts";
 import { adapterImports } from "#rules/effect/adapterImports.ts";
 import { effectBoundary } from "#rules/effect/boundary.ts";
 import { contextCapture } from "#rules/effect/contextCapture.ts";
@@ -12,6 +13,7 @@ import { sharedErrorClasses } from "#rules/effect/sharedErrorClasses.ts";
 import { unsafeCalls } from "#rules/effect/unsafeCalls.ts";
 
 export const effectPolicy = [
+	adapterBridges,
 	adapterImports,
 	effectBoundary,
 	contextCapture,
