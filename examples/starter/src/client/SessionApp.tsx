@@ -1,7 +1,8 @@
-import { type RouterHistory, RouterProvider } from "@tanstack/react-router";
+import { type RouterHistory } from "@tanstack/react-router";
 import type { Effect, Layer } from "effect";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import type { QueryStorageProvider } from "@shivaedev/contract/QueryStorage.ts";
+import { RouterProvider } from "@shivaedev/react/adapters/routerProvider.ts";
 import type { AppSession, AuthActions } from "#client/adapters/auth.ts";
 import { SessionConnectionBoundary } from "#client/adapters/SessionConnectionBoundary.tsx";
 import { useAnonymousConnection } from "#client/adapters/useAnonymousConnection.ts";

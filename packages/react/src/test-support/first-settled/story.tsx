@@ -4,6 +4,7 @@ import type { QueryStorageProvider } from "@shivaedev/contract/QueryStorage.ts";
 import type { Rendered } from "@shivaedev/test-story/client/adapters/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { type FirstSettledClient, firstSettledClient, storedResults } from "#test/first-settled/client.ts";
+import type { FirstRoute, Provider } from "#test/first-settled/Routed.tsx";
 import { type FirstReads, View } from "#test/first-settled/View.tsx";
 import type { Screen } from "#test/Screen.ts";
 import { screenKit } from "#test/screenKit.ts";
@@ -16,6 +17,7 @@ interface State {
 	readonly clients: Map<string, FirstSettledClient>;
 	persist?: Layer.Layer<QueryStorageProvider>;
 	reads: FirstReads;
+	routed?: { readonly provider: Provider; readonly route: FirstRoute };
 	user?: User;
 	view?: Rendered;
 	warmCount: boolean;
@@ -36,7 +38,9 @@ function show(state: State, screen: Screen, user: User, line: string) {
 		state.clients.set(session, client);
 		return client;
 	}
-	const node = <View connect={connect} persist={state.persist} reads={state.reads} session={user} warmCount={state.warmCount} />;
+	const node = (
+		<View connect={connect} persist={state.persist} reads={state.reads} routed={state.routed} session={user} warmCount={state.warmCount} />
+	);
 	return Effect.gen(function* () {
 		const view = state.view;
 		if (view === undefined) {
@@ -65,7 +69,7 @@ function verbs(state: State, screen: Screen) {
 			Effect.suspend(() => clientActivity(opened(state).client.client).current).pipe(
 				Effect.map(({ commands, initialQueries }) => ({ commands, initialQueries })),
 			),
-		answer: (query: Query) =>
+		answer: (query: Query | "blank") =>
 			Effect.sync(() => {
 				const shown = opened(state).container.querySelector(`[data-answer="${query}"]`);
 				const marks = ["stale", "refreshing"].filter((mark) => shown?.getAttribute(`data-${mark}`) === "true");
@@ -139,3 +143,15 @@ export const aliceReloadsWithStoredResults = firstSettledScreens.trait(
 		return show(state, screen, "alice", "alice opens the screen");
 	},
 );
+
+export function aliceOpensRoute(route: FirstRoute, provider: Provider = "react's") {
+	const waiting = route === "nothing" ? "" : ", and the server has not answered it";
+	return firstSettledScreens.trait(
+		"screen",
+		`alice opens a screen that calls useFirstSettled above ${provider} RouterProvider, whose first route reads ${route}${waiting}`,
+		({ screen, state }) => {
+			state.routed = { provider, route };
+			return show(state, screen, "alice", "alice opens the screen");
+		},
+	);
+}

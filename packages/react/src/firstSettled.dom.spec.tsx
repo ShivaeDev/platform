@@ -1,6 +1,12 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { aliceOpens, aliceReloadsWithStoredResults, aliceSeesFirstResults, firstSettledScreens } from "#test/first-settled/story.tsx";
+import {
+	aliceOpens,
+	aliceOpensRoute,
+	aliceReloadsWithStoredResults,
+	aliceSeesFirstResults,
+	firstSettledScreens,
+} from "#test/first-settled/story.tsx";
 
 const WAITING = "waiting for first results";
 const SETTLED = "first results settled";
@@ -124,6 +130,45 @@ firstSettledScreens.it(
 		yield* outcomes([
 			["title", () => answer("title"), "Groceries (stale, refreshing)"],
 			["author", () => answer("author"), "alice (stale, refreshing)"],
+			["signal", () => signal(), SETTLED],
+		]);
+	},
+);
+
+for (const route of ["a loader that reads the title", "a component that reads the title"] as const) {
+	firstSettledScreens.it(
+		`above react's RouterProvider, a first route with ${route} keeps useFirstSettled false until the title answers and then reveals it in one step`,
+		[aliceOpensRoute(route)],
+		function* ({ answer, answers, signal }) {
+			expect(yield* signal()).toBe(WAITING);
+
+			yield* answers("title", "Groceries");
+
+			yield* outcomes([
+				["title", () => answer("title"), "Groceries"],
+				["signal", () => signal(), SETTLED],
+			]);
+		},
+	);
+}
+
+firstSettledScreens.it(
+	"above react's RouterProvider, a first route that reads nothing turns useFirstSettled true once it has rendered",
+	[aliceOpensRoute("nothing")],
+	function* ({ answer, signal }) {
+		yield* outcomes([
+			["route", () => answer("blank"), "blank form"],
+			["signal", () => signal(), SETTLED],
+		]);
+	},
+);
+
+firstSettledScreens.it(
+	"above TanStack's own RouterProvider, useFirstSettled turns true before the first route's title has answered",
+	[aliceOpensRoute("a component that reads the title", "TanStack's")],
+	function* ({ answer, signal }) {
+		yield* outcomes([
+			["title", () => answer("title"), "waiting"],
 			["signal", () => signal(), SETTLED],
 		]);
 	},

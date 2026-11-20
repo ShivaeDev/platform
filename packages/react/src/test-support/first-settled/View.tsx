@@ -7,6 +7,7 @@ import { useFirstSettled } from "#client/adapters/useFirstSettled.ts";
 import { useAction, useQuery } from "#client/resultState.ts";
 import { SessionBoundary } from "#client/sessionBoundary.ts";
 import type { FirstSettledClient } from "#test/first-settled/client.ts";
+import { type FirstRoute, type Provider, RoutedNotes } from "#test/first-settled/Routed.tsx";
 
 function Answer({ name, query }: { readonly name: string; readonly query: Atom.Atom<AsyncResult.AsyncResult<string, unknown>> }) {
 	const answer = useQuery(query);
@@ -57,12 +58,14 @@ export function View({
 	connect,
 	persist,
 	reads,
+	routed,
 	session,
 	warmCount,
 }: {
 	readonly connect: (session: string) => FirstSettledClient;
 	readonly persist: Layer.Layer<QueryStorageProvider> | undefined;
 	readonly reads: FirstReads;
+	readonly routed: { readonly provider: Provider; readonly route: FirstRoute } | undefined;
 	readonly session: string;
 	readonly warmCount: boolean;
 }) {
@@ -75,7 +78,7 @@ export function View({
 			session={session}
 			warm={(notes) => (warmCount ? [notes.client.api.count.query()] : [])}
 		>
-			{(notes) => <Notes notes={notes} reads={reads} />}
+			{(notes) => (routed === undefined ? <Notes notes={notes} reads={reads} /> : <RoutedNotes notes={notes} {...routed} />)}
 		</SessionBoundary>
 	);
 }

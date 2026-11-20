@@ -1,4 +1,4 @@
-import { createMemoryHistory, RouterProvider } from "@tanstack/react-router";
+import { createMemoryHistory } from "@tanstack/react-router";
 import { ConfigProvider, DateTime, Effect, Layer, Schema } from "effect";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { act } from "react";
@@ -10,6 +10,7 @@ import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { RouterProvider } from "@shivaedev/react/adapters/routerProvider.ts";
 import { makeAuth } from "#client/adapters/auth.ts";
 import { appRouter } from "#client/appRouter.tsx";
 import { applicationWorker } from "#server/applicationWorker.ts";
