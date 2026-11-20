@@ -18,6 +18,8 @@ const announce = Effect.fnUntraced(function* (keys: readonly Key[]) {
 	yield* invalidateOnCommit(invalidationKeys(keys)).pipe(
 		transact(),
 		Effect.catch((error) => Effect.logError("Better Auth change announcement failed; open screens stay stale until they resync", error)),
+		Effect.provideService(SqlClient.SqlClient, sql.value),
+		Effect.provideService(Reactivity.Reactivity, reactivity.value),
 	);
 });
 
