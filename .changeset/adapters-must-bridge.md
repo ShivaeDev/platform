@@ -364,4 +364,3 @@
 - `@shivaedev/vitest-rerun`: import from `@shivaedev/vitest-rerun/mergeSnapshotSummary.ts` instead of `@shivaedev/vitest-rerun/adapters/mergeSnapshotSummary.ts`, which moved out of `adapters/`.
 - `@shivaedev/vitest-rerun`: import from `@shivaedev/vitest-rerun/tasks.ts` instead of `@shivaedev/vitest-rerun/adapters/tasks.ts`, which moved out of `adapters/`.
 - `@shivaedev/vitest-rerun`: `@shivaedev/vitest-rerun/adapters/vitestRuntime.ts` is removed; `vitestRunnerLayer` from `@shivaedev/vitest-rerun/vitest-runner/layer.ts` provides the runtime it held.
-- `@shivaedev/vitest-rerun`: `vitestRunnerLayer` from `@shivaedev/vitest-rerun/vitest-runner/layer.ts` provides the runtime it held.
