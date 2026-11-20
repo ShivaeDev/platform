@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.38.3 - 2026-11-20
+
+### Changed
+
+- `migrationsIn` fails with that message when the directory it is given has no `migrations` folder.
+
 ## 0.38.2 - 2026-11-20
 
 ### Changed

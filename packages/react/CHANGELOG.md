@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.53.0 - 2026-11-20
+
+### Added
+
+- `SessionBoundary` takes `persist`, a storage Layer such as `browserQueryStorage`. Every result retention keeps is written to the device for the user `identify` names, within a second of settling and at once when the page hides, bounded by `queryRetention.capacity` and `queryRetention.storedBytes` (about 5 MB by default). The next generation for that user reads them before its first screen, so a reload shows the last results at once, marked `stale` and `refreshing` like retained ones, and a route loader commits without waiting. The boundary wipes stored results when the session ends or comes back signed out, and the previous user's when another user signs in. The person's data then rests on the device, readable by anyone using that browser profile.
+- a sign-out through `SessionBoundary`'s `signOut` action wipes the stored results as soon as the request succeeds, and the remembered session too when `persist` also supplies the session memory, such as `Layer.merge(browserSessionMemory, browserQueryStorage)`.
+
+### Changed
+
+- when a command or form save succeeds, the failure notices that same hook published earlier go without Dismiss. A notice nobody resolves still stays until dismissed or expired.
+
+### Breaking
+
+- a function provided to `FailureHostContext` returns the published notice's dismiss function, or `undefined` when it published nothing.
+
 ## 0.52.0 - 2026-11-20
 
 ### Added

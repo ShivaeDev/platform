@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.36.0 - 2026-11-20
+
+### Added
+
+- `forgetSession` also wipes the stored query results when its Layer supplies contract's `QueryStorageProvider`, so a signed-out answer, another user, a passed expiry and `session.signOut` clear them with the memory.
+
+### Changed
+
+- every `Unauthorized` it raises says "Sign in to continue", as access's `unauthorized()` does, instead of "Authentication required". A request from an origin the session policy refuses says "Open this application from its own address to continue." and the server logs a warning that names the refused origin and the RPC. A user without a stored role is told "Your account has no role yet. Ask an administrator to assign one.", a missing user "This user no longer exists." and a missing session "This session has already ended."
+
+### Fixed
+
+- Sign-ups, profile changes, sign-ins and sign-outs made through a Better Auth mount now announce identity's `userKeys` and `sessionKeys`, so open users and sessions lists refresh without a reload. A mount created inside `transact` announces on that transaction's commit and a rollback announces nothing; a startup mount announces right after Better Auth's own commit. Applications need no hooks of their own, and their own Better Auth hooks keep running.
+- `sweepExpiredSessions` announces `sessionKeys.list` when it removes expired sessions.
+
+### Breaking
+
+- code that compared the message of identity's `Unauthorized`, `Forbidden` or `NotFound` with the old text branches on the tag instead.
+
 ## 0.35.0 - 2026-11-20
 
 ### Added
