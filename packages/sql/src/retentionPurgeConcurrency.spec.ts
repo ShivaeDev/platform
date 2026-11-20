@@ -1,12 +1,13 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { allRows } from "#allRows.ts";
 import { pausingPurges, storedRows } from "#test/purges.ts";
 
 const BACKLOG_ROWS = 50_010;
-const cappedRun = { batchSize: 25_000, maxRows: 50_000, pause: "1 second", where: {} } as const;
+const cappedRun = { batchSize: 25_000, maxRows: 50_000, pause: "1 second", where: allRows } as const;
 const INTERRUPTED_ROWS = 5;
-const interruptedRun = { batchSize: 2, maxRows: INTERRUPTED_ROWS, pause: "1 second", where: {} } as const;
+const interruptedRun = { batchSize: 2, maxRows: INTERRUPTED_ROWS, pause: "1 second", where: allRows } as const;
 
 pausingPurges.it(
 	"a capped 50,000-row purge commits between pauses, and another repository skips until the run finishes",
@@ -15,7 +16,7 @@ pausingPurges.it(
 		yield* startPurge(cappedRun);
 		expect(yield* remaining()).toBe(BACKLOG_ROWS - cappedRun.batchSize);
 
-		const skipped = yield* competingPurge({ batchSize: 2, maxRows: 5, pause: 0, where: {} });
+		const skipped = yield* competingPurge({ batchSize: 2, maxRows: 5, pause: 0, where: allRows });
 
 		yield* outcomes([
 			["rows removed by the competing run", () => Effect.succeed(skipped), 0],
@@ -39,7 +40,7 @@ pausingPurges.it(
 			],
 		]);
 
-		const removed = yield* purge({ batchSize: 10, maxRows: 10, pause: 0, where: {} });
+		const removed = yield* purge({ batchSize: 10, maxRows: 10, pause: 0, where: allRows });
 
 		expect(removed).toBe(BACKLOG_ROWS - cappedRun.maxRows);
 	},
@@ -55,7 +56,7 @@ pausingPurges.it(
 
 		expect(yield* remaining()).toBe(INTERRUPTED_ROWS - interruptedRun.batchSize);
 
-		const removed = yield* purge({ batchSize: 5, maxRows: 5, pause: 0, where: {} });
+		const removed = yield* purge({ batchSize: 5, maxRows: 5, pause: 0, where: allRows });
 
 		yield* outcomes([
 			["rows removed by the next run", () => Effect.succeed(removed), INTERRUPTED_ROWS - interruptedRun.batchSize],

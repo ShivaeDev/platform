@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.7.0 - 2026-11-20
+
+### Changed
+
+- a refused attempt's `TooManyRequests` says "Too many attempts. Wait a moment and try again." instead of "Rate limit exceeded".
+
+### Breaking
+
+- code that compared `TooManyRequests.message` with "Rate limit exceeded" branches on the tag, `key` or `retryAt` instead.
+
 ## 0.6.15 - 2026-11-20
 
 ### Changed

@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.53.0 - 2026-11-20
+
+### Added
+
+- A repository's `delete` and `latestPerGroup` take every filter its reads take: `{ not: null }`, the range bounds `gt`, `gte`, `lt` and `lte`, and `like`. `delete({ archivedAt: { not: null } })` removes the rows that hold a value and keeps those without one.
+- `latestPerGroup` reads a partition field filtered by `{ not: null }`, a range or a pattern through its ranked query instead of failing with `SchemaError`.
+
+### Changed
+
+- When the `migrations` folder cannot be read, the `MigrationError` message names the folder it looked for and asks for the folder that contains `migrations`.
+
+### Breaking
+
+- `migrationsFromDirectory` from `@shivaedev/sql/migrationsFromDirectory.ts` is now `loadMigrationsIn` from `@shivaedev/sql/loadMigrationsIn.ts`, so a call written when the argument was the application root no longer compiles. It takes the folder that contains `migrations`, the same argument as `migrationsIn` from `@shivaedev/server`. Replace `migrationsFromDirectory(applicationRoot)`, which read `src/server/migrations`, with `loadMigrationsIn(path.join(applicationRoot, "src/server"))`, or call `loadMigrationsIn(import.meta.dirname)` from a module beside the `migrations` folder.
+- A repository's `delete` and `deleteBatched` refuse a filter without a defined entry. Before, `delete({})` or `delete({ ownerId: maybeOwner })` with an undefined owner removed every row of the table; now TypeScript refuses `{}` and a filter whose every entry may be `undefined`, and at run time such a filter fails with `SchemaError` and removes nothing. To delete every row on purpose, pass `allRows` from `@shivaedev/sql/allRows.ts`: `delete(allRows)` or `deleteBatched({ ...limits, where: allRows })`.
+- The `RepositoryListFilter` type is gone, because no repository method takes it any more. Use `FindManyFilter` from `@shivaedev/sql/repositoryFilter.ts`.
+
 ## 0.52.0 - 2026-11-20
 
 ### Breaking

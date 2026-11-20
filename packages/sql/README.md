@@ -365,9 +365,19 @@ const found = yield* lines.findOne({
 
 It returns `Option.some` of the selected decoded fields, or `Option.none` when no row matches. It accepts the same filters, projections and ordering as `findMany`, with a fixed SQL limit of one. Supply ordering when several rows can match and the choice matters. SQL and schema failures remain in the error channel.
 
-Every repository method that filters takes the same `where` shape and compiles it the same way: `findMany`, `findOne`, `count`, `select`, `aggregate`, `latestPerGroup`, `deleteBatched` and the unversioned `delete`. A filter that reads rows deletes those rows, and a filter one method refuses, every method refuses.
+Every repository method that filters takes the same `where` grammar and compiles it the same way: `findMany`, `findOne`, `count`, `select`, `aggregate`, `latestPerGroup`, `deleteBatched` and the unversioned `delete`. A filter entry that one method refuses, every method refuses. Deletes add one rule: `delete` and `deleteBatched` need at least one defined entry or `allRows`, so a filter with a defined entry deletes the rows it reads.
 
 Filter entries are joined with `AND`. A field value uses equality; a null filter matches SQL `NULL`, and an omitted or `undefined` value leaves the field unconstrained. Filters use decoded field values, so `amount` takes a number. Selected results are decoded records with the selected fields' types; this function returns `Array<{ readonly name: string; readonly amount: number }>`.
+
+A delete needs at least one defined entry. `delete` and `deleteBatched` given `{}`, or a filter whose entries are all `undefined` such as `{ ownerId: undefined }`, fail with `SchemaError` and remove nothing, so an optional value that turns out absent cannot empty the table. TypeScript refuses `{}` and a filter whose every entry may be `undefined`. To delete every row, pass `allRows`:
+
+```ts
+import { allRows } from "@shivaedev/sql/allRows.ts";
+
+yield* lines.delete(allRows);
+```
+
+`deleteBatched` takes it as `where: allRows` to purge every row.
 
 Use `{ in: values }` to match any value in a list, alongside equality entries:
 
@@ -662,7 +672,7 @@ Each batch call starts `transact`, so a later chunk failure rolls back earlier c
 
 ### Retention purges
 
-On PostgreSQL, `deleteBatched({ where, batchSize, maxRows, pause })` removes matching rows in independently committed transactions and returns the number removed. `where` uses the same encoded filters as `findMany`, including comparisons. Each batch deletes at most `batchSize` rows; the last batch shrinks to respect `maxRows`. `batchSize` is a positive safe integer and `maxRows` is a nonnegative safe integer. A zero cap or no matching rows returns zero without announcing changes.
+On PostgreSQL, `deleteBatched({ where, batchSize, maxRows, pause })` removes matching rows in independently committed transactions and returns the number removed. `where` uses the same encoded filters as `findMany`, including comparisons, and needs a defined entry or `allRows`. Each batch deletes at most `batchSize` rows; the last batch shrinks to respect `maxRows`. `batchSize` is a positive safe integer and `maxRows` is a nonnegative safe integer. A zero cap or no matching rows returns zero without announcing changes.
 
 Each nonempty batch publishes one collection-wide change hint after commit, so table, item and bucket subscribers refresh after each batch. The hint has a constant size and does not enumerate deleted records or bucket values. Viewers keep their existing query permissions; a refresh does not require access to the whole table. A later failure rolls back only its batch and its hint; earlier batches remain committed. SQL failures remain typed `SqlError` and invalid limits fail with `SchemaError`.
 
@@ -1065,6 +1075,7 @@ Import the module that defines the name; there is no root entry.
 - `@shivaedev/sql/makeOrderedChildren.ts`: `makeOrderedChildren(model, options)` — `tableName`, `parentColumn`, `parentTable` and `positionColumn`, `idColumn` (defaults to `"id"` when the model has that field), `parentIdColumn` (defaults to `"id"`), `spanPrefix` (defaults to the table name) and optional `versionColumn`; returns `append`, `move` and `reorder` and requires native `SqlClient`.
 - `@shivaedev/sql/RepositoryModels.ts`: `RepositoryModels` — Reference that `makeRepository` and `makeOrderedChildren` call with their model while they are built; the application host provides it to mask the model's sensitive fields in every diagnostic, and its default does nothing.
 - `@shivaedev/sql/repository.ts`: `OptimisticConcurrencyError` — Typed stale or missing-row failure for versioned writes, with `tableName`, `id`, `expectedVersion`, `reason: "missing" | "stale"`.
+- `@shivaedev/sql/allRows.ts`: `allRows` — Filter for `delete` and `deleteBatched` that removes every row; both refuse a filter without a defined entry.
 - `@shivaedev/sql/tupleIn.ts`: `tupleIn(model, fields, tuples, types)` — Filter entry matching two or more fields together against a list of tuples, for `where` in reads and unversioned deletes.
 - `@shivaedev/sql/upsertResult.ts`: `UpsertRow` — The `{ row, inserted }` result of an unconditional upsert.
 - `@shivaedev/sql/conditionalUpsert.ts`: `UpsertFilter`, `UpsertResult` — The `updateWhere` filter shape and the tagged `Inserted`, `Updated` or `Unchanged` result of a conditional upsert.

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.27.3 - 2026-11-20
+
+### Changed
+
+- unreadable job page options are refused with "This page of jobs could not be read. Open the jobs page again." instead of "Invalid job page options".
+
 ## 0.27.2 - 2026-11-20
 
 ### Changed

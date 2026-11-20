@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.14.1 - 2026-11-20
+
+### Fixed
+
+- `redactText` masks GitHub, Stripe, AWS access key id and Slack tokens recognised by their prefix and length when no name stands in front of them, also right after a `\n`, `\r` or `\t` escape or a percent-encoded character.
+- `redactText` reads a name right after a literal `\n`, `\r` or `\t` escape, so `\npin=1234` or `\tsession=\"a b\"` inside escaped text has its value masked.
+
 ## 0.14.0 - 2026-11-20
 
 ### Added

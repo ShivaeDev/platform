@@ -1,12 +1,13 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { allRows } from "#allRows.ts";
 import { purges, rejectsBatch, rowLocked, sqlitePurges, storedRows } from "#test/purges.ts";
 
 const RETAINED_ROWS = 50_000;
 const RECENT_ROWS = 10;
 const SMALL_ROW_COUNT = 3;
 const FAILED_RUN_ROWS = 3000;
-const cappedRun = { batchSize: 2000, maxRows: 5500, pause: "1 millis", where: {} } as const;
+const cappedRun = { batchSize: 2000, maxRows: 5500, pause: "1 millis", where: allRows } as const;
 const lockedIds = [1] as const;
 
 purges.it(
@@ -52,7 +53,7 @@ purges.it(
 );
 
 for (const options of [
-	{ batchSize: 10, maxRows: 0, pause: "1 millis", where: {} },
+	{ batchSize: 10, maxRows: 0, pause: "1 millis", where: allRows },
 	{ batchSize: 10, maxRows: 50, pause: "1 millis", where: { id: { lt: 0 } } },
 ] as const) {
 	purges.it(
@@ -74,7 +75,7 @@ purges.it(
 	"a failed second batch keeps the first committed batch and hint, and releases the lock for another purge",
 	[storedRows(purges, FAILED_RUN_ROWS), rejectsBatch(2)],
 	function* ({ purgeFailure, purge, remaining, deletedPerBatch, hints }) {
-		const options = { batchSize: 1000, maxRows: FAILED_RUN_ROWS, pause: "1 millis", where: {} } as const;
+		const options = { batchSize: 1000, maxRows: FAILED_RUN_ROWS, pause: "1 millis", where: allRows } as const;
 		const failure = yield* purgeFailure(options);
 
 		expect(failure).toBe("a constraint violation (SQLSTATE 23514)");
@@ -101,7 +102,7 @@ for (const limits of [
 		`invalid limits ${JSON.stringify(limits)} fail before deleting or announcing rows`,
 		[storedRows(purges, SMALL_ROW_COUNT)],
 		function* ({ purgeFailure, remaining, hints }) {
-			const failure = yield* purgeFailure({ batchSize: 1, maxRows: 3, pause: 0, where: {}, ...limits });
+			const failure = yield* purgeFailure({ batchSize: 1, maxRows: 3, pause: 0, where: allRows, ...limits });
 
 			expect(failure).toBe("a schema error");
 			yield* outcomes([
@@ -117,7 +118,7 @@ for (const transaction of ["native", "transact"] as const) {
 		`a purge inside a ${transaction} transaction fails before deleting rows`,
 		[storedRows(purges, SMALL_ROW_COUNT)],
 		function* ({ purgeFailure, remaining }) {
-			const failure = yield* purgeFailure({ batchSize: 1, maxRows: 3, pause: 0, where: {} }, transaction);
+			const failure = yield* purgeFailure({ batchSize: 1, maxRows: 3, pause: 0, where: allRows }, transaction);
 
 			expect(failure).toBe("purge unavailable: transaction");
 			expect(yield* remaining()).toBe(SMALL_ROW_COUNT);
@@ -135,11 +136,11 @@ purges.it(
 	"retention skips another transaction's locked row and can remove it in a later run",
 	[storedRows(purges, SMALL_ROW_COUNT), rowLocked(lockedIds[0])],
 	function* ({ purge, retainedIds, releaseRowLock }) {
-		const removed = yield* purge({ batchSize: 3, maxRows: 3, pause: 0, where: {} });
+		const removed = yield* purge({ batchSize: 3, maxRows: 3, pause: 0, where: allRows });
 
 		expect(removed).toBe(SMALL_ROW_COUNT - lockedIds.length);
 		expect(yield* retainedIds()).toEqual(lockedIds);
 		yield* releaseRowLock();
-		expect(yield* purge({ batchSize: 3, maxRows: 3, pause: 0, where: {} })).toBe(lockedIds.length);
+		expect(yield* purge({ batchSize: 3, maxRows: 3, pause: 0, where: allRows })).toBe(lockedIds.length);
 	},
 );

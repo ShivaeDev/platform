@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.48.0 - 2026-11-20
+
+### Added
+
+- generated apps keep the remembered session and the stored query results in one `deviceStorage` Layer, passed to `authSession`'s `remember` and to `SessionBoundary`'s `persist`, and the notes list marks itself `aria-busy` while it updates.
+
 ## 0.47.1 - 2026-11-20
 
 ### Changed
