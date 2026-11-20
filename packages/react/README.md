@@ -735,21 +735,31 @@ export function App() {
 
 Keep the result of `queryRoute` to call its `useRetry()` hook inside that route's error component. The returned callback refreshes the query using the current match's params, decoded search dependencies and context, then invalidates that match. A successful retry renders the route again without replacing the surrounding shell or its draft inputs.
 
-State where a signed-out visitor goes once, as `redirects.signedOut` in the router's context. A query route whose query fails with the shared `Unauthorized` rejection redirects there, and `permissionGuard` takes the same callback. `signInRedirect(path)` from `@shivaedev/react/adapters/signInRedirect.ts` builds it: a TanStack redirect to `path` that carries the requested path, search and fragment in sign-in's `returnTo` search field. `redirects.refused` handles `Forbidden` and `QueryReadDenied` the same way. A route overrides either target for its own query with `queryRoute(buildQuery, { redirects })`:
+State where a signed-out visitor goes once, as `redirects.signedOut` in the router's context. A query route whose query fails with the shared `Unauthorized` rejection redirects there, and `permissionGuard` takes the same callback. `signInRedirect(path)` from `@shivaedev/react/adapters/signInRedirect.ts` builds it: a TanStack redirect to `path` that carries the requested path, search and fragment in sign-in's `returnTo` search field. `redirects.refused` handles `Forbidden` and `QueryReadDenied` the same way, with a callback that returns TanStack's `redirect`. A route overrides either target for its own query with `queryRoute(buildQuery, { redirects })`, as `memberNote` does here:
 
 ```ts
-import { createRootRouteWithContext, createRouter, redirect } from "@tanstack/react-router";
-import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
-import { queryRoute } from "@shivaedev/react/client/adapters/queryRoute.ts";
+import { createRootRouteWithContext, createRoute, createRouter } from "@tanstack/react-router";
+import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import type { QueryRouteRedirects } from "@shivaedev/react/adapters/queryRouteFailure.ts";
 import { signInRedirect } from "@shivaedev/react/adapters/signInRedirect.ts";
+import { queryRoute } from "@shivaedev/react/client/adapters/queryRoute.ts";
+import { api } from "./notes-client.ts";
 
-const root = createRootRouteWithContext<{ registry: AtomRegistry.AtomRegistry; redirects: QueryRouteRedirects }>()();
-const router = createRouter({
-	context: { registry, redirects: { signedOut: signInRedirect("/sign-in"), refused: () => redirect({ to: "/no-access" }) } },
-	routeTree,
+const registry = AtomRegistry.make();
+const root = createRootRouteWithContext<{ registry: AtomRegistry.AtomRegistry; api: typeof api; redirects: QueryRouteRedirects }>()();
+const memberNote = createRoute({
+	getParentRoute: () => root,
+	path: "/members/$id",
+	...queryRoute(
+		({ context, params }: { context: typeof root.types.allContext; params: { id: string }; search: object }) =>
+			context.api.get.query({ id: params.id, page: 1 }),
+		{ redirects: { signedOut: signInRedirect("/members/sign-in") } },
+	),
 });
-const memberNote = queryRoute(buildQuery, { redirects: { signedOut: signInRedirect("/members/sign-in") } });
+const router = createRouter({
+	context: { registry, api, redirects: { signedOut: signInRedirect("/sign-in") } },
+	routeTree: root.addChildren([memberNote]),
+});
 ```
 
 Without a callback at either level, failures keep their normal error or not-found handling. `NotFound` continues to use the not-found screen even when refusal redirects are configured.
