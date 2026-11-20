@@ -14,6 +14,13 @@ function readingFor(program: ts.Program, refuse: (message: string) => void) {
 			refuse(`${label}: run returns ${checker.typeToString(type)} at ${path}, which has no exact wire form; ${instead}`);
 			return undefined;
 		},
+		refuseServerOnly: (path, schemaClass) => {
+			const where = schemaClass === undefined ? path : `${path}, a field of the Schema class ${schemaClass}`;
+			refuse(
+				`${label}: run returns a Redacted value at ${where}, which never leaves the server; return a public shape without that field, such as an object of the fields the browser needs`,
+			);
+			return undefined;
+		},
 	});
 }
 

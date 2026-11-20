@@ -2,7 +2,6 @@ import { Link } from "@tanstack/react-router";
 import { Cause, Option, Predicate } from "effect";
 import { useId } from "react";
 import { useField } from "@shivaedev/form/adapters/react.ts";
-import { fieldRejectionOf } from "@shivaedev/form/fieldRejection.ts";
 import type { Form } from "@shivaedev/form/shape.ts";
 import { useEditor } from "@shivaedev/react/client/editor.ts";
 import { Button } from "#client/ui/button.tsx";
@@ -52,7 +51,6 @@ export function NoteEdit({
 		fields: NoteEditFields,
 		loaded,
 		query: client.api.get.query({ id: noteId }),
-		rejectField: fieldRejectionOf(NoteEditFields),
 		runtime: client.runtime,
 		save: (values) => client.api.update.run({ id: noteId, ...values }),
 		values: (row) => ({ title: row.title, version: row.version }),

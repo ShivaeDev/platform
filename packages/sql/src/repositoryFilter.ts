@@ -2,6 +2,7 @@ import { Effect, Schema, SchemaIssue } from "effect";
 import type { Model } from "effect/schema";
 import { SqlClient } from "effect/sql";
 import type { Listed, NotNull, Pattern, Without } from "#filterOperators.ts";
+import { serverOnlyStored } from "#serverOnly.ts";
 import { type TupleFilter, tuplePredicate } from "#tupleIn.ts";
 
 export type RepositoryFilter<TModel extends Model.Any> = {
@@ -41,11 +42,12 @@ function isNotNull(value: object) {
 
 export const makeFilter = Effect.fnUntraced(function* <TModel extends Model.Any>(model: TModel, references?: { readonly tableName: string }) {
 	const sql = yield* SqlClient.SqlClient;
+	// A server-only field's select schema refuses every encode, so its filter values encode with the schema its writes use.
 	function fieldAt(key: string) {
 		const field = Object.hasOwn(model.fields, key) ? model.fields[key] : undefined;
 		return field === undefined
 			? Effect.fail(new Schema.SchemaError(new SchemaIssue.Pointer([key], new SchemaIssue.UnexpectedKey(model.ast, key))))
-			: Effect.succeed(field);
+			: Effect.succeed(serverOnlyStored(field) ?? field);
 	}
 	function column(key: string) {
 		return references === undefined ? sql`${sql(key)}` : sql`${sql(references.tableName)}.${sql(key)}`;

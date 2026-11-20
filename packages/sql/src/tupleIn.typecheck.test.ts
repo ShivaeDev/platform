@@ -3,7 +3,7 @@ import { Model } from "effect/schema";
 import type { SqlClient } from "effect/sql";
 import { expectTypeOf, it } from "vitest";
 import { makeRepository } from "#repository.ts";
-import type { BucketRegistrationError } from "#repositoryCollection.ts";
+import type { BucketRegistrationError, ServerOnlyKeyError } from "#repositoryCollection.ts";
 import { tupleIn } from "#tupleIn.ts";
 
 class Encoding extends Context.Service<Encoding, string>()("@shivaedev/sql/TupleEncoding") {}
@@ -63,5 +63,5 @@ const program = Effect.gen(function* () {
 });
 
 it("tuple filters check model columns and decoded positions while retaining encoding services", () => {
-	expectTypeOf(program).toEqualTypeOf<Effect.Effect<void, BucketRegistrationError, SqlClient.SqlClient>>();
+	expectTypeOf(program).toEqualTypeOf<Effect.Effect<void, BucketRegistrationError | ServerOnlyKeyError, SqlClient.SqlClient>>();
 });
