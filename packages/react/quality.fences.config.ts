@@ -13,6 +13,7 @@ export default [
 					"packages/changes/src/compositeKeys.ts",
 					"packages/changes/src/keys.ts",
 					"packages/changes/src/syncToken.ts",
+					"packages/identity/src/client/SessionMemory.ts",
 					"packages/identity/src/PermissionSession.ts",
 				),
 				browserCode,

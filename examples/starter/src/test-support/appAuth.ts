@@ -5,12 +5,14 @@ export function appAuth(options: {
 	readonly baseUrl: string;
 	readonly signedIn?: boolean;
 	readonly sessionFailure?: boolean;
+	readonly sessionHeld?: boolean;
 	readonly malformedSession?: boolean;
 	readonly signOutFailure?: string;
 	readonly onSessionChange?: (signedIn: boolean) => void;
 }) {
 	let sessionFailure = options.sessionFailure ?? false;
 	const requests: URL[] = [];
+	const heldChecks: (() => void)[] = [];
 	const date = "2026-01-01T00:00:00.000Z";
 	const signedInSession = {
 		session: {
@@ -42,11 +44,12 @@ export function appAuth(options: {
 				const url = new URL(request.url);
 				requests.push(url);
 				if (url.pathname === "/api/auth/get-session") {
-					return Promise.resolve(
-						Response.json(sessionFailure ? { code: "UNAVAILABLE", message: "Session check unavailable" } : session, {
+					function answer() {
+						return Response.json(sessionFailure ? { code: "UNAVAILABLE", message: "Session check unavailable" } : session, {
 							status: sessionFailure ? HttpStatus.fromLiteral("InternalServerError") : HttpStatus.fromLiteral("OK"),
-						}),
-					);
+						});
+					}
+					return options.sessionHeld ? new Promise((resolve) => heldChecks.push(() => resolve(answer()))) : Promise.resolve(answer());
 				}
 				if (url.pathname === "/api/auth/sign-in/email") {
 					session = signedInSession;
@@ -75,6 +78,11 @@ export function appAuth(options: {
 		},
 		recover: () => {
 			sessionFailure = false;
+		},
+		releaseSessionCheck: () => {
+			for (const release of heldChecks.splice(0)) {
+				release();
+			}
 		},
 		requests,
 	};

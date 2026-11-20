@@ -3,6 +3,7 @@ import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { act } from "react";
 import { countWords } from "@shivaedev/test-story/server/answers.ts";
 import { screenActions } from "#modules/notes/test-support/screenActions.ts";
+import { relaunchApp } from "#modules/notes/test-support/screenSetup.tsx";
 import type { Screen } from "#modules/notes/test-support/screenState.ts";
 
 export function authScreenVerbs(engine: Screen, tell: (line: string) => void) {
@@ -65,6 +66,17 @@ export function authScreenVerbs(engine: Screen, tell: (line: string) => void) {
 				});
 				return outcome;
 			}),
+		relaunches: () =>
+			Effect.gen(function* () {
+				tell("the app launches again, and its session check is held");
+				yield* relaunchApp(engine);
+			}),
+		releaseSessionCheck: () =>
+			Effect.promise(async () => {
+				tell("the held session check answers");
+				await act(() => Promise.resolve(auth().releaseSessionCheck()));
+			}),
+		sessionCheckStatus: () => Effect.sync(() => (engine.view?.container.textContent.includes("Checking your session") ? "shown" : "not shown")),
 		sessionChecks: () =>
 			Effect.sync(() => countWords(auth().requests.filter((url) => url.pathname === "/api/auth/get-session").length, "session check")),
 		signOutCalls: () => Effect.sync(() => countWords(engine.signOutCalls.length, "sign-out request")),

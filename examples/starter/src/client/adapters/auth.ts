@@ -3,6 +3,7 @@ import * as Atom from "effect/reactivity/Atom";
 import type { AuthFailure } from "@shivaedev/identity/client/AuthFailure.ts";
 import { authCall } from "@shivaedev/identity/client/adapters/authCall.ts";
 import { authSession as readSession } from "@shivaedev/identity/client/adapters/authSession.ts";
+import { browserSessionMemory } from "@shivaedev/identity/client/adapters/browserSessionMemory.ts";
 import type { PermissionSession } from "@shivaedev/identity/PermissionSession.ts";
 import { authAction } from "@shivaedev/react/client/authAction.ts";
 import { authSession } from "@shivaedev/react/client/authSession.ts";
@@ -21,10 +22,13 @@ export function makeAuth(options: {
 	readonly fetchOptions?: NonNullable<Parameters<typeof createAuthClient>[0]>["fetchOptions"];
 }) {
 	const client = createAuthClient({ "baseURL": options.baseUrl, ...("fetchOptions" in options ? { fetchOptions: options.fetchOptions } : {}) });
-	const session = authSession(readSession((signal) => client.getSession({ fetchOptions: { signal }, query: { disableCookieCache: true } })));
+	const session = authSession(
+		readSession((signal) => client.getSession({ fetchOptions: { signal }, query: { disableCookieCache: true } })),
+		{ remember: browserSessionMemory },
+	);
 	const actions: AuthActions = {
 		resetPassword: authAction(authCall((body, signal) => client.resetPassword({ ...body, fetchOptions: { signal } }))),
-		signOut: Atom.fn<void>()(() => authCall((_: undefined, signal) => client.signOut({ fetchOptions: { signal } }))(undefined)),
+		signOut: Atom.fn<void>()(() => session.signOut(authCall((_: undefined, signal) => client.signOut({ fetchOptions: { signal } }))(undefined))),
 		submit: authAction(
 			authCall(({ mode, credentials }, signal) =>
 				mode === "sign-up" ? client.signUp.email(credentials, { signal }) : client.signIn.email(credentials, { signal }),
