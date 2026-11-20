@@ -29,6 +29,7 @@ Owners matter when a program uses more than one database or client. Owner B comm
 The channel owns notifications, not writes. Record descriptions of what needs refreshing beside the write that affects it. Choose a key that identifies notifications that can share one refresh; this boundary is for coalescing refresh work, rather than storing every business event.
 
 The work has three parts:
+
 1. Once per binding, define the change type, owner, key and publish function, and bind the native transaction.
 2. Once per feature, record the subjects affected by each write.
 3. In each operation, run the feature through the transaction boundary or group autocommitted work with a batch.
@@ -263,6 +264,7 @@ pnpm add @shivaedev/changes effect
 ```
 
 `effect` is a peer dependency, so the application's Effect version runs the channel. The package declares Node 24 or newer. The SQL example also needs the application's native SQL driver and layer; neither the channel nor its installation creates a database connection or table.
+
 - The channel is an in-process notification boundary. It has no persistent outbox, replay or cross-process transport; deployment delivery requires a separate design.
 - Only explicitly recorded changes reach the channel. Trigger, cascade and raw SQL write discovery belongs to a binding or the application.
 - A native adapter must observe the real commit outcome. Wrapping only the body of a transaction does not establish that outcome.

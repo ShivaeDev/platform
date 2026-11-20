@@ -32,6 +32,7 @@ A **Layer** describes how to acquire the fixture's services. `makeEffectIt` buil
 Keep the two lifetimes separate. The file owns the acquired Layer and its scope; its finalizers finish before Vitest reports the file complete. Each test makes its harness and runs its body in a separate scope. Harnesses, wrappers, generator bodies and `each` bodies may acquire resources through that Scope; their finalizers run on success, failure and interruption. Scope is available per test and is not added to the file Context. A shared service can retain mutable state across tests; a fresh harness alone does not reset it. Put application-state isolation in the fixture that owns that state, such as a database transaction wrapper.
 
 The work usually splits into two parts:
+
 1. Once per fixture, define its Layer, `makeHarness` and, when needed, an `around` wrapper in test support.
 2. In every test, write the generator and the assertions. For a test with no reusable fixture, use `it.effect` directly.
 
@@ -221,6 +222,7 @@ The entire wrapped Effect, including readiness checks and retry delays, uses liv
 ### API
 
 Import the module that defines the name; the package has no root entry. Every source module is available through its `.ts` subpath.
+
 - `@shivaedev/test/adapters/it.ts`: `it`, with generator-aware `effect` and `live` testers.
 - `@shivaedev/test/adapters/makeEffectIt.ts`: `makeEffectIt({ layer, makeHarness, around?, clock? })`, returning `{ effectApp }`.
 - `@shivaedev/test/eventually.ts`: `eventually(effect, options?)` and `EventuallyOptions`.
@@ -237,5 +239,6 @@ pnpm add --save-dev @shivaedev/test @effect/vitest effect vitest
 ```
 
 The package declares `effect` as a peer and `@effect/vitest` as an optional peer. The Vitest runner modules require `@effect/vitest`; install it when using them. The package requires Node.js 24 or later. Use peer versions compatible with the package's `package.json`.
+
 - Define a fixture tester in test support and import it from Vitest tests. Calling `makeEffectIt` declares a Vitest fixture; it is not an application runtime factory.
 - An unbounded readiness poll can run until Vitest ends the test. Set a retry budget when the condition may never become true.

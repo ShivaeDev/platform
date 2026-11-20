@@ -66,3 +66,19 @@ fieldScope.it(
 		]);
 	},
 );
+
+fieldScope.it(
+	"an RPC whose success holds a Redacted refresh inside a union with null masks the refresh name and leaves scope visible",
+	[],
+	function* ({ maskedNames }) {
+		expect(yield* maskedNames("a Redacted refresh beside null", ["refresh", "scope"])).toEqual(["refresh"]);
+	},
+);
+
+fieldScope.it(
+	"an RPC whose success is a folder of folders, with an outline of nested outlines, registers and masks only the Redacted key's name",
+	[],
+	function* ({ maskedNames }) {
+		expect(yield* maskedNames("a folder of folders with a Redacted key", ["children", "key", "name", "outline"])).toEqual(["key"]);
+	},
+);

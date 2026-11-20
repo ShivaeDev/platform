@@ -1,4 +1,5 @@
 import { Option, Schema } from "effect";
+import { sensitiveAssignmentValues } from "#sensitiveAssignmentValues.ts";
 
 export const REDACTED = "<redacted>";
 const MAX_STRING = 2048;
@@ -44,22 +45,11 @@ const AUTH_SCHEME = /\b(?<scheme>Bearer|Basic)\s+[A-Za-z0-9%._~+/-]+=*/giu;
 const JWT = /\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]*/gu;
 const PRIVATE_KEY = /-----BEGIN (?<kind>(?:[A-Z0-9]+ )*PRIVATE KEY)-----[\s\S]*?-----END \k<kind>-----/gu;
 function redactAssignments(text: string, sensitive: SensitiveKey): string {
-	const matcher =
-		/(?<key>[A-Za-z][\w.-]*)(?<separator>["']?\s*[=:]\s*)(?<value>(?<quote>["'])(?:\\[\s\S]?|(?!\k<quote>)[^\\])*(?<closingQuote>\k<quote>|$)|[^\s"'&,;]+)/gu;
 	let result = "";
 	let cursor = 0;
-	for (let match = matcher.exec(text); match !== null; match = matcher.exec(text)) {
-		const key = match[1] ?? "";
-		const separator = match[2] ?? "";
-		if (sensitive(key)) {
-			const quote = match.groups?.quote ?? "";
-			const closingQuote = match.groups?.closingQuote ?? "";
-			result += `${text.slice(cursor, match.index)}${key}${separator}${quote}${REDACTED}${closingQuote}`;
-			cursor = matcher.lastIndex;
-		} else if (match[3]?.includes("=")) {
-			// Revisit embedded parameters without parsing URL and source-location colons as assignments.
-			matcher.lastIndex = match.index + key.length + separator.length;
-		}
+	for (const [start, end] of sensitiveAssignmentValues(text, sensitive)) {
+		result += `${text.slice(cursor, start)}${REDACTED}`;
+		cursor = end;
 	}
 	return result + text.slice(cursor);
 }
@@ -69,7 +59,10 @@ function scrub(text: string, sensitive: SensitiveKey): string {
 }
 function redactSchemaValues(text: string): string {
 	return text
-		.replaceAll(/(?<expected>\bExpected[^\r\n]*?, (?:got|actual)[ \t]+)(?:"(?:\\[\s\S]|[^"\\])*"|[^\r\n]*)/gu, `$<expected>${REDACTED}`)
+		.replaceAll(
+			/(?<expected>\bExpected(?:(?!\bExpected\b)[^\r\n])*?, (?:got|actual)[ \t]+)(?:"(?:\\[\s\S]|[^"\\])*"|[^\r\n]*)/gu,
+			`$<expected>${REDACTED}`,
+		)
 		.replaceAll(/\bgot[ \t]+"(?:\\[\s\S]|[^"\\])*"/gu, `got ${REDACTED}`);
 }
 export function redactText(text: string, sensitive: SensitiveKey, maxLength = MAX_STRING, key = ""): string {
@@ -96,7 +89,7 @@ function url(value: string): string {
 	const separator = target.indexOf("?");
 	return (
 		(separator === -1 ? target : `${target.slice(0, separator + 1)}${query(target.slice(separator + 1))}`).replaceAll(
-			/(?<authority>(?:\b[a-z][a-z0-9+.-]*:)?\/\/)[^/?#]*@/giu,
+			/(?<authority>(?:(?<![a-z0-9+.-])[a-z][a-z0-9+.-]*:)?\/\/)[^/?#]*@/giu,
 			`$<authority>${REDACTED}@`,
 		) + (fragment === -1 ? "" : `#${REDACTED}`)
 	);
@@ -128,5 +121,5 @@ export function redactUrl(value: string, key = ""): string {
 		}
 	}
 	// Quotes and whitespace can belong to secret values, so free text has no safe closing delimiter.
-	return value.replaceAll(/(?:[a-z][a-z0-9+.-]*:\/\/|[/?#]).*/gisu, url);
+	return value.replaceAll(/(?:(?<![a-z0-9+.-])[a-z][a-z0-9+.-]*:\/\/|[/?#]).*/gisu, url);
 }

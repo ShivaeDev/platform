@@ -1,15 +1,15 @@
 import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
-import { clockReadsTenSeconds, remoteAnswers } from "#test/http-client/answers.ts";
+import { clockReadsTenSeconds, remoteAnswers, remoteExplains } from "#test/http-client/answers.ts";
 import { httpClient } from "#test/http-client/story.ts";
 
 httpClient.it(
-	"a remote 503 names the status, method, host and path without the query, headers or body in its failure message",
+	"a remote 503 names the status, method, host, path and body excerpt without the query or headers in its failure message",
 	[remoteAnswers(HttpStatus.fromLiteral("ServiceUnavailable"), { "x-private-header": "header-secret" })],
 	function* ({ failureMessage, post, remoteHost }) {
 		yield* post();
 
-		expect(yield* failureMessage()).toBe(`HTTP 503: POST ${yield* remoteHost()}/answer`);
+		expect(yield* failureMessage()).toBe(`HTTP 503: POST ${yield* remoteHost()}/answer: {"item":"paper"}`);
 	},
 );
 
@@ -68,3 +68,29 @@ httpClient.it(
 		expect(yield* post()).toBe("rate limited");
 	},
 );
+
+for (const status of [
+	HttpStatus.fromLiteral("Unauthorized"),
+	HttpStatus.fromLiteral("NotFound"),
+	HttpStatus.fromLiteral("Gone"),
+	HttpStatus.fromLiteral("TooManyRequests"),
+]) {
+	httpClient.it(
+		`a remote ${status} names the status, method, host, path and body excerpt in its failure message`,
+		[remoteAnswers(status)],
+		function* ({ failureMessage, post, remoteHost }) {
+			yield* post();
+
+			expect(yield* failureMessage()).toBe(`HTTP ${status}: POST ${yield* remoteHost()}/answer: {"item":"paper"}`);
+		},
+	);
+	httpClient.it(
+		`a remote ${status} with an empty body names the status, method, host and path in its failure message`,
+		[remoteExplains(status, "")],
+		function* ({ failureMessage, post, remoteHost }) {
+			yield* post();
+
+			expect(yield* failureMessage()).toBe(`HTTP ${status}: POST ${yield* remoteHost()}/answer`);
+		},
+	);
+}

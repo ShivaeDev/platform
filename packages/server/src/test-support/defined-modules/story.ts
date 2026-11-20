@@ -10,13 +10,18 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { appHost } from "#appDatabase.ts";
 import { appModules } from "#appModules.ts";
 import { Api, draftsModule, handWrittenNotesModule, notesModule, replacedNotesModule } from "#test/defined-modules/features.ts";
+import { Greetings, greetingsModule } from "#test/defined-modules/greetings.ts";
 import { Members, membersModule, privateJoinMembersModule } from "#test/defined-modules/members.ts";
 import { TestRoles } from "#test/permissions.ts";
 import { databaseUrl, postgres } from "#test/postgres.ts";
 
 type Caller = "alice" | "a visitor";
 
+const draftsQueue = { name: "drafts.publish" };
+
 interface State {
+	drafts: typeof draftsModule | (typeof draftsModule & { readonly queues: readonly (typeof draftsQueue)[] });
+	greetings: typeof greetingsModule | (typeof greetingsModule & { readonly queues: readonly (typeof draftsQueue)[] });
 	logs: { readonly cause: Cause.Cause<unknown>; readonly message: readonly unknown[] }[];
 	members: typeof membersModule | typeof privateJoinMembersModule;
 	notes: typeof notesModule | typeof handWrittenNotesModule | typeof replacedNotesModule;
@@ -41,7 +46,19 @@ export const definedModulesHost = storyKit({
 	after: {
 		configured: Effect.fnUntraced(function* (state: State) {
 			const database = yield* PostgresTestDatabase;
-			const modules = yield* appModules([draftsModule, state.notes, state.members]);
+			const composed = yield* appModules([state.drafts, state.notes, state.members, state.greetings]).pipe(
+				Effect.map(Option.some),
+				Effect.catchTag("DuplicateModuleQueue", (refusal) =>
+					Effect.sync(() => {
+						state.startup = refusal.message;
+						return Option.none();
+					}),
+				),
+			);
+			if (Option.isNone(composed)) {
+				return;
+			}
+			const modules = composed.value;
 			const host = appHost({ postgresSettings: {}, ...modules, config: { databaseUrl: database.url, port: 0 }, sessions });
 			const recorded = Logger.make(({ cause, message }) => {
 				state.logs.push({ cause, message: Array.isArray(message) ? message : [message] });
@@ -74,7 +91,15 @@ export const definedModulesHost = storyKit({
 	},
 	around: withIsolatedDatabase,
 	clock: "test",
-	create: (): State => ({ logs: [], members: membersModule, notes: notesModule, startup: "not built", url: "" }),
+	create: (): State => ({
+		drafts: draftsModule,
+		greetings: greetingsModule,
+		logs: [],
+		members: membersModule,
+		notes: notesModule,
+		startup: "not built",
+		url: "",
+	}),
 	layer: postgres,
 	name: "defined modules",
 	runIf: databaseUrl !== undefined,
@@ -100,6 +125,11 @@ export const definedModulesHost = storyKit({
 				),
 			);
 		}
+		function greetingsClient() {
+			return RpcClient.make(Greetings, { flatten: true }).pipe(
+				Effect.provide(RpcClient.layerProtocolHttp({ url: state.url }).pipe(Layer.provide([FetchHttpClient.layer, RpcSerialization.layerNdjson]))),
+			);
+		}
 		return {
 			auditMember: (id: number) => {
 				story.tell(`alice audits member ${id} through members.audit, whose handler dies holding the member's row`);
@@ -108,6 +138,10 @@ export const definedModulesHost = storyKit({
 			createNote: (title: string, caller: Caller = "alice") => {
 				story.tell(`${caller} creates the note ${title} through notes.create`);
 				return answered(Effect.flatMap(client(caller), (call) => call("notes.create", { title })));
+			},
+			greet: (name: string) => {
+				story.tell(`alice greets ${name} through greetings.greet`);
+				return answered(Effect.flatMap(greetingsClient(), (call) => call("greetings.greet", { name })));
 			},
 			joinMember: (name: string, address: string) => {
 				story.tell(`alice adds the member ${name} living at ${address} through members.join`);
@@ -159,5 +193,14 @@ export const privateJoinPayload = definedModulesHost.trait(
 	"the members module's join payload marks address sensitive while its generated success names address too",
 	(state) => {
 		state.members = privateJoinMembersModule;
+	},
+);
+
+export const queueSharedWithGreetings = definedModulesHost.trait(
+	"configured",
+	"the drafts module and the greetings module both declare the queue drafts.publish",
+	(state) => {
+		state.drafts = { ...draftsModule, queues: [draftsQueue] };
+		state.greetings = { ...greetingsModule, queues: [draftsQueue] };
 	},
 );

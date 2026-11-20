@@ -8,6 +8,13 @@ import { makeReadClient } from "#readClient.ts";
 import { createClientEngine } from "#test/http-client/engine.ts";
 
 const Food = Schema.Struct({ energy: optionalField(Schema.Number), name: Schema.String });
+// The misconfigured source is built with a negative body limit, which its reads refuse.
+const SOURCES = [
+	["food", 64],
+	["usda", 64],
+	["misconfigured", -1],
+] as const;
+type Source = (typeof SOURCES)[number][0];
 
 export const readApis = storyKit({
 	clock: "test",
@@ -34,14 +41,15 @@ export const readApis = storyKit({
 				}),
 			),
 		);
-		const clients = yield* Effect.forEach(["food", "usda"], (source) =>
-			makeReadClient({ bodyLimit: 64, capacity: 2, schema: Food, source, timeout: "5 seconds", timeToLive: "1 minute" }).pipe(
+		const clients = yield* Effect.forEach(SOURCES, ([source, bodyLimit]) =>
+			makeReadClient({ bodyLimit, capacity: 2, schema: Food, source, timeout: "5 seconds", timeToLive: "1 minute" }).pipe(
 				Effect.provideService(HttpClient.HttpClient, engine.rawClient()),
 				Effect.provide(recording),
 			),
 		);
 		const pending: {
 			answer?: typeof Food.Type | string;
+			excerpt?: string | undefined;
 			hold?: FakeHttpHold;
 			phase?: "headers" | "body";
 			read?: Fiber.Fiber<typeof Food.Type | string>;
@@ -52,15 +60,18 @@ export const readApis = storyKit({
 	stages: ["routes"],
 	verbs: ({ clients, lifecycle, logs, pending, remote, spans }, story) => {
 		remote.narrate(story.tell);
-		function read(source: "food" | "usda" = "food", query = "private search") {
+		function read(source: Source = "food", query = "private search") {
 			story.tell(`${source} searches for ${query}`);
-			const client = clients[source === "food" ? 0 : 1];
+			const client = clients[SOURCES.findIndex(([name]) => name === source)];
 			if (client === undefined) {
 				return Effect.die("No read client was built");
 			}
 			return client.get(`${remote.url}/body?q=${encodeURIComponent(query)}`).pipe(
 				Effect.catchTag("ReadClientError", (error) =>
-					Effect.succeed(`${error.source}: ${error.reason}${error.status === undefined ? "" : ` ${error.status}`}`),
+					Effect.sync(() => {
+						pending.excerpt = error.bodyExcerpt;
+						return `${error.source}: ${error.reason}${error.status === undefined ? "" : ` ${error.status}`}`;
+					}),
 				),
 				Effect.tap((answer) =>
 					Effect.sync(() => {
@@ -75,6 +86,7 @@ export const readApis = storyKit({
 				story.tell("the five-second read deadline passes");
 				return pending.read === undefined ? Effect.die("Start a read first") : passes("5 seconds", Fiber.join(pending.read));
 			},
+			failureExcerpt: () => Effect.sync(() => pending.excerpt ?? "no excerpt"),
 			read,
 			recordedLogs: () => Effect.sync(() => logs),
 			recordedLogText: () => Effect.sync(() => JSON.stringify(logs)),

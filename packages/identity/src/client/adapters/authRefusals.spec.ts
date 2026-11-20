@@ -1,7 +1,8 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { AuthFailure } from "#client/AuthFailure.ts";
-import { authRefusalsStory } from "#test/auth-refusals/story.ts";
+import { authRefusalsStory, withoutSignInPolicy } from "#test/auth-refusals/story.ts";
 
 for (const [source, wire, code] of [
 	["policy", "sign_in_refused", "SIGN_IN_REFUSED"],
@@ -26,6 +27,22 @@ authRefusalsStory.it("an email-delivery refusal retains the application's declar
 
 	expect(failure).toMatchObject({ _tag: "AuthFailure", cause: { code: "MAIL_UNAVAILABLE" }, code: "MAIL_UNAVAILABLE" });
 });
+
+authRefusalsStory.it(
+	"an account-confirmation refusal during email sign-up reaches the client with its declared code, after Better Auth saved the account",
+	[withoutSignInPolicy],
+	function* ({ refuse, signUp, storedSessions, storedUsers }) {
+		yield* refuse("email delivery");
+
+		const failure = yield* Effect.flip(signUp());
+
+		yield* outcomes([
+			["sign-up answer", () => Effect.succeed(failure), { _tag: "AuthFailure", cause: { code: "MAIL_UNAVAILABLE" }, code: "MAIL_UNAVAILABLE" }],
+			["stored users", () => storedUsers(), ["alice@example.test", "bob@example.test"]],
+			["stored sessions", () => storedSessions(), ["bob@example.test"]],
+		]);
+	},
+);
 
 authRefusalsStory.it("an undeclared application code remains UNKNOWN", [], function* ({ refuse, signInWithoutApplicationCodes }) {
 	yield* refuse("database hook");

@@ -20,6 +20,7 @@ export default [
 					"packages/errors/src/redact.ts",
 					"packages/errors/src/redactCause.ts",
 					"packages/errors/src/sensitive.ts",
+					"packages/errors/src/sensitiveAssignmentValues.ts",
 					"packages/errors/src/taxonomy.ts",
 				),
 				browserCode,

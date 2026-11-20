@@ -16,26 +16,26 @@ overrides:
   "@effect/platform-node-shared": "catalog:"
 
 catalog:
-  "@mdn/browser-compat-data": 8.1.8
+  "@mdn/browser-compat-data": 8.1.9
   browserslist: 4.29.5
-  "@anthropic-ai/claude-agent-sdk": 0.3.318
-  "@earendil-works/pi-coding-agent": 1.5.0
+  "@anthropic-ai/claude-agent-sdk": 0.3.323
+  "@earendil-works/pi-coding-agent": 1.5.2
   "@modelcontextprotocol/sdk": 1.32.2
   "@zip.js/zip.js": 2.25.0
   resend: 6.37.0
-  playwright: 1.64.1
+  playwright: 1.65.0
   "cn": 0.5.2
   "@base-ui/react": 1.9.0
   "@tanstack/react-table": 9.3.1
-  railway: 3.16.0
-  "@tailwindcss/vite": 4.3.4
+  railway: 3.17.0
+  "@tailwindcss/vite": 4.3.5
   "@tanstack/react-router": 1.170.46
   "@vitejs/plugin-react": 6.3.0
-  vite: 8.3.5
-  tailwindcss: 4.3.4
+  vite: 8.3.8
+  tailwindcss: 4.3.5
   class-variance-authority: 0.7.1
   lucide-react: 1.72.0
-  "@biomejs/biome": 2.6.4
+  "@biomejs/biome": 2.6.7
   "@effect/vitest": 4.1.4
   "@effect/atom-react": 4.1.4
   "@effect/platform-node": 4.1.4
@@ -55,9 +55,9 @@ catalog:
   "@typescript/native": npm:typescript@7.0.2
   effect: 4.1.4
   esbuild: 0.28.2
-  "@better-auth/oauth-provider": 1.7.16
-  better-auth: 1.7.16
-  pg-boss: 12.38.0
+  "@better-auth/oauth-provider": 1.7.22
+  better-auth: 1.7.22
+  pg-boss: 12.38.2
   typescript: 7.0.2
   yaml: 2.9.1
   vitest: 5.1.0

@@ -55,6 +55,7 @@ An application-owned middleware that reads any header for a security decision ca
 A policy is a function of `{ origin: Option<string>, rpc, headers }`. Platform does not pick one. `trustedOrigins({ allow, missing })` matches origins exactly and requires you to decide what happens when the header is missing. The literal `Origin: null` is a present value; it only passes if you list it.
 
 The Origin check is CSRF protection for cookie sessions. Browsers send `Origin` on the POST requests native RPC uses over HTTP. The choices:
+
 - `missing: "reject"` works for browser-only applications. It rejects server-to-server callers and native HTTP stacks that omit the header.
 - Capacitor WebViews send their own origin (`capacitor://localhost` on iOS, `https://localhost` on Android by default). List it in the session policy and opt in to transport access with `appHost({ nativeOrigins, ... })`; the session policy alone cannot admit a request through the earlier transport guard. Use the WebView's own fetch so NDJSON updates arrive incrementally and abort releases server work.
 - `missing: "allow"` accepts those clients. It also accepts any other request without an Origin header, including requests from software that strips it. Accept it only with another control in place: SameSite cookies, a custom header that a browser cannot send cross-site without a preflight, or bearer tokens instead of cookies.

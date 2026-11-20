@@ -50,6 +50,7 @@ No package has a root entry or a module that re-exports another. Published packa
 For a new application, follow the [framework quickstart](./docs/framework/quickstart.md). An application depends on `@shivaedev/platform` and takes `@shivaedev/test-story` and `@shivaedev/quality` for development, and its `pnpm-workspace.yaml` hoists `@shivaedev/*` so the pieces platform brings resolve; the [platform README](./packages/platform/README.md) explains the setup. This workspace hoists the scope too, because `examples/starter` resolves its pieces from the root.
 
 Requirements:
+
 - Node.js at the version in `.node-version` for development and CI; published packages need Node 24 or newer, so deployment hosts such as Vercel can use Node 24
 - pnpm through Corepack, at the version in `package.json`'s `packageManager`
 - Docker, or PostgreSQL client tools (`psql`) when reusing a native local service

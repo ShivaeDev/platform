@@ -21,7 +21,7 @@ export const eventually = Effect.fnUntraced(function* <A, E, R>(
 	const interval = options?.interval ?? "10 millis";
 	const wait = options?.wait ?? ("adjust" in clock ? TestClock.adjust(interval) : Effect.sleep(interval));
 	let retriesLeft = options?.times;
-	for (;;) {
+	while (true) {
 		const result = yield* Effect.result(effect);
 		if (Result.isSuccess(result)) {
 			return result.success;
