@@ -2,7 +2,7 @@ import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { app } from "#starter-published/test-support/app.ts";
 import { documentationFixture } from "#starter-published/test-support/documentationFixture.ts";
-import { unpublishedContract } from "#starter-published/test-support/unpublishedContract.ts";
+import { unpublishedContract, unshippedResumeToken } from "#starter-published/test-support/unpublishedContract.ts";
 
 app.it(
 	"checks named, aliased, type-only and namespace imports plus prose and module tables",
@@ -101,5 +101,41 @@ app.it(
 		expect(failure).toContain("import makeLiveServer from @shivaedev/contract/makeLiveServer.ts");
 		expect(failure).toContain("packages/contract/README.md");
 		expect(failure).not.toContain("import query");
+	},
+);
+
+app.it(
+	"accepts a type-only export named in a README's prose",
+	[
+		unpublishedContract,
+		documentationFixture("Narrow a result with `Streaming` from `@shivaedev/contract/operation.ts`.", "packages/contract/README.md"),
+	],
+	function* ({ documentation }) {
+		expect(yield* documentation()).toBeUndefined();
+	},
+);
+
+for (const [title, name, markdown] of [
+	["a name in prose that the module does not export", "Streamer", "Narrow a result with `Streamer` from `@shivaedev/contract/operation.ts`."],
+	["a code-block value import of a type-only export", "Streaming", '```ts\nimport { Streaming } from "@shivaedev/contract/operation.ts";\n```'],
+] as const) {
+	app.it(`rejects ${title}`, [unpublishedContract, documentationFixture(markdown, "packages/contract/README.md")], function* ({ documentation }) {
+		const failure = yield* documentation();
+		expect(failure).toContain("Published documentation API check failed:");
+		expect(failure).toContain(`@shivaedev/contract@0.1.0: import ${name} from @shivaedev/contract/operation.ts (packages/contract/README.md)`);
+	});
+}
+
+app.it(
+	"rejects a value named in prose that the published types declare but the module does not ship",
+	[
+		unpublishedContract,
+		unshippedResumeToken,
+		documentationFixture("Resume with `resumeToken` from `@shivaedev/contract/resume.ts`.", "packages/contract/README.md"),
+	],
+	function* ({ documentation }) {
+		expect(yield* documentation()).toContain(
+			"Missing published export: @shivaedev/contract@0.1.0: import resumeToken from @shivaedev/contract/resume.ts",
+		);
 	},
 );

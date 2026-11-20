@@ -25,7 +25,11 @@ export function documentedImports(markdown: string, source: string, owner?: stri
 
 export function importProbe(entry: DocumentedImport, index: number): string {
 	const specifier = JSON.stringify(entry.specifier);
-	return entry.name === undefined
-		? `export * as entry${index} from ${specifier};`
+	if (entry.name === undefined) {
+		return `export * as entry${index} from ${specifier};`;
+	}
+	// Prose does not say whether a name is a value or a type, and `export type` compiles for either.
+	return entry.typeOnly === undefined
+		? `export type { ${entry.name} as entry${index} } from ${specifier};`
 		: `export { ${entry.typeOnly ? "type " : ""}${entry.name} as entry${index} } from ${specifier};`;
 }

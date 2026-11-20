@@ -10,6 +10,7 @@ const MODULES = [
 	{ content: "export default function run(): number {\n\treturn 1;\n}\n", path: "packages/tool/src/run.ts" },
 	{ content: "export const stop = 1;\n", path: "packages/tool/src/stop.ts" },
 	{ content: "export const main = 1;\n", path: "packages/app/main.ts" },
+	{ content: "export interface Rejection {\n\treadonly reason: string;\n}\n", path: "packages/lib/src/rejection.ts" },
 ];
 
 const REPOSITORY = "packages/lib/src/repository.ts";
@@ -93,6 +94,7 @@ const RESOLVED_REFERENCES = [
 		name: "any name imported from a module that re-exports another",
 	},
 	{ document: guide("Call `makeRepository` from `@acme/lib/repository.ts`."), name: "a name in prose that its module exports" },
+	{ document: guide("Narrow a result with `Rejection` from `@acme/lib/rejection.ts`."), name: "a type in prose that its module exports" },
 	{
 		document: markdown(
 			"packages/lib/README.md",
