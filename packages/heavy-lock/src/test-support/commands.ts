@@ -193,7 +193,7 @@ export function commandVerbs(engine: Lock, tell: (line: string) => void) {
 				tell(`${Duration.format(Duration.millis(milliseconds))} pass`);
 				const clock = yield* Clock.Clock;
 				const target = clock.currentTimeMillisUnsafe() + milliseconds;
-				for (;;) {
+				while (true) {
 					const next = nextWakeup(engine, target);
 					if (next === undefined) {
 						break;

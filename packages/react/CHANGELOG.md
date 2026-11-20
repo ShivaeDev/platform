@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.49.2 - 2026-11-20
+
+### Changed
+
+- Require Effect 4.1.4 and its matching platform packages.
+- `useCreate` and `useEditor` accept a save failing with `Conflict` or `BadRequest` without `rejectField`. Drop `rejectField: fieldRejectionOf(Fields)` where it only repeated the default.
+
 ## 0.49.1 - 2026-11-19
 
 ### Changed

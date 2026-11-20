@@ -79,6 +79,7 @@ The reader takes one look and gets it. Within about five seconds they see how th
 ## Page shapes
 
 **Decision page.** Used whenever the reader must choose. In order:
+
 1. How the system works, drawn, just enough to follow the options.
 2. The concrete situation that forces the choice, drawn.
 3. Each option drawn the same way, the difference highlighted, the trade-off in one line.
@@ -103,12 +104,14 @@ Read the answers back (in claude.ai, with `ArtifactData`) and carry on with the 
 The rules are not equal. Shape comes first: the right form, the mechanism drawn, the answer visible, little prose. Colour, labels and legend wording are polish. Fix them when it is cheap, and never trade a better shape for better colours.
 
 **Purpose**
+
 - **Five-second answer.** Everything on the page serves the one-look answer or goes.
 - **Show, don't tell.** Relationships, changes, flows and comparisons are figures. Prose is captions and short labels, about a third of the page at most. Concise prose is still a wall.
 - **No caveat theatre.** No hedges, not-confirmed lists, method notes or self-justification. Keep a caveat only if it would change the reader's decision, and put it next to the claim it qualifies.
 - **High level only.** Leave out detail nobody asked for: file and line lists, edge cases, every row, the history of how you found it. If something still feels important, put it in one section at the bottom, collapsed by default, labelled as more detail.
 
 **Build**
+
 - **Small figures.** Two to five things lit at once, about eight at most. Without a spotlight, split into an overview and a focused view.
 - **Never restate.** No table, cards or paragraphs under a figure that repeat what it shows. Spend the space on the figure.
 - **Headline answers.** A page that makes a claim states it in the headline, with its number. A title that only names the topic wastes the most-read line on the page.
@@ -128,6 +131,7 @@ The rules are not equal. Shape comes first: the right form, the mechanism drawn,
 ## Failure catalogue
 
 These are the ways pages fail most often. Check for each before publishing.
+
 - **Text in costume.** Cards, callouts and coloured boxes that each hold a paragraph. It looks visual and reads as prose.
 - **Figures that do not carry the argument.** A diagram sits on the page while the actual reasoning lives in the paragraphs around it.
 - **Boxes that only name things.** A row of component names joined by arrows, with nothing about what flows, what waits or where it breaks.
@@ -142,6 +146,7 @@ These are the ways pages fail most often. Check for each before publishing.
 ## Review checklist
 
 Look at the rendered page once and answer each question honestly:
+
 1. Cover the text and look only at the figures for five seconds. Is the answer clear?
 2. Is prose more than about a third of the page? Turn the longest paragraph into a figure or cut it.
 3. Does any figure only name components? Draw what moves, waits or breaks.

@@ -214,7 +214,7 @@ refused.returnsMap: run returns Map<string, number> at success, which has no exa
 
 The path after `at` points into the returned value, such as `success.summary`.
 
-A `Redacted` value never leaves the server. An operation whose success holds one is refused wherever it sits: in the returned object, an array or record, or a field of an exported Schema or Model class that the wire would otherwise carry by name, such as a stored row with a [server-only field](https://github.com/ShivaeDev/platform/tree/main/packages/sql#fields-that-never-leave-the-server). Return a public shape of the row instead, such as `{ id: row.id, owner: row.owner }`. A payload may still carry a `Redacted`, such as a password in a sign-in command.
+A `Redacted` value never leaves the server. An operation whose success holds one is refused wherever it sits: in the returned object, an array, a record, a union or an `Option`, or a field of an exported Schema or Model class that the wire would otherwise carry by name, such as a stored row with a [server-only field](https://github.com/ShivaeDev/platform/tree/main/packages/sql#fields-that-never-leave-the-server), even a class whose fields lead back to itself. Return a public shape of the row instead, such as `{ id: row.id, owner: row.owner }`. A payload may still carry a `Redacted`, such as a password in a sign-in command.
 
 ```text
 accounts.returnsRow: run returns a Redacted value at success.digest, a field of the Schema class Credential, which never leaves the server; return a public shape without that field, such as an object of the fields the browser needs

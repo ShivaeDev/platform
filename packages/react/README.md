@@ -1257,6 +1257,7 @@ pnpm add @tanstack/react-router
 ```
 
 The package needs Node 24 or newer.
+
 - Query identity, TTL, invalidation and action concurrency remain native atom policies. Put the registry at the lifetime boundary those policies need.
 - The package has no SSR registry/hydration adapter, offline write queue or optimistic reconciliation policy.
 

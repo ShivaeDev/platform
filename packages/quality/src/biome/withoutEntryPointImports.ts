@@ -13,7 +13,7 @@ const DEPENDENCY = /^Dependency (?<name>\S+) isn't specified in /u;
 
 const ownerOf = Effect.fn("Biome.ownerOf")(function* (inputs: Pick<RuleInputs, "readText">, path: string) {
 	let directory = posix.dirname(path);
-	for (;;) {
+	while (true) {
 		const file = posix.join(directory, "package.json");
 		const manifest = yield* readPackageManifest(inputs.readText, file);
 		if (manifest !== undefined || directory === ".") {

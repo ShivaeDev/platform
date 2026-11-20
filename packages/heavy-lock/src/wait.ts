@@ -45,7 +45,7 @@ export const waitForLock = Effect.fn("HeavyLock.waitForLock")(function* (lock: s
 	const waitStartedMs = yield* Clock.currentTimeMillis;
 	const hungAfterMs = Duration.toMillis(options.hungAfter ?? Duration.minutes(15));
 	let announced: Announced | undefined;
-	for (;;) {
+	while (true) {
 		const holder: Holder = { ...claim, startedAtMs: yield* Clock.currentTimeMillis };
 		const blocker = yield* attempt(lock, holder);
 		if (Option.isNone(blocker)) {

@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.37.0 - 2026-11-20
+
+### Added
+
+- `migrationsIn(directory)` from `@shivaedev/server/adapters/migrationsIn.ts` returns an `AppModule` `migrations` value whose loader reads the `migrations` folder in `directory` with `MigratorFileSystem.fromFileSystem` under `NodeServices.layer`, so a registration writes `migrations: migrationsIn(import.meta.dirname)`. It needs the optional peer `@effect/platform-node`.
+- `AppModule.migrations` is optional. A module without migrations leaves it out, and `appModules` combines the loaders and schema components of the modules that declare them.
+- `workerHost` masks its logs, the causes its installed error reporters receive and its exported spans with the application host's policy: the built-in credential-shaped name rules, `config.sensitiveKeys`, and the names of fields that the models of the repositories it builds mark sensitive (`sensitive: true` or a Redacted schema). Its `config` takes `sensitiveKeys` beside the database settings, typed as the new `WorkerHostConfig`. A worker serves no RPC group, so no RPC schema adds names.
+- `workerHost` logs `Worker ready to take jobs` once its workers are registered, inside its redaction and trace export.
+
+### Changed
+
+- Require Effect 4.1.4 and its matching platform packages.
+- closing `appDatabase`, and interrupting a host that waits for migrations, end the pool's connections without waiting for PostgreSQL's disconnect acknowledgements.
+- `appModules` names a defined module by its own name in `DuplicateModuleQueue`.
+
+### Breaking
+
+- A registration with `module:` no longer accepts `name`: the module already carries its name, and a second one could disagree with it. Delete the `name` line from each `module:` registration. A `group` plus `handlers` registration still requires `name`.
+- `workerHost` exports traces through `otlpTracing` itself, as `appHost` does, so the export masks the worker's whole policy, and its Layer's error type now includes `SensitiveFieldConflict` and `InvalidRedactionMask`. Remove `Layer.provide(otlpTracing)` from around `workerHost`; keeping it builds a second exporter and diagnostics pipeline around the worker. Remove an application's own readiness log around `workerHost` too, such as `Layer.tap(() => Effect.logInfo("Worker ready to take jobs"))`: the host now writes it, and an effect composed around the host's Layer runs outside its redaction and exporter.
+
 ## 0.36.0 - 2026-11-19
 
 ### Added

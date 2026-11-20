@@ -18,7 +18,7 @@ export const packageScopeOf = Effect.fn("Build.packageScopeOf")(function* (file:
 	const fs = yield* FileSystem.FileSystem;
 	const path = yield* Path.Path;
 	let directory = path.dirname(file);
-	for (;;) {
+	while (true) {
 		const manifestPath = path.join(directory, "package.json");
 		if (yield* fs.exists(manifestPath)) {
 			const manifest = yield* decodeManifest(yield* fs.readFileString(manifestPath));

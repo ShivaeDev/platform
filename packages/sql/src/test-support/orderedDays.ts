@@ -14,14 +14,19 @@ export const orderedDays = storyKit({
 		...orderedDaysRace(engine, story.tell),
 		append: (plan: number, id: number) => {
 			story.tell(`append day ${id} to plan ${plan}`);
-			return attempt(engine.order.append(plan, { id, name: `Day ${id}` }));
+			return attempt(engine.order.append(plan, { id, name: `Day ${id}` }).pipe(Effect.provide(engine.traced)));
 		},
 		move: (plan: number, id: number, position: number) => {
 			story.tell(`move day ${id} in plan ${plan} to position ${position}`);
 			return attempt(
-				engine.order.move(plan, id, position).pipe(Effect.catchTag("ChildOrderError", ({ reason }) => Effect.succeed(`refused ${reason}`))),
+				engine.order.move(plan, id, position).pipe(
+					Effect.catchTag("ChildOrderError", ({ reason }) => Effect.succeed(`refused ${reason}`)),
+					Effect.provide(engine.traced),
+				),
 			);
 		},
+		orderSpans: () =>
+			Effect.sync(() => engine.spans.filter((name) => name.startsWith(`${engine.tableName}.`)).map((name) => name.replace(engine.tableName, "days"))),
 		readDays: (plan = 1) =>
 			engine.days.findMany({ orderBy: { direction: "asc", field: "position" }, select: ["id", "position", "version", "name"], where: { plan } }),
 		renameDay: () => {
@@ -30,7 +35,12 @@ export const orderedDays = storyKit({
 		},
 		reorder: (ids: readonly number[]) => {
 			story.tell(`reorder plan one's days to ${ids.join(", ")}`);
-			return attempt(engine.order.reorder(1, ids).pipe(Effect.catchTag("ChildOrderError", ({ reason }) => Effect.succeed(`refused ${reason}`))));
+			return attempt(
+				engine.order.reorder(1, ids).pipe(
+					Effect.catchTag("ChildOrderError", ({ reason }) => Effect.succeed(`refused ${reason}`)),
+					Effect.provide(engine.traced),
+				),
+			);
 		},
 	}),
 });

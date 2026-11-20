@@ -68,6 +68,10 @@ for (const source of ["food", "usda"] as const) {
 	}
 }
 
+readApis.it("a read client built with a negative body limit fails its read as invalid-limit", [], function* ({ read }) {
+	expect(yield* read("misconfigured")).toBe("misconfigured: invalid-limit");
+});
+
 readApis.it(
 	'a status failure keeps the outside API\'s {"error":"invalid_grant"} as its excerpt',
 	[outsideReply({ error: "invalid_grant" }, 400)],

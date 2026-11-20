@@ -204,7 +204,7 @@ Model.Field({
 });
 ```
 
-The column holds the plain value, and the repository hands the handler a `Redacted<T>` that prints `<redacted>` in logs and defects; open it with `Redacted.value` where the server needs it. Under `appHost`, the field's name is also masked in every diagnostic, so a log that holds the opened value under that name still prints `<redacted>`. Inserts, updates, projections, `latestPerGroup`, upserts and `insertOrIgnore` on a unique constraint over the field, and equality, `in` and `deleteBatched` filters by a `Redacted` value all work against PostgreSQL. Building a repository fails with `ServerOnlyKeyError` when the field is the ID column, a bucket or a tuple bucket column, because those values are announced as change keys.
+The column holds the plain value, and the repository hands the handler a `Redacted<T>` that prints `<redacted>` in logs and defects; open it with `Redacted.value` where the server needs it. Under `appHost`, the field's name is also masked in every diagnostic, so a log that holds the opened value under that name still prints `<redacted>`. Inserts, updates, projections, `latestPerGroup`, upserts and `insertOrIgnore` on a unique constraint over the field, and equality, `in` and `deleteBatched` filters by a `Redacted` value all work against PostgreSQL. The filter types take no range bound (`gt`, `gte`, `lt`, `lte`) or `like` pattern on the field, whether `Redacted` or plain, and no plain value for its equality or `in` filters. Building a repository fails with `ServerOnlyKeyError` when the field is the ID column, a bucket or a tuple bucket column, because those values are announced as change keys.
 
 The select variant refuses every encode. A contract that names the class as a success, or any other path that sends the stored row through Effect RPC, fails to encode it: the client receives a defect that names the field's path, such as `at ["value"]["digest"]`, and no part of the value. The generator in [`@shivaedev/build`](https://github.com/ShivaeDev/platform/tree/main/packages/build) refuses an operation whose `run` returns a `Redacted`, so a module's operations return a public shape of the row. A handler that returns the row typed as a public struct sends only the struct's fields.
 
@@ -784,13 +784,10 @@ Only the chosen columns are assigned, and the version increments once. Other val
 ```ts
 const orderedDays = yield* makeOrderedChildren(Day, {
  tableName: "days",
- idColumn: "id",
  parentColumn: "planId",
  parentTable: "plans",
- parentIdColumn: "id",
  positionColumn: "position",
  versionColumn: "version",
- spanPrefix: "Day",
 });
 
 yield* orderedDays.append(planId, { id: dayId, name: "Training" });
@@ -798,7 +795,7 @@ yield* orderedDays.move(planId, dayId, 0);
 yield* orderedDays.reorder(planId, [thirdDayId, dayId, secondDayId]);
 ```
 
-The native model declares the parent field and numeric position in its insert variant, and keeps its ID in select and update. When configured, the version field follows the versioned repository convention above. `append` supplies the parent and next position, starting at zero for an empty parent, and initializes the configured version to zero. `move` takes a zero-based destination and shifts siblings. `reorder` takes exactly the IDs currently under that parent, once each. These two operations assign positions in one statement without touching content or versions, so an existing versioned edit can still save. They fail with `ChildOrderError` from `@shivaedev/sql/orderedChildStatements.ts` for `membership` or `position`; a missing parent fails with `NoSuchElementError`.
+The native model declares the parent field and numeric position in its insert variant, and keeps its ID in select and update. Like a repository, the helper keys children by the model's `id` field and names its spans after the table, such as `days.reorder`; pass `idColumn` for a different key, which a model without an `id` field must do or the call does not compile, and `spanPrefix` to name the spans differently. It locks the parent row by the parent table's `id` column unless `parentIdColumn` names another. When configured, the version field follows the versioned repository convention above. `append` supplies the parent and next position, starting at zero for an empty parent, and initializes the configured version to zero. `move` takes a zero-based destination and shifts siblings. `reorder` takes exactly the IDs currently under that parent, once each. These two operations assign positions in one statement without touching content or versions, so an existing versioned edit can still save. They fail with `ChildOrderError` from `@shivaedev/sql/orderedChildStatements.ts` for `membership` or `position`; a missing parent fails with `NoSuchElementError`.
 
 The lock is held until the transaction commits, including when called inside `transact`. A concurrent reorder of that parent waits. Use these helpers for ordering writes under the same parent. The application owns the parent foreign key and DDL; if positions are unique within a parent, declare `UNIQUE (plan_id, position) DEFERRABLE INITIALLY DEFERRED` so positions can swap within the transaction.
 
@@ -876,6 +873,7 @@ Bucket writes require PostgreSQL 18 or later: native `RETURNING old` supplies ol
 Record and bucket keys that must commit atomically with a write come from this model and repository path. A command's `invalidates` runs after its handler returns and uses a separate publication transaction. Failed publication retries twice with 50 ms and 100 ms backoffs. If those attempts fail, `postgresChanges` resynchronizes local live streams and broadcasts Resync on its change channel. If PostgreSQL also rejects the broadcast or cannot be reached, local streams still resynchronize, but healthy listeners on other hosts can miss the write until they reconnect or otherwise reconcile. The failure is logged; NOTIFY provides no durable replay.
 
 The transaction rules follow the database owner:
+
 - A typed failure or interruption before commit rolls back and announces nothing. A failed deferred `COMMIT` fails with its `SqlError`, mapped by `onSqlError` when one is given, and also announces nothing.
 - A nested `transact` on the same client uses a native savepoint. Its successful keys join the outer set; a rolled-back savepoint's keys are discarded.
 - A transaction on a second client commits independently. Its keys publish when that client commits, even if the enclosing client's transaction later rolls back.
@@ -1050,6 +1048,7 @@ NOTIFY is a wake-up signal, not a durable log. Transaction payloads contain only
 ### API
 
 Import the module that defines the name; there is no root entry.
+
 - `@shivaedev/sql/clientOptions.ts`: `clientOptions(options, { snakeCase? })`, `SqlNameTransforms` — Add default native name transforms to driver or app host options; opt out with `snakeCase: false`.
 - `@shivaedev/sql/inValues.ts`: `inValues(column, values)` — Native list predicate with match-nothing semantics for an empty list; requires `SqlClient`.
 - `@shivaedev/sql/readSql.ts`: `` readSql`...` ``, `MultiColumnKeyParameter` — Raw SQL read that binds each interpolated bucket or row key's value and records the key for a live query before sending; refuses tuple bucket and composite row keys, failing with `MultiColumnKeyParameter` only when an interpolated key's type may hide one; requires `SqlClient`.
@@ -1061,6 +1060,7 @@ Import the module that defines the name; there is no root entry.
 - `@shivaedev/sql/compositeRecordKey.ts`: `compositeRecordKey(model, { tableName, idColumn }, value)` — Encodes decoded composite key fields into the published record key.
 - `@shivaedev/sql/defineRepository.ts`: `defineRepository({ id, initialize })` — Native Context service and `.layer` for a shared repository shape; the initializer's dependencies, errors and scoped resources belong to its Layer.
 - `@shivaedev/sql/repository.ts`: `makeRepository(model, options)` — `collection` (required for bucket models, and it names the table) or `tableName`, scalar or composite `idColumn` (defaults to `"id"` when the model has that field), `spanPrefix` (defaults to the table name), optional `versionColumn`, `conflictColumns` and `conflictWhere`; requires native `SqlClient`.
+- `@shivaedev/sql/makeOrderedChildren.ts`: `makeOrderedChildren(model, options)` — `tableName`, `parentColumn`, `parentTable` and `positionColumn`, `idColumn` (defaults to `"id"` when the model has that field), `parentIdColumn` (defaults to `"id"`), `spanPrefix` (defaults to the table name) and optional `versionColumn`; returns `append`, `move` and `reorder` and requires native `SqlClient`.
 - `@shivaedev/sql/RepositoryModels.ts`: `RepositoryModels` — Reference that `makeRepository` and `makeOrderedChildren` call with their model while they are built; the application host provides it to mask the model's sensitive fields in every diagnostic, and its default does nothing.
 - `@shivaedev/sql/repository.ts`: `OptimisticConcurrencyError` — Typed stale or missing-row failure for versioned writes, with `tableName`, `id`, `expectedVersion`, `reason: "missing" | "stale"`.
 - `@shivaedev/sql/tupleIn.ts`: `tupleIn(model, fields, tuples, types)` — Filter entry matching two or more fields together against a list of tuples, for `where` in reads and unversioned deletes.

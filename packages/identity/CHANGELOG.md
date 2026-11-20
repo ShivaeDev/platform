@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.34.0 - 2026-11-20
+
+### Added
+
+- `delegatedSubject({ service, refusal, deny })` from `@shivaedev/identity/subject.ts` declares a delegation once, and a module names it as its `subject`. On each call whose subject is not the actor, the guard asks the application's rule, the service with that id in the host's `services`, `allows({ subject, module, operation, kind })` with `CurrentViewer` set to the actor, where `kind` is `read` for queries and streams and `write` for commands; `false` fails the call with the declared refusal before the handler runs. Streams ask again at every recheck, and a delegated live query's changes stream also asks before each update it sends. A host that serves such a module without the service is rejected by the compiler and fails to start with `DelegationRuleMissing`, naming the service.
+
+### Changed
+
+- Require Effect 4.1.4 and its matching platform packages.
+
+### Breaking
+
+- `SubjectResolver` has a third operation, `delegated(rule, deny)`. A host that provides its own `SubjectResolver` instead of `subjectResolverLayer()` adds it, or switches to `subjectResolverLayer()`.
+
 ## 0.33.0 - 2026-11-19
 
 ### Added

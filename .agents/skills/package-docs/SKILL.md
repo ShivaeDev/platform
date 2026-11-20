@@ -40,6 +40,7 @@ The agent part. How to think about the package, the concepts in the order a user
 ```
 
 Name the two H2 sections in words that fit the package; the split is what matters, not the labels.
+
 - The first screen is the sell. It holds no install command, no warning, no configuration and no API list. A human who stops reading there should know what problem the package solves and what using it looks like.
 - The agent part is text and code only. It explains the mental model before the API, so an agent can use the package correctly in a case no example covers.
 - Organize the agent part by the order of the reader's work: what they set up once, what they write once per feature, what they write every day.
@@ -61,6 +62,7 @@ For a consumer-visible change, add one `.changeset/<short-name>.md` per PR, nami
 ## Checklist
 
 Quality's `docs/references` rule checks links, heading anchors, documented module paths and named imports on every commit, and `docs/unversioned-installs` checks install commands for versions. The rest of this list is judgement only you can apply.
+
 - [ ] `AGENTS.md` is a short north star, with `CLAUDE.md` symlinked to it.
 - [ ] The README title is the package name, followed by the one-to-three-sentence why.
 - [ ] The README's first screen holds the human pitch and one small example, nothing else.

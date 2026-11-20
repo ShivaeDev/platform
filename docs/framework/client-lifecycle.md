@@ -60,6 +60,7 @@ Within an unchanged session, the query hook exposes native `AsyncResult` state: 
 ## Query retention
 
 Bound contract queries use native atoms for execution and retained results:
+
 - Each registry stores its own atom values. Atom identity alone does not imply shared cached values across registries.
 - `Client.query` uses a native atom family. Its query key includes the RPC tag, payload, optional headers, reactivity keys and serialization key. Define clients once per session rather than rebuilding them inside each render.
 - Credentials installed by a client transform are not automatically an account partition in a query payload. A credential-bound client plus session registry makes that lifetime explicit; do not mutate a singleton's credentials and assume its cached responses become invalid.

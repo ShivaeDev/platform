@@ -15,10 +15,12 @@ export type RepositoryTable =
 	| { readonly collection?: never; readonly tableName: string };
 
 // A model without an id field has no default ID column to fall back on, so it must name one.
-export type RepositoryOptions<TModel extends Model.Any, TId> = RepositoryTable & {
+export type RepositoryKey<TModel extends Model.Any, TId> = {
 	readonly idColumn?: TId;
 	readonly spanPrefix?: string;
 } & ("id" extends IdColumn<TModel> ? unknown : { readonly idColumn: TId });
+
+export type RepositoryOptions<TModel extends Model.Any, TId> = RepositoryTable & RepositoryKey<TModel, TId>;
 
 export function resolveRepositoryOptions<TOptions extends RepositoryTable & { readonly idColumn?: unknown; readonly spanPrefix?: string }>(
 	options: TOptions,
