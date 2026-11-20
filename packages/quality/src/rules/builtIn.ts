@@ -35,6 +35,7 @@ import { maxDepth } from "#rules/maxDepth.ts";
 import { maxLines } from "#rules/maxLines.ts";
 import { noBarrel } from "#rules/noBarrel.ts";
 import { jsxConditionals } from "#rules/react/jsxConditionals.ts";
+import { nestedComponents } from "#rules/react/nestedComponents.ts";
 import { adapterOnlyFakes } from "#rules/stories/adapterOnlyFakes.ts";
 import { authSql } from "#rules/stories/authSql.ts";
 import { databaseUrl } from "#rules/stories/databaseUrl.ts";
@@ -71,6 +72,7 @@ export const builtInRules = [
 	manifestsDependencyPins,
 	unusedCode,
 	jsxConditionals,
+	nestedComponents,
 	maxLines,
 	maxDepth,
 	noBarrel,

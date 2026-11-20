@@ -1,26 +1,7 @@
 import { Effect } from "effect";
-import type { Conflict } from "@shivaedev/errors/taxonomy.ts";
 import { useCreate } from "#client/create.ts";
 import { useEditor } from "#client/editor.ts";
-import {
-	Described,
-	query,
-	runtime,
-	type StaleRejected,
-	saveConflict,
-	saveNamed,
-	saveStale,
-	saveTitle,
-	Title,
-	TitleConflict,
-} from "#test/formHookFixtures.ts";
-
-function onTitle(error: StaleRejected) {
-	return { field: "title" as const, message: error.message };
-}
-function onConflict(error: Conflict) {
-	return error.field === "title" ? { field: "title" as const, message: error.message } : { message: error.message };
-}
+import { Described, query, runtime, saveConflict, saveNamed, saveStale, saveTitle, Title, TitleConflict } from "#test/formHookFixtures.ts";
 
 export function useEditorExample() {
 	const editor = useEditor(
@@ -40,7 +21,7 @@ export function useRejectionExample() {
 	const mapped = useEditor(
 		{ run: (values: typeof Title.Type) => Effect.as(saveStale(values), { id: 1, title: values.title }), runtime },
 		{
-			failures: { StaleRejected: onTitle },
+			failures: { StaleRejected: (error) => ({ field: "title", message: error.message }) },
 			fields: Title,
 			query,
 			values: (record) => ({ title: record.title }),
@@ -53,7 +34,7 @@ export function useOptionalFieldExample() {
 	const mapped = useCreate(
 		{ run: saveConflict, runtime },
 		{
-			failures: { Conflict: onConflict },
+			failures: { Conflict: (error) => (error.field === "title" ? { field: "title", message: error.message } : { message: error.message }) },
 			fields: Title,
 			initialValues: { title: "" },
 		},

@@ -4,12 +4,10 @@ import { browserDiagnostic } from "#adapters/biome/browserDiagnostic.ts";
 import { pluginContract } from "#adapters/biome/pluginContract.ts";
 import { syntaxOf } from "#adapters/biome/syntaxOf.ts";
 import { vitestEntry } from "#adapters/biome/vitestEntry.ts";
-import { nativeEffectCall } from "#biome/nativeEffectCall.ts";
 import type { Diagnostic } from "#biome/report.ts";
 import { nodeAt, offsetOf, type Syntax } from "#biome/syntax.ts";
 
 const RECOGNIZED: ReadonlySet<string> = new Set([
-	"lint/correctness/noComponentHookFactories",
 	"lint/style/noDoneCallback",
 	"lint/style/noDefaultExport",
 	"lint/suspicious/noShadowRestrictedNames",
@@ -30,20 +28,6 @@ function generatorParameter(node: ts.Node, syntax: Syntax): boolean {
 		&& callback.parent.arguments.includes(callback)
 		&& !vitestEntry(callback.parent.expression, syntax)
 	);
-}
-
-function tagHandler(node: ts.Node, syntax: Syntax): boolean {
-	const property = node.parent;
-	if (
-		!(ts.isPropertyAssignment(property) || ts.isMethodDeclaration(property))
-		|| property.name !== node
-		|| !ts.isObjectLiteralExpression(property.parent)
-	) {
-		return false;
-	}
-	const handlers = property.parent;
-	const call = handlers.parent;
-	return nativeEffectCall(call, "catchTags", syntax) && call.arguments.includes(handlers);
 }
 
 function effectGlobal(node: ts.Node): boolean {
@@ -73,8 +57,6 @@ function misclassified(diagnostic: Diagnostic, syntax: Syntax): boolean {
 	switch (diagnostic.category) {
 		case "lint/style/noDoneCallback":
 			return generatorParameter(node, syntax);
-		case "lint/correctness/noComponentHookFactories":
-			return tagHandler(node, syntax);
 		case "lint/suspicious/noShadowRestrictedNames":
 			return effectGlobal(node);
 		default:

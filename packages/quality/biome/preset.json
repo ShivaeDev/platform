@@ -207,7 +207,7 @@
 			"correctness": {
 				"noBeforeInteractiveScriptOutsideDocument": "error",
 				"noChildrenProp": "error",
-				"noComponentHookFactories": "error",
+				"noComponentHookFactories": "off",
 				"noConstAssign": { "fix": "none", "level": "error" },
 				"noConstantCondition": "error",
 				"noConstantMathMinMaxClamp": "error",
@@ -231,7 +231,7 @@
 				"noInvalidUseBeforeDeclaration": "error",
 				"noJsxNamespace": "error",
 				"noMissingVarFunction": "error",
-				"noNestedComponentDefinitions": "error",
+				"noNestedComponentDefinitions": "off",
 				"noNextAsyncClientComponent": "error",
 				"noNonoctalDecimalEscape": "error",
 				"noPlaywrightMissingAwait": "error",

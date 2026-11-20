@@ -8,7 +8,7 @@ import { QueryView, QueryViewDefaults } from "#client/QueryView.ts";
 import { useAction, useQuery } from "#client/resultState.ts";
 import { SessionBoundary } from "#client/sessionBoundary.ts";
 import type { UnexpectedFailure } from "#client/unexpectedFailure.ts";
-import type { FailureClient, SubtitleRejected } from "#test/failure-defaults/client.ts";
+import type { FailureClient } from "#test/failure-defaults/client.ts";
 
 export interface FailureScreen {
 	readonly client: FailureClient;
@@ -25,19 +25,6 @@ function ActionButton({ label, onClick, pending }: { readonly label: string; rea
 	);
 }
 
-function renamedFirst() {
-	return { message: "Someone else renamed it first" };
-}
-function onTitle(error: SubtitleRejected) {
-	return { field: "title" as const, message: error.message };
-}
-function quietly() {
-	return "silent" as const;
-}
-function keptTitle(error: SubtitleRejected, input: { readonly title: string }) {
-	return { message: `${input.title} kept its title: ${error.message}` };
-}
-
 // The deploy gate is open: these stories are about the change's failures, not a pending update.
 const openGate = { block: Effect.succeed(() => undefined) };
 
@@ -48,7 +35,7 @@ function Commands({ client }: { readonly client: FailureClient }) {
 	});
 	const quiet = useAction(client.api.rename, { silent: true });
 	const worded = useAction(client.api.rename, {
-		failures: { Conflict: renamedFirst, SubtitleRejected: "silent" },
+		failures: { Conflict: () => ({ message: "Someone else renamed it first" }), SubtitleRejected: "silent" },
 	});
 	const offline = useAction(client.offline);
 	const alsoOffline = useAction(client.offline);
@@ -67,11 +54,11 @@ function Commands({ client }: { readonly client: FailureClient }) {
 
 function MoreCommands({ client }: { readonly client: FailureClient }) {
 	const serverWords = useAction(client.api.rename, { failures: { SubtitleRejected: "message" } });
-	const quietHandler = useAction(client.api.rename, { failures: { SubtitleRejected: quietly } });
+	const quietHandler = useAction(client.api.rename, { failures: { SubtitleRejected: () => "silent" } });
 	const outage = useAction(client.unavailable);
 	const undoable = useUndoableChange(client.api.rename, {
 		describe: (title) => `Renamed to ${title}`,
-		failures: { SubtitleRejected: keptTitle },
+		failures: { SubtitleRejected: (error, input) => ({ message: `${input.title} kept its title: ${error.message}` }) },
 		undoInput: (_title, input) => input,
 		update: openGate,
 	});
@@ -88,7 +75,7 @@ function MoreCommands({ client }: { readonly client: FailureClient }) {
 
 function RenameForm({ client }: { readonly client: FailureClient }) {
 	const create = useCreate(client.api.rename, {
-		failures: { SubtitleRejected: onTitle },
+		failures: { SubtitleRejected: (error) => ({ field: "title", message: error.message }) },
 		initialValues: { title: "Draft" },
 	});
 	const title = useField(create.form, "title");
