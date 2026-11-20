@@ -36,7 +36,7 @@ The first successful run returns `[[1, "create_orders"], [2, "seed_orders"]]`. R
 ## What the native runner owns
 
 - `fromRecord` sorts numbered effects by ID. IDs should be positive and increasing.
-- `fromGlob` loads numbered modules with a default Effect export; `fromFileSystem` adds filesystem/path service requirements. `migrationsFromDirectory(root)` from `@shivaedev/sql/migrationsFromDirectory.ts` uses `fromFileSystem` on the conventional `src/server/migrations` folder under `root`.
+- `fromGlob` loads numbered modules with a default Effect export; `fromFileSystem` adds filesystem/path service requirements. `migrationsFromDirectory(root)` from `@shivaedev/sql/migrationsFromDirectory.ts` uses `fromFileSystem` on the conventional `src/server/migrations` folder under `root`. An application module's registration uses `migrationsIn(import.meta.dirname)` from `@shivaedev/server/adapters/migrationsIn.ts`, which reads the `migrations` folder beside the registration with Node's file system already provided.
 - The runner ensures the ledger exists and runs the pending batch through `SqlClient.withTransaction`, including its ledger entries.
 - A migration-body failure aborts the batch. The runner wraps a typed body failure in a `MigrationError` defect with `kind: "Failed"`. Startup should fail visibly; catching only the typed error channel does not capture this failure. A caller inspecting completion can use `Effect.exit`.
 

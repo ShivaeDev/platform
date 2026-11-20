@@ -1,6 +1,8 @@
-import { Effect, Schema, Stream } from "effect";
+import { Effect, Fiber, Schema, Stream } from "effect";
 import { HttpClientRequest, type HttpClientResponse } from "effect/http";
+import { passes, untilTimer } from "@shivaedev/test-story/server/watchedClock.ts";
 import { readBoundedBody, readBoundedJson, readBoundedText } from "#body.ts";
+import { bodyExcerptDeadline } from "#bodyExcerpt.ts";
 import { isRemoteStatusError } from "#errors.ts";
 import { paginate } from "#paginate.ts";
 import type { ClientEngine } from "#test/http-client/engine.ts";
@@ -50,18 +52,35 @@ export function clientVerbs({ client, rawClient, otherOrigin, remote, statusFail
 		story.tell(`the client GETs /body and reads it ${reading}`);
 		return client().get(`${remote.url}/body`);
 	}
+	function post() {
+		story.tell("the client POSTs /answer?token=private");
+		return answered(
+			Effect.gen(function* () {
+				const response = yield* client().execute(HttpClientRequest.post(`${remote.url}/answer?token=private`));
+				return { body: yield* response.json, requestId: response.headers["x-request-id"], status: response.status };
+			}),
+		);
+	}
 	return {
+		failureExcerpt: () => Effect.sync(() => statusFailures.at(-1)?.bodyExcerpt ?? "no excerpt"),
 		failureMessage: () => Effect.sync(() => statusFailures.at(-1)?.message),
 		otherOriginRequests: () => Effect.sync(() => otherOrigin.requests.map(({ method, path }) => `${method} ${path}`)),
-		post: () => {
-			story.tell("the client POSTs /answer?token=private");
-			return answered(
-				Effect.gen(function* () {
-					const response = yield* client().execute(HttpClientRequest.post(`${remote.url}/answer?token=private`));
-					return { body: yield* response.json, requestId: response.headers["x-request-id"], status: response.status };
-				}),
-			);
-		},
+		post,
+		postAndRemoteResetsBody: () =>
+			Effect.gen(function* () {
+				const pending = yield* Effect.forkScoped(post());
+				yield* untilTimer(bodyExcerptDeadline);
+				story.tell("the remote resets the connection while the client reads the error body");
+				yield* remote.fault("answer", { kind: "reset" });
+				return yield* Fiber.join(pending);
+			}),
+		postUntilExcerptDeadline: () =>
+			Effect.gen(function* () {
+				const pending = yield* Effect.forkScoped(post());
+				yield* untilTimer(bodyExcerptDeadline);
+				story.tell("one second passes while the error body stays open");
+				return yield* passes(bodyExcerptDeadline, Fiber.join(pending));
+			}),
 		readBody: (format: "bytes" | "text" | "json", limit: number, method: "GET" | "HEAD" = "GET") => {
 			story.tell(`the client ${method}s /body and reads ${format} within ${limit} bytes`);
 			return answered(

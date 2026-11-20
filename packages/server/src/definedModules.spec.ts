@@ -1,6 +1,6 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { definedModulesHost, handWrittenNotes, replacedNotes } from "#test/defined-modules/story.ts";
+import { definedModulesHost, handWrittenNotes, queueSharedWithGreetings, replacedNotes } from "#test/defined-modules/story.ts";
 
 definedModulesHost.it(
 	"one host serves the hand-written drafts module and the defined notes module side by side, each answering a success and a rejection",
@@ -47,5 +47,26 @@ definedModulesHost.it(
 			["alice reads note 1", () => readNote(1), "Fake note"],
 			["a visitor reads note 1", () => readNote(1, "a visitor"), "failed with query read denied"],
 		]);
+	},
+);
+
+definedModulesHost.it(
+	"a defined module registered with neither a name nor migrations is served beside the notes module, whose table comes from the migrations folder beside its registration",
+	[],
+	function* ({ createNote, greet, readNote }) {
+		yield* createNote("Groceries");
+
+		yield* outcomes([
+			["alice greets Bob", () => greet("Bob"), "Hello, Bob"],
+			["alice reads note 1", () => readNote(1), "Groceries"],
+		]);
+	},
+);
+
+definedModulesHost.it(
+	"a queue declared by a hand-written module and by a defined module registered without a name is refused, naming both by their module names",
+	[queueSharedWithGreetings],
+	function* ({ startup }) {
+		expect(yield* startup()).toBe('Queue "drafts.publish" is declared by both "drafts" and "greetings".');
 	},
 );

@@ -27,7 +27,7 @@ catalog:
   "cn": 0.5.2
   "@base-ui/react": 1.9.0
   "@tanstack/react-table": 9.3.1
-  railway: 3.16.0
+  railway: 3.17.0
   "@tailwindcss/vite": 4.3.5
   "@tanstack/react-router": 1.170.46
   "@vitejs/plugin-react": 6.3.0

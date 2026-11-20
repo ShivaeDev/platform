@@ -93,11 +93,10 @@ const migrations = {
 	}),
 };
 
-export const membersModule = { migrations, module: Members, name: "members", services: MembersRepository.layer } satisfies AppModule;
+export const membersModule = { migrations, module: Members, services: MembersRepository.layer } satisfies AppModule;
 
 export const privateJoinMembersModule = {
 	migrations,
 	module: PrivateJoinMembers,
-	name: "members",
 	services: MembersRepository.layer,
 } satisfies AppModule;

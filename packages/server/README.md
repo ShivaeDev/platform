@@ -84,7 +84,7 @@ Host option types include this HTTP-only shape. A wrapper that reads native RPC 
 
 `appHost` is the server entry point for an Effect app. For a PostgreSQL app, supply the native RPC group, handler and service Layers, migration loader, session policy and static asset directory. The host completes migrations before acquiring application services, starts Node HTTP with native Effect RPC over a WebSocket upgrade at `/rpc`, and provides SQL, Reactivity and `LiveServer` from `@shivaedev/contract/live-server/service.ts` to those Layers.
 
-For feature modules, install the optional peer `@shivaedev/admin` and declare each registration with `satisfies AppModule` from `@shivaedev/server/AppModule.ts`. Each module supplies a diagnostic `name`, its operations, `services` and `migrations: { loader, components? }`. Register caller-dependent Layers in the optional `requestServices` slot beside global `services`. Keep default adapters in its optional `ports` Layer, put an optional `registerAdmin` result in `admin`, and declare owned `queues` and a `workers` Layer on the module. `jobModule` from `@shivaedev/jobs/server/jobModule.ts` supplies those two fields from a jobs registration list.
+For feature modules, install the optional peer `@shivaedev/admin` and declare each registration with `satisfies AppModule` from `@shivaedev/server/AppModule.ts`. Each module supplies its operations, `services` and, when it owns tables, `migrations: { loader, components? }`; a module without migrations leaves the field out. A defined module takes its name from the module itself and its registration gives none, so the two cannot disagree; a `group` plus `handlers` registration supplies a `name`, because nothing else names it. `migrationsIn(directory)` from `@shivaedev/server/adapters/migrationsIn.ts` returns `{ loader }` for the `migrations` folder in `directory`, read with Effect's `MigratorFileSystem.fromFileSystem` under Node's `NodeServices.layer`, so a registration writes `migrations: migrationsIn(import.meta.dirname)` and needs the optional peer `@effect/platform-node`. Register caller-dependent Layers in the optional `requestServices` slot beside global `services`. Keep default adapters in its optional `ports` Layer, put an optional `registerAdmin` result in `admin`, and declare owned `queues` and a `workers` Layer on the module. `jobModule` from `@shivaedev/jobs/server/jobModule.ts` supplies those two fields from a jobs registration list.
 
 ```ts
 import { Effect } from "effect";
@@ -106,20 +106,20 @@ A module defined with `defineModule` from `@shivaedev/contract/defineModule.ts` 
 
 ```ts
 import { Layer } from "effect";
-import { Migrator, SqlClient } from "effect/sql";
+import { SqlClient } from "effect/sql";
 import { defineModule } from "@shivaedev/contract/defineModule.ts";
+import { migrationsIn } from "@shivaedev/server/adapters/migrationsIn.ts";
 import type { AppModule } from "@shivaedev/server/AppModule.ts";
 import { Create, Get } from "./notes/operations.ts";
 import { Drafts, readDraft } from "./drafts.ts";
 
 export const Notes = defineModule({ name: "notes", operations: [Create, Get], requires: [SqlClient.SqlClient] });
 
-export const notes = { migrations: { loader: Migrator.fromRecord({}) }, module: Notes, name: "notes", services: Layer.empty } satisfies AppModule;
+export const notes = { migrations: migrationsIn(import.meta.dirname), module: Notes, services: Layer.empty } satisfies AppModule;
 
 export const drafts = {
 	group: Drafts,
 	handlers: Drafts.application.toLayer({ "drafts.read": readDraft }),
-	migrations: { loader: Migrator.fromRecord({}) },
 	name: "drafts",
 	services: Layer.empty,
 } satisfies AppModule;
@@ -129,7 +129,7 @@ A defined module's generated handlers check each query's read policy with the mo
 
 `appModules` reads a defined module's `requires` from its registration's own type, so it refuses a registration typed as `AppModule`, returned by a helper typed that way, or whose `module` is typed as `RegisteredModule`: that type has lost the services the module's handlers need. A `group` plus `handlers` registration typed as `AppModule` is refused too, because its type is the same. Declare the registration with `satisfies AppModule` instead.
 
-`appModules` returns an Effect that rejects duplicate queue names before building any host. `DuplicateModuleQueue` from `@shivaedev/server/DuplicateModuleQueue.ts` identifies `queue`, `firstModule` and `secondModule`; repeating a name within one module also fails. It combines the native RPC groups, handler Layers, migration loaders and schema components. It includes each admin registration's group and handlers and exposes their merged registry as `modules.admin`. Migration numbers belong to one application-wide sequence. Existing hosts can continue to supply their groups, handlers, services and migrations directly.
+`appModules` returns an Effect that rejects duplicate queue names before building any host. `DuplicateModuleQueue` from `@shivaedev/server/DuplicateModuleQueue.ts` identifies `queue`, `firstModule` and `secondModule`, naming a defined module by its own name; repeating a name within one module also fails. It combines the native RPC groups, handler Layers, the migration loaders and schema components of the modules that declare `migrations`, skipping the rest. It includes each admin registration's group and handlers and exposes their merged registry as `modules.admin`. Migration numbers belong to one application-wide sequence. Existing hosts can continue to supply their groups, handlers, services and migrations directly.
 
 The host builds `services` once for its lifetime and builds `requestServices` once per RPC call, including each call on a persistent WebSocket connection. Native RPC middleware supplies the request services after the contract's identity middleware resolves the caller. Declare `selfSubject` or `accountSubject` on contracts whose request services require `Subject`, `SessionUser` and `Identity`. Request services yield global dependencies from the enclosing environment; leave those global Layers out of the request Layer so they are reused. `appModules` rejects global services that require caller context or a service registered in the request slot.
 
@@ -579,6 +579,7 @@ Import the module that defines the name; there is no package-root entry. Paths b
 | `otlpTracing.ts`                                                                         | `otlpTracing`: redacting Railway OTLP export of spans, logs and error reports for a process composed without `appHost` or `workerHost`.                                                                                                     |
 | `RedactionPolicy.ts`                                                                     | `RedactionPolicy`: provide the app's diagnostic key predicate derived by errors.                                                                                                                                                            |
 | `adapters/redactingDiagnostics.ts`, `redactingTracer.ts`, `redactingRpcSerialization.ts` | `redactingDiagnostics(sensitive)`, `redactingTracer(sensitive)`, `redactingRpcSerialization(sensitive)`: compose native diagnostic and NDJSON boundaries. `redactingRpcSerialization` reads `RpcSerialization` from the Effect environment. |
+| `adapters/migrationsIn.ts`                                                               | `migrationsIn(directory)`: an `AppModule` `migrations` value that loads the `migrations` folder in `directory` under Node.                                                                                                                  |
 | `adapters/makePlatformRuntime.ts`                                                        | `makePlatformRuntime(layer, { developmentCacheKey? })`.                                                                                                                                                                                     |
 | `adapters/subscriptionSignal.ts`                                                         | `nodeSubscriptionSignal({ nodeRequest?, request?, signals? })`, returning `{ signal, dispose }`.                                                                                                                                            |
 

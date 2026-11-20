@@ -42,6 +42,7 @@ export const readApis = storyKit({
 		);
 		const pending: {
 			answer?: typeof Food.Type | string;
+			excerpt?: string | undefined;
 			hold?: FakeHttpHold;
 			phase?: "headers" | "body";
 			read?: Fiber.Fiber<typeof Food.Type | string>;
@@ -60,7 +61,10 @@ export const readApis = storyKit({
 			}
 			return client.get(`${remote.url}/body?q=${encodeURIComponent(query)}`).pipe(
 				Effect.catchTag("ReadClientError", (error) =>
-					Effect.succeed(`${error.source}: ${error.reason}${error.status === undefined ? "" : ` ${error.status}`}`),
+					Effect.sync(() => {
+						pending.excerpt = error.bodyExcerpt;
+						return `${error.source}: ${error.reason}${error.status === undefined ? "" : ` ${error.status}`}`;
+					}),
 				),
 				Effect.tap((answer) =>
 					Effect.sync(() => {
@@ -75,6 +79,7 @@ export const readApis = storyKit({
 				story.tell("the five-second read deadline passes");
 				return pending.read === undefined ? Effect.die("Start a read first") : passes("5 seconds", Fiber.join(pending.read));
 			},
+			failureExcerpt: () => Effect.sync(() => pending.excerpt ?? "no excerpt"),
 			read,
 			recordedLogs: () => Effect.sync(() => logs),
 			recordedLogText: () => Effect.sync(() => JSON.stringify(logs)),
