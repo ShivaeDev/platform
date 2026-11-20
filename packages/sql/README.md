@@ -365,6 +365,8 @@ const found = yield* lines.findOne({
 
 It returns `Option.some` of the selected decoded fields, or `Option.none` when no row matches. It accepts the same filters, projections and ordering as `findMany`, with a fixed SQL limit of one. Supply ordering when several rows can match and the choice matters. SQL and schema failures remain in the error channel.
 
+Every repository method that filters takes the same `where` shape and compiles it the same way: `findMany`, `findOne`, `count`, `select`, `aggregate`, `latestPerGroup`, `deleteBatched` and the unversioned `delete`. A filter that reads rows deletes those rows, and a filter one method refuses, every method refuses.
+
 Filter entries are joined with `AND`. A field value uses equality; a null filter matches SQL `NULL`, and an omitted or `undefined` value leaves the field unconstrained. Filters use decoded field values, so `amount` takes a number. Selected results are decoded records with the selected fields' types; this function returns `Array<{ readonly name: string; readonly amount: number }>`.
 
 Use `{ in: values }` to match any value in a list, alongside equality entries:
@@ -373,7 +375,7 @@ Use `{ in: values }` to match any value in a list, alongside equality entries:
 yield* lines.findMany({ where: { id: { in: [1, 3, 5] }, amount: 52 } });
 ```
 
-Each list value uses the field's codec and decoded type. An empty list matches no rows. A plain array remains an equality value for an array-typed field. The list stands alone as its field's filter: the types refuse another key beside `in`, such as a range or `not`, and reads and `delete` fail with `SchemaError` instead of running with the list alone.
+Each list value uses the field's codec and decoded type. An empty list matches no rows. A plain array remains an equality value for an array-typed field. The list stands alone as its field's filter: the types refuse another key beside `in`, such as a range or `not`, and every method fails with `SchemaError` instead of running with the list alone.
 
 Use `{ not: null }` on a field whose type admits null to match the rows that hold a value, as SQL `IS NOT NULL`:
 
@@ -381,9 +383,9 @@ Use `{ not: null }` on a field whose type admits null to match the rows that hol
 yield* lines.findMany({ where: { note: { not: null } } });
 ```
 
-It stands alone as the field's filter and combines with the other fields' entries. `count`, `select` and `aggregate` accept it too; a field that cannot be null, another value after `not`, and `delete` reject it with `SchemaError`.
+It stands alone as the field's filter and combines with the other fields' entries. A field that cannot be null and another value after `not` fail with `SchemaError`.
 
-A value accepted by the field's decoded schema uses equality through its codec before filter operators are considered. For a JSONB field whose schema accepts `{ gt: 7 }`, `{ in: [7] }` or `{ not: null }`, those objects compare as JSON values. An object is an operator filter only when the field's decoded schema does not accept it. A nullable field's `null` equality matches SQL NULL, including on JSONB columns; it does not match JSON null. This rule applies to reads, counts and deletes.
+A value accepted by the field's decoded schema uses equality through its codec before filter operators are considered. For a JSONB field whose schema accepts `{ gt: 7 }`, `{ in: [7] }` or `{ not: null }`, those objects compare as JSON values. An object is an operator filter only when the field's decoded schema does not accept it. A nullable field's `null` equality matches SQL NULL, including on JSONB columns; it does not match JSON null. This rule applies to every method.
 
 Use `count` with the same `where` shape as `findMany` to return the matching row count decoded as a number:
 
@@ -420,7 +422,7 @@ yield* lines.findMany({
 });
 ```
 
-Bounds use decoded strings, numbers, bigints, `BigDecimal`, `Date` or `DateTime.Utc` values and run through the field codec. For a `timestamptz` field modeled with `Schema.Date`, use `{ gte: new Date("2026-10-25T00:00:00Z"), lt: new Date("2026-10-26T00:00:00Z") }` to read a UTC day. Multiple operators on a field are joined with `AND`. `like` takes text, with PostgreSQL's case-sensitive `%` and `_` wildcards; patterns are bound parameters. Invalid operand types fail with `SchemaError`. Both `findMany` and `select` accept these filters; repositories query one table.
+Bounds use decoded strings, numbers, bigints, `BigDecimal`, `Date` or `DateTime.Utc` values and run through the field codec. For a `timestamptz` field modeled with `Schema.Date`, use `{ gte: new Date("2026-10-25T00:00:00Z"), lt: new Date("2026-10-26T00:00:00Z") }` to read a UTC day. Multiple operators on a field are joined with `AND`. `like` takes text, with PostgreSQL's case-sensitive `%` and `_` wildcards; patterns are bound parameters. Invalid operand types fail with `SchemaError`. Repositories query one table.
 
 `select` is a nonempty tuple of model field names. Leave it out to select all model fields. `orderBy` takes one `{ field, direction }` object or a nonempty list of them, applied in list order, with `asc` or `desc` for each direction; `limit` takes a nonnegative integer, and zero returns an empty list. Unknown selected or sorted field names passed at runtime fail with `SchemaError`, as do unknown filter keys with a defined value. Filter entries with `undefined` values are omitted before field validation. Use `aggregate` for grouped summaries, and [native SQL with composed schemas](https://github.com/ShivaeDev/platform/blob/main/docs/framework/cross-table-reads.md) for joins, percentiles, `having` or other queries outside these shapes.
 
@@ -444,7 +446,7 @@ const recentRuns = yield* runs.latestPerGroup({
 
 Here `runs` is a repository whose model declares those fields. `partitionBy` and `orderBy` are nonempty lists of model fields, and ordering reuses the same `{ field, direction }` entries as `findMany`. End the ordering with a unique tie-break column (or columns for a composite key) to make membership and order stable when timestamps tie. The repository does not infer a tie-break. `limit` is a nonnegative integer per partition; zero returns no rows, and smaller groups return all their matching rows.
 
-On PostgreSQL, pin every `partitionBy` field in `where` with equality, `null`, an `in` list, or a `tupleIn` over exactly the partition fields to read each group through a `cross join lateral` subquery with its own ordering and limit. Index the partition columns followed by the order columns, with the declared order directions, so each group’s index walk stops after `limit` matching rows. For the example above, pin `workflow` and `mergeQueue` as well as `repositoryId` to use this path. Null pins match null columns, and an empty pinned `in` list returns no rows without querying the database.
+On PostgreSQL, pin every `partitionBy` field in `where` with equality, `null`, an `in` list, or a `tupleIn` over exactly the partition fields to read each group through a `cross join lateral` subquery with its own ordering and limit. Index the partition columns followed by the order columns, with the declared order directions, so each group’s index walk stops after `limit` matching rows. For the example above, pin `workflow` and `mergeQueue` as well as `repositoryId` to use this path. Null pins match null columns, and an empty pinned `in` list returns no rows without querying the database. A partition field filtered by `{ not: null }`, a range or a pattern is not pinned.
 
 Otherwise, the typed `where` filter runs before `row_number() over (partition by ... order by ...)` ranks matching rows, and the outer query keeps ranks up to `limit`. Both paths encode filter values through their field schemas, decode all model fields without exposing internal columns, and read all matching groups in one statement. Results are ordered by partition columns ascending, then by the declared ordering within each partition.
 

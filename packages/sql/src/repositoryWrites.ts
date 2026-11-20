@@ -78,7 +78,7 @@ export const repositoryWrites = Effect.fnUntraced(function* (
 		return idColumns.length === 1 && isKey(input)
 			? removeByKey(input)
 			: Effect.flatMap(filterRecord(input), (filter) =>
-					Effect.flatMap(where(filter, true), (clause) =>
+					Effect.flatMap(where(filter, true, true), (clause) =>
 						sql`delete from ${sql(tableName)} where ${clause} returning ${changes.returning()}`.pipe(Effect.tap(changes.record), Effect.asVoid),
 					),
 				);

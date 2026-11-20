@@ -35,6 +35,8 @@ export function shown(value: unknown): unknown {
 	return value;
 }
 
+const purgeLimits = { batchSize: 10, maxRows: 10, pause: 0 };
+
 function described(value: unknown): string {
 	return JSON.stringify(shown(value), (_, entry: unknown) => (typeof entry === "bigint" ? `${entry}n` : entry)) ?? "nothing";
 }
@@ -155,6 +157,10 @@ export function queryVerbs(engine: Engine, tell: (line: string) => void) {
 			read(`the latest invoice lines per group are read ${described(query)}`, engine.lines.latestPerGroup(query)),
 		latestRuns: (query: Query<Engine["runs"]["latestPerGroup"]>) =>
 			read(`the latest runs per group are read ${described(query)}`, engine.runs.latestPerGroup(query)),
+		latestUnknownLines: (query: unknown) => {
+			const result: ReturnType<Engine["lines"]["latestPerGroup"]> = Reflect.apply(engine.lines.latestPerGroup, engine.lines, [query]);
+			return read(`latestPerGroup receives unknown input ${described(query)}`, result);
+		},
 		ledgerEntries: () =>
 			stored(
 				engine.ledger.findMany({
@@ -176,6 +182,14 @@ export function queryVerbs(engine: Engine, tell: (line: string) => void) {
 			),
 		partialRows: () => stored(engine.partialRows.findMany({ orderBy: { direction: "asc", field: "id" }, select: ["a", "b"] })),
 		paymentNotes: () => stored(engine.payments.findMany({ orderBy: { direction: "asc", field: "id" }, select: ["note"] })),
+		purgePayments: (where: Query<Engine["payments"]["deleteBatched"]>["where"]) =>
+			read(`the payments ${described(where)} are deleted in batches`, engine.payments.deleteBatched({ ...purgeLimits, where })),
+		purgeUnknownPayments: (where: unknown) => {
+			const result: ReturnType<Engine["payments"]["deleteBatched"]> = Reflect.apply(engine.payments.deleteBatched, engine.payments, [
+				{ ...purgeLimits, where },
+			]);
+			return read(`deleteBatched receives unknown input ${described(where)}`, result);
+		},
 		readPlan: () =>
 			Effect.map(queryPlan(engine, "runs"), ({ nodes, scans }) => ({
 				rankedByWindow: nodes.some((node) => node["Node Type"] === "WindowAgg"),
