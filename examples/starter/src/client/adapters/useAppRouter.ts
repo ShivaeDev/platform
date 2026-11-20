@@ -3,7 +3,6 @@ import type { RouterHistory } from "@tanstack/react-router";
 import { Effect } from "effect";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { useContext, useRef, useState } from "react";
-import { useGuardRerun } from "@shivaedev/react/adapters/useGuardRerun.ts";
 import type { AppSession, AuthActions } from "#client/adapters/auth.ts";
 import { appRouter } from "#client/appRouter.tsx";
 import type { AppConnection } from "#client/Module.ts";
@@ -25,6 +24,5 @@ export function useAppRouter({ client, auth, history, session, recheck }: Routin
 			appRouter(client, auth, history, () => currentRef.current, recheck).pipe(Effect.provideService(AtomRegistry.AtomRegistry, registry)),
 		),
 	);
-	useGuardRerun(router, session);
 	return router;
 }

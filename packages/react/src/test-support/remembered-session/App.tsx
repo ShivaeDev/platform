@@ -1,7 +1,9 @@
 import { Effect, Option } from "effect";
+import * as Atom from "effect/reactivity/Atom";
+import { useState } from "react";
 import type { RememberedSession } from "@shivaedev/identity/client/SessionMemory.ts";
-import type { AuthSession } from "#client/authSession.ts";
-import { useQuery } from "#client/resultState.ts";
+import type { RememberedAuthSession } from "#client/authSession.ts";
+import { useAction, useQuery } from "#client/resultState.ts";
 import { SessionBoundary } from "#client/sessionBoundary.ts";
 import type { RememberedClient } from "#test/remembered-session/client.ts";
 
@@ -14,13 +16,17 @@ function SignedOut({ client }: { readonly client: RememberedClient }) {
 	return <h1>Signed out with {stored === null ? "nothing remembered" : "a remembered session"}</h1>;
 }
 
-export function RememberedApp({
-	client,
-	session,
-}: {
-	readonly client: RememberedClient;
-	readonly session: AuthSession<RememberedSession | null, unknown>;
-}) {
+function SignOutButton({ action }: { readonly action: Atom.AtomResultFn<void, void, never> }) {
+	const signOut = useAction(action);
+	return (
+		<button onClick={() => signOut.dispatch()} type="button">
+			Sign out
+		</button>
+	);
+}
+
+export function RememberedApp({ client, session }: { readonly client: RememberedClient; readonly session: RememberedAuthSession<unknown> }) {
+	const [signOut] = useState(() => Atom.fn<void>()(() => session.signOut(Effect.void)));
 	const query = useQuery(session.atom);
 	const current = Option.getOrNull(query.data);
 	if (Option.isNone(query.data) && query.pending) {
@@ -41,6 +47,7 @@ export function RememberedApp({
 			recheck={session.refresh}
 			session={current ?? undefined}
 			signedOut={<SignedOut client={client} />}
+			signOut={signOut}
 		>
 			{(generation) => (
 				<main aria-busy={query.refreshing}>
@@ -48,6 +55,7 @@ export function RememberedApp({
 						{generation.user} in generation {generation.number}
 					</h1>
 					<p>Grants: {grants}</p>
+					<SignOutButton action={signOut} />
 				</main>
 			)}
 		</SessionBoundary>

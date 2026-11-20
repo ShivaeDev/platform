@@ -28,7 +28,7 @@ export function makeAuth(options: {
 	);
 	const actions: AuthActions = {
 		resetPassword: authAction(authCall((body, signal) => client.resetPassword({ ...body, fetchOptions: { signal } }))),
-		signOut: Atom.fn<void>()(() => authCall((_: undefined, signal) => client.signOut({ fetchOptions: { signal } }))(undefined)),
+		signOut: Atom.fn<void>()(() => session.signOut(authCall((_: undefined, signal) => client.signOut({ fetchOptions: { signal } }))(undefined))),
 		submit: authAction(
 			authCall(({ mode, credentials }, signal) =>
 				mode === "sign-up" ? client.signUp.email(credentials, { signal }) : client.signIn.email(credentials, { signal }),

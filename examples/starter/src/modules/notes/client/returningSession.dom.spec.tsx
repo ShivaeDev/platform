@@ -34,3 +34,18 @@ screens.it(
 		]);
 	},
 );
+
+screens.it(
+	"signing out wipes the remembered session even when the session check after it never answers",
+	[returningAlice("held")],
+	function* ({ click, relaunches, releaseSessionCheck, sessionCheckStatus, settle }) {
+		yield* releaseSessionCheck();
+		yield* settle();
+		yield* click("Sign out");
+		yield* settle();
+
+		yield* relaunches();
+
+		expect(yield* sessionCheckStatus()).toBe("shown");
+	},
+);

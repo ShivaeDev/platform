@@ -58,9 +58,16 @@ export const rememberedSessions = storyKit({
 					engine.view = yield* engine.screen.open(<RememberedApp client={engine.client} session={session} />);
 				}),
 			refreshing: () => Effect.sync(() => opened(engine).container.querySelector("main")?.getAttribute("aria-busy") ?? "no shell"),
+			relaunches: () =>
+				engine.screen.act("the app launches again", async () => {
+					const view = opened(engine);
+					await view.render(null);
+					await view.render(<RememberedApp client={engine.client} session={engine.client.session()} />);
+				}),
 			remembered: () => engine.client.stored,
 			shown: () => Effect.sync(() => opened(engine).container.textContent),
 			signedOutAnswer: () => answer("the session check answers signed out", null),
+			signsOut: () => engine.screen.driver(opened(engine).container).click({ name: "Sign out", role: "button" }),
 			timePasses: (millis: number) => engine.screen.act(`${millis} ms pass`, () => Effect.runPromise(engine.clock.adjust(millis))),
 		};
 	},

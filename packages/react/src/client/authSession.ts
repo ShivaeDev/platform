@@ -3,6 +3,7 @@ import * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as Atom from "effect/reactivity/Atom";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import {
+	forgetSession,
 	type RememberedSession,
 	recallSession,
 	rememberSession,
@@ -13,6 +14,10 @@ import {
 export interface AuthSession<A, E> {
 	readonly atom: Atom.Atom<AsyncResult.AsyncResult<A, E>>;
 	readonly refresh: Effect.Effect<A, E, AtomRegistry.AtomRegistry>;
+}
+
+export interface RememberedAuthSession<E> extends AuthSession<RememberedSession | null, E> {
+	readonly signOut: <A, TError, R>(request: Effect.Effect<A, TError, R>) => Effect.Effect<A, TError, R>;
 }
 
 export interface AuthSessionOptions {
@@ -51,10 +56,17 @@ function remembering<E>(read: Effect.Effect<VerifiedSession | null, E>, memory: 
 }
 
 export function authSession<A, E>(read: Effect.Effect<A, E>): AuthSession<A, E>;
-export function authSession<E>(read: Effect.Effect<VerifiedSession | null, E>, options: AuthSessionOptions): AuthSession<RememberedSession | null, E>;
+export function authSession<E>(read: Effect.Effect<VerifiedSession | null, E>, options: AuthSessionOptions): RememberedAuthSession<E>;
 export function authSession<A extends VerifiedSession | null, E>(
 	read: Effect.Effect<A, E>,
 	options?: AuthSessionOptions,
-): AuthSession<A, E> | AuthSession<RememberedSession | null, E> {
-	return options === undefined ? refreshing(Atom.make(read)) : refreshing(remembering(read, options.remember));
+): AuthSession<A, E> | RememberedAuthSession<E> {
+	if (options === undefined) {
+		return refreshing(Atom.make(read));
+	}
+	const forget = Effect.provide(forgetSession, options.remember);
+	return {
+		...refreshing(remembering(read, options.remember)),
+		signOut: (request) => Effect.tap(request, () => forget),
+	};
 }

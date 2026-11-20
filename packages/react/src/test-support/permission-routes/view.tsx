@@ -3,10 +3,8 @@ import { Effect } from "effect";
 import type * as Atom from "effect/reactivity/Atom";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import type { ReactNode } from "react";
-import type { PermissionSession } from "@shivaedev/identity/PermissionSession.ts";
 import { Forbidden } from "#adapters/Forbidden.ts";
 import { PermissionBoundary } from "#adapters/permissionBoundary.ts";
-import { useGuardRerun } from "#adapters/useGuardRerun.ts";
 import { useSignOut } from "#client/adapters/useSignOut.ts";
 import type { permissionApp } from "#test/permission-routes/app.tsx";
 
@@ -35,8 +33,7 @@ export function Login(): ReactNode {
 	);
 }
 
-export function PermissionApp({ app, session }: { readonly app: App; readonly session: PermissionSession | undefined }): ReactNode {
-	useGuardRerun(app.router, session);
+export function PermissionApp({ app }: { readonly app: App }): ReactNode {
 	return (
 		<CatchBoundary errorComponent={ApplicationFailure} getResetKey={() => "app"}>
 			<RouterProvider router={app.router} />

@@ -9,7 +9,7 @@ rememberedSessions.it(
 		yield* launches();
 
 		yield* outcomes([
-			["screen", () => shown(), "alice in generation 1Grants: notes.read, notes.write"],
+			["screen", () => shown(), "alice in generation 1Grants: notes.read, notes.writeSign out"],
 			["refreshing", () => refreshing(), "true"],
 		]);
 	},
@@ -24,7 +24,7 @@ rememberedSessions.it(
 		yield* answers("alice", ["notes.read"]);
 
 		yield* outcomes([
-			["screen", () => shown(), "alice in generation 1Grants: notes.read"],
+			["screen", () => shown(), "alice in generation 1Grants: notes.readSign out"],
 			["refreshing", () => refreshing(), "false"],
 		]);
 		expect(yield* heldAtoms("alice")).toBeGreaterThan(0);
@@ -41,7 +41,7 @@ rememberedSessions.it(
 		yield* answers("bob", ["notes.read"]);
 
 		yield* outcomes([
-			["screen", () => shown(), "bob in generation 2Grants: notes.read"],
+			["screen", () => shown(), "bob in generation 2Grants: notes.readSign out"],
 			["alice's atoms", () => heldAtoms("alice"), 0],
 		]);
 		expect(JSON.parse((yield* remembered()) ?? "null")).toMatchObject({ user: { id: "bob" } });
@@ -65,6 +65,22 @@ rememberedSessions.it(
 );
 
 rememberedSessions.it(
+	"an explicit sign-out wipes the memory even when the session check after it never answers",
+	[aliceRemembered()],
+	function* ({ answers, launches, relaunches, remembered, shown, signsOut }) {
+		yield* launches();
+		yield* answers("alice", ["notes.read"]);
+
+		yield* signsOut();
+		expect(yield* remembered()).toBeNull();
+
+		yield* relaunches();
+
+		expect(yield* shown()).toBe("Checking your session…");
+	},
+);
+
+rememberedSessions.it(
 	"a session check that fails without a network keeps the remembered session rendering",
 	[aliceRemembered()],
 	function* ({ checkFails, launches, shown }) {
@@ -72,7 +88,7 @@ rememberedSessions.it(
 
 		yield* checkFails();
 
-		expect(yield* shown()).toBe("alice in generation 1Grants: notes.read, notes.write");
+		expect(yield* shown()).toBe("alice in generation 1Grants: notes.read, notes.writeSign out");
 	},
 );
 
@@ -91,7 +107,7 @@ rememberedSessions.it(
 
 		yield* answers("alice", ["notes.read"]);
 
-		expect(yield* shown()).toBe("alice in generation 1Grants: notes.read");
+		expect(yield* shown()).toBe("alice in generation 1Grants: notes.readSign out");
 	},
 );
 

@@ -9,6 +9,7 @@ import { browserSessionMemory } from "@shivaedev/identity/client/adapters/browse
 import { rememberSession } from "@shivaedev/identity/client/SessionMemory.ts";
 import { loadQuery } from "@shivaedev/react/adapters/loadQuery.ts";
 import { authAction } from "@shivaedev/react/client/authAction.ts";
+import type { Rendered } from "@shivaedev/test-story/client/adapters/react.ts";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 import { App } from "#client/App.tsx";
 import type { AuthActions } from "#client/adapters/auth.ts";
@@ -27,7 +28,7 @@ import { screenAuth } from "#modules/notes/test-support/screenAuth.ts";
 import type { Screen } from "#modules/notes/test-support/screenState.ts";
 import { settleQuery } from "#modules/notes/test-support/settleQuery.ts";
 import { appAuth } from "#test-support/appAuth.ts";
-import { acquireScreen } from "#test-support/screenState.ts";
+import { acquireScreen, screenView } from "#test-support/screenState.ts";
 
 export const openRoute = Effect.fn("ScreenStory.openRoute")(function* (engine: Screen, route: string, signedIn = true) {
 	engine.client.session.signedIn = signedIn;
@@ -127,10 +128,7 @@ export const openApp = Effect.fn("ScreenStory.openApp")(function* (engine: Scree
 	}).settle();
 });
 
-export const openReturningApp = Effect.fn("ScreenStory.openReturningApp")(function* (engine: Screen, check: "held" | "failing") {
-	yield* rememberSession({ session: { expiresAt: new Date("2099-01-01T00:00:00.000Z"), id: "alice-session" }, user: { id: "alice" } }).pipe(
-		Effect.provide(browserSessionMemory),
-	);
+function launchApp(engine: Screen, view: Rendered, check: "held" | "failing") {
 	const fixture = appAuth({
 		baseUrl: "http://returning.story.test",
 		sessionFailure: check === "failing",
@@ -138,13 +136,26 @@ export const openReturningApp = Effect.fn("ScreenStory.openReturningApp")(functi
 		signedIn: true,
 	});
 	engine.auth = fixture;
-	const view = yield* acquireScreen(engine);
 	engine.pending = () => check === "failing" && view.registry.get(fixture.auth.session.atom).waiting;
-	yield* Effect.promise(() =>
+	return Effect.promise(() =>
 		view.render(
 			<App auth={fixture.auth} connect={(session) => clientModules(session, [notesRegistration(engine.client)])} history={createMemoryHistory()} />,
 		),
 	);
+}
+
+export const openReturningApp = Effect.fn("ScreenStory.openReturningApp")(function* (engine: Screen, check: "held" | "failing") {
+	yield* rememberSession({ session: { expiresAt: new Date("2099-01-01T00:00:00.000Z"), id: "alice-session" }, user: { id: "alice" } }).pipe(
+		Effect.provide(browserSessionMemory),
+	);
+	const view = yield* acquireScreen(engine);
+	yield* launchApp(engine, view, check);
+});
+
+export const relaunchApp = Effect.fn("ScreenStory.relaunchApp")(function* (engine: Screen) {
+	const view = screenView(engine);
+	yield* Effect.promise(() => view.render(null));
+	yield* launchApp(engine, view, "held");
 });
 
 export const openNotes = Effect.fn("ScreenStory.openNotes")(function* (engine: Screen, signOutFailure?: string) {

@@ -101,9 +101,7 @@ function routeVerbs(state: State, screen: Screen) {
 					return yield* Effect.die(new Error("No refreshed session is prepared"));
 				}
 				auth.current = yield* AtomRegistry.getResult(view.registry, host.readSession(role).atom);
-				yield* screen.act(`the session check answers as a ${role} without a navigation`, () =>
-					view.render(<PermissionApp app={app} session={auth.current} />),
-				);
+				yield* screen.act(`the session check answers as a ${role} without a navigation`, () => view.render(<PermissionApp app={app} />));
 				yield* settle(state, screen);
 			}),
 		signIn: () => clickAndNavigate("Sign in", "sign in as a reader"),
@@ -120,7 +118,7 @@ function routeVerbs(state: State, screen: Screen) {
 				const app = permissionApp(host, view.registry, session, path, state.hidden);
 				state.view = view;
 				state.app = app;
-				yield* screen.act(`visit ${path}`, () => view.render(<PermissionApp app={app} session={session} />));
+				yield* screen.act(`visit ${path}`, () => view.render(<PermissionApp app={app} />));
 				yield* settle(state, screen);
 			}),
 	};
