@@ -205,6 +205,7 @@
 - `@shivaedev/local-postgres`: import from `@shivaedev/local-postgres/server/hostPostgresBinaries.ts` instead of `@shivaedev/local-postgres/server/adapters/hostPostgresBinaries.ts`, which moved out of `adapters/`.
 - `@shivaedev/local-postgres`: import from `@shivaedev/local-postgres/server/localSql.ts` instead of `@shivaedev/local-postgres/server/adapters/localSql.ts`, which moved out of `adapters/`.
 - `@shivaedev/local-postgres`: import from `@shivaedev/local-postgres/server/runCommand.ts` instead of `@shivaedev/local-postgres/server/adapters/runCommand.ts`, which moved out of `adapters/`.
+- `@shivaedev/local-postgres`: import from `@shivaedev/local-postgres/server/localContainer.ts` instead of `@shivaedev/local-postgres/server/adapters/localContainer.ts`, which moved out of `adapters/`.
 - `@shivaedev/mcp`: import from `@shivaedev/mcp/InvalidTokenClaim.ts` instead of `@shivaedev/mcp/adapters/InvalidTokenClaim.ts`, which moved out of `adapters/`.
 - `@shivaedev/quality`: import from `@shivaedev/quality/ImportAnalysisFailure.ts` instead of `@shivaedev/quality/adapters/ImportAnalysisFailure.ts`, which moved out of `adapters/`.
 - `@shivaedev/quality`: import from `@shivaedev/quality/TestOutput.ts` instead of `@shivaedev/quality/adapters/TestOutput.ts`, which moved out of `adapters/`.

@@ -1,10 +1,10 @@
 import { Effect, Schedule } from "effect";
-import { startContainer } from "#server/adapters/localContainer.ts";
 import { assertLocalDatabase } from "#server/assertLocalDatabase.ts";
 import { docker } from "#server/docker.ts";
 import type { DockerEnvironment } from "#server/dockerEnvironment.ts";
 import { ensureConnections } from "#server/ensureConnections.ts";
 import { LocalPostgresError } from "#server/LocalPostgresError.ts";
+import { startContainer } from "#server/localContainer.ts";
 import { localSql } from "#server/localSql.ts";
 import { PostgresVersionMismatch } from "#server/PostgresVersionMismatch.ts";
 import type { CommandOptions } from "#server/runCommand.ts";

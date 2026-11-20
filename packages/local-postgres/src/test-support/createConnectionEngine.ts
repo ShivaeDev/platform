@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { Effect } from "effect";
 import { ChildProcessSpawner } from "effect/process";
-import { POSTGRES_IMAGE, startContainer } from "#server/adapters/localContainer.ts";
+import { POSTGRES_IMAGE, startContainer } from "#server/localContainer.ts";
 import { LOCAL_SERVER, localPostgres } from "#server/localPostgres.ts";
 import { type CommandOptions, runCommand } from "#server/runCommand.ts";
 import { connectionBoundary } from "#test/connectionBoundary.ts";

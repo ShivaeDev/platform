@@ -113,7 +113,7 @@ Import service preparation from `@shivaedev/local-postgres/server/localPostgres.
 
 The last three functions are members of the object returned by `localPostgres`, not module-level exports. They fail in the typed error channel. `PostgresCommandError` carries the command, diagnostic message and exit code or platform cause; `LocalPostgresError` describes local-target and image refusals, and malformed URL password escapes. Exhausted readiness checks retain their final failure; a version mismatch always names a version the service returned.
 
-The module export pattern also exposes the lower-level Docker and container command functions in `@shivaedev/local-postgres/server/docker.ts` and `@shivaedev/local-postgres/server/adapters/localContainer.ts`. Use `@shivaedev/local-postgres/server/localPostgres.ts` for application preparation.
+The module export pattern also exposes the lower-level Docker and container command functions in `@shivaedev/local-postgres/server/docker.ts` and `@shivaedev/local-postgres/server/localContainer.ts`. Use `@shivaedev/local-postgres/server/localPostgres.ts` for application preparation.
 
 ### An instance owned by a local application
 
