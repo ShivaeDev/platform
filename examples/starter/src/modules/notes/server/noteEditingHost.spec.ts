@@ -6,7 +6,7 @@ import { app, signedIn } from "#modules/notes/test-support/application.ts";
 import type { NotesRequests } from "#modules/notes/test-support/requests.ts";
 import { answer, refusal } from "#test-support/answers.ts";
 
-const CONFLICT = "conflict: This note changed. Refresh and review your draft before trying again.";
+const CONFLICT = "conflict: This was changed or deleted since you loaded it. Refresh and try again.";
 
 app.it("alice's edit saves the new title at the next version", [signedIn("alice")], function* ({ notesOf }) {
 	const note = yield* notesOf("alice").create("Original");

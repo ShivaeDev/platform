@@ -45,7 +45,7 @@ app.it(
 		const stale = yield* refusal(notesOf("alice").edit(note, "Before counting"));
 
 		yield* outcomes([
-			["the stale edit", () => Effect.succeed(stale), "conflict: This note changed. Refresh and review your draft before trying again."],
+			["the stale edit", () => Effect.succeed(stale), "conflict: This was changed or deleted since you loaded it. Refresh and try again."],
 			["alice's note", () => notesOf("alice").open(note), { ...note, version: 1, wordCount: 3 }],
 		]);
 	},

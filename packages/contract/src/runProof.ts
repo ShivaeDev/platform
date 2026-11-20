@@ -3,12 +3,14 @@ import type { InfrastructureFailure } from "@shivaedev/errors/infrastructure.ts"
 import type { InternalServerError, ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import type { QueryReadDenied } from "#readPolicyErrors.ts";
 import type { TaggedRejection } from "#rejection.ts";
+import type { Answered } from "#staleWrite.ts";
 
 export type RunBody<TPayload, TYielded, A> = (payload: TPayload) => Generator<TYielded, A, never>;
 
 export type ErrorOf<TYielded> = [TYielded] extends [never] ? never : [TYielded] extends [Effect.Effect<unknown, infer E, unknown>] ? E : never;
 export type ServicesOf<TYielded> = [TYielded] extends [never] ? never : [TYielded] extends [Effect.Effect<unknown, unknown, infer R>] ? R : never;
-export type RunEffect<TYielded, A> = [A] extends [unknown] ? Effect.Effect<A, ErrorOf<TYielded>, ServicesOf<TYielded>> : never;
+// Run answers a stale versioned write with Conflict, so its callers and its wire see that rejection.
+export type RunEffect<TYielded, A> = [A] extends [unknown] ? Effect.Effect<A, Answered<ErrorOf<TYielded>>, ServicesOf<TYielded>> : never;
 
 export interface ClassRejections {
 	readonly [tag: string]: TaggedRejection;

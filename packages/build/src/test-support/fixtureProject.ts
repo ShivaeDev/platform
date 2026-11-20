@@ -14,6 +14,7 @@ const LINKED: readonly (readonly [string, string])[] = [
 	["@shivaedev/contract", createRequire(import.meta.url).resolve("@shivaedev/contract/package.json")],
 	["@shivaedev/errors", createRequire(import.meta.url).resolve("@shivaedev/errors/package.json")],
 	["@shivaedev/quality", createRequire(import.meta.url).resolve("@shivaedev/quality/package.json")],
+	["@shivaedev/sql", createRequire(import.meta.url).resolve("@shivaedev/sql/package.json")],
 	["vitest", createRequire(import.meta.url).resolve("vitest/package.json")],
 ];
 

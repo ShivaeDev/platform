@@ -4,13 +4,13 @@ import { Model } from "effect/schema";
 import type { SqlClient } from "effect/sql";
 import { makeRepository } from "@shivaedev/sql/repository.ts";
 import { transact } from "@shivaedev/sql/transact.ts";
-import { Change, type Input, Row } from "#test/batch-undo/contract.ts";
+import { type Input, Row, type Undo } from "#test/batch-undo/contract.ts";
 
 class StoredRow extends Model.Class<StoredRow>("BatchUndoRow")({
 	...Row.fields,
 	version: Model.Field({ json: Schema.Number, select: Schema.Number, update: Schema.Number }),
 }) {}
-type UndoEntry = (typeof Change.success.Type)["undo"][number];
+type UndoEntry = (typeof Undo.Type)["undo"][number];
 
 export const makeStore = Effect.gen(function* () {
 	const services = yield* Effect.context<SqlClient.SqlClient | Reactivity.Reactivity>();
@@ -46,13 +46,15 @@ export const makeStore = Effect.gen(function* () {
 	function change(input: typeof Input.Type) {
 		return (input._tag === "undo" ? restore(input.token) : edit(input)).pipe(
 			transact({ onSqlError: (error) => error }),
-			Effect.catchTag("OptimisticConcurrencyError", (error) => Change.reject.Conflict({ message: `Stale version for ${error.id}` })),
 			Effect.catchTags({ NoSuchElementError: Effect.die, SchemaError: Effect.die, SqlError: Effect.die }),
 			Effect.provideContext(services),
 		);
 	}
 	return {
 		change,
-		list: () => rows.findMany({ orderBy: { direction: "asc", field: "id" } }).pipe(Effect.orDie),
+		list: rows.findMany({ orderBy: { direction: "asc", field: "id" } }).pipe(
+			Effect.map((found) => found.map(({ id, portion, version }) => ({ id, portion, version }))),
+			Effect.orDie,
+		),
 	};
 });

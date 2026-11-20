@@ -1,5 +1,5 @@
-// An application's notes module: its operations cover every wire form, a field rejection, a twin rejection class, a
-// query whose policy reads the store, a query that declares no keys and a type declared globally in the project's declaration file. Paths are relative to the project; the kit writes package.json and tsconfig.json.
+// An application's notes module: its operations cover every wire form, a field rejection, a twin rejection class, a stale
+// versioned write, a query whose policy reads the store, a query that declares no keys and a type declared globally in the project's declaration file. Paths are relative to the project; the kit writes package.json and tsconfig.json.
 export const NOTES_PROJECT: Readonly<Record<string, string>> = {
 	"src/modules/notes/archive.ts": `import { Schema } from "effect";
 
@@ -92,13 +92,14 @@ import { List } from "#modules/notes/list.ts";
 import { NotesCaller } from "#modules/notes/model.ts";
 import { Recent } from "#modules/notes/recent.ts";
 import { Remove } from "#modules/notes/remove.ts";
+import { Rename } from "#modules/notes/rename.ts";
 import { Stats } from "#modules/notes/stats.ts";
 import { Summary } from "#modules/notes/summary.ts";
 
 export const Notes = defineModule({
 	middleware: NotesCaller,
 	name: "notes",
-	operations: [List, Get, Create, Recent, Remove, Stats, Summary],
+	operations: [List, Get, Create, Recent, Remove, Rename, Stats, Summary],
 	wire: notesWire,
 });
 `,
@@ -122,6 +123,19 @@ export const Remove = command("remove", {
 	payload: { id: Schema.Number },
 	*run({ id }) {
 		yield* (yield* NotesStore).remove(id);
+	},
+});
+`,
+	"src/modules/notes/rename.ts": `import { Schema } from "effect";
+import { command } from "@shivaedev/contract/operation.ts";
+import { notes } from "#modules/notes/model.ts";
+import { NotesStore } from "#modules/notes/store.ts";
+
+export const Rename = command("rename", {
+	invalidates: ({ id }) => [notes.item(id)],
+	payload: { id: Schema.Number, title: Schema.String, version: Schema.Number },
+	*run(note) {
+		yield* (yield* NotesStore).rename(note);
 	},
 });
 `,
@@ -192,6 +206,7 @@ export const Stats = query("stats", {
 `,
 	"src/modules/notes/store.ts": `import { Context, type Effect, type Option, Schema } from "effect";
 import type { Unauthorized } from "@shivaedev/errors/taxonomy.ts";
+import type { OptimisticConcurrencyError } from "@shivaedev/sql/repository.ts";
 import type { NoteMissing } from "#modules/notes/archive.ts";
 
 export interface StoredNote {
@@ -211,6 +226,7 @@ export class NotesStore extends Context.Service<
 		readonly insert: (title: string) => Effect.Effect<StoredNote, StoreUnavailable>;
 		readonly owner: Effect.Effect<string, Unauthorized>;
 		readonly remove: (id: number) => Effect.Effect<void, NoteMissing>;
+		readonly rename: (note: { readonly id: number; readonly title: string; readonly version: number }) => Effect.Effect<void, OptimisticConcurrencyError>;
 		readonly rows: Effect.Effect<readonly StoredNote[]>;
 	}
 >()("fixture/NotesStore") {}

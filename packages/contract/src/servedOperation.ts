@@ -8,6 +8,7 @@ import type { QueryServerReads } from "#QueryServerReads.ts";
 import type { QueryReadPolicy, Viewer } from "#readPolicy.ts";
 import type { RejectionSpecs } from "#rejection.ts";
 import type { ErrorOf, RunBody, RunCheck, RunEffect, ServicesOf, SpecsOf } from "#runProof.ts";
+import { answerStaleWrite } from "#staleWrite.ts";
 
 export interface ServedQuery<
 	TName extends string,
@@ -141,5 +142,5 @@ export function invalidatesOf(declaration: LooseCommand): Invalidates {
 }
 
 export function runOf({ run }: { readonly run?: RunGenerator | undefined }) {
-	return run === undefined ? {} : { run: Effect.fnUntraced(run) };
+	return run === undefined ? {} : { run: Effect.fnUntraced(run, answerStaleWrite) };
 }

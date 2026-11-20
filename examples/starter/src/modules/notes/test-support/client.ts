@@ -48,7 +48,7 @@ export const notesClient = Effect.fn("ScreenStory.notesClient")(function* (initi
 		});
 	}
 	function conflict() {
-		return new Conflict({ message: "This note changed. Refresh and review your draft before trying again." });
+		return new Conflict({ message: "This was changed or deleted since you loaded it. Refresh and try again." });
 	}
 	const handlers = Notes.application.toLayer({
 		"notes.create": ({ title }) =>

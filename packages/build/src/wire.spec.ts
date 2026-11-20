@@ -31,7 +31,7 @@ generator.it(
 );
 
 generator.it(
-	"each operation lists the tagged classes its run and policy raise, without infrastructure failures, the automatic two or a Conflict",
+	"each operation lists the tagged classes its run and policy raise, without infrastructure failures or the automatic two",
 	[notesProject(), generatedOnce()],
 	function* ({ generatedFile }) {
 		const text = yield* generatedFile(NOTES);
@@ -40,6 +40,18 @@ generator.it(
 			["get", () => Effect.succeed(rejectionTagsOf(text, "get")), ["NoteMissing"]],
 			["list", () => Effect.succeed(rejectionTagsOf(text, "list")), ["Unauthorized"]],
 			["stats", () => Effect.succeed(rejectionTagsOf(text, "stats")), []],
+		]);
+	},
+);
+
+generator.it(
+	"rename lets the store's stale versioned write reach the framework, so its wire lists the shared Conflict from @shivaedev/errors",
+	[notesProject(), generatedOnce()],
+	function* ({ generatedFile }) {
+		const text = yield* generatedFile(NOTES);
+		yield* outcomes([
+			["rename's rejections", () => Effect.succeed(rejectionTagsOf(text, "rename")), ["Conflict"]],
+			["rename's Conflict", () => Effect.succeed(rejectionSourceOf(text, "rename", "Conflict")), "@shivaedev/errors/taxonomy.ts"],
 		]);
 	},
 );
