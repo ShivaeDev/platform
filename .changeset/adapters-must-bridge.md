@@ -332,7 +332,6 @@
 - `@shivaedev/react`: import from `@shivaedev/react/client/useActionResult.ts` instead of `@shivaedev/react/client/adapters/useActionResult.ts`, which moved out of `adapters/`.
 - `@shivaedev/react`: import from `@shivaedev/react/client/useConnectionStatus.ts` instead of `@shivaedev/react/client/adapters/useConnectionStatus.ts`, which moved out of `adapters/`.
 - `@shivaedev/react`: import from `@shivaedev/react/client/useFeedback.ts` instead of `@shivaedev/react/client/adapters/useFeedback.ts`, which moved out of `adapters/`.
-- `@shivaedev/react`: import from `@shivaedev/react/client/useFirstSettled.ts` instead of `@shivaedev/react/client/adapters/useFirstSettled.ts`, which moved out of `adapters/`.
 - `@shivaedev/react`: import from `@shivaedev/react/client/useQueryNotice.ts` instead of `@shivaedev/react/client/adapters/useQueryNotice.ts`, which moved out of `adapters/`.
 - `@shivaedev/react`: import from `@shivaedev/react/client/useSessionRetry.ts` instead of `@shivaedev/react/client/adapters/useSessionRetry.ts`, which moved out of `adapters/`.
 - `@shivaedev/react`: import from `@shivaedev/react/client/useSubmissionCallbacks.ts` instead of `@shivaedev/react/client/adapters/useSubmissionCallbacks.ts`, which moved out of `adapters/`.

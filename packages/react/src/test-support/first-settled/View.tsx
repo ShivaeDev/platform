@@ -3,9 +3,9 @@ import type * as AsyncResult from "effect/reactivity/AsyncResult";
 import type * as Atom from "effect/reactivity/Atom";
 import { useEffect, useState } from "react";
 import type { QueryStorageProvider } from "@shivaedev/contract/QueryStorage.ts";
+import { useFirstSettled } from "#client/adapters/useFirstSettled.ts";
 import { useAction, useQuery } from "#client/resultState.ts";
 import { SessionBoundary } from "#client/sessionBoundary.ts";
-import { useFirstSettled } from "#client/useFirstSettled.ts";
 import type { FirstSettledClient } from "#test/first-settled/client.ts";
 import { type FirstRoute, type Provider, RoutedNotes } from "#test/first-settled/routed.tsx";
 

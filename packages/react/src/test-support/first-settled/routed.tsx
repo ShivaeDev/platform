@@ -11,8 +11,8 @@ import { Option } from "effect";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { useContext, useState } from "react";
 import { queryRoute } from "#client/adapters/queryRoute.ts";
+import { useFirstSettled } from "#client/adapters/useFirstSettled.ts";
 import { useQuery } from "#client/resultState.ts";
-import { useFirstSettled } from "#client/useFirstSettled.ts";
 import { RouterProvider } from "#RouterProvider.ts";
 import type { FirstSettledClient } from "#test/first-settled/client.ts";
 
