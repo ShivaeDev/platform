@@ -112,6 +112,14 @@ const program = Effect.gen(function* () {
 	plain.delete({ id: 1, missing: 2 });
 	const typedDelete: DeleteFilter<typeof Row> = { kind: "x" };
 	plain.delete(typedDelete);
+	// @ts-expect-error Delete operator objects name known operators.
+	plain.delete({ id: { gtt: 1, lt: 5 } });
+	const either = Option.isSome(Option.some(1));
+	// @ts-expect-error Every branch of a conditional delete filter needs a defined entry.
+	plain.delete(either ? { id: 1 } : { kind: maybeKind });
+	// @ts-expect-error allRows in one branch does not excuse an undefined entry in the other.
+	plain.delete(either ? allRows : { kind: maybeKind });
+	plain.delete(either ? { id: 1 } : allRows);
 	// @ts-expect-error Delete list entries use decoded field values.
 	plain.delete({ value: { in: ["1"] } });
 	// @ts-expect-error Delete filters must name model fields.

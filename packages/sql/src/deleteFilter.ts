@@ -10,20 +10,10 @@ type Restricting<TFilter> = {
 
 export type DeleteFilter<TModel extends Model.Any> = Restricting<FindManyFilter<TModel>> | AllRows;
 
-type DefinedKey<TWhere> = { readonly [TKey in keyof TWhere]-?: undefined extends TWhere[TKey] ? never : TKey }[keyof TWhere];
-
-interface DefinedEntryRequired {
+// No value has this key. Typed as a delete method's last overload, it is the signature whose refusal TypeScript reports.
+export interface DefinedEntryRequired {
 	readonly "a delete needs one defined filter entry, or allRows": never;
 }
-
-// Checked against the inferred filter rather than a union of shapes, so a refusal names the rule instead of a union member.
-export type DeleteCheck<TModel extends Model.Any, TWhere> = TWhere extends AllRows
-	? unknown
-	: [Exclude<keyof TWhere, keyof FindManyFilter<TModel>>] extends [never]
-		? [DefinedKey<TWhere>] extends [never]
-			? DefinedEntryRequired
-			: unknown
-		: { readonly [TKey in Exclude<keyof TWhere, keyof FindManyFilter<TModel>>]: "not a field of this model" };
 
 // The read filter drops undefined entries, so a delete filter without a defined one would match the whole table.
 export function restrictingFilter<TFilter extends Readonly<Record<string, unknown>> & Partial<TupleFilter<Model.Any>> & Partial<AllRows>>(

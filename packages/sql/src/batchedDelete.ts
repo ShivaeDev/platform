@@ -3,8 +3,7 @@ import type { Model } from "effect/schema";
 import { SqlClient, SqlSchema } from "effect/sql";
 import type { SqlError } from "effect/sql/SqlError";
 import type { Fragment } from "effect/sql/Statement";
-import type { AllRows } from "#allRows.ts";
-import { type DeleteCheck, type DeleteFilter, restrictingFilter } from "#deleteFilter.ts";
+import { type DefinedEntryRequired, type DeleteFilter, restrictingFilter } from "#deleteFilter.ts";
 import type { RepositoryChanges } from "#repositoryChanges.ts";
 import { type FindManyFilter, makeFilter } from "#repositoryFilter.ts";
 import { tryPurgeLock } from "#tryPurgeLock.ts";
@@ -59,10 +58,15 @@ export interface BatchedDeleteOptions<TModel extends Model.Any> extends PurgeLim
 	readonly where: DeleteFilter<TModel>;
 }
 
+type Purged<TModel extends Model.Any> = Effect.Effect<
+	number,
+	SqlError | Schema.SchemaError | BatchedDeleteUnavailable,
+	TModel["fields"][keyof TModel["fields"]]["EncodingServices"]
+>;
+
 export interface BatchedDelete<TModel extends Model.Any> {
-	readonly deleteBatched: <const TWhere extends FindManyFilter<TModel> | AllRows>(
-		options: PurgeLimits & { readonly where: TWhere & DeleteCheck<TModel, TWhere> },
-	) => Effect.Effect<number, SqlError | Schema.SchemaError | BatchedDeleteUnavailable, TModel["fields"][keyof TModel["fields"]]["EncodingServices"]>;
+	readonly deleteBatched: ((options: BatchedDeleteOptions<TModel>) => Purged<TModel>) &
+		((options: PurgeLimits & { readonly where: FindManyFilter<TModel> & DefinedEntryRequired }) => Purged<TModel>);
 }
 
 export const makeBatchedDelete = Effect.fnUntraced(function* (

@@ -1,4 +1,4 @@
-import { Context, Effect, Schema, SchemaGetter } from "effect";
+import { Context, Effect, Option, Schema, SchemaGetter } from "effect";
 import type * as Reactivity from "effect/reactivity/Reactivity";
 import { Model } from "effect/schema";
 import type { SqlClient } from "effect/sql";
@@ -38,6 +38,14 @@ const program = Effect.gen(function* () {
 	rows.deleteBatched({ ...options, where: allRows });
 	const typedOptions: BatchedDeleteOptions<typeof RetentionRow> = { ...options, where: { label: "old" } };
 	rows.deleteBatched(typedOptions);
+	// @ts-expect-error Purge operator objects name known operators.
+	rows.deleteBatched({ ...options, where: { id: { gtt: 1, lt: 5 } } });
+	const either = Option.isSome(Option.some(1));
+	const maybeLabel = Option.getOrUndefined(Option.some("old"));
+	// @ts-expect-error Every branch of a conditional purge filter needs a defined entry.
+	rows.deleteBatched({ ...options, where: either ? { id: 1 } : { label: maybeLabel } });
+	// @ts-expect-error allRows in one branch does not excuse an undefined entry in the other.
+	rows.deleteBatched({ ...options, where: either ? allRows : { label: maybeLabel } });
 
 	const versioned = yield* makeRepository(RetentionRow, {
 		idColumn: "id",
