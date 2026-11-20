@@ -1,3 +1,4 @@
+import { Effect } from "effect";
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { outsideReply, readApis, withheldRead } from "#test/http-client/readApis.ts";
@@ -66,6 +67,19 @@ for (const source of ["food", "usda"] as const) {
 		);
 	}
 }
+
+readApis.it(
+	'a status failure keeps the outside API\'s {"error":"invalid_grant"} as its excerpt',
+	[outsideReply({ error: "invalid_grant" }, 400)],
+	function* ({ failureExcerpt, read }) {
+		const result = yield* read();
+
+		yield* outcomes([
+			["source failure", () => Effect.succeed(result), "food: status 400"],
+			["failure excerpt", failureExcerpt, '{"error":"invalid_grant"}'],
+		]);
+	},
+);
 
 for (const phase of ["headers", "body"] as const) {
 	readApis.it(
