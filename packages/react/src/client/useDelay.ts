@@ -8,7 +8,7 @@ type TimerRuntime = Pick<Atom.AtomRuntime<never, unknown>, "fn">;
 
 export function useDelay(duration: Duration.Input, runtime: TimerRuntime = defaultRuntime) {
 	const registry = useContext(RegistryContext);
-	const millis = Duration.toMillis(Duration.fromInputUnsafe(duration));
+	const millis = Duration.toMillis(duration);
 	const timer = useMemo(
 		() => runtime.fn((complete: () => void) => Effect.andThen(Effect.sleep(millis), Effect.sync(complete))).pipe(Atom.setIdleTTL(0)),
 		[runtime, millis],

@@ -17,7 +17,7 @@ export const eventually = Effect.fnUntraced(function* <A, E, R>(
 ): Effect.fn.Return<A, E, R> {
 	const clock = yield* Clock.Clock;
 	const started = yield* Clock.currentTimeMillis;
-	const timeout = options?.timeout === undefined ? undefined : Duration.toMillis(Duration.fromInputUnsafe(options.timeout));
+	const timeout = options?.timeout === undefined ? undefined : Duration.toMillis(options.timeout);
 	const interval = options?.interval ?? "10 millis";
 	const wait = options?.wait ?? ("adjust" in clock ? TestClock.adjust(interval) : Effect.sleep(interval));
 	let retriesLeft = options?.times;

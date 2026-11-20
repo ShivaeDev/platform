@@ -7,5 +7,6 @@ export const initialize = Effect.gen(function* () {
 	const { id } = yield* Subject;
 	const { timezone } = yield* (yield* AccountPreferencesStore).get(id);
 	const minutes = yield* Schema.decodeUnknownEffect(DayStart)(yield* AccountDayStart);
-	return { minutes, timezone };
+	const zone = yield* Schema.decodeUnknownEffect(Schema.TimeZoneNamedFromString)(timezone);
+	return { minutes, timezone, zone };
 });

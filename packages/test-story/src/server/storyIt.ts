@@ -20,7 +20,8 @@ export type StoryCrypto = Layer.Success<typeof NodeCrypto.layer>;
 
 const seededRandom = Effect.gen(function* () {
 	const random = yield* Random.Random;
-	return SecureRandom.make((size) => Uint8Array.from({ length: size }, () => Math.floor(random.nextDoubleUnsafe() * 256)));
+	// SecureRandom asks for bytes synchronously, so the generator that draws them from the seeded Random is built as a side effect.
+	return yield* Effect.sync(() => SecureRandom.make((size) => Uint8Array.from({ length: size }, () => Math.floor(random.nextDoubleUnsafe() * 256))));
 });
 
 function storyCrypto(seed: number): Layer.Layer<StoryCrypto> {

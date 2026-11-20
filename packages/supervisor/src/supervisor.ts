@@ -21,8 +21,8 @@ export const supervise = Effect.fn("Supervisor.supervise")(function* <A, E, TSta
 ) {
 	const first = yield* Deferred.make<A, E | TStartError | ReadinessTimeout | ProcessExited>();
 	const state = yield* SubscriptionRef.make<ProcessState<A, E | TStartError | ReadinessTimeout | ProcessExited>>({ restarts: 0, status: "starting" });
-	const initial = Duration.toMillis(Duration.fromInputUnsafe(options.backoff?.initial ?? "500 millis"));
-	const maximum = Duration.toMillis(Duration.fromInputUnsafe(options.backoff?.maximum ?? "5 seconds"));
+	const initial = Duration.toMillis(options.backoff?.initial ?? "500 millis");
+	const maximum = Duration.toMillis(options.backoff?.maximum ?? "5 seconds");
 	const attempt = Effect.fnUntraced(function* (restarts: number) {
 		yield* SubscriptionRef.set(state, { restarts, status: "starting" });
 		const child = yield* start;

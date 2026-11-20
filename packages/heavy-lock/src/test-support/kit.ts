@@ -57,6 +57,12 @@ export function heldBy(name: string, kind: HolderProcess = "live") {
 	);
 }
 
+export function heldSincePastLastDate(name: string) {
+	return lockStory.trait("holder", `${name} holds the lock with a recorded start past the last date a DateTime holds`, (engine) =>
+		seedHolder(engine, name, "live", 9_000_000_000_000_000),
+	);
+}
+
 export function ci(value: string) {
 	return lockStory.trait("configuration", value === "" ? "CI is set but empty" : `CI is "${value}"`, (engine) => {
 		engine.env.CI = value;

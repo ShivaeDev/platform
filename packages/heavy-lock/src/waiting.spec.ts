@@ -1,6 +1,6 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { heldBy, lockStory, noPollInterval, pollingEvery, waiting } from "#test/kit.ts";
+import { heldBy, heldSincePastLastDate, lockStory, noPollInterval, pollingEvery, waiting } from "#test/kit.ts";
 
 lockStory.it(
 	"ready, starting 30s after e2e took the lock, prints that it waits for a pid running e2e's command in e2e's directory since a time of day, and the 30s e2e has held it",
@@ -11,6 +11,16 @@ lockStory.it(
 		yield* starts("ready");
 
 		expect(yield* printedBy("ready")).toEqual(["heavy-process lock: waiting for pid <pid> running `pnpm e2e` in /repo since <time> (30s)"]);
+	},
+);
+
+lockStory.it(
+	"ready prints that e2e has held the lock since an unknown time when e2e's recorded start lies past the last date a DateTime holds",
+	[heldSincePastLastDate("e2e")],
+	function* ({ printedBy, starts }) {
+		yield* starts("ready");
+
+		expect(yield* printedBy("ready")).toEqual(["heavy-process lock: waiting for pid <pid> running `pnpm e2e` in /repo since an unknown time (0s)"]);
 	},
 );
 
