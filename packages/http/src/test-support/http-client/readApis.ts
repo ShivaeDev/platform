@@ -8,6 +8,13 @@ import { makeReadClient } from "#readClient.ts";
 import { createClientEngine } from "#test/http-client/engine.ts";
 
 const Food = Schema.Struct({ energy: optionalField(Schema.Number), name: Schema.String });
+// The misconfigured source is built with a negative body limit, which its reads refuse.
+const SOURCES = [
+	["food", 64],
+	["usda", 64],
+	["misconfigured", -1],
+] as const;
+type Source = (typeof SOURCES)[number][0];
 
 export const readApis = storyKit({
 	clock: "test",
@@ -34,8 +41,8 @@ export const readApis = storyKit({
 				}),
 			),
 		);
-		const clients = yield* Effect.forEach(["food", "usda"], (source) =>
-			makeReadClient({ bodyLimit: 64, capacity: 2, schema: Food, source, timeout: "5 seconds", timeToLive: "1 minute" }).pipe(
+		const clients = yield* Effect.forEach(SOURCES, ([source, bodyLimit]) =>
+			makeReadClient({ bodyLimit, capacity: 2, schema: Food, source, timeout: "5 seconds", timeToLive: "1 minute" }).pipe(
 				Effect.provideService(HttpClient.HttpClient, engine.rawClient()),
 				Effect.provide(recording),
 			),
@@ -53,9 +60,9 @@ export const readApis = storyKit({
 	stages: ["routes"],
 	verbs: ({ clients, lifecycle, logs, pending, remote, spans }, story) => {
 		remote.narrate(story.tell);
-		function read(source: "food" | "usda" = "food", query = "private search") {
+		function read(source: Source = "food", query = "private search") {
 			story.tell(`${source} searches for ${query}`);
-			const client = clients[source === "food" ? 0 : 1];
+			const client = clients[SOURCES.findIndex(([name]) => name === source)];
 			if (client === undefined) {
 				return Effect.die("No read client was built");
 			}
