@@ -11,6 +11,7 @@ import { makeOrderedChildren } from "#makeOrderedChildren.ts";
 import { owner } from "#owner.ts";
 import { type RepositoryModel, RepositoryModels } from "#RepositoryModels.ts";
 import { makeRepository } from "#repository.ts";
+import type { RepositoryBuildError } from "#repositoryCollection.ts";
 import { serverOnly } from "#serverOnly.ts";
 
 class Note extends Model.Class<Note>("OwnedNote")({
@@ -56,7 +57,15 @@ const models = new Map<Model.Any, string>([
 	[Tag, "Tag"],
 ]);
 
-const repositories = {
+export type Built =
+	| "checklist steps through makeOrderedChildren"
+	| "co-authored notes with two owner fields"
+	| "notes keyed by tableName in place of their collection"
+	| "notes owned by a server-only token"
+	| "notes owned by their author bucket"
+	| "unowned note tags";
+
+const repositories: Record<Built, () => Effect.Effect<unknown, RepositoryBuildError, SqlClient.SqlClient>> = {
 	"checklist steps through makeOrderedChildren": () =>
 		makeOrderedChildren(Step, { parentColumn: "checklistId", parentTable: "checklists", positionColumn: "position", tableName: "checklist_steps" }),
 	"co-authored notes with two owner fields": () => makeRepository(CoAuthored, { tableName: "co_authored_notes" }),
@@ -64,9 +73,7 @@ const repositories = {
 	"notes owned by a server-only token": () => makeRepository(HiddenOwner, { tableName: "hidden_owner_notes" }),
 	"notes owned by their author bucket": () => makeRepository(Note, { collection: collection("notes", Schema.Number, { authorId: Schema.String }) }),
 	"unowned note tags": () => makeRepository(Tag, { tableName: "noteTags" }),
-} satisfies Record<string, () => Effect.Effect<unknown, { readonly _tag: string; readonly message: string }, SqlClient.SqlClient>>;
-
-export type Built = keyof typeof repositories;
+};
 
 const snakeCaseSqlite = Layer.merge(SqliteClient.layer(clientOptions({ filename: ":memory:" })), Reactivity.layer);
 
