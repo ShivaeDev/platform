@@ -1,6 +1,6 @@
 import { Data, Effect, Redacted } from "effect";
 import { Migrator, SqlClient } from "effect/sql";
-import { transact } from "@shivaedev/sql/transact.ts";
+import { ChangeObserver, transact } from "@shivaedev/sql/transact.ts";
 import { makePostgresTestLayer } from "@shivaedev/test-sql/server/postgres.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { migrateBetterAuth } from "#server/better-auth/adapters/migrate.ts";
@@ -8,6 +8,7 @@ import { authTestDatabase } from "#server/better-auth/testDatabase.ts";
 import { compositionHost, compositionOptions, signUpAlice } from "#test/better-auth/compositionHost.ts";
 import { storyClock, withIdentityDatabase } from "#test/clock.ts";
 import { databaseUrl } from "#test/postgres.ts";
+import { recordPublished } from "#test/recordPublished.ts";
 
 class RegistrationCancelled extends Data.TaggedError("RegistrationCancelled")<{ readonly status: number }> {}
 
@@ -25,14 +26,17 @@ export const applicationAuthTransactions = storyKit({
 		yield* migrateBetterAuth(compositionOptions);
 		yield* sql`create table registrations (email text primary key)`;
 		yield* sql`create table registration_notes (kind text primary key)`;
+		const announced: unknown[] = [];
 		const state = { refuseAccount: false, transactionLocal: false };
-		return { sql, startup: yield* compositionHost(state), state, storage: yield* authTestDatabase };
+		const startup = yield* compositionHost(state).pipe(Effect.provideService(ChangeObserver, recordPublished(announced)));
+		return { announced, sql, startup, state, storage: yield* authTestDatabase };
 	},
 	layer: postgres,
 	name: "application and auth transaction composition",
 	runIf: databaseUrl !== undefined,
 	stages: ["adapter", "admission"],
 	verbs: (engine, story) => ({
+		announcedLists: () => Effect.sync(() => engine.announced.filter((key) => typeof key === "string" && !key.includes(":"))),
 		registerAlice: (outcome: "commit" | "rollback") =>
 			Effect.gen(function* () {
 				story.tell(`alice registers through auth and the application, then the application ${outcome}s`);
@@ -46,6 +50,7 @@ export const applicationAuthTransactions = storyKit({
 			}).pipe(
 				transact(),
 				Effect.catchTag("RegistrationCancelled", (error) => Effect.succeed(error.status)),
+				Effect.provideService(ChangeObserver, recordPublished(engine.announced)),
 			),
 		signUpAlice: () => {
 			story.tell("alice signs up through the startup auth mount");

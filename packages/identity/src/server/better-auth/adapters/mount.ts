@@ -24,6 +24,7 @@ import { authRouteHandler } from "#server/better-auth/adapters/routeHandler.ts";
 import { fromStorage, type PolicyStorage, type SignInPolicy, signInGate } from "#server/better-auth/adapters/signInGate.ts";
 import { signInPolicyOptions } from "#server/better-auth/adapters/signInPolicyOptions.ts";
 import { type StoredRoleOptions, storedRoleOptions } from "#server/better-auth/adapters/storedRoleOptions.ts";
+import { changeHooks } from "#server/better-auth/changeHooks.ts";
 import type { BetterAuthDatabaseHooks } from "#server/better-auth/databaseHooks.ts";
 import type { BetterAuthEmails } from "#server/better-auth/emails.ts";
 import { AuthRouteHandler, mountRoutes } from "#server/better-auth/mountRoutes.ts";
@@ -64,7 +65,8 @@ const mountAuth = Effect.fn("Identity.mountAuth")(function* <const TOptions exte
 	const preferences =
 		mount.accountPreferences === true ? yield* accountPreferenceOptions(options).pipe(Effect.provide(accountPreferencesStore)) : options;
 	const reset = passwordResetOptions(preferences, mount.onPasswordReset, runtime);
-	const hooked = effectHookOptions(yield* emailOptions(reset, mount.emails, runtime), mount.databaseHooks, runtime);
+	const announced = effectHookOptions(yield* emailOptions(reset, mount.emails, runtime), changeHooks, runtime);
+	const hooked = effectHookOptions(announced, mount.databaseHooks, runtime);
 	const configured = mount.roles === undefined ? hooked : storedRoleOptions(closeRoleEndpoints(hooked), mount);
 	const gated = yield* signInPolicyOptions(configured, gate, (): Promise<PolicyStorage> => auth.$context);
 	const seed = mount.roleSeed === undefined ? undefined : yield* mount.roleSeed;

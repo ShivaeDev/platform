@@ -8,6 +8,7 @@ import { HttpRouter, HttpServer } from "effect/http";
 import * as HttpStatus from "effect/http/HttpStatus";
 import * as NetAddress from "effect/net/NetAddress";
 import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
+import { ChangeObserver } from "@shivaedev/sql/transact.ts";
 import { signedInUser } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { SessionUserSchema } from "#identity.ts";
@@ -17,6 +18,7 @@ import { sweepExpiredSessions } from "#server/better-auth/sweepExpiredSessions.t
 import { authTestDatabase } from "#server/better-auth/testDatabase.ts";
 import { storyClock, withIdentityDatabase } from "#test/clock.ts";
 import { databaseUrl, postgres } from "#test/postgres.ts";
+import { recordPublished } from "#test/recordPublished.ts";
 
 type Person = "alice" | "bob";
 
@@ -69,6 +71,7 @@ export const authStorage = storyKit({
 			session: { cookieCache: { enabled: false } },
 		};
 		yield* Effect.promise(async () => (await getMigrations(options)).runMigrations());
+		const sweptAnnouncements: unknown[] = [];
 		return {
 			accounts: new Map<Person, MintedAccount>(),
 			auth: betterAuth({ ...options, "baseURL": "http://127.0.0.1:3000", plugins: [testUtils()] }),
@@ -77,6 +80,7 @@ export const authStorage = storyKit({
 			options,
 			storage: yield* authTestDatabase,
 			swept: Option.none<number>(),
+			sweptAnnouncements,
 		};
 	},
 	inspect: (engine) => ({ accounts: [...engine.accounts.keys()], baseUrl: engine.baseUrl, swept: Option.getOrUndefined(engine.swept) }),
@@ -111,10 +115,13 @@ export const authStorage = storyKit({
 			Effect.map(engine.storage.sessions, (rows) => rows.filter(({ userId }) => userId === account(engine, person).userId).length),
 		storedUserRows: () => engine.storage.users,
 		storedUsers: () => Effect.map(engine.storage.users, (rows) => rows.map(({ email }) => email.slice(0, email.indexOf("@")))),
+		sweepAnnouncements: () => Effect.sync(() => engine.sweptAnnouncements),
 		sweepExpiredSessions: () =>
 			Effect.gen(function* () {
 				story.tell("the worker sweeps expired auth sessions through the application SQL client");
-				engine.swept = Option.some(yield* sweepExpiredSessions);
+				engine.sweptAnnouncements = [];
+				const removed = yield* sweepExpiredSessions.pipe(Effect.provideService(ChangeObserver, recordPublished(engine.sweptAnnouncements)));
+				engine.swept = Option.some(removed);
 			}),
 		sweptSessions: () => Effect.sync(() => Option.getOrThrowWith(engine.swept, () => new Error("No sweep has run"))),
 		userId: (person: Person) => Effect.sync(() => account(engine, person).userId),
