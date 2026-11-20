@@ -1,6 +1,6 @@
 import ts from "typescript";
 import type { SourceFile } from "#rule.ts";
-import { parse } from "#rules/parse.ts";
+import { parseAlone } from "#rules/parse.ts";
 
 export interface SourceComment {
 	readonly body: readonly string[];
@@ -63,8 +63,9 @@ function toComment(source: ts.SourceFile, range: ts.CommentRange): SourceComment
 
 const scanned = new WeakMap<SourceFile, readonly SourceComment[]>();
 
+// Reading every token through getChildren caches the tokens on the tree, so the scan reads its own tree rather than the run's shared one.
 function scan(file: SourceFile): readonly SourceComment[] {
-	const source = parse(file);
+	const source = parseAlone(file);
 	return source === undefined ? [] : commentRanges(source).map((range) => toComment(source, range));
 }
 

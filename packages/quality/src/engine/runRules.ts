@@ -34,33 +34,42 @@ function walks(rule: ActiveRule): boolean {
 	return PACKAGE_CHECKS.has(rule.id) && rule.deepHalf === undefined;
 }
 
+function checksTypes(rule: ActiveRule): boolean {
+	return rule.needs === "type-checker" || rule.half === "deep";
+}
+
 // Rules share one Node thread, so only the Biome and Knip child processes run beside the other rules, started first because synchronous rules would starve their preparation; a check that never reports its child as started finishes first. Each type-checker program, the package walk's included, is built alone.
-// The rules that read the story program, which spans every source, run one after another so the run drops it after the last of them; they and the program share one tree per source, which goes with the program because keeping the trees for every rule raised the peak.
+// The rules that read the story program, which spans every source, run one after another so the run drops it after the last of them. Every rule after the type-checking ones shares one tree per source; the trees are created only once those programs are gone, so they never sit on top of one.
 function runTiers(rules: readonly ActiveRule[], inputs: RuleInputs): RuleRun {
 	function run(rule: ActiveRule): RuleRun {
 		return runRule(rule, inputs, inputs.configFile ?? "quality.config.ts");
 	}
+	function inOrder(runs: readonly RuleRun[]): RuleRun {
+		return Effect.map(Effect.all(runs), (found) => found.flat());
+	}
 	const walked = rules.filter(walks);
 	const inThread = rules.filter((rule) => !(walks(rule) || spawnsChild(rule) || readsStories(rule)));
+	function tiered(typed: boolean): readonly RuleRun[] {
+		const ordered = [...inThread.filter((rule) => rule.depth === "fast"), ...inThread.filter((rule) => rule.depth === "deep")];
+		return ordered.filter((rule) => checksTypes(rule) === typed).map(run);
+	}
 	const stories = rules.filter(readsStories).map(run);
-	const told =
-		stories.length === 0 ? [] : [Effect.map(withSharedTrees(inputs, withStoryProgram(inputs, Effect.all(stories))), (found) => found.flat())];
-	const fast = [...inThread.filter((rule) => rule.depth === "fast").map(run), ...told];
-	const deep = inThread.filter((rule) => rule.depth === "deep").map(run);
-	function lanes(thread: readonly RuleRun[]): RuleRun {
+	const told = stories.length === 0 ? [] : [withStoryProgram(inputs, inOrder(stories))];
+	const thread = [...tiered(true), withSharedTrees(inputs, inOrder([...tiered(false), ...told]))];
+	function lanes(steps: readonly RuleRun[]): RuleRun {
 		return Effect.gen(function* () {
 			const children = yield* Effect.forEach(rules.filter(spawnsChild).map(run), launched);
 			yield* Effect.forEach(children, ({ started }) => started, { concurrency: "unbounded" });
-			const inOrder = yield* Effect.all(thread);
-			return [...(yield* Effect.forEach(children, ({ fiber }) => Fiber.join(fiber))).flat(), ...inOrder.flat()];
+			const found = yield* inOrder(steps);
+			return [...(yield* Effect.forEach(children, ({ fiber }) => Fiber.join(fiber))).flat(), ...found];
 		});
 	}
 	if (walked.length === 0) {
-		return lanes([...fast, ...deep]);
+		return lanes(thread);
 	}
 	return withPackageWalk(inputs, new Set(walked.map((rule) => rule.id)), (walk) =>
 		Effect.map(
-			Effect.all([lanes([Effect.as(walk, []), ...fast, ...deep]), Effect.all(walked.map(run), { concurrency: "unbounded" })], {
+			Effect.all([lanes([Effect.as(walk, []), ...thread]), Effect.all(walked.map(run), { concurrency: "unbounded" })], {
 				concurrency: "unbounded",
 			}),
 			([laned, waited]) => [...laned, ...waited.flat()],

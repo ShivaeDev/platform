@@ -30,10 +30,14 @@ export function parses(file: SourceFile): boolean {
 	return kindOf(file) !== undefined;
 }
 
+export function parseAlone(file: SourceFile): ts.SourceFile | undefined {
+	return created(file, file.path);
+}
+
 export function parse(file: SourceFile): ts.SourceFile | undefined {
 	const slot = shared.get(file);
 	if (slot === undefined) {
-		return created(file, file.path);
+		return parseAlone(file);
 	}
 	if (!("tree" in slot)) {
 		slot.tree = created(file, slot.name);

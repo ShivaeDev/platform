@@ -55,8 +55,10 @@ export function importedSource(node: ts.Node, module: string, sources: ReadonlyM
 	if (!(module.startsWith(".") || module.startsWith("#"))) {
 		return undefined;
 	}
-	const modulePath = module.startsWith("#") ? module.slice(1) : posix.join(posix.dirname(node.getSourceFile().fileName), module);
-	return sources.get(modulePath) ?? [...sources.values()].find((candidate) => candidate.fileName.replaceAll("\\", "/").endsWith(`/${modulePath}`));
+	const importer = node.getSourceFile();
+	const from = [...sources].find(([, source]) => source === importer)?.[0] ?? importer.fileName;
+	const modulePath = module.startsWith("#") ? module.slice(1) : posix.join(posix.dirname(from), module);
+	return sources.get(modulePath) ?? [...sources].find(([path]) => path.replaceAll("\\", "/").endsWith(`/${modulePath}`))?.[1];
 }
 
 function importedHelper(call: ts.CallExpression, sources: ReadonlyMap<string, ts.SourceFile>): Helper | undefined {
