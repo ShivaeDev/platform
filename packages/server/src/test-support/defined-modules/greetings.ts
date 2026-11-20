@@ -10,10 +10,15 @@ const Greet = command("greet", {
 	*run({ name }) {
 		return yield* Effect.succeed(`Hello, ${name}`);
 	},
-	success: Schema.String,
 });
 
-export const Greetings = defineModule({ middleware: MaybeAuthenticated, name: "greetings", operations: [Greet], requires: [] });
+export const Greetings = defineModule({
+	middleware: MaybeAuthenticated,
+	name: "greetings",
+	operations: [Greet],
+	requires: [],
+	wire: { greet: { rejections: {}, success: Schema.String } },
+});
 
 // Needs no table and gives no name, so the host must take the name from the module and serve it without a loader.
 export const greetingsModule = { module: Greetings, services: Layer.empty } satisfies AppModule;
