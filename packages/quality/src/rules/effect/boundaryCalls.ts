@@ -1,5 +1,6 @@
 import ts from "typescript";
-import { boundaryReference } from "#rules/effect/boundaryReference.ts";
+import { inAdapters } from "#naming/unsafeFolders.ts";
+import { boundaryReference, runMainReference } from "#rules/effect/boundaryReference.ts";
 
 function synchronousIo(reference: string): boolean {
 	return /^(?:node:)?fs\.[^.]+Sync$/u.test(reference) || /^(?:node:)?child_process\.(?:execSync|execFileSync|spawnSync)$/u.test(reference);
@@ -12,6 +13,9 @@ function knownThrowing(reference: string): boolean {
 		|| /^(?:effect\.Schema|effect\/Schema)\.(?:decodeUnknownSync|decodeSync|encodeUnknownSync|encodeSync)$/u.test(reference)
 	);
 }
+
+const RUNNER =
+	/^effect[./](?:Effect\.run|ManagedRuntime\.make$|Runtime\.makeRunMain$|(?:FiberSet|FiberMap|FiberHandle)\.(?:makeRuntime|makeRuntimePromise|runtime|runtimePromise)$)/u;
 
 function immediateBody(node: ts.Node): ts.ConciseBody | undefined {
 	if (!(ts.isFunctionDeclaration(node) || ts.isMethodDeclaration(node) || ts.isArrowFunction(node) || ts.isFunctionExpression(node))) {
@@ -77,7 +81,7 @@ export function boundaryCalls(checker: ts.TypeChecker) {
 	}
 	function guard(call: ts.CallExpression): boolean {
 		const body = functionBody(checker, call.expression);
-		return body !== undefined && !/(?:^|\/)adapters\//u.test(body.getSourceFile().fileName) && throws(body);
+		return body !== undefined && !inAdapters(body.getSourceFile().fileName) && throws(body);
 	}
 	function unsafeSync(call: ts.CallExpression): boolean {
 		const callback = call.arguments[0];
@@ -108,7 +112,7 @@ export function boundaryCalls(checker: ts.TypeChecker) {
 			return undefined;
 		}
 		const reference = boundaryReference(checker, expression);
-		return /^effect(?:\.Effect|\/Effect)\.run/u.test(reference ?? "") ? `${reference} outside an entry point` : undefined;
+		return RUNNER.test(reference ?? "") || runMainReference(reference) ? `${reference} outside an entry point` : undefined;
 	}
 	return (node: ts.Node, entryPoint: boolean): string | undefined => {
 		const runtime = runner(node, entryPoint);

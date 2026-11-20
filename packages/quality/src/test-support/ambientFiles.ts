@@ -28,7 +28,21 @@ export const AMBIENT_RUNTIME_CASES = [
 	["a microtask", "queueMicrotask(work)"],
 	["a global timeout", "globalThis.setTimeout(work, 1)"],
 	["a global microtask", "globalThis.queueMicrotask(work)"],
+	["an interval", "setInterval(work, 1)"],
+	["a window animation frame", "window.requestAnimationFrame(work)"],
+	["crypto random values", "crypto.getRandomValues(bytes)"],
+	["global crypto random values", "globalThis.crypto.getRandomValues(bytes)"],
 ] as const;
+
+export const SCHEDULERS = [
+	"setInterval(work, 1)",
+	"clearInterval(handle)",
+	"clearTimeout(handle)",
+	"requestAnimationFrame(work)",
+	"cancelAnimationFrame(handle)",
+	"requestIdleCallback(work)",
+	"cancelIdleCallback(handle)",
+].flatMap((call) => [call, `globalThis.${call}`, `window.${call}`]);
 
 const RUNTIME_EDGES = [
 	"src/cli.ts",
@@ -50,5 +64,7 @@ export function ambientFiles(expression: string) {
 		{ content: `${content}NodeRuntime.runMain(program);\n`, path: "src/bootstrap.ts" },
 		{ content: `${content}program.pipe(NodeRuntime.runMain);\n`, path: "src/start.ts" },
 		{ content: `${content}if (fileURLToPath(import.meta.url) === process.argv[1]) start();\n`, path: "src/attempt.ts" },
+		{ content: `${content}if (import.meta.main) NodeRuntime.runMain(program);\n`, path: "src/guarded.ts" },
+		{ content: `${content}export function start() { NodeRuntime.runMain(program); }\n`, path: "src/helper.ts" },
 	];
 }

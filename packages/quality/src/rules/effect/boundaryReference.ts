@@ -71,6 +71,25 @@ const ENTRY_NAME = /(?:^|\/)(?:cli|main|entry|[^/]+-cli)\.[cm]?[jt]sx?$/u;
 
 const RUNNER_HOST = /\.(?:config|test|spec)\.[cm]?[jt]sx?$/u;
 
+export function runMainReference(reference: string | undefined): boolean {
+	return /^(?:effect|@effect\/[^.]+)(?:\.[A-Za-z]+)?\.runMain$/u.test(reference ?? "");
+}
+
+function exported(node: ts.Node): boolean {
+	return (
+		ts.isExportAssignment(node)
+		|| (ts.canHaveModifiers(node) && (ts.getModifiers(node)?.some((modifier) => modifier.kind === ts.SyntaxKind.ExportKeyword) ?? false))
+	);
+}
+
+function guard(node: ts.Node, source: ts.SourceFile): boolean {
+	if (ts.isPropertyAccessExpression(node)) {
+		return ts.isMetaProperty(node.expression) && node.expression.keywordToken === ts.SyntaxKind.ImportKeyword && node.name.text === "main";
+	}
+	return ts.isBinaryExpression(node) && node.getText(source).replace(/\s/gu, "") === "fileURLToPath(import.meta.url)===process.argv[1]";
+}
+
+// A module runs as a program when runMain starts at its top level or a main-module guard picks it; a runMain inside a function or an export is a helper that hides a runner.
 export function entryModule(path: string, source: ts.SourceFile, checker: ts.TypeChecker): boolean {
 	if (RUNNER_HOST.test(path)) {
 		return false;
@@ -78,17 +97,24 @@ export function entryModule(path: string, source: ts.SourceFile, checker: ts.Typ
 	if (ENTRY_NAME.test(path)) {
 		return true;
 	}
-	function visit(node: ts.Node): boolean {
-		if (ts.isCallExpression(node)) {
-			const reference = boundaryReference(checker, node.expression);
-			if (reference?.endsWith(".runMain") || (ts.isIdentifier(node.expression) && node.expression.text === "runMain")) {
-				return true;
-			}
-		}
-		if (ts.isBinaryExpression(node) && node.getText(source).replace(/\s/gu, "") === "fileURLToPath(import.meta.url)===process.argv[1]") {
+	function runsMain(node: ts.Node): boolean {
+		if (ts.isCallExpression(node) && ts.isIdentifier(node.expression) && node.expression.text === "runMain") {
 			return true;
 		}
-		return ts.forEachChild(node, visit) ?? false;
+		const named = (ts.isPropertyAccessExpression(node) && node.name.text === "runMain") || (ts.isIdentifier(node) && node.text === "runMain");
+		return named && (boundaryReference(checker, node)?.endsWith(".runMain") ?? false);
+	}
+	function visit(node: ts.Node): boolean {
+		if (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) {
+			return false;
+		}
+		if (ts.isFunctionLike(node) || exported(node)) {
+			return guarded(node);
+		}
+		return runsMain(node) || guard(node, source) || (ts.forEachChild(node, visit) ?? false);
+	}
+	function guarded(node: ts.Node): boolean {
+		return guard(node, source) || (ts.forEachChild(node, guarded) ?? false);
 	}
 	return visit(source);
 }

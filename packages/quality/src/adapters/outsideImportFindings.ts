@@ -8,6 +8,7 @@ import { importGraph } from "#imports/graph.ts";
 import { isPackageRootConfig } from "#imports/isTooling.ts";
 import type { PnpmWorkspaceFailure } from "#imports/pnpmWorkspacePatterns.ts";
 import { packageOf } from "#imports/workspace.ts";
+import { inAdaptersOrTestSupport } from "#naming/unsafeFolders.ts";
 import type { Finding, RuleInputs } from "#rule.ts";
 import { entryModules } from "#rules/effect/boundaryReference.ts";
 
@@ -28,7 +29,7 @@ export const outsideImportFindings = Effect.fn("Imports.outsideImportFindings")(
 		&& !PURE_BUILTINS.has(edge.to.package)
 		&& edge.kind === "import"
 		&& !edge.type
-		&& !/(?:^|\/)(?:adapters|test-support)\//u.test(edge.from)
+		&& !inAdaptersOrTestSupport(edge.from)
 		&& !isPackageRootConfig(packageOf(graph.packages, edge.from)?.directory ?? ".", edge.from)
 			? [{ ...edge, name: edge.to.package }]
 			: [],

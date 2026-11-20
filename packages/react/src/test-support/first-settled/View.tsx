@@ -44,13 +44,21 @@ export function View({
 	connect,
 	reads,
 	session,
+	warmCount,
 }: {
 	readonly connect: (session: string) => FirstSettledClient;
 	readonly reads: boolean;
 	readonly session: string;
+	readonly warmCount: boolean;
 }) {
 	return (
-		<SessionBoundary connect={connect} identify={(current) => current} recheck={() => undefined} session={session}>
+		<SessionBoundary
+			connect={connect}
+			identify={(current) => current}
+			recheck={() => undefined}
+			session={session}
+			warm={(notes) => (warmCount ? [notes.client.api.count.query()] : [])}
+		>
 			{(notes) => <Notes notes={notes} reads={reads} />}
 		</SessionBoundary>
 	);

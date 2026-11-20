@@ -1,5 +1,6 @@
 import { Effect } from "effect";
 import ts from "typescript";
+import { inAdaptersOrTestSupport } from "#naming/unsafeFolders.ts";
 import type { Finding, SourceFile, TypeScriptProgram } from "#rule.ts";
 import { parse } from "#rules/parse.ts";
 import { SQL_ROW_CAST } from "#rules/suppressions/hiddenCast.ts";
@@ -33,7 +34,7 @@ function typedCast(node: ts.Node, checker: ts.TypeChecker): string | undefined {
 
 function candidate(file: SourceFile): boolean {
 	const source = parse(file);
-	return !/(?:^|\/)(?:adapters|test-support)\//u.test(file.path) && source !== undefined && typedNodes(source).length > 0;
+	return !inAdaptersOrTestSupport(file.path) && source !== undefined && typedNodes(source).length > 0;
 }
 
 function typedCasts(sources: readonly SourceFile[], { checker, sourceFile }: TypeScriptProgram): readonly Finding[] {

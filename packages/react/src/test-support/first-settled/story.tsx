@@ -16,6 +16,7 @@ interface State {
 	reads: boolean;
 	user?: User;
 	view?: Rendered;
+	warmCount: boolean;
 }
 
 function opened(state: State) {
@@ -33,7 +34,7 @@ function show(state: State, screen: Screen, user: User, line: string) {
 		state.clients.set(session, client);
 		return client;
 	}
-	const node = <View connect={connect} reads={state.reads} session={user} />;
+	const node = <View connect={connect} reads={state.reads} session={user} warmCount={state.warmCount} />;
 	return Effect.gen(function* () {
 		const view = state.view;
 		if (view === undefined) {
@@ -92,12 +93,16 @@ function verbs(state: State, screen: Screen) {
 	};
 }
 
-export const firstSettledScreens = storyKit(screenKit("first results screen", (): State => ({ clients: new Map(), reads: true }), verbs));
+export const firstSettledScreens = storyKit(
+	screenKit("first results screen", (): State => ({ clients: new Map(), reads: true, warmCount: false }), verbs),
+);
 
-export function aliceOpens(reads: "title and author" | "no query" = "title and author") {
+export function aliceOpens(reads: "title and author" | "no query" = "title and author", warm: "count" | "nothing" = "nothing") {
 	const waiting = reads === "no query" ? "" : ", and the server has answered neither";
-	return firstSettledScreens.trait("screen", `alice opens a screen that reads ${reads} through her client${waiting}`, ({ screen, state }) => {
+	const kept = warm === "count" ? ", while her session keeps the count query warm and the server has not answered it" : "";
+	return firstSettledScreens.trait("screen", `alice opens a screen that reads ${reads} through her client${waiting}${kept}`, ({ screen, state }) => {
 		state.reads = reads !== "no query";
+		state.warmCount = warm === "count";
 		return show(state, screen, "alice", "alice opens the screen");
 	});
 }

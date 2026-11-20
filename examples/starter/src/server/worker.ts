@@ -1,5 +1,6 @@
+import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
 import { Layer } from "effect";
 import { applicationWorker } from "#server/applicationWorker.ts";
-import { runWorker } from "#server/runWorker.ts";
+import { workerTeardown } from "#server/workerTeardown.ts";
 
-runWorker(Layer.launch(applicationWorker()));
+NodeRuntime.runMain(Layer.launch(applicationWorker()), { teardown: workerTeardown });

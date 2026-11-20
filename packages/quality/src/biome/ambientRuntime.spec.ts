@@ -1,4 +1,4 @@
-import { AMBIENT_RUNTIME_CASES, ambientFiles } from "#test/ambientFiles.ts";
+import { AMBIENT_RUNTIME_CASES, ambientFiles, SCHEDULERS } from "#test/ambientFiles.ts";
 import { biomeStory, presetInstalled, repositoryHas } from "#test/biomeStory.ts";
 import { assertThat } from "#testing/adapters/assertThat.ts";
 
@@ -9,10 +9,20 @@ for (const [shape, expression] of AMBIENT_RUNTIME_CASES) {
 		function* ({ checks, reported }) {
 			yield* checks();
 
-			yield* assertThat(yield* reported("plugin"), (actual) => actual.toEqual(["src/client.ts:3", "src/core.ts:3"]));
+			yield* assertThat(yield* reported("plugin"), (actual) => actual.toEqual(["src/client.ts:3", "src/core.ts:3", "src/helper.ts:3"]));
 		},
 	);
 }
+
+biomeStory.it(
+	"ambient-runtime reports every interval, timeout, animation frame and idle callback call, bare or through globalThis or window, in core",
+	[presetInstalled(), repositoryHas({ content: `${SCHEDULERS.map((call) => `void ${call};`).join("\n")}\n`, path: "src/core.ts" })],
+	function* ({ checks, reported }) {
+		yield* checks();
+
+		yield* assertThat(yield* reported("plugin"), (actual) => actual.toEqual(SCHEDULERS.map((_, index) => `src/core.ts:${index + 1}`)));
+	},
+);
 
 biomeStory.it(
 	"ambient-runtime accepts services yielded in the current Effect and a runner without ambient services",
