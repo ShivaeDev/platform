@@ -1,12 +1,12 @@
 import { Schema } from "effect";
+import { defineModule } from "#defineModule.ts";
 import { command } from "#operation.ts";
 import { NoteFields, SessionUser, TitleTaken as SharedTitleTaken } from "#test/runNotes.ts";
 
 class TitleTaken extends Schema.TaggedError<TitleTaken>()("TitleTaken", { message: Schema.String }) {}
 
-command("raisesOtherTitleTaken", {
+const Operation = command("raisesOtherTitleTaken", {
 	payload: NoteFields,
-	rejections: { TitleTaken },
 	*run({ title }) {
 		const user = yield* SessionUser;
 		if (title === "reserved") {
@@ -14,4 +14,11 @@ command("raisesOtherTitleTaken", {
 		}
 		return `${user.id}: ${title}`;
 	},
+});
+
+defineModule({
+	name: "raisesOtherTitleTaken",
+	operations: [Operation],
+	requires: [SessionUser],
+	wire: { raisesOtherTitleTaken: { rejections: { TitleTaken }, success: Schema.String } },
 });

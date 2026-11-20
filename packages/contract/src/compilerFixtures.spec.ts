@@ -20,12 +20,12 @@ const invalidFixtures = {
 	invalidatesResult: "Property 'missing' does not exist on type 'Note'",
 	keyId: "Argument of type 'string' is not assignable to parameter of type 'number'",
 	missingReadPolicy: "readPolicy",
+	moduleWithoutWire: "Property 'wire' is missing",
 	readPolicyError: "ServiceUnavailable, never>",
 	readPolicyServices: "Database",
 	readsPayload: "Property 'slug' does not exist on type '{ readonly id: number; }'",
 	rejectionTag: "must have that _tag",
 	runCollectionsPolicy: "Property 'readPolicy' is missing",
-	runInvalidatesResult: "Property 'id' does not exist on type 'ResultNeedsDeclaredSuccess'",
 	undeclaredRejection: "Type 'Other' is not assignable to type 'Denied | MissingReadPolicy | NoteMissing | QueryReadDenied | WebSocketRequired'",
 	unknownReject: "Property 'Other' does not exist",
 	wrongPayload: "Type 'string' is not assignable to type 'number'",
@@ -33,48 +33,95 @@ const invalidFixtures = {
 } as const;
 
 const runFixtures = {
-	runAddedOptional: 'SuccessDiffersFromRun<"returnsPinnable", PinnableNote, { readonly id: number; readonly title: string; }>',
-	runAddedOptionalInArray: 'SuccessDiffersFromRun<"listsPinnable", PinnableNote, { readonly id: number; readonly title: string; }>',
-	runAddedOptionalInMutableField: 'SuccessDiffersFromRun<"holdsPinnable", PinnableNote, { readonly id: number; readonly title: string; }>',
-	runAddedOptionalInOption: 'SuccessDiffersFromRun<"latestPinnable", PinnableNote, { readonly id: number; readonly title: string; }>',
-	runAddedOptionalInOptionalField: 'SuccessDiffersFromRun<"featuresPinnable", PinnableNote, { readonly id: number; readonly title: string; }>',
-	runAddedOptionalInUnion: 'SuccessDiffersFromRun<"findsPinnable", PinnableNote, { readonly id: number; readonly title: string; }>',
-	runAddedOptionalInUnionDiscriminant:
-		'SuccessDiffersFromRun<"changesWithExtra", { readonly extra?: number | undefined; readonly kind: "moved" | "renamed"; readonly note?: string | undefined; }, { readonly kind: "moved"; readonly note?: string | undefined; } | { readonly kind: "renamed"; readonly note?: string | undefined; }>',
-	runAutomaticRejection: 'RejectionAutomatic<"listsAutomatic", "ServiceUnavailable">',
-	runDroppedOptional:
-		'SuccessDiffersFromRun<"neverPins", { id: number; title: string; }, { readonly id: number; readonly pinned?: boolean | undefined; readonly title: string; }>',
-	runInfrastructureRejection: 'RejectionsRunNeverRaises<"listsInfrastructure", "QueryReadDenied">',
-	runMissingRejection: 'RunFailsOutsideRejections<"forgetsTitleTaken", "TitleTaken">',
-	runMutableArray: 'ArrayMutabilityDiffers<"titles", "return a readonly array, or declare Schema.mutable for a mutable one">',
-	runNestedClassArray: 'SuccessClassNotReturned<"listsPlainNotes", { id: number; title: string; }, Note>',
-	runNestedClassField: 'SuccessClassNotReturned<"createsPlainNote", { id: number; title: string; }, Note>',
-	runNeverRaised: 'RejectionsRunNeverRaises<"listsTooMuch", "NoteMissing">',
-	runOptionalFieldClass: 'SuccessClassNotReturned<"featuresPlainNote", { id: number; title: string; }, Note>',
-	runPolicyRejection: 'RunFailsOutsideRejections<"forgetsPolicyFailure", "NotFound">',
-	runRejectionClass: 'RejectionClassDiffers<"raisesOtherTitleTaken", "TitleTaken">',
 	runReturnsAny: 'RunReturnsAny<"parsesDraft", "decode the value with a schema, or give run\'s return a type">',
-	runSuccessClass: 'SuccessClassNotReturned<"returnsPlainNote", { id: number; title: string; }, Note>',
-	runSuccessDiffers: 'SuccessDiffersFromRun<"leaksRow", StoredNote, { readonly id: number; readonly title: string; }>',
 } as const;
 
 const moduleFixtures = {
 	moduleMissingFromWire: ["missingFromWire", 'OperationMissingFromWire<"count", "the generated file is stale; run pnpm generate">'],
 	modulePolicyService: ["owned", 'OperationNeedsUndeclaredServices<"owned", NotesRepository>'],
+	moduleRejectionMissingFromWire: ["removes", 'OperationMissingFromWire<"remove", "the generated file is stale; run pnpm generate">'],
 	moduleRepeatedName: ["lists", 'OperationNameRepeated<"list">'],
+	moduleStaleAutomaticRejection: [
+		"listsAutomatic",
+		'WireRejectionsStale<"listsAutomatic", "the generated file is stale; run pnpm generate", never, "ServiceUnavailable">',
+	],
+	moduleStaleDroppedOptional: [
+		"neverPins",
+		'WireSuccessStale<"neverPins", "the generated file is stale; run pnpm generate", { id: number; title: string; }, { readonly id: number; readonly pinned?: boolean | undefined; readonly title: string; }>',
+	],
+	moduleStaleInfrastructureRejection: [
+		"listsInfrastructure",
+		'WireRejectionsStale<"listsInfrastructure", "the generated file is stale; run pnpm generate", never, "QueryReadDenied">',
+	],
+	moduleStaleLeakedRow: [
+		"leaksRow",
+		'WireSuccessStale<"leaksRow", "the generated file is stale; run pnpm generate", StoredNote, { readonly id: number; readonly title: string; }>',
+	],
+	moduleStaleMutableArray: ["titles", 'WireSuccessStale<"titles", "the generated file is stale; run pnpm generate", string[], readonly string[]>'],
+	moduleStaleNestedClassArray: [
+		"listsPlainNotes",
+		'WireSuccessStale<"listsPlainNotes", "the generated file is stale; run pnpm generate", readonly { id: number; title: string; }[], readonly Note[]>',
+	],
+	moduleStaleNestedClassField: [
+		"createsPlainNote",
+		'WireSuccessStale<"createsPlainNote", "the generated file is stale; run pnpm generate", { note: { id: number; title: string; }; saved: boolean; }, { readonly note: Note; readonly saved: boolean; }>',
+	],
+	moduleStaleNeverRaised: [
+		"listsTooMuch",
+		'WireRejectionsStale<"listsTooMuch", "the generated file is stale; run pnpm generate", never, "NoteMissing">',
+	],
 	moduleStaleOptional: [
 		"staleOptional",
 		'WireSuccessStale<"latest", "the generated file is stale; run pnpm generate", PinnableNote, { readonly id: number; readonly title: string; }>',
+	],
+	moduleStaleOptionalFieldClass: [
+		"featuresPlainNote",
+		'WireSuccessStale<"featuresPlainNote", "the generated file is stale; run pnpm generate", { readonly note?: { id: number; title: string; } | undefined; }, { readonly note?: Note | undefined; }>',
+	],
+	moduleStaleOptionalInArray: [
+		"listsPinnable",
+		'WireSuccessStale<"listsPinnable", "the generated file is stale; run pnpm generate", readonly PinnableNote[], readonly { readonly id: number; readonly title: string; }[]>',
+	],
+	moduleStaleOptionalInMutableField: [
+		"holdsPinnable",
+		'WireSuccessStale<"holdsPinnable", "the generated file is stale; run pnpm generate", { note: PinnableNote; }, { note: { readonly id: number; readonly title: string; }; }>',
+	],
+	moduleStaleOptionalInOption: [
+		"latestPinnable",
+		'WireSuccessStale<"latestPinnable", "the generated file is stale; run pnpm generate", Option<PinnableNote>, Option<{ readonly id: number; readonly title: string; }>>',
+	],
+	moduleStaleOptionalInOptionalField: [
+		"featuresPinnable",
+		'WireSuccessStale<"featuresPinnable", "the generated file is stale; run pnpm generate", { readonly note?: PinnableNote | undefined; }, { readonly note?: { readonly id: number; readonly title: string; } | undefined; }>',
+	],
+	moduleStaleOptionalInUnion: [
+		"findsPinnable",
+		'WireSuccessStale<"findsPinnable", "the generated file is stale; run pnpm generate", PinnableNote | null, { readonly id: number; readonly title: string; } | null>',
+	],
+	moduleStaleOptionalInUnionDiscriminant: [
+		"changesWithExtra",
+		'WireSuccessStale<"changesWithExtra", "the generated file is stale; run pnpm generate", { readonly extra?: number | undefined; readonly kind: "moved" | "renamed"; readonly note?: string | undefined; }, { readonly kind: "moved"; readonly note?: string | undefined; } | { readonly kind: "renamed"; readonly note?: string | undefined; }>',
+	],
+	moduleStalePolicyRejection: [
+		"forgetsPolicyFailure",
+		'WireRejectionsStale<"forgetsPolicyFailure", "the generated file is stale; run pnpm generate", "NotFound", never>',
 	],
 	moduleStaleRejection: [
 		"staleRejection",
 		'WireRejectionsStale<"create", "the generated file is stale; run pnpm generate", "TitleTaken" | "Unauthorized", "Unauthorized">',
 	],
+	moduleStaleRejectionClass: [
+		"raisesOtherTitleTaken",
+		'WireRejectionsStale<"raisesOtherTitleTaken", "the generated file is stale; run pnpm generate", "TitleTaken", "TitleTaken">',
+	],
 	moduleStaleSuccess: [
 		"staleSuccess",
 		'WireSuccessStale<"list", "the generated file is stale; run pnpm generate", readonly Note[], readonly { readonly id: number; readonly title: string; }[]>',
 	],
-	moduleUndeclaredRejection: ["creates", 'OperationFailsOutsideItsRejections<"create", "TitleTaken">'],
+	moduleStaleSuccessClass: [
+		"returnsPlainNote",
+		'WireSuccessStale<"returnsPlainNote", "the generated file is stale; run pnpm generate", { id: number; title: string; }, Note>',
+	],
 	moduleUndeclaredService: ["imports", 'OperationNeedsUndeclaredServices<"importTitle", NoteSource>'],
 } as const;
 

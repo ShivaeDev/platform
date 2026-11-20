@@ -1,41 +1,249 @@
 # @shivaedev/contract
 
-Declare a feature's queries, commands, streams, expected failures and refresh dependencies once. The declarations become native Effect RPC definitions, and a client binding connects their dependency keys to native AtomRpc queries.
+Write a feature's queries and commands once, as their payload and their `run`, and get the RPC boundary, its expected failures and its refresh keys from them. The operations become native Effect RPC definitions, and a client binding connects their dependency keys to native AtomRpc queries.
 
 ## Why you want this
 
-A feature often repeats its inputs, results and errors on both sides of an RPC boundary, then separately wires which views a write should refresh. Those copies are easy to make disagree. Put the boundary and its dependencies together:
+A feature often repeats its inputs, results and errors on both sides of an RPC boundary, then separately wires which views a write should refresh. Those copies are easy to make disagree. Write each operation as the logic it runs and list it in a module; the result type, the failures and the services come from that logic:
 
 ```ts
-import { Effect, Schema } from "effect";
-import { contract } from "@shivaedev/contract/contract.ts";
+import { Schema } from "effect";
 import { collection } from "@shivaedev/changes/keys.ts";
+import { defineModule } from "@shivaedev/contract/defineModule.ts";
 import { command, query } from "@shivaedev/contract/operation.ts";
+import { notesWire } from "#generated/modules/notes/Notes.ts";
+import { NotesStore } from "./store.ts";
 
 const notes = collection("notes", Schema.Number);
-const List = query("list", { readPolicy: () => Effect.succeed(true), reads: () => [notes.list], success: Schema.Array(Schema.String) });
-const Rename = command("rename", {
-	payload: { id: Schema.Number, title: Schema.String },
-	invalidates: ({ id }) => [notes.item(id)],
+
+const List = query("list", {
+	reads: () => [notes.list],
+	*run() {
+		return yield* (yield* NotesStore).titles();
+	},
 });
-const Notes = contract("notes", { queries: [List], commands: [Rename] });
+const Rename = command("rename", {
+	invalidates: ({ id }) => [notes.item(id)],
+	payload: { id: Schema.Number, title: Schema.String },
+	*run({ id, title }) {
+		yield* (yield* NotesStore).rename(id, title);
+	},
+});
+
+export const Notes = defineModule({ name: "notes", operations: [List, Rename], requires: [NotesStore], wire: notesWire });
 ```
 
-`Notes` is a native RPC group with `notes.list` and `notes.rename` handlers. When its bound rename call succeeds, the declared item change refreshes the list. An item query for another note keeps its result. Handlers, middleware and transport use Effect's own APIs.
+`Notes` is a native RPC group with `notes.list` and `notes.rename`, served by the operations themselves. Nothing restates what `list` returns or how `rename` fails: [`@shivaedev/build`](https://github.com/ShivaeDev/platform/tree/main/packages/build) writes those schemas from `run`'s types into `notesWire`, and the compiler checks them against `run` on every type check. When a bound rename succeeds, the note's key refreshes its readers and the list; an item query for another note keeps its result. Handlers, middleware and transport use Effect's own APIs.
 
 ## Using it
 
 ### How to think about it
 
-An **operation** describes a boundary, not its implementation: its name, payload schema, success schema and expected failures. A **query** listens on the keys its repository reads name, or on the keys it declares; a **command** declares the keys its successful result changes. A **stream** declares an element schema in `success`, typed rejections and the keys it reads. A **rejection** is an expected typed failure, such as a missing note or an invalid title. Middleware failures and RPC client failures remain separate parts of the native client's error type.
+An **operation** is a query or a command written as its `payload` schema and a generator `*run`. Everything else about its boundary is derived from `run`: what it returns, the tagged failures it raises, and the services it needs. A **query** listens on the keys its repository reads name, or on the keys it declares in `reads`; a **command** announces the keys its repository writes name, plus any it declares in `invalidates`. A **rejection** is an expected typed failure that `run` raises, such as a missing note or an invalid title. Middleware failures and RPC client failures remain separate parts of the native client's error type.
 
-A **contract** groups operations into a native `RpcGroup`. Its RPC tags are the contract name and operation name joined by a dot. A **binding** connects that declaration to an existing `AtomRpc.Service`: queries get native query atoms and call Effects, while commands get call Effects that invalidate after success. Streams expose a native `Stream` through `run`; the caller owns consumption and interruption.
+A **module** lists its operations with the services they may use and serves them without hand-written handlers. Types are erased, so the schemas the server encodes with and the browser decodes with must exist as values: the module's **wire** holds them, generated from `run`'s types, and the browser imports a **browser contract** generated beside it, which carries no `run`. A module is a native `RpcGroup`. Its RPC tags are the module name and operation name joined by a dot. A **binding** connects a module or contract to an existing `AtomRpc.Service`: queries get native query atoms and call Effects, while commands get call Effects that invalidate after success.
 
-A **collection key** names a dependency. Its item key identifies one item; its list key identifies a list in that collection. Keys do not hold data. Native query atoms hold results, and native Reactivity asks matching queries to run again.
+A **collection key** names a dependency. Its item key identifies one item; its list key identifies a list in that collection. Keys do not hold data. Native query atoms hold results, and native Reactivity asks matching queries to run again. Live subscriptions use those same keys to rerun each subscriber’s authorized query on the server and push its changed result.
 
-Live subscriptions use those same keys to rerun each subscriber’s authorized query on the server and push its changed result.
+An operation can also be declared without `run`, stating its `success` schema, its `rejections` and a command's `invalidates` by hand, and grouped with `contract`. That form is for a boundary served by hand-written handlers, as [operations declared without run](#operations-declared-without-run) describes; a feature of an application is written as a module.
 
-### 1. Once per feature: schemas and operations
+### 1. Once per feature: operations and their module
+
+#### An operation written as its payload and run
+
+An operation is its business logic: a `payload` schema and a generator `*run`, with no `Effect.gen` wrapper. Its success, rejections, services and the read policy's failures are inferred from `run`:
+
+```ts
+import { Effect, Schema } from "effect";
+import { command, query } from "@shivaedev/contract/operation.ts";
+import { fieldRejection } from "@shivaedev/contract/rejection.ts";
+import { NotesRepository, SessionUser } from "./services.ts";
+
+export const NoteFields = Schema.Struct({ title: Schema.Trim.check(Schema.isNonEmpty({ message: "Enter a title" })) });
+export class TitleTaken extends Schema.TaggedError<TitleTaken>()("TitleTaken", fieldRejection(NoteFields)) {}
+
+export const Create = command("create", {
+	payload: NoteFields,
+	*run({ title }) {
+		const repository = yield* NotesRepository;
+		const { id: userId } = yield* SessionUser;
+		if (title === "reserved") {
+			return yield* new TitleTaken({ field: "title", message: "That title is reserved" });
+		}
+		return yield* repository.insert({ title, userId }).pipe(Effect.map(({ id }) => ({ id, title })));
+	},
+});
+
+export const List = query("list", {
+	*run() {
+		const repository = yield* NotesRepository;
+		const { id: userId } = yield* SessionUser;
+		return yield* repository.findMany({ select: ["id", "title"], where: { userId } });
+	},
+});
+```
+
+Here `NotesRepository` is a `@shivaedev/sql` repository whose model marks `userId` as a bucket. Its insert announces the new row and its owner's bucket, so `Create` declares no `invalidates`, and `List` declares no `reads`: its `findMany` pins the owner's bucket, so the live list listens on it.
+
+`Create.run` is an Effect-returning function, so another operation composes it with `yield* Create.run({ title })`, and `Create`'s services and failures join that operation's types. A query without `readPolicy` gets `signedIn`, at run time and in its type. It may declare `reads`, `serverReads` and `readsCollections` (which need a `permissionReadPolicy`); one that declares none listens on what its repository reads filter by, as [query policies, record keys and buckets](#query-policies-record-keys-and-buckets) explains. A payload-free operation omits `payload` and gets `Schema.Void`.
+
+A command without `invalidates` announces no keys of its own. Its `invalidates` takes the decoded payload and returns keys; object keys are sorted, so `invalidates` is checked before `run` and cannot see `run`'s result. A command that must announce keys computed from what it did, such as the note it found by title or the people a move affected, contributes them from inside `run` with [`commandResult`](#server-only-command-keys).
+
+An operation written this way states no `success` or `rejections`: its module's wire supplies both. On its own, outside a module, it is served with `Schema.Void` and only `InternalServerError` and `ServiceUnavailable`. Every operation written this way carries those two in its type and its rejection set. Nothing adds `Conflict`: an operation that answers a constraint violation as a domain failure maps it by constraint name in `run`, and inference carries the result. A failure that states `isRetryable` (such as `SqlError`), `SchemaError` and `QueryReadDenied` are never rejections. Rejections are exported classes keyed by their `_tag`.
+
+`run` must not return `any`, such as the result of `JSON.parse`, which would otherwise pass every check: such an operation is a compile error that names it and `RunReturnsAny` (decode the value with a schema, or type it). While the declaration form is still accepted, that error starts with "No overload matches this call" and its last line names the problem. Biome's `useYield` refuses a `*run` that yields nothing, so a `run` that needs no service still yields an Effect.
+
+A field failure is an exported tagged class built from the payload's fields with `fieldRejection`, as `TitleTaken` above. `run` raises it with `yield* new TitleTaken({ field, message })`, and `@shivaedev/form`'s `rejecting` places its message on that field.
+
+#### A module defined from its operations
+
+A module lists its operations once, with the services they may use, and serves them without hand-written handlers:
+
+```ts
+import { Effect, Option, Schema } from "effect";
+import { collection } from "@shivaedev/changes/keys.ts";
+import { NotFound, Unauthorized } from "@shivaedev/errors/taxonomy.ts";
+import { defineModule } from "@shivaedev/contract/defineModule.ts";
+import { command, query } from "@shivaedev/contract/operation.ts";
+import { CurrentViewer } from "@shivaedev/contract/readPolicy.ts";
+import { fieldRejection } from "@shivaedev/contract/rejection.ts";
+import { notesWire } from "#generated/modules/notes/notes.ts";
+import { Caller, NotesStore, type StoredNote } from "./services.ts";
+
+const notes = collection("notes", Schema.Number);
+export const NoteFields = Schema.Struct({ title: Schema.String });
+export class TitleTaken extends Schema.TaggedError<TitleTaken>()("TitleTaken", fieldRejection(NoteFields)) {}
+
+const signedInUser = Effect.flatMap(CurrentViewer, (viewer) =>
+	Option.match(viewer, {
+		onNone: () => Effect.fail(new Unauthorized({ message: "Sign in first" })),
+		onSome: ({ id }) => Effect.succeed(id),
+	}),
+);
+
+function toNotes(stored: readonly StoredNote[]): readonly { readonly id: number; readonly title: string }[] {
+	return stored.map(({ id, title }) => ({ id, title }));
+}
+
+export const Create = command("create", {
+	payload: NoteFields,
+	*run({ title }) {
+		const store = yield* NotesStore;
+		const owner = yield* signedInUser;
+		const owned = yield* store.owned(owner);
+		if (owned.some((note) => note.title === title)) {
+			return yield* new TitleTaken({ field: "title", message: "You already have a note with that title" });
+		}
+		const { id } = yield* store.insert(title, owner);
+		return { id, title };
+	},
+});
+
+export const Get = query("get", {
+	payload: { id: Schema.Number },
+	readPolicy: ({ id }, viewer) =>
+		Effect.gen(function* () {
+			if (Option.isNone(viewer)) {
+				return false;
+			}
+			const note = yield* (yield* NotesStore).find(id);
+			return Option.exists(note, ({ owner }) => owner === viewer.value.id);
+		}),
+	reads: ({ id }) => [notes.item(id)],
+	*run({ id }) {
+		const note = yield* (yield* NotesStore).find(id);
+		if (Option.isNone(note)) {
+			return yield* new NotFound({ message: "Note not found" });
+		}
+		return { id: note.value.id, title: note.value.title };
+	},
+});
+
+export const List = query("list", {
+	reads: () => [notes.list],
+	*run() {
+		const store = yield* NotesStore;
+		return toNotes(yield* store.owned(yield* signedInUser));
+	},
+});
+
+export const Notes = defineModule({
+	middleware: Caller,
+	name: "notes",
+	operations: [List, Get, Create],
+	requires: [NotesStore],
+	wire: notesWire,
+});
+```
+
+Here `NotesStore` is an ordinary service, `StoredNote` the row it returns, and `Caller` an RPC middleware that sets the viewer. `defineModule` takes the operations written as payload and run, the services they may use in `requires`, its `wire` (below), and optionally `middleware`, `subject` and `keyScope` as `contract` does. It returns the module's contract, so `bind`, `makeClient` and a host accept it as they accept any contract. Each of its RPCs carries the `DefinedModule` annotation from the same file with the module's name, so a host can tell a module's queries from a contract's. The compiler checks `requires`, and the module does not keep the list at run time. A definition without `wire` is a compile error that says the property is missing. Its generics check the definition on the `name` line, so the first line of the compiler's message names the operation and its problem: `OperationNeedsUndeclaredServices` when an operation's `run` or read policy uses a service that neither `requires` nor the middleware or subject provides, and `OperationNameRepeated` when two operations share a name:
+
+```
+src/test-support/fixtures/invalid/moduleUndeclaredService.ts(22,2): error TS2322: Type '"imports"' is not assignable to type '"imports" & NoInfer<OperationNeedsUndeclaredServices<"importTitle", NoteSource>>'.
+```
+
+`moduleHandlers(Notes)` builds the module's handler Layer from its operations, and the Layer requires exactly the services in `requires`:
+
+```ts
+import { Layer } from "effect";
+import { moduleHandlers } from "@shivaedev/contract/moduleHandlers.ts";
+import { Notes } from "./notes.ts";
+import { NotesStoreLive } from "./store.ts";
+
+export const NotesHandlers = moduleHandlers(Notes).pipe(Layer.provide(NotesStoreLive));
+```
+
+Each operation runs in a span named after the module and the operation, such as `Notes.create`. A query's read policy is checked inside its handler before `run`, with the module's services, so a policy reads a repository directly, as `Get` does above; a live subscription to the query checks the same policy. Failures pass the RPC boundary from `@shivaedev/errors`: a rejection the wire lists reaches the client as itself, an unlisted failure that states `isRetryable` answers `ServiceUnavailable`, and anything else answers `InternalServerError`, for the policy of a live subscription too. A command without `invalidates` publishes only the keys its writes announce.
+
+#### The wire and the browser's contract
+
+Types are erased, so the success schema and rejection classes the server encodes with and the browser decodes with must exist as values. [`@shivaedev/build`](https://github.com/ShivaeDev/platform/tree/main/packages/build) writes them from each module's `run` types into one file per module under `src/generated/`, which stays out of Git; an application runs it as `pnpm generate`. The module file passes its wire, as `Notes` does above, and every operation is served with its wire entry's success and rejections, plus `InternalServerError` and `ServiceUnavailable`. A wire entry's success describes only the shape: its RPC carries `GeneratedSuccess` from `@shivaedev/errors/GeneratedSuccess.ts`, so the host neither collects sensitive names from it nor treats its fields as public. Mark a sensitive field on the server's model instead, as the [errors README](https://github.com/ShivaeDev/platform/tree/main/packages/errors#masking-secrets-in-failures) describes.
+
+The file the generator writes exports the wire, the browser's contract built by `clientContract` from the wire, the copied payloads, `reads` and `invalidates`, and the module's name, middleware, subject and key scope, and it ends with a type-level assertion that the browser's contract and the server module have the same RPCs:
+
+```ts
+import { Schema } from "effect";
+import { Unauthorized } from "@shivaedev/errors/taxonomy.ts";
+import { clientContract } from "@shivaedev/contract/clientContract.ts";
+import type { ClientMatchesModule } from "@shivaedev/contract/clientMatchesModule.ts";
+import type { Notes as NotesModule } from "#modules/notes/notes.ts";
+import { Caller, NoteFields, notes, TitleTaken } from "#modules/notes/model.ts";
+
+const Note = Schema.Struct({ createdAt: Schema.Date, id: Schema.Number, title: Schema.String });
+
+export const notesWire = {
+	create: { rejections: { TitleTaken, Unauthorized }, success: Note },
+	list: { rejections: { Unauthorized }, success: Schema.Array(Note) },
+} as const;
+
+export const Notes = clientContract({
+	commands: { create: { invalidates: () => [notes.list] } },
+	middleware: Caller,
+	name: "notes",
+	payloads: { create: NoteFields },
+	queries: { list: { reads: () => [notes.list] } },
+	wire: notesWire,
+});
+
+export const notesMatchModule: ClientMatchesModule<typeof Notes, typeof NotesModule> = true;
+```
+
+`clientContract` requires a wire entry for every query and command it declares. The browser imports `Notes` from that file and binds it like any contract; it carries no `run`, read policy or service, and its import graph reaches no server code. A command's `invalidates` and a query's `reads` work in the browser exactly as on the server. Over RPC's JSON serialization, a `Schema.Date` field arrives as a `Date` equal to the one `run` returned, and a rejection the wire lists arrives as its class. Neither the browser's contract nor an operation without a read policy can be served: `contract()` requires one on every query, and a host refuses a query without one at start-up.
+
+The compiler compares the wire with `run` on every type check, and a stale file is an error on the module's `name` line that names the operation, one problem per operation: `WireSuccessStale` when the entry's success differs from what `run` returns, `WireRejectionsStale` when its rejection tags or classes differ from what `run` and a query's read policy raise, other than infrastructure failures, and `OperationMissingFromWire` when an operation has no entry and its `run` returns a value or raises a rejection. A success differs when its type and `run`'s return type are not mutually assignable; when they differ only in array mutability, because `Schema.Array` decodes a readonly array; when an object that `run` returns and a `Schema.Struct` that the success holds in the same position, at the top or in an array, struct field, tuple, record, union or `Option`, have different keys, such as an optional property only one of them has, which the `Struct` would drop or never send; and when the success holds a `Schema.Class` in such a position and `run` returns something other than that class there, such as an object literal of its fields, which fails to encode. Rejections differ when `run` raises a tag the entry does not list, the entry lists a tag nothing raises or one of the automatic two, or a listed class and the class `run` raises under the same tag differ in shape, such as a local `NotFound` with other fields than the shared one.
+
+TypeScript compares classes by shape, so two cases still compile: a rejection class whose twin of the same shape is what `run` raises, and a helper typed to return a readonly interface of the same shape where the success is a `Schema.Class`. Neither is silent at run time: the twin is not the listed class, so the boundary answers `InternalServerError` and reports it, and the plain object fails to encode. The generator resolves both by declaration. A `Schema.Struct` behind another schema, such as a transformation, a brand or `Schema.suspend`, is compared with `run` only by mutual assignability, so an optional property that only one side has still compiles there and is dropped or never sent.
+
+The browser's assertion fails with `ClientDiffersFromModule`, naming the operations whose RPCs differ. `ClientMatchesModule` compares the operations' payloads, successes and rejections; a stale copy of a query's `reads`, a command's `invalidates` or the key scope in the generated file still compiles; the generator keeps those current, because a change to them makes `shivaedev-build generate --check` report the file stale. A stale wire and a stale browser contract read:
+
+```
+src/test-support/fixtures/invalid/moduleStaleRejection.ts(9,2): error TS2322: Type '"staleRejection"' is not assignable to type '"staleRejection" & NoInfer<WireRejectionsStale<"create", "the generated file is stale; run pnpm generate", "TitleTaken" | "Unauthorized", "Unauthorized">>'.
+src/test-support/fixtures/invalid/staleNotes.ts(17,14): error TS2322: Type 'boolean' is not assignable to type 'ClientDiffersFromModule<"create", "the generated file is stale; run pnpm generate">'.
+```
+
+### Operations declared without run
+
+A boundary served by hand-written handlers, such as a contract a native `RpcServer` hosts with `toLayer`, declares each operation without `run`: its `success` schema, its `rejections` and, for a command, the keys it `invalidates`. `contract` groups such operations into a native `RpcGroup`. A **stream** is always declared this way: it declares an element schema in `success`, typed rejections and the keys it reads, and its handler returns a native `Stream`. The sections that follow host and bind this declaration; a module serves itself with `moduleHandlers` and binds the same way.
 
 Keep the shared declaration in a module that both server and client can import:
 
@@ -82,220 +290,13 @@ export const Create = command("create", {
 export const Notes = contract("notes", { queries: [Get, List], commands: [Rename, Create] });
 ```
 
-Save this module as `notes.ts`. The payload can be struct fields, as in `Get`, or a schema, as in `Create`. An omitted payload or success is `Schema.Void`; no declared rejections gives `Schema.Never`. The server resolves `reads` with the decoded payload and session viewer. For local command dependencies, the browser also evaluates it with `Option.none()`; return no viewer keys for that case. Authorized subscription scopes always come from the server. `invalidates` receives the decoded payload, successful result and optional session viewer, so a create call can invalidate the ID the server assigned.
+Save this module as `notes.ts`. The payload can be struct fields, as in `Get`, or a schema, as in `Create`. An omitted payload or success is `Schema.Void`; no declared rejections gives `Schema.Never`. A declared query requires `readPolicy`, and a declared command requires `invalidates`. The server resolves `reads` with the decoded payload and session viewer. For local command dependencies, the browser also evaluates it with `Option.none()`; return no viewer keys for that case. Authorized subscription scopes always come from the server. A declared command's `invalidates` receives the decoded payload, successful result and optional session viewer, so a create call can invalidate the ID the server assigned.
 
 The collection's ID schema gives `item` its ID type. Here, `notes.item` takes a number. Query and command callbacks retain their payload and result types, including when the operations are declared inline inside `contract`.
 
 Operation names must differ within a contract, including across queries, commands and streams. Literal duplicate declarations fail compilation. If the compiler cannot see the names in an array, the server reports duplicate names as an Effect defect while validating the contract during host startup.
 
 The native RPC mapping types `OperationRpc` and `Tag` are exported from `@shivaedev/contract/operationRpc.ts`.
-
-### An operation written as its payload and run
-
-An operation can also be written as its business logic: a `payload` schema and a generator `*run`, with no `Effect.gen` wrapper. Its success, rejections, services and the read policy's failures are inferred from `run`:
-
-```ts
-import { Effect, Schema } from "effect";
-import { command, query } from "@shivaedev/contract/operation.ts";
-import { fieldRejection } from "@shivaedev/contract/rejection.ts";
-import { NotesRepository, SessionUser } from "./services.ts";
-
-export const NoteFields = Schema.Struct({ title: Schema.Trim.check(Schema.isNonEmpty({ message: "Enter a title" })) });
-export class TitleTaken extends Schema.TaggedError<TitleTaken>()("TitleTaken", fieldRejection(NoteFields)) {}
-
-export const Create = command("create", {
-	payload: NoteFields,
-	*run({ title }) {
-		const repository = yield* NotesRepository;
-		const { id: userId } = yield* SessionUser;
-		if (title === "reserved") {
-			return yield* new TitleTaken({ field: "title", message: "That title is reserved" });
-		}
-		return yield* repository.insert({ title, userId }).pipe(Effect.map(({ id }) => ({ id, title })));
-	},
-});
-
-export const List = query("list", {
-	*run() {
-		const repository = yield* NotesRepository;
-		const { id: userId } = yield* SessionUser;
-		return yield* repository.findMany({ select: ["id", "title"], where: { userId } });
-	},
-});
-```
-
-Here `NotesRepository` is a `@shivaedev/sql` repository whose model marks `userId` as a bucket. Its insert announces the new row and its owner's bucket, so `Create` declares no `invalidates`, and `List` declares no `reads`: its `findMany` pins the owner's bucket, so the live list listens on it.
-
-`Create.run` is an Effect-returning function, so another operation composes it with `yield* Create.run({ title })`, and `Create`'s services and failures join that operation's types. A query without `readPolicy` gets `signedIn`, at run time and in its type. It may declare `reads`, `serverReads` and `readsCollections` (which need a `permissionReadPolicy`); one that declares none listens on what its repository reads filter by, as [query policies, record keys and buckets](#query-policies-record-keys-and-buckets) explains. A command without `invalidates` announces no keys of its own. A payload-free operation omits `payload` and gets `Schema.Void`.
-
-`success` and `rejections` are optional. A declared one must equal what `run` infers, checked on the declaration object, and each mismatch is a compile error that names the operation and the problem: `RunReturnsAny` when `run` returns `any`, such as the result of `JSON.parse`, which would otherwise pass every check (decode the value with a schema, or type it); `SuccessDiffersFromRun` when the declared success's type and `run`'s return type are not mutually assignable, or when an object that `run` returns and a `Schema.Struct` that the success holds in the same position, at the top or in an array, struct field, tuple, record, union or `Option`, have different keys, such as an optional property only one of them has, which the `Struct` would drop or never send; `SuccessClassNotReturned` when the success is a `Schema.Class`, or holds one in an array, struct field, tuple, record, union or `Option`, and `run` returns something other than that class in that position, such as an object literal of its fields, which fails to encode; `ArrayMutabilityDiffers` when they differ only in array mutability, because `Schema.Array` decodes a readonly array (return one, or declare `Schema.mutable`); `RunFailsOutsideRejections` when `run` or the read policy can fail with a tag that `rejections` misses; `RejectionsRunNeverRaises` for a listed tag nothing raises; `RejectionClassDiffers` when a listed class and the class `run` raises under the same tag differ in shape, such as a local `NotFound` with other fields than the shared one; `RejectionAutomatic` for a listed `InternalServerError` or `ServiceUnavailable`. Rejections are exported classes keyed by their `_tag`. A failure that states `isRetryable` (such as `SqlError`), `SchemaError` and `QueryReadDenied` are never rejections. While the declaration forms above are still accepted, such an error starts with "No overload matches this call" and its last line names the problem.
-
-TypeScript compares classes by shape, so two cases still compile: a rejection class whose twin of the same shape is what `run` raises, and a helper typed to return a readonly interface of the same shape where the success is a `Schema.Class`. Neither is silent at run time: the twin is not the declared class, so the boundary answers `InternalServerError` and reports it, and the plain object fails to encode. The generator in [`@shivaedev/build`](https://github.com/ShivaeDev/platform/tree/main/packages/build), which derives `success` and `rejections` from `run`, resolves both by declaration. A `Schema.Struct` behind another schema, such as a transformation, a brand or `Schema.suspend`, is compared with `run` only by mutual assignability, so an optional property that only one side has still compiles there and is dropped or never sent.
-
-Every operation written this way carries `InternalServerError` and `ServiceUnavailable` in its type and its rejection set, and cannot list them. Nothing adds `Conflict`: an operation that answers a constraint violation as a domain failure maps it by constraint name in `run`, and inference carries the result. Because object keys are sorted, `invalidates` is checked before `run`, so its result parameter is typed only when `success` is declared.
-
-Two limits meet you while writing these operations. On its own, an omitted success is `Schema.Void` and omitted rejections leave only the automatic two in the operation's RPC schemas; a module's wire supplies both (below), and an operation served through `contract()` declares them. Biome's `useYield` refuses a `*run` that yields nothing, so a `run` that needs no service still yields an Effect.
-
-A field failure is an exported tagged class built from the payload's fields with `fieldRejection`, as `TitleTaken` above. `run` raises it with `yield* new TitleTaken({ field, message })`, and `@shivaedev/form`'s `rejecting` places its message on that field.
-
-### A module defined from its operations
-
-A module lists its operations once, with the services they may use, and serves them without hand-written handlers:
-
-```ts
-import { Effect, Option, Schema } from "effect";
-import { collection } from "@shivaedev/changes/keys.ts";
-import { NotFound, Unauthorized } from "@shivaedev/errors/taxonomy.ts";
-import { defineModule } from "@shivaedev/contract/defineModule.ts";
-import { command, query } from "@shivaedev/contract/operation.ts";
-import { CurrentViewer } from "@shivaedev/contract/readPolicy.ts";
-import { fieldRejection } from "@shivaedev/contract/rejection.ts";
-import { Caller, NotesStore, type StoredNote } from "./services.ts";
-
-const notes = collection("notes", Schema.Number);
-export const NoteFields = Schema.Struct({ title: Schema.String });
-export const Note = Schema.Struct({ id: Schema.Number, title: Schema.String });
-export class TitleTaken extends Schema.TaggedError<TitleTaken>()("TitleTaken", fieldRejection(NoteFields)) {}
-
-const signedInUser = Effect.flatMap(CurrentViewer, (viewer) =>
-	Option.match(viewer, {
-		onNone: () => Effect.fail(new Unauthorized({ message: "Sign in first" })),
-		onSome: ({ id }) => Effect.succeed(id),
-	}),
-);
-
-function toNotes(stored: readonly StoredNote[]): readonly (typeof Note.Type)[] {
-	return stored.map(({ id, title }) => ({ id, title }));
-}
-
-export const Create = command("create", {
-	payload: NoteFields,
-	rejections: { TitleTaken, Unauthorized },
-	*run({ title }) {
-		const store = yield* NotesStore;
-		const owner = yield* signedInUser;
-		const owned = yield* store.owned(owner);
-		if (owned.some((note) => note.title === title)) {
-			return yield* new TitleTaken({ field: "title", message: "You already have a note with that title" });
-		}
-		const { id } = yield* store.insert(title, owner);
-		return { id, title };
-	},
-	success: Note,
-});
-
-export const Get = query("get", {
-	payload: { id: Schema.Number },
-	readPolicy: ({ id }, viewer) =>
-		Effect.gen(function* () {
-			if (Option.isNone(viewer)) {
-				return false;
-			}
-			const note = yield* (yield* NotesStore).find(id);
-			return Option.exists(note, ({ owner }) => owner === viewer.value.id);
-		}),
-	reads: ({ id }) => [notes.item(id)],
-	rejections: { NotFound },
-	*run({ id }) {
-		const note = yield* (yield* NotesStore).find(id);
-		if (Option.isNone(note)) {
-			return yield* new NotFound({ message: "Note not found" });
-		}
-		return { id: note.value.id, title: note.value.title };
-	},
-	success: Note,
-});
-
-export const List = query("list", {
-	reads: () => [notes.list],
-	rejections: { Unauthorized },
-	*run() {
-		const store = yield* NotesStore;
-		return toNotes(yield* store.owned(yield* signedInUser));
-	},
-	success: Schema.Array(Note),
-});
-
-export const Notes = defineModule({
-	middleware: Caller,
-	name: "notes",
-	operations: [List, Get, Create],
-	requires: [NotesStore],
-});
-```
-
-Here `NotesStore` is an ordinary service, `StoredNote` the row it returns, and `Caller` an RPC middleware that sets the viewer. `defineModule` takes the operations written as payload and run, the services they may use in `requires`, optionally `middleware`, `subject` and `keyScope` as `contract` does, and its `wire` (below). It returns the module's contract, so `bind`, `makeClient` and a host accept it as they accept any contract. Each of its RPCs carries the `DefinedModule` annotation from the same file with the module's name, so a host can tell a module's queries from a contract's. The compiler checks `requires`, and the module does not keep the list at run time. Its generics check the definition on the `name` line, so the first line of the compiler's message names the operation and its problem: `OperationNeedsUndeclaredServices` when an operation's `run` or read policy uses a service that neither `requires` nor the middleware or subject provides, `OperationFailsOutsideItsRejections` when it can fail with something outside its rejections other than an infrastructure failure, and `OperationNameRepeated` when two operations share a name:
-
-```
-src/test-support/fixtures/invalid/moduleUndeclaredService.ts(24,2): error TS2322: Type '"imports"' is not assignable to type '"imports" & NoInfer<OperationNeedsUndeclaredServices<"importTitle", NoteSource>>'.
-```
-
-`moduleHandlers(Notes)` builds the module's handler Layer from its operations, and the Layer requires exactly the services in `requires`:
-
-```ts
-import { Layer } from "effect";
-import { moduleHandlers } from "@shivaedev/contract/moduleHandlers.ts";
-import { Notes } from "./notes.ts";
-import { NotesStoreLive } from "./store.ts";
-
-export const NotesHandlers = moduleHandlers(Notes).pipe(Layer.provide(NotesStoreLive));
-```
-
-Each operation runs in a span named after the module and the operation, such as `Notes.create`. A query's read policy is checked inside its handler before `run`, with the module's services, so a policy reads a repository directly, as `Get` does above; a live subscription to the query checks the same policy. Failures pass the RPC boundary from `@shivaedev/errors`: a declared rejection reaches the client as itself, an undeclared failure that states `isRetryable` answers `ServiceUnavailable`, and anything else answers `InternalServerError`, for the policy of a live subscription too. A command without `invalidates` publishes only the keys its writes announce.
-
-#### The wire and the browser's contract
-
-Types are erased, so the success schema and rejection classes the server encodes with and the browser decodes with must exist as values. [`@shivaedev/build`](https://github.com/ShivaeDev/platform/tree/main/packages/build) writes them from each module's `run` types into one file per module under `src/generated/`, which stays out of Git. It is not published yet and no `generate` script exists, so an application outside this repository writes the wire by hand, or its operations declare `success` and `rejections` and the module passes no wire. The module file passes its wire, and every operation that has a wire entry is served with that entry's success and rejections, plus `InternalServerError` and `ServiceUnavailable`, even when the operation declares its own; an operation without an entry is served with what it declares. A wire entry's success describes only the shape: its RPC carries `GeneratedSuccess` from `@shivaedev/errors/GeneratedSuccess.ts`, so the host neither collects sensitive names from it nor treats its fields as public. Mark a sensitive field on the server's model instead, as the [errors README](https://github.com/ShivaeDev/platform/tree/main/packages/errors#masking-secrets-in-failures) describes:
-
-```ts
-import { notesWire } from "#generated/modules/notes/notes.ts";
-
-export const Notes = defineModule({
-	middleware: Caller,
-	name: "notes",
-	operations: [List, Get, Create],
-	requires: [NotesStore],
-	wire: notesWire,
-});
-```
-
-The file the generator writes exports the wire, the browser's contract built by `clientContract` from the wire, the copied payloads, `reads` and `invalidates`, and the module's name, middleware, subject and key scope, and it ends with a type-level assertion that the browser's contract and the server module have the same RPCs:
-
-```ts
-import { Schema } from "effect";
-import { Unauthorized } from "@shivaedev/errors/taxonomy.ts";
-import { clientContract } from "@shivaedev/contract/clientContract.ts";
-import type { ClientMatchesModule } from "@shivaedev/contract/clientMatchesModule.ts";
-import type { Notes as NotesModule } from "#modules/notes/notes.ts";
-import { Caller, NoteFields, notes, TitleTaken } from "#modules/notes/model.ts";
-
-const Note = Schema.Struct({ createdAt: Schema.Date, id: Schema.Number, title: Schema.String });
-
-export const notesWire = {
-	create: { rejections: { TitleTaken, Unauthorized }, success: Note },
-	list: { rejections: { Unauthorized }, success: Schema.Array(Note) },
-} as const;
-
-export const Notes = clientContract({
-	commands: { create: { invalidates: () => [notes.list] } },
-	middleware: Caller,
-	name: "notes",
-	payloads: { create: NoteFields },
-	queries: { list: { reads: () => [notes.list] } },
-	wire: notesWire,
-});
-
-export const notesMatchModule: ClientMatchesModule<typeof Notes, typeof NotesModule> = true;
-```
-
-`clientContract` requires a wire entry for every query and command it declares. The browser imports `Notes` from that file and binds it like any contract; it carries no `run`, read policy or service, and its import graph reaches no server code. A command's `invalidates` and a query's `reads` work in the browser exactly as on a contract written by hand. Over RPC's JSON serialization, a `Schema.Date` field arrives as a `Date` equal to the one `run` returned, and a rejection the wire lists arrives as its class. Neither the browser's contract nor an operation without a read policy can be served: `contract()` requires one on every query, and a host refuses a query without one at start-up.
-
-The compiler compares the wire with `run` on every type check, exactly as it compares a declared `success` and `rejections`, and a stale file is an error on the module's `name` line that names the operation, one problem per operation: `WireSuccessStale` when the wire's success differs from what `run` returns, by the same comparison as `SuccessDiffersFromRun`, `WireRejectionsStale` when its rejection tags or classes differ from what `run` and a query's read policy raise, other than infrastructure failures, and `OperationMissingFromWire` when an operation declares no success, returns something, and has no wire entry. The browser's assertion fails with `ClientDiffersFromModule`, naming the operations whose RPCs differ. `ClientMatchesModule` compares the operations' payloads, successes and rejections; a stale copy of a query's `reads`, a command's `invalidates` or the key scope in the generated file still compiles; the generator keeps those current, because a change to them makes `shivaedev-build generate --check` report the file stale. A stale wire and a stale browser contract read:
-
-```
-src/test-support/fixtures/invalid/moduleStaleRejection.ts(9,2): error TS2322: Type '"staleRejection"' is not assignable to type '"staleRejection" & NoInfer<WireRejectionsStale<"create", "the generated file is stale; run pnpm generate", "TitleTaken" | "Unauthorized", "Unauthorized">>'.
-src/test-support/fixtures/invalid/staleNotes.ts(17,14): error TS2322: Type 'boolean' is not assignable to type 'ClientDiffersFromModule<"create", "the generated file is stale; run pnpm generate">'.
-```
 
 ### Whose account a request acts on
 
@@ -507,7 +508,25 @@ The browser invalidates a command's keys after RPC success, together with a key 
 
 #### Server-only command keys
 
-When the affected readers depend on database relationships, return the success through `commandResult` in the server handler. Its `invalidates` keys join the declaration's keys at the command guard. Only `result` becomes the RPC success; the extra keys and the audience used to find them stay on the server.
+When the affected keys depend on what the command did, such as the note it found or the people a move affected, return the success through `commandResult`: from inside a command's `run`, or from a declared command's server handler. Its `invalidates` keys join the command's declared keys at the command guard. Only `result` becomes the RPC success; the extra keys and the audience used to find them stay on the server. In a module, the note a command found by its title announces itself this way:
+
+```ts
+import { commandResult } from "@shivaedev/contract/commandResult.ts";
+
+export const Touch = command("touch", {
+	payload: NoteFields,
+	*run({ title }) {
+		const store = yield* NotesStore;
+		const note = (yield* store.owned(yield* signedInUser)).find((owned) => owned.title === title);
+		if (note === undefined) {
+			return yield* new NotFound({ message: "Note not found" });
+		}
+		return yield* commandResult({ invalidates: [notes.item(note.id)], result: { id: note.id, title: note.title } });
+	},
+});
+```
+
+A handler of a declared command does the same around its write:
 
 ```ts
 import { commandResult } from "@shivaedev/contract/commandResult.ts";
@@ -896,9 +915,9 @@ Import the module that defines the name; the package has no root entry.
 
 | Module                     | Functions and schemas                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `operation.ts`             | `query(name, { payload?, success?, rejections?, readPolicy, reads?, serverReads? })`; `command(name, { payload?, success?, rejections?, invalidates })`; `query(name, { payload?, *run, readPolicy?, reads?, serverReads?, readsCollections?, success?, rejections? })` and `command(name, { payload?, *run, invalidates?, success?, rejections? })` with an Effect-returning `run`; `stream(name, { payload?, success, rejections?, reads })`.                          |
+| `operation.ts`             | `query(name, { payload?, *run, readPolicy?, reads?, serverReads?, readsCollections? })` and `command(name, { payload?, *run, invalidates?(payload, viewer?) })` with an Effect-returning `run`; declared without run: `query(name, { payload?, success?, rejections?, readPolicy, reads?, serverReads? })`, `command(name, { payload?, success?, rejections?, invalidates(payload, result, viewer?) })` and `stream(name, { payload?, success, rejections?, reads })`.   |
 | `contract.ts`              | `contract(name, { queries?, commands?, streams?, keyScope? })`, returning a native RPC group with `declaration: { name, queries, commands, streams, keyScope }`.                                                                                                                                                                                                                                                                                                         |
-| `defineModule.ts`          | `defineModule({ name, operations, requires, middleware?, subject?, keyScope?, wire? })`, returning the module's contract.                                                                                                                                                                                                                                                                                                                                                |
+| `defineModule.ts`          | `defineModule({ name, operations, requires, wire, middleware?, subject?, keyScope? })`, returning the module's contract.                                                                                                                                                                                                                                                                                                                                                 |
 | `moduleHandlers.ts`        | `moduleHandlers(module)`, the module's handler Layer, requiring exactly its `requires`.                                                                                                                                                                                                                                                                                                                                                                                  |
 | `clientContract.ts`        | `clientContract({ name, wire, payloads?, queries?, commands?, middleware?, subject?, keyScope? })`, the browser's contract of a module that generated files build.                                                                                                                                                                                                                                                                                                       |
 | `clientMatchesModule.ts`   | `ClientMatchesModule<Client, Module>`, `true` when the browser's contract and the server module have the same RPCs, else `ClientDiffersFromModule`.                                                                                                                                                                                                                                                                                                                      |
@@ -916,7 +935,7 @@ Import the module that defines the name; the package has no root entry.
 | `validateReadPolicies.ts`  | `validateReadPolicies(group)`, an Effect that fails with `MissingReadPolicies` when any served or subscribable query omits its policy.                                                                                                                                                                                                                                                                                                                                   |
 | `readPolicyErrors.ts`      | `MissingReadPolicies` (boot), `MissingReadPolicy` (native-server request fallback) and `QueryReadDenied`.                                                                                                                                                                                                                                                                                                                                                                |
 | `CommandGuard.ts`          | `guardCommands(group)` places command publication inside viewer-providing middleware; `commandGuardLayer(boundary)` evaluates declared invalidations for that viewer and delegates publication to the host boundary.                                                                                                                                                                                                                                                     |
-| `commandResult.ts`         | `commandResult({ result, invalidates })` contributes server-only keys from a guarded command handler and returns only its success value.                                                                                                                                                                                                                                                                                                                                 |
+| `commandResult.ts`         | `commandResult({ result, invalidates })` contributes server-only keys from a guarded command's `run` or handler and returns only its success value.                                                                                                                                                                                                                                                                                                                      |
 | `serverMetadata.ts`        | `QueryDefinition.definition`, `CommandInvalidation.invalidates`, `ChangesQueries.queries`, `ChangesQueries.resolve(references)` and `changesRpc(name, queries)` for server adapters.                                                                                                                                                                                                                                                                                     |
 | `queryKeys.ts`             | `queryKeys(queries, references, viewer?)` authorizes references and resolves payload and server-derived keys using the provided services.                                                                                                                                                                                                                                                                                                                                |
 | `QueryServerReads.ts`      | `QueryServerReads<Payload, E, R>`, the server-only resolver type.                                                                                                                                                                                                                                                                                                                                                                                                        |

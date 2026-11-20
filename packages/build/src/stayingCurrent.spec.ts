@@ -87,11 +87,7 @@ generator.it(
 	"after create's invalidates changes, generate --check fails naming the stale file and pnpm generate, and the next generate writes the new invalidates",
 	[notesProject(), generatedOnce()],
 	function* ({ edits, generatedFile, generates, generatesWithCheck }) {
-		yield* edits(
-			"src/modules/notes/create.ts",
-			"invalidates: () => [notes.list],",
-			"invalidates: (_draft, card) => [notes.list, notes.item(card.id)],",
-		);
+		yield* edits("src/modules/notes/create.ts", "invalidates: () => [notes.list],", "invalidates: () => [notes.list, notes.item(1)],");
 
 		yield* outcomes([
 			[
@@ -109,7 +105,7 @@ generator.it(
 							.find((line) => line.includes("create: { invalidates"))
 							?.trim(),
 					),
-				"create: { invalidates: (_draft, card) => [notes.list, notes.item(card.id)] },",
+				"create: { invalidates: () => [notes.list, notes.item(1)] },",
 			],
 		]);
 	},
