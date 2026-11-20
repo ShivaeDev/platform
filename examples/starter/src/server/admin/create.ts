@@ -7,6 +7,7 @@ import { postgresLayer } from "@shivaedev/sql/postgresLayer.ts";
 import { AppAccess } from "#AppAccess.ts";
 import { Owner } from "#roles/Owner.ts";
 import { User } from "#roles/User.ts";
+import { signUpEmail } from "#server/admin/adapters/signUpEmail.ts";
 import { authOptions } from "#server/authOptions.ts";
 
 export const createAdmin = Effect.fn("App.createAdmin")(
@@ -21,7 +22,7 @@ export const createAdmin = Effect.fn("App.createAdmin")(
 		const email = yield* Config.String("ADMIN_EMAIL");
 		const name = yield* Config.String("ADMIN_NAME").pipe(Config.withDefault("Administrator"));
 		const password = yield* Config.Redacted("ADMIN_PASSWORD");
-		const created = yield* Effect.tryPromise(() => auth.api.signUpEmail({ body: { email, name, password: Redacted.value(password) } }));
+		const created = yield* signUpEmail(auth, { email, name, password: Redacted.value(password) });
 		yield* assignRole(AppAccess, created.user.id, Owner.name);
 		return created;
 	},

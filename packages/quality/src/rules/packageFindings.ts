@@ -5,6 +5,7 @@ import { projectsFor } from "#adapters/imports/projects.ts";
 import { sourcesProgram } from "#adapters/typeScriptProgram.ts";
 import { packageOf, workspacePackages } from "#imports/workspace.ts";
 import type { Finding, RuleInputs, SourceFile, TypeScriptProgram } from "#rule.ts";
+import { boundaryCheck } from "#rules/effect/boundaryCheck.ts";
 import { serviceParameterCheck } from "#rules/effect/serviceParameterCheck.ts";
 import { typedCastCheck } from "#rules/suppressions/typedCastCheck.ts";
 
@@ -15,6 +16,7 @@ export interface PackageCheck {
 
 const CHECKS = [
 	{ id: "boundaries/imported-change-keys", prepare: changeKeyCheck },
+	{ id: "effect/boundary", prepare: boundaryCheck },
 	{ id: "effect/service-parameters", prepare: serviceParameterCheck },
 	{ id: "suppressions/no-double-cast", prepare: typedCastCheck },
 ] as const;

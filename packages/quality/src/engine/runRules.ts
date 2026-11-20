@@ -24,14 +24,18 @@ function readsStories(rule: ActiveRule): boolean {
 	return rule.needs === "story-program";
 }
 
-// A full run checks a rule's deep half as a run of its own in the deep tier; only that half reads the package walk.
+// A full run checks a rule's deep half as a run of its own in the deep tier; only that half reads the package walk, from the type-checked tier, which starts after the walk, so it may also build programs of its own.
 function runsOf(rule: ActiveRule, skippedHalves: ReadonlySet<string>): readonly ActiveRule[] {
 	const { deepHalf, ...whole } = rule;
 	return deepHalf === undefined || skippedHalves.has(rule.id) ? [rule] : [rule, { ...whole, check: deepHalf.check, depth: "deep", half: "deep" }];
 }
 
-function walks(rule: ActiveRule): boolean {
+function readsWalk(rule: ActiveRule): boolean {
 	return PACKAGE_CHECKS.has(rule.id) && rule.deepHalf === undefined;
+}
+
+function waitsForWalk(rule: ActiveRule): boolean {
+	return readsWalk(rule) && rule.half !== "deep";
 }
 
 function checksTypes(rule: ActiveRule): boolean {
@@ -47,8 +51,8 @@ function runTiers(rules: readonly ActiveRule[], inputs: RuleInputs): RuleRun {
 	function inOrder(runs: readonly RuleRun[]): RuleRun {
 		return Effect.map(Effect.all(runs), (found) => found.flat());
 	}
-	const walked = rules.filter(walks);
-	const inThread = rules.filter((rule) => !(walks(rule) || spawnsChild(rule) || readsStories(rule)));
+	const walked = rules.filter(readsWalk);
+	const inThread = rules.filter((rule) => !(waitsForWalk(rule) || spawnsChild(rule) || readsStories(rule)));
 	function tiered(typed: boolean): readonly RuleRun[] {
 		const ordered = [...inThread.filter((rule) => rule.depth === "fast"), ...inThread.filter((rule) => rule.depth === "deep")];
 		return ordered.filter((rule) => checksTypes(rule) === typed).map(run);
@@ -69,7 +73,7 @@ function runTiers(rules: readonly ActiveRule[], inputs: RuleInputs): RuleRun {
 	}
 	return withPackageWalk(inputs, new Set(walked.map((rule) => rule.id)), (walk) =>
 		Effect.map(
-			Effect.all([lanes([Effect.as(walk, []), ...thread]), Effect.all(walked.map(run), { concurrency: "unbounded" })], {
+			Effect.all([lanes([Effect.as(walk, []), ...thread]), Effect.all(walked.filter(waitsForWalk).map(run), { concurrency: "unbounded" })], {
 				concurrency: "unbounded",
 			}),
 			([laned, waited]) => [...laned, ...waited.flat()],
