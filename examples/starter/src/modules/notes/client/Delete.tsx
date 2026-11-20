@@ -1,4 +1,3 @@
-import { Cause, Option, Predicate } from "effect";
 import { useAction } from "@shivaedev/react/client/resultState.ts";
 import { Button } from "#client/ui/button.tsx";
 import type { NotesClient } from "#modules/notes/client/make.ts";
@@ -16,18 +15,11 @@ export function NoteDelete({
 	readonly saving: boolean;
 }) {
 	const action = useAction(client.api.delete, { onSuccess: onDeleted });
-	const failure = Option.flatMap(action.cause, Cause.findErrorOption);
-	const failureMessage = Option.isSome(failure) && (
-		<p className="text-destructive text-sm" role="alert">
-			{Predicate.isTagged(failure.value, "Conflict") ? failure.value.message : "Could not delete the note. Try again."}
-		</p>
-	);
 	return (
 		<div className="space-y-3">
 			<Button disabled={saving || action.pending} onClick={() => action.dispatch({ id: note.id, version: note.version })} variant="outline">
 				{action.pending ? "Deleting…" : "Delete note"}
 			</Button>
-			{failureMessage}
 		</div>
 	);
 }

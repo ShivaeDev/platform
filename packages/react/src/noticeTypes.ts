@@ -12,7 +12,6 @@ export interface NoticeDescriptor<R = never, TMessage = unknown> {
 	readonly message: TMessage;
 }
 
-export interface NoticeFeedback<TInput, A, E, R = never, TMessage = unknown> {
-	readonly onFailure?: (error: E, input: TInput) => NoticeDescriptor<R, TMessage> | undefined;
+export interface NoticeFeedback<TInput, A, R = never, TMessage = unknown> {
 	readonly onSuccess?: (value: A, input: TInput) => NoticeDescriptor<R, TMessage> | undefined;
 }

@@ -3,6 +3,10 @@ import { useMemo } from "react";
 import { useAction } from "#client/resultState.ts";
 import type { FeatureScreen } from "#test/feedback-path/view.tsx";
 
+function couldNotRemove() {
+	return { message: "Could not remove note" };
+}
+
 export function Commands({ state }: { readonly state: FeatureScreen }) {
 	const { client } = state;
 	const run = useMemo(
@@ -18,8 +22,8 @@ export function Commands({ state }: { readonly state: FeatureScreen }) {
 		{ run, runtime: client.runtime },
 		{
 			concurrent: true,
+			failures: { Rejected: couldNotRemove },
 			notices: {
-				onFailure: () => ({ message: "Could not remove note" }),
 				onSuccess: (removed) => ({
 					action: {
 						label: `Undo ${removed.title}`,

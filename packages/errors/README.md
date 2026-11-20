@@ -41,6 +41,8 @@ A handler fails with `new Conflict({ field: "name", message: "Name is taken" })`
 
 Each class has an `is<Class>` guard in `taxonomy.ts`, such as `isConflict(value)`. Guards narrow actual instances, including errors decoded by the class schema; an object with the same `_tag` and fields does not qualify. Use them with `Effect.catchIf(isConflict, handler)` when matching a taxonomy failure by class.
 
+The classes fall into two groups that clients present differently. `RequestRejection` (`NotFound`, `Unauthorized`, `Forbidden`, `BadRequest`, `Conflict`, `PreconditionFailed` and `TooManyRequests`) refuses one request with a message written for the person, so `@shivaedev/react` shows that message by default. `ServerFailure` (`AuthUnavailable`, `InternalServerError` and `ServiceUnavailable`) means the server could not answer, so a client words it once for the whole application. `isRequestRejection(value)` and `isServerFailure(value)` narrow to each group.
+
 ### Mapping unexpected failures at the handler edge
 
 A module built with `defineModule` gets this boundary around every handler from `@shivaedev/contract`, so its operations never call it. Use `rpcBoundary` in hand-written RPC handlers, only at the handler edge and never inside services. Services keep their typed failures and defects so callers can handle them. At that edge, `rpcBoundary(schema, options)` keeps declared rejections and maps other failures and defects into one declared fallback. It leaves successful values and interruption intact:

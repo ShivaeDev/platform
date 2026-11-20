@@ -10,7 +10,7 @@ import { settleScreen } from "#test/settleScreen.ts";
 
 draftStorage();
 
-type Change = "inline callbacks" | "the schema" | "the runtime" | "removing the rejection mapper";
+type Change = "inline callbacks" | "the schema" | "the runtime" | "removing the failures handler";
 
 interface State {
 	original?: Current["form"] | undefined;
@@ -39,7 +39,7 @@ function configurationVerbs(state: State, screen: Screen) {
 				state.props = {
 					...state.props,
 					fields: change === "the schema" ? NormalizedName : state.props.fields,
-					mapping: change !== "removing the rejection mapper",
+					mapping: change !== "removing the failures handler",
 					revision: "after",
 					runtime: change === "the runtime" ? secondRuntime : state.props.runtime,
 				};

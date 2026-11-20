@@ -6,7 +6,12 @@ import type { PendingClient } from "#test/pendingCommandClient.ts";
 import type { SwitchClient } from "#test/reflected-switch/connect.ts";
 
 function ToggleRow({ client, enabled, id }: { readonly client: PendingClient; readonly enabled: boolean; readonly id: number }) {
-	const toggle = usePendingCommand(client.command, { queries: client.queries, value: enabled, wanted: (input) => input.enabled });
+	const toggle = usePendingCommand(client.command, {
+		failures: { ToggleRejected: "silent" },
+		queries: client.queries,
+		value: enabled,
+		wanted: (input) => input.enabled,
+	});
 	const failure = AsyncResult.error(toggle.result);
 	const message = Option.isSome(failure) && failure.value._tag === "ToggleRejected" ? `${failure.value._tag}: ${failure.value.reason}` : "";
 	return (

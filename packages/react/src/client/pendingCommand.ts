@@ -5,28 +5,30 @@ import * as Atom from "effect/reactivity/Atom";
 import { useContext, useMemo, useState } from "react";
 import { untilReflected } from "@shivaedev/contract/commandSignal.ts";
 import type { BoundOperation } from "#client/boundOperation.ts";
-import { type ActionState, useAction } from "#client/resultState.ts";
+import type { FailuresOption } from "#client/failures.ts";
+import type { NoticeDescriptor } from "#client/notices.ts";
+import { type ActionState, useActionState } from "#client/resultState.ts";
 
-export interface PendingCommandOptions<TInput, TValue> {
+export type PendingCommandOptions<TInput, TValue, E = never, R = never, TSilent extends boolean = false> = {
 	readonly queries?: readonly Atom.Atom<AsyncResult.AsyncResult<unknown, unknown>>[];
 	readonly value: TValue;
 	readonly wanted: (input: TInput) => TValue;
-}
+} & FailuresOption<E, TInput, NoticeDescriptor<R>, TSilent>;
 export interface PendingCommandState<TInput, A, E, TValue> extends ActionState<TInput, A, E> {
 	readonly value: TValue;
 }
 
 const NO_QUERIES: readonly Atom.Atom<AsyncResult.AsyncResult<unknown, unknown>>[] = [];
 
-export function usePendingCommand<TInput, A, E, R, TRuntimeError, TValue>(
+export function usePendingCommand<TInput, A, E, R, TRuntimeError, TValue, TSilent extends boolean = false>(
 	command: BoundOperation<TInput, A, E, R, TRuntimeError>,
-	options: PendingCommandOptions<NoInfer<TInput>, TValue>,
+	options: PendingCommandOptions<NoInfer<TInput>, TValue, E, R, TSilent>,
 ): PendingCommandState<TInput, A, E | TRuntimeError, TValue> {
 	const { run, runtime } = command;
-	const { queries = NO_QUERIES, value, wanted } = options;
+	const { failures, queries = NO_QUERIES, silent, value, wanted } = options;
 	// The reply arrives before the live queries the command changed are updated, so the action ends when the command is reflected.
 	const reflected = useMemo(() => (input: TInput) => untilReflected(run(input)), [run]);
-	const action = useAction({ run: reflected, runtime });
+	const action = useActionState({ run: reflected, runtime }, { failures, silent });
 	const registry = useContext(RegistryContext);
 	const refreshing = useAtomValue(useMemo(() => Atom.make((get) => queries.some((query) => get(query).waiting)), [queries]));
 	const [held, hold] = useState({ reflected, registry, value: Option.none<TValue>() });

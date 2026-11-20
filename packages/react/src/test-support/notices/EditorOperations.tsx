@@ -8,6 +8,7 @@ export function EditorOperations({ client }: { readonly client: NoticeClient }) 
 	const editor = useEditor(
 		{ run: (values: typeof Fields.Type) => client.api.remove.run(values).pipe(Effect.as(values.title)), runtime: client.runtime },
 		{
+			failures: { Rejected: "silent" },
 			fields: Fields,
 			loaded: "existing",
 			notices: { onSuccess: (title) => ({ message: `Saved ${title}` }) },

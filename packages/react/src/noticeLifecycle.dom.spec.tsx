@@ -166,14 +166,14 @@ noticesStory.it(
 	},
 );
 
-noticesStory.it("a failed command publishes its failure notice", [noticeScreen()], function* ({ notices, remove }) {
+noticesStory.it("a failed command publishes the notice its failures handler words", [noticeScreen()], function* ({ notices, remove }) {
 	yield* remove("blocked");
 
 	expect(yield* notices()).toEqual(["Command failed"]);
 });
 
 noticesStory.it(
-	"a failed form submission publishes its failure notice through the submission",
+	"a failed form submission publishes the notice its failures handler words through the submission",
 	[noticeScreen()],
 	function* ({ notices, submitForm }) {
 		yield* submitForm();

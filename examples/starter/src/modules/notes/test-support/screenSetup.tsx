@@ -15,6 +15,7 @@ import type { Credentials } from "#client/Credentials.ts";
 import { LoginScreen } from "#client/LoginScreen.tsx";
 import { connectModules } from "#client/Module.ts";
 import { clientModules } from "#client/modules.ts";
+import { Notices } from "#client/Notices.tsx";
 import { SessionApp } from "#client/SessionApp.tsx";
 import { CodePreview, type CodePreviewLine } from "#modules/notes/client/CodePreview.tsx";
 import { notesRegistration } from "#modules/notes/client/registration.tsx";
@@ -52,7 +53,13 @@ export const openRoute = Effect.fn("ScreenStory.openRoute")(function* (engine: S
 		signedIn ? { user: { id: "alice" } } : undefined,
 	).pipe(Effect.provideService(AtomRegistry.AtomRegistry, view.registry));
 	engine.router = router;
-	yield* Effect.promise(() => view.render(<RouterProvider router={router} />));
+	yield* Effect.promise(() =>
+		view.render(
+			<Notices>
+				<RouterProvider router={router} />
+			</Notices>,
+		),
+	);
 	if (signedIn) {
 		yield* settleQuery(engine);
 	}
@@ -142,7 +149,13 @@ export const openNotes = Effect.fn("ScreenStory.openNotes")(function* (engine: S
 		tell: () => undefined,
 	}).settle();
 	const loaded = yield* Effect.promise(() => loadQuery(view.registry, engine.client.api.list.query(), { abortController: new AbortController() }));
-	yield* Effect.promise(() => view.render(<NotesScreen client={engine.client} loaded={loaded} {...(signOut === undefined ? {} : { signOut })} />));
+	yield* Effect.promise(() =>
+		view.render(
+			<Notices>
+				<NotesScreen client={engine.client} loaded={loaded} {...(signOut === undefined ? {} : { signOut })} />
+			</Notices>,
+		),
+	);
 	yield* settleQuery(engine);
 });
 

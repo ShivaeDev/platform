@@ -12,7 +12,12 @@ const Draft = Schema.Struct({
 });
 function useSettingsEditor(client: ReturnType<typeof makeClient>) {
 	useAtomMount(client.connection);
-	return useEditor(client.api.save, { fields: Draft, fixed: { entityId: client.entityId }, query: client.query });
+	return useEditor(client.api.save, {
+		failures: { Missing: "silent", Unavailable: "silent" },
+		fields: Draft,
+		fixed: { entityId: client.entityId },
+		query: client.query,
+	});
 }
 function Fields({ form }: { readonly form: NonNullable<ReturnType<typeof useSettingsEditor>["form"]> }) {
 	const errorId = useId();

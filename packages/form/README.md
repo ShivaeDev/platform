@@ -269,7 +269,7 @@ Whole-form Schema refinements are available through `errorAt([])` after submissi
 
 ### Map save rejections to fields
 
-`rejecting` from `@shivaedev/form/fieldRejection.ts` wraps a save with field feedback. It takes the form schema, the save function and a `rejectField` callback or `undefined`. With `undefined`, `fieldRejectionOf(schema)` uses `@shivaedev/errors` to recognize tagged string-field rejections and selects names in that schema. Other failures keep their original error, including a rejection that names no field of the form or carries no field. `FieldRejectionMapping` makes `rejectField` required only when a tagged error's `field` type includes literal names outside the form; a plain `string` field leaves the default in charge.
+`rejecting` from `@shivaedev/form/fieldRejection.ts` wraps a save with field feedback. It takes the form schema, the save function and a `rejectField` callback or `undefined`. With `undefined`, `fieldRejectionOf(schema)` uses `@shivaedev/errors` to recognize tagged string-field rejections and selects names in that schema. Other failures keep their original error, including a rejection that names no field of the form or carries no field. `useCreate` and `useEditor` in `@shivaedev/react` use the same default and take per-tag `failures` handlers instead of a callback.
 
 For a service whose rejection names a nested value, return a path tuple from the callback:
 
@@ -391,17 +391,17 @@ For a form made with these fields, `order.choices("visibility")` returns the enc
 
 Import the module that defines a name; there is no root entry.
 
-| Module                                    | Application-facing exports                                                                |
-| ----------------------------------------- | ----------------------------------------------------------------------------------------- |
-| `@shivaedev/form/form.ts`                 | `form(schema, config)`                                                                    |
-| `@shivaedev/form/shape.ts`                | `Form`, `Submitter`, `FieldFailure`, `Invalid` and the field types they use               |
-| `@shivaedev/form/fieldRejection.ts`       | `rejecting`, `fieldRejectionOf`, `FieldRejection`, `RejectField`, `FieldRejectionMapping` |
-| `@shivaedev/form/adapters/react.ts`       | `useField`, `useSubmit`, `useDirty`, `usePersistedDraft`, `DraftSessionContext`           |
-| `@shivaedev/form/draftSession.ts`         | `draftSession(id)`                                                                        |
-| `@shivaedev/form/field.ts`                | `number`, `list`, `NumberOptions`, `ListOptions`                                          |
-| `@shivaedev/form/adapters/numberInput.ts` | `numberInput`                                                                             |
-| `@shivaedev/form/adapters/useList.ts`     | `useList`                                                                                 |
-| `@shivaedev/form/emptyAsNull.ts`          | `emptyAsNull`                                                                             |
+| Module                                    | Application-facing exports                                                      |
+| ----------------------------------------- | ------------------------------------------------------------------------------- |
+| `@shivaedev/form/form.ts`                 | `form(schema, config)`                                                          |
+| `@shivaedev/form/shape.ts`                | `Form`, `Submitter`, `FieldFailure`, `Invalid` and the field types they use     |
+| `@shivaedev/form/fieldRejection.ts`       | `rejecting`, `fieldRejectionOf`, `FieldRejection`, `RejectField`                |
+| `@shivaedev/form/adapters/react.ts`       | `useField`, `useSubmit`, `useDirty`, `usePersistedDraft`, `DraftSessionContext` |
+| `@shivaedev/form/draftSession.ts`         | `draftSession(id)`                                                              |
+| `@shivaedev/form/field.ts`                | `number`, `list`, `NumberOptions`, `ListOptions`                                |
+| `@shivaedev/form/adapters/numberInput.ts` | `numberInput`                                                                   |
+| `@shivaedev/form/adapters/useList.ts`     | `useList`                                                                       |
+| `@shivaedev/form/emptyAsNull.ts`          | `emptyAsNull`                                                                   |
 
 `form` takes a `Schema.Struct` and this configuration:
 

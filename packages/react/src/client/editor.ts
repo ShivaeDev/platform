@@ -3,7 +3,6 @@ import type * as AsyncResult from "effect/reactivity/AsyncResult";
 import type * as Atom from "effect/reactivity/Atom";
 import { useEffect, useState } from "react";
 import { usePersistedDraft } from "@shivaedev/form/adapters/react.ts";
-import type { FieldRejectionMapping } from "@shivaedev/form/fieldRejection.ts";
 import type { PersistedDraftConfig } from "@shivaedev/form/persistence.ts";
 import type { Decoded, Encoded, FieldFailure, Fields, Form, Services } from "@shivaedev/form/shape.ts";
 import { formFields } from "#client/adapters/formFields.ts";
@@ -11,6 +10,7 @@ import { typedEditor } from "#client/adapters/operationHooks.ts";
 import { rowValues } from "#client/adapters/rowValues.ts";
 import { useSubmissionCallbacks } from "#client/adapters/useSubmissionCallbacks.ts";
 import type { BoundOperation, LooseOperation } from "#client/boundOperation.ts";
+import type { FailureChoices, FormFailuresOption } from "#client/failures.ts";
 import type { NoticeFeedback } from "#client/notices.ts";
 import type {
 	DecodingServicesOption,
@@ -30,10 +30,9 @@ import { type SubmissionConfig, submission } from "#submission.ts";
 export type EditorOptions<TFields extends Fields, TRow, TQueryError, TSaved, TSaveError, R, TRuntimeError> = {
 	readonly persistedDraft?: PersistedDraftConfig | undefined;
 	readonly query: Atom.Atom<AsyncResult.AsyncResult<TRow, TQueryError>>;
-	readonly notices?: NoticeFeedback<Decoded<TFields>, TSaved, TSaveError, Services<TFields, R>>;
+	readonly notices?: NoticeFeedback<Decoded<TFields>, TSaved, Services<TFields, R>>;
 	readonly queryNotice?: QueryOptions<TQueryError>["notice"];
-} & FieldRejectionMapping<TFields, TSaveError> &
-	Pick<SubmissionConfig<TFields, TSaved, TSaveError, R, TRuntimeError>, "requiredMessages" | "checks" | "debounce" | "arrayKeys">;
+} & Pick<SubmissionConfig<TFields, TSaved, TSaveError, R, TRuntimeError>, "requiredMessages" | "checks" | "debounce" | "arrayKeys">;
 export interface Editor<TFields extends Fields, TRow, TQueryError, TSaveError, TRuntimeError, TSaved = TRow>
 	extends SaveState<TSaveError | TRuntimeError> {
 	readonly form: Form<TFields, TSaved, TSaveError | FieldFailure, TRuntimeError> | undefined;
@@ -65,6 +64,7 @@ export type UseEditor = <
 	TFixed extends Partial<TInput> = NoFixed,
 	TFields extends Fields = never,
 	TLoaded extends NoInfer<TRow> | undefined = undefined,
+	TSilent extends boolean = false,
 >(
 	operation: BoundOperation<TInput, TSaved, TSaveError, R, TRuntimeError> & { readonly payload?: TPayload },
 	options: EditorOptions<
@@ -85,18 +85,20 @@ export type UseEditor = <
 			| (Derived<TFields> extends true ? MissingFromRow<TRow | TSaved, FormFields<TPayload, TFixed, TFields>> : never)
 		> &
 		NoInfer<ValuesOption<TRow | TSaved, FormFields<TPayload, TFixed, TFields>, Derived<TFields>>> &
-		NoInfer<DecodingServicesOption<FormFields<TPayload, TFixed, TFields>, R>>,
+		NoInfer<DecodingServicesOption<FormFields<TPayload, TFixed, TFields>, R>> &
+		FormFailuresOption<FormFields<TPayload, TFixed, TFields>, TSaveError, Services<FormFields<TPayload, TFixed, TFields>, R>, TSilent>,
 ) => [TLoaded] extends [undefined]
 	? Editor<FormFields<TPayload, TFixed, TFields>, TRow, TQueryError, TSaveError, TRuntimeError, TSaved>
 	: LoadedEditor<FormFields<TPayload, TFixed, TFields>, TRow, TQueryError, TSaveError, TRuntimeError, TSaved>;
 export type LooseEditor = (
 	operation: LooseOperation,
-	options: EditorOptions<Fields, unknown, unknown, unknown, unknown, unknown, unknown> & {
-		readonly fields?: Schema.Struct<Fields>;
-		readonly fixed?: object;
-		readonly loaded?: unknown;
-		readonly values?: (row: unknown) => Encoded<Fields>;
-	},
+	options: EditorOptions<Fields, unknown, unknown, unknown, unknown, unknown, unknown> &
+		FailureChoices & {
+			readonly fields?: Schema.Struct<Fields>;
+			readonly fixed?: object;
+			readonly loaded?: unknown;
+			readonly values?: (row: unknown) => Encoded<Fields>;
+		},
 ) => Editor<Fields, unknown, unknown, unknown, unknown, unknown> | LoadedEditor<Fields, unknown, unknown, unknown, unknown, unknown>;
 const useLooseEditor: LooseEditor = (operation, options) => {
 	const { fixed } = options;
@@ -107,7 +109,7 @@ const useLooseEditor: LooseEditor = (operation, options) => {
 	const callbacks = useSubmissionCallbacks(
 		fields,
 		(edited: Decoded<Fields>) => operation.run({ ...fixed, ...edited }),
-		config.rejectField,
+		config,
 		runtime,
 		config.notices,
 	);

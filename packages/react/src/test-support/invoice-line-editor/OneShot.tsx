@@ -16,6 +16,7 @@ export function InvoiceLineOneShot({
 }) {
 	const [original] = useState(opening);
 	const edit = useCreate(api.save, {
+		failures: { InvoiceLineNotFound: "silent", Unavailable: "silent" },
 		fields: InvoiceLineDraft,
 		fixed: { expectedVersion: original.version, id: original.id },
 		initialValues: values(original),

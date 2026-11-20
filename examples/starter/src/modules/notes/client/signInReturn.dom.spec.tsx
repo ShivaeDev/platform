@@ -112,7 +112,7 @@ signInApp.it(
 		yield* outcomes([
 			["page", heading, "Notes"],
 			["location", href, "/"],
-			["alert", alert, "Sign in to add a note."],
+			["alert", alert, "Authentication required"],
 			["session checks", sessionChecks, "2 session checks"],
 		]);
 	},

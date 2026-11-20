@@ -4,6 +4,7 @@ import { RpcTest } from "effect/rpc";
 import { bind } from "@shivaedev/contract/bind.ts";
 import { contract } from "@shivaedev/contract/contract.ts";
 import { command, query } from "@shivaedev/contract/operation.ts";
+import { Conflict } from "@shivaedev/errors/taxonomy.ts";
 
 export const Note = Schema.Struct({ id: Schema.Number, title: Schema.String, version: Schema.Number, words: Schema.Number });
 const NoteId = { id: Schema.Number };
@@ -21,8 +22,15 @@ const Rename = command("rename", {
 	rejections: {},
 	success: Note,
 });
+export class SubtitleRejected extends Schema.TaggedError<SubtitleRejected>()("SubtitleRejected", { message: Schema.String }) {}
+const Retitle = command("retitle", {
+	invalidates: () => [],
+	payload: { ...NoteId, title: Schema.String },
+	rejections: { Conflict, SubtitleRejected },
+	success: Note,
+});
 const Remove = command("remove", { invalidates: () => [], payload: NoteId, rejections: {}, success: Schema.Void });
-const Notes = contract("notes", { commands: [Create, Update, Rename, Remove], queries: [Get] });
+const Notes = contract("notes", { commands: [Create, Update, Rename, Retitle, Remove], queries: [Get] });
 
 class Client extends AtomRpc.Service<Client>()("fixture/NotesClient", {
 	group: Notes,
@@ -33,6 +41,7 @@ class Client extends AtomRpc.Service<Client>()("fixture/NotesClient", {
 		"notes.get": ({ id }) => Effect.succeed({ id, title: "", version: 1, words: 0 }),
 		"notes.remove": () => Effect.void,
 		"notes.rename": ({ id, title }) => Effect.succeed({ id, title, version: 2, words: 0 }),
+		"notes.retitle": ({ id, title }) => Effect.succeed({ id, title, version: 2, words: 0 }),
 		"notes.update": ({ id, title, version }) => Effect.succeed({ id, title, version, words: 0 }),
 	}),
 }) {}

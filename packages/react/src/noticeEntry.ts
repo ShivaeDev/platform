@@ -9,10 +9,13 @@ export interface NoticeAction<TMessage = unknown> {
 	readonly label: TMessage;
 }
 export type NoticeClock = Pick<Atom.AtomRuntime<never, unknown>, "atom">;
+// A success reports what a command did, a rejection why the server refused it, a failure that the framework could not complete it.
+export type NoticeKind = "failure" | "rejection" | "success";
 export interface NoticeEntry<TMessage = unknown> {
 	readonly action?: { readonly label: TMessage; readonly run: () => void } | undefined;
 	readonly dismiss: () => void;
 	readonly id: number;
+	readonly kind: NoticeKind;
 	readonly message: TMessage;
 	readonly release: () => void;
 	readonly status: Atom.Atom<AsyncResult.AsyncResult<unknown, unknown>>;
@@ -25,6 +28,7 @@ export function noticeEntry<TMessage>(
 	descriptor: Pick<NoticeDescriptor<never, TMessage>, "message" | "expiresIn">,
 	remove: (id: number) => void,
 	action: NoticeAction<TMessage> | undefined,
+	kind: NoticeKind,
 ): NoticeEntry<TMessage> {
 	let active = true;
 	function dismiss() {
@@ -63,6 +67,7 @@ export function noticeEntry<TMessage>(
 		action: action === undefined ? undefined : { label: action.label, run },
 		dismiss,
 		id,
+		kind,
 		message: descriptor.message,
 		release,
 		status: action?.atom ?? idle,
