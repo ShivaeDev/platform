@@ -1,10 +1,11 @@
-import { Context, DateTime, Effect, Schema, SchemaGetter } from "effect";
+import { Context, DateTime, Effect, Redacted, Schema, SchemaGetter } from "effect";
 import { Model } from "effect/schema";
 import type { SqlClient } from "effect/sql";
 import type { SqlError } from "effect/sql/SqlError";
 import { expectTypeOf, it } from "vitest";
 import { makeRepository } from "#repository.ts";
 import type { BucketRegistrationError, ServerOnlyKeyError } from "#repositoryCollection.ts";
+import { serverOnly } from "#serverOnly.ts";
 
 class FilterEncoding extends Context.Service<FilterEncoding, string>()("@shivaedev/sql/FilterEncoding") {}
 const Kind = Schema.String.pipe(
@@ -135,6 +136,44 @@ const program = Effect.gen(function* () {
 	makeRepository(Row, { ...options, conflictWhere: { value: "1" } });
 	// @ts-expect-error A predicate requires conflict columns.
 	makeRepository(Row, { conflictWhere: { kind: "x" }, idColumn: "id", spanPrefix: "Row", tableName: "rows" });
+});
+
+class Credential extends Model.Class<Credential>("FilteredCredential")({
+	digest: serverOnly(Schema.String),
+	id: Model.Field({ json: Schema.Number, select: Schema.Number, update: Schema.Number }),
+	owner: Schema.String,
+}) {}
+
+// A server-only value is matched only by equality or an in list of Redacted values; a range or pattern would order or
+// probe the stored secret.
+const serverOnlyFilters = Effect.gen(function* () {
+	const credentials = yield* makeRepository(Credential, { idColumn: "id", spanPrefix: "Credential", tableName: "credentials" });
+	const digest = Redacted.make("digest-a");
+	credentials.findMany({ where: { digest } });
+	credentials.findMany({ where: { digest: { in: [digest] } } });
+	credentials.count({ where: { digest } });
+	credentials.select({ where: { digest: { in: [digest] } } });
+	credentials.delete({ digest: { in: [digest] } });
+	// @ts-expect-error A server-only field takes no gt bound, even a Redacted one.
+	credentials.findMany({ where: { digest: { gt: digest } } });
+	// @ts-expect-error A server-only field takes no gte bound.
+	credentials.select({ where: { digest: { gte: digest } } });
+	// @ts-expect-error A server-only field takes no lt bound.
+	credentials.count({ where: { digest: { lt: digest } } });
+	// @ts-expect-error A server-only field takes no lte bound.
+	credentials.findMany({ where: { digest: { lte: digest } } });
+	// @ts-expect-error A server-only field takes no bound of its plain stored value either.
+	credentials.findMany({ where: { digest: { gt: "digest-a" } } });
+	// @ts-expect-error A server-only field takes no LIKE pattern.
+	credentials.select({ where: { digest: { like: "digest-%" } } });
+	// @ts-expect-error Equality takes the Redacted value, not the plain stored value.
+	credentials.findMany({ where: { digest: "digest-a" } });
+	// @ts-expect-error In lists take Redacted values, not plain stored values.
+	credentials.delete({ digest: { in: ["digest-a"] } });
+});
+
+it("a server-only field is filtered by equality or an in list of Redacted values and takes no range or pattern", () => {
+	expectTypeOf(serverOnlyFilters).toEqualTypeOf<Effect.Effect<void, BucketRegistrationError | ServerOnlyKeyError, SqlClient.SqlClient>>();
 });
 
 it("conflict predicates retain field encoding services and check columns and values", () => {

@@ -1,4 +1,4 @@
-import { Effect, Schema } from "effect";
+import { Effect, type Redacted, Schema } from "effect";
 import { Rpc, RpcGroup } from "effect/rpc";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { GeneratedSuccess } from "#GeneratedSuccess.ts";
@@ -28,6 +28,34 @@ const schemas = {
 	},
 };
 
+type Outline = string | readonly Outline[];
+interface Folder {
+	readonly children: readonly Folder[];
+	readonly key: Redacted.Redacted<string>;
+	readonly name: string;
+	readonly outline: Outline;
+}
+interface FolderEncoded {
+	readonly children: readonly FolderEncoded[];
+	readonly key: string;
+	readonly name: string;
+	readonly outline: Outline;
+}
+// An outline's entries are text or nested outlines, so it leads back to itself through a union and an array alone.
+const Outline: Schema.Codec<Outline> = Schema.Union([Schema.String, Schema.Array(Schema.suspend(() => Outline))]);
+// A folder holds folders of its own kind, so its fields lead back to itself before and after they reach the key.
+const Folder: Schema.Codec<Folder, FolderEncoded> = Schema.Struct({
+	children: Schema.Array(Schema.suspend(() => Folder)),
+	key: Schema.RedactedFromValue(Schema.String),
+	name: Schema.String,
+	outline: Outline,
+});
+const holders = {
+	"a folder of folders with a Redacted key": Folder,
+	"a Redacted refresh beside null": Schema.Struct({ refresh: Schema.NullOr(Schema.RedactedFromValue(Schema.String)), scope: Schema.String }),
+};
+export type Holder = keyof typeof holders;
+
 function outcome(registration: Effect.Effect<unknown, Effect.Error<ReturnType<typeof schemaSensitiveKeys>>>) {
 	return registration.pipe(
 		Effect.match({
@@ -42,6 +70,15 @@ export const fieldScope = storyKit({
 	name: "RPC field scope registration",
 	stages: [],
 	verbs: (_state, story) => ({
+		maskedNames: (holder: Holder, names: readonly string[]) => {
+			story.tell(`register an RPC whose success is ${holder}, and ask its policy which of ${names.join(", ")} it masks`);
+			return schemaSensitiveKeys(RpcGroup.make(Rpc.make("Read", { success: holders[holder] }))).pipe(
+				Effect.match({
+					onFailure: (error) => error.message,
+					onSuccess: (policy) => names.filter(policy.forRpc("Read")),
+				}),
+			);
+		},
 		register: (shape: keyof typeof schemas | "multipleRpcs", extra: readonly string[] = []) => {
 			story.tell(`register an RPC with ${shape} field names`);
 			const declaration: { error: Schema.Top; success: Schema.Top } = schemas[shape === "multipleRpcs" ? "threeConflicts" : shape];
