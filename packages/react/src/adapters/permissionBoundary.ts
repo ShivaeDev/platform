@@ -1,5 +1,5 @@
-import { CatchBoundary } from "@tanstack/react-router";
-import { createElement, type ReactNode, useContext } from "react";
+import { type AnyRouter, CatchBoundary, useRouter } from "@tanstack/react-router";
+import { createElement, type ReactNode, useContext, useEffect, useRef } from "react";
 import type { Permission } from "@shivaedev/access/permission.ts";
 import { isForbidden } from "@shivaedev/errors/taxonomy.ts";
 import type { PermissionSession } from "@shivaedev/identity/PermissionSession.ts";
@@ -25,7 +25,28 @@ export function PermissionBoundaryError({ error }: { readonly error: unknown }):
 	return context?.fallback;
 }
 
+function grantKey(session: PermissionSession | null | undefined) {
+	return (session?.user.permissions ?? [])
+		.map((grant) => `${grant.name}:${grant.strength}`)
+		.sort()
+		.join(",");
+}
+
+// Route guards read the session when a navigation loads, so a session refreshed in place reruns them here.
+function useGuardRerun(session: PermissionSession | null | undefined) {
+	const router: AnyRouter | undefined = useRouter({ warn: false });
+	const grants = grantKey(session);
+	const guardedRef = useRef(grants);
+	useEffect(() => {
+		if (guardedRef.current !== grants) {
+			guardedRef.current = grants;
+			void router?.invalidate();
+		}
+	}, [router, grants]);
+}
+
 export function PermissionBoundary({ children, fallback, session }: PermissionBoundaryProps): ReactNode {
+	useGuardRerun(session);
 	return createElement(
 		PermissionContext.Provider,
 		{ value: { fallback, session } },
