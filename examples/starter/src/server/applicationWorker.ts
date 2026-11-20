@@ -1,5 +1,4 @@
 import { Config, Effect, Layer, Option, type Redacted } from "effect";
-import { otlpTracing } from "@shivaedev/server/otlpTracing.ts";
 import { workerHost } from "@shivaedev/server/workerHost.ts";
 import { databaseOptions } from "#server/databaseOptions.ts";
 import { emailMailerLayer } from "#server/emailMailerLayer.ts";
@@ -27,7 +26,7 @@ export function applicationWorker<R = never, E = never, TRequirements = never>(c
 				migrations: { ...database.migrations, ...Option.match(configuredRelease, { onNone: () => ({}), onSome: (release) => ({ release }) }) },
 				services,
 				workers: modules.workers.pipe(Layer.provide(Layer.merge(emailMailerLayer(), replacements))),
-			}).pipe(Layer.tap(() => Effect.logInfo("Worker ready to take jobs")));
+			});
 		}),
-	).pipe(Layer.provide(otlpTracing));
+	);
 }
