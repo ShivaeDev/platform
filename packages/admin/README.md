@@ -11,12 +11,12 @@ const Jobs = adminPage({
 	id: "jobs",
 	permission: JobsPermission,
 	route: { path: "/admin/jobs", title: "Jobs" },
-	contract: contract("admin.jobs", { queries: [Failed] }),
+	contract: Failed,
 });
 const Admin = adminRegistry(Jobs);
 ```
 
-The page exposes `admin.jobs.failed` and the generated `admin.jobs.$changes` subscription. Both require `JobsPermission`, which checks `ReadJobs` (`jobs.read`). A query-only contract has no command. The application grants this permission to its chosen roles.
+`Failed` is the browser contract of an `admin.jobs` module with one `failed` query. The page exposes `admin.jobs.failed` and the generated `admin.jobs.$changes` subscription. Both require `JobsPermission`, which checks `ReadJobs` (`jobs.read`). A query-only contract has no command. The application grants this permission to its chosen roles.
 
 ## Using it
 
@@ -24,62 +24,19 @@ The page exposes `admin.jobs.failed` and the generated `admin.jobs.$changes` sub
 
 With the application host, a generated query subscription returns its first authorized result after registering read keys. Bound admin screens consume that value in one RPC request. Raw subscription readers handle `Result` values alongside later change hints.
 
-An admin page is a native `@shivaedev/contract` contract plus a stable id, route metadata and one permission middleware. The page applies that middleware to every operation in its contract, so no admin operation exists without a permission check. The registry merges the pages into one native RPC group, and server registration pairs each page id with the handler Layer the application writes. Admin supplies optional default React views for Users, Sessions and Jobs. The application owns the admin shell, custom views, route composition, styling, session policy and RPC host.
+An admin page is a native `@shivaedev/contract` contract, normally the browser contract generated from a module built with `defineModule`, plus a stable id, route metadata and one permission middleware. The page applies that middleware to every operation in its contract, so no admin operation exists without a permission check. The registry merges the pages into one native RPC group, and server registration pairs each page id with the handler Layer that serves its contract. Admin supplies optional default React views for Users, Sessions and Jobs. The application owns the admin shell, custom views, route composition, styling, session policy and RPC host.
 
 ### Declare pages and the registry
 
-Declare each page's queries, commands and streams with `@shivaedev/contract`, then pass its native contract to `adminPage`. The stable id identifies the page at server registration; route metadata belongs to the application's view. Author RPC namespaces in the contract name, such as `admin.jobs`.
-
-For a wholly admin-only jobs feature, put this browser-safe declaration in `src/modules/admin/jobs/pages.ts`:
+Write a page's operations once, as a module built with `defineModule` from `@shivaedev/contract/defineModule.ts`: each operation is its `payload` and `*run`, and `pnpm generate` writes the browser contract from the module. Give the module the page's permission middleware, so `run` can read `SessionUser`. Author RPC namespaces in the module name, such as `admin.jobs`. The module file is server code; for a wholly admin-only jobs feature, put it in `src/modules/admin/jobs/Failed.ts`:
 
 ```ts
-import { Schema } from "effect";
 import { JobsPermission } from "@shivaedev/admin/permissions.ts";
-import { adminPage } from "@shivaedev/admin/page.ts";
-import { adminRegistry } from "@shivaedev/admin/registry.ts";
-import { contract } from "@shivaedev/contract/contract.ts";
-import { query } from "@shivaedev/contract/operation.ts";
+import { defineModule } from "@shivaedev/contract/defineModule.ts";
+import { adminJobsWire } from "#generated/modules/admin/jobs/Failed.ts";
+import { JobStore } from "#modules/admin/jobs/server/JobStore.ts";
+import { ListFailed } from "#modules/admin/jobs/server/ListFailed.ts";
 
-const Failed = query("failed", {
-	reads: () => [],
-	success: Schema.Array(Schema.String),
-});
-export const Jobs = adminPage({
-	id: "jobs",
-	permission: JobsPermission,
-	route: { path: "/admin/jobs", title: "Jobs" },
-	contract: contract("admin.jobs", { queries: [Failed] }),
-});
-export const Admin = adminRegistry(Jobs);
-```
-
-`Jobs.contract` keeps the native `.declaration` and `.application.toLayer` APIs. `adminRegistry(...pages)` returns `pages` and a native `group`. Duplicate page ids and RPC tags, including generated subscriptions, fail when the registry is created. Route patterns that can match the same path also fail, including a static page that overlaps another page's `$` detail parameter. Choose distinct routes rather than relying on route order.
-
-Register server handler Layers by page id in `src/modules/admin/jobs/server/registration.ts`, importing `Admin` and `Jobs` from that module's `pages.ts`:
-
-```ts
-import { Effect, Layer } from "effect";
-import { registerAdmin } from "@shivaedev/admin/server/registerAdmin.ts";
-import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
-
-const registration = registerAdmin(Admin, {
-	jobs: Jobs.contract.application.toLayer({
-		"admin.jobs.failed": () => Effect.succeed(["mail-42"]),
-	}),
-});
-const sessions = Layer.succeed(SessionPolicy, { origin, provider, roles: Access });
-const handlers = registration.handlers;
-```
-
-Declare application roles with `@shivaedev/access`, grant the relevant domain permissions explicitly, and supply that role set through the session or auth configuration of `@shivaedev/identity`.
-
-Pass `registration.group` and `handlers` to the existing application's RPC host on `/rpc`, merging them with its other groups and Layers as needed. The Platform host supplies generated change handlers; registration requires the page's application handlers. Handler Layer errors and service requirements remain inferred. Missing or extra page ids defect when the handler Layer is built; TypeScript also checks each Layer provides the handlers for its page.
-
-### Write a page's operations once
-
-A page's operations can instead be a module built with `defineModule` from `@shivaedev/contract/defineModule.ts`: each operation is its `payload` and `*run`, and `pnpm generate` writes the browser contract from the module. Give the module the page's permission middleware, so `run` can read `SessionUser`. The module file is server code, for example `src/modules/admin/jobs/Failed.ts`:
-
-```ts
 export const Failed = defineModule({
 	middleware: JobsPermission,
 	name: "admin.jobs",
@@ -89,21 +46,40 @@ export const Failed = defineModule({
 });
 ```
 
-The browser-safe page imports the generated contract, which has the module's name:
+Pass the generated contract, which has the module's name, to `adminPage` in the browser-safe `src/modules/admin/jobs/pages.ts`. The stable id identifies the page at server registration; route metadata belongs to the application's view.
 
 ```ts
+import { JobsPermission } from "@shivaedev/admin/permissions.ts";
+import { adminPage } from "@shivaedev/admin/page.ts";
+import { adminRegistry } from "@shivaedev/admin/registry.ts";
 import { Failed } from "#generated/modules/admin/jobs/Failed.ts";
 
 export const Jobs = adminPage({ contract: Failed, id: "jobs", permission: JobsPermission, route: { path: "/admin/jobs", title: "Jobs" } });
+export const Admin = adminRegistry(Jobs);
 ```
 
-Server registration serves the module itself with `moduleHandlers` from `@shivaedev/contract/moduleHandlers.ts`, which runs each query's read policy inside its handler:
+`adminRegistry(...pages)` returns `pages` and a native `group`. Duplicate page ids and RPC tags, including generated subscriptions, fail when the registry is created. Route patterns that can match the same path also fail, including a static page that overlaps another page's `$` detail parameter. Choose distinct routes rather than relying on route order.
+
+Register each page's handler Layer by page id in `src/modules/admin/jobs/server/registration.ts`. A defined module is served by `moduleHandlers` from `@shivaedev/contract/moduleHandlers.ts`, which runs each query's read policy inside its handler:
 
 ```ts
-registerAdmin(Admin, { jobs: moduleHandlers(Failed) });
+import { Layer } from "effect";
+import { registerAdmin } from "@shivaedev/admin/server/registerAdmin.ts";
+import { moduleHandlers } from "@shivaedev/contract/moduleHandlers.ts";
+import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
+import { Failed } from "#modules/admin/jobs/Failed.ts";
+import { Admin } from "#modules/admin/jobs/pages.ts";
+
+const registration = registerAdmin(Admin, { jobs: moduleHandlers(Failed) });
+const sessions = Layer.succeed(SessionPolicy, { origin, provider, roles: Access });
+const handlers = registration.handlers;
 ```
 
-The page's permission covers every operation as for any page. Pages in this form and pages with hand-written handlers share one registry, so an application moves one page at a time.
+Declare application roles with `@shivaedev/access`, grant the relevant domain permissions explicitly, and supply that role set through the session or auth configuration of `@shivaedev/identity`.
+
+Pass `registration.group` and `handlers` to the existing application's RPC host on `/rpc`, merging them with its other groups and Layers as needed, or attach the registration as a server module's `admin` field. The Platform host supplies generated change handlers; registration requires each page's handlers. Handler Layer errors and service requirements remain inferred. Missing or extra page ids defect when the handler Layer is built; TypeScript also checks each Layer provides the handlers for its page.
+
+A page's contract that is not a defined module, such as one declared with `contract(...)` from `@shivaedev/contract/contract.ts`, keeps the native `.declaration` and `.application.toLayer` APIs, and its page registers hand-written handlers built with `Jobs.contract.application.toLayer({ ... })` under its id. Both kinds of page share one registry, and the page's permission covers every operation either way.
 
 ### Protect documents and detail routes
 
@@ -129,7 +105,7 @@ Browser composition uses `mergeAdminRegistries` from `@shivaedev/admin/registry.
 
 ### Keep admin code in admin paths
 
-An `admin/` path segment means admin-only code. A wholly admin-only feature lives under `src/modules/admin/<name>`, with its shared declarations, `server/` and `client/` there. Admin tools for a member feature stay inside that feature: `admin/` for browser-safe page declarations, `server/admin/` for reads and handlers, and `client/admin/` for bindings and views. Each module reads only its own tables; compose another module's exposed operations for data it owns. Permissions enforce access regardless of the path.
+An `admin/` path segment means admin-only code. A wholly admin-only feature lives under `src/modules/admin/<name>`, with its shared declarations, `server/` and `client/` there. Admin tools for a member feature stay inside that feature: `admin/` for the admin module and its browser-safe page declarations, `server/admin/` for its operations, and `client/admin/` for bindings and views. Each module reads only its own tables; compose another module's exposed operations for data it owns. Permissions enforce access regardless of the path.
 
 The starter writes the statistics read once as an operation in [`src/modules/notes/server/admin/Read.ts`](https://github.com/ShivaeDev/platform/blob/main/examples/starter/src/modules/notes/server/admin/Read.ts):
 

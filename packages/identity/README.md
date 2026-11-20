@@ -43,16 +43,20 @@ An **Origin policy** is a function of the transport request's origin, headers an
 A **subject** is the account whose data this request acts on. The actor remains the session user. `Subject` from `@shivaedev/identity/subject.ts` provides `{ id: SubjectId }`, where `SubjectId` is a branded string. `selfSubject` resolves it from the session, ignoring account-selection headers. It also provides `Identity` and `SessionUser`. A `defineService` that needs the caller declares those services in `requires`, yields them in its operations and registers its Layer in the host's `requestServices` slot. The host builds it after session middleware, once per RPC call. Its callers yield the service and call its methods without providing dependencies or passing the acting user's id. Global services yield global dependencies; caller-dependent services belong in the request slot.
 
 ```ts
-import { Effect, Schema } from "effect";
-import { contract } from "@shivaedev/contract/contract.ts";
+import { Schema } from "effect";
+import { defineModule } from "@shivaedev/contract/defineModule.ts";
 import { command } from "@shivaedev/contract/operation.ts";
 import { selfSubject, Subject } from "@shivaedev/identity/subject.ts";
+import { accountWire } from "#generated/modules/account/Account.ts";
 
-const Save = command("save", { payload: { title: Schema.String }, success: Schema.String, invalidates: () => [] });
-export const Account = contract("account", { commands: [Save], subject: selfSubject });
-export const Handlers = Account.application.toLayer({
-	"account.save": ({ title }) => Effect.map(Subject, ({ id }) => `${id}: ${title}`),
+const Save = command("save", {
+	payload: { title: Schema.String },
+	*run({ title }) {
+		const { id } = yield* Subject;
+		return `${id}: ${title}`;
+	},
 });
+export const Account = defineModule({ name: "account", operations: [Save], requires: [], subject: selfSubject, wire: accountWire });
 ```
 
 For delegation, use `accountSubject` with an application permission and a typed refusal:
@@ -807,7 +811,7 @@ An operation on one record reads that record's owner and uses the application's 
 
 ### Session-scoped contract keys
 
-For self-only features, declare `contract("preferences", { keyScope: "session", subject: selfSubject, queries, commands })`. The client registry owns cache isolation. Server subscriptions use the same plain record, list and bucket keys as repository writes. Handlers read their owner from `Subject`, and queries need no additional session keys. Matching keys trigger each subscriber's read policy before it can receive a hint or result; shared dependencies can cause authorized rechecks across accounts.
+For self-only features, define the module with `keyScope: "session"` and `subject: selfSubject`, as in `defineModule({ keyScope: "session", name: "preferences", operations, requires, subject: selfSubject, wire })`. The client registry owns cache isolation. Server subscriptions use the same plain record, list and bucket keys as repository writes. Handlers read their owner from `Subject`, and queries need no additional session keys. Matching keys trigger each subscriber's read policy before it can receive a hint or result; shared dependencies can cause authorized rechecks across accounts.
 
 The host's generated `$changes` handler accepts `{ queries: [{ query: "get", payload: { id: "theme" } }] }` and resolves the declared query dependencies during that subscription invocation. It accepts no physical subscription keys or caller-selected scope.
 
@@ -815,7 +819,7 @@ The host's generated `$changes` handler accepts `{ queries: [{ query: "get", pay
 
 Declared-key publication retries twice, after 50 ms and 100 ms, without rerunning the handler. Exhausted retries preserve the committed result. On a database-backed host, they mark local live streams for Resync and attempt a broadcast Resync on the PostgreSQL change channel. If that broadcast also fails, the server logs that other hosts may remain stale. There is no durable replay: a remote host whose listener remains healthy cannot discover a notification that never reached PostgreSQL. A client reconnect reconciles its streams.
 
-Hosted applications use `Api.application.toLayer(...)` and let `appHost` own `$changes`. A custom change handler accepts query references and resolves them inside `Stream.unwrap`, after authentication has provided `Identity`:
+Hosted applications let `appHost` own `$changes`: neither a defined module's handlers nor handlers built with `Api.application.toLayer(...)` serve it. A custom change handler accepts query references and resolves them inside `Stream.unwrap`, after authentication has provided `Identity`:
 
 ```ts
 import { Effect, Stream } from "effect";
