@@ -43,7 +43,7 @@ Each class has an `is<Class>` guard in `taxonomy.ts`, such as `isConflict(value)
 
 ### Mapping unexpected failures at the handler edge
 
-Use `rpcBoundary` only at the RPC handler edge, never inside services. Services keep their typed failures and defects so callers can handle them. At that edge, `rpcBoundary(schema, options)` keeps declared rejections and maps other failures and defects into one declared fallback. It leaves successful values and interruption intact:
+A module built with `defineModule` gets this boundary around every handler from `@shivaedev/contract`, so its operations never call it. Use `rpcBoundary` in hand-written RPC handlers, only at the handler edge and never inside services. Services keep their typed failures and defects so callers can handle them. At that edge, `rpcBoundary(schema, options)` keeps declared rejections and maps other failures and defects into one declared fallback. It leaves successful values and interruption intact:
 
 ```ts
 import { Schema } from "effect";

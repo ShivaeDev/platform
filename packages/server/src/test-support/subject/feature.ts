@@ -88,7 +88,7 @@ export function subjectHost(state: State) {
 		: appHost({ ...options, policy: "loopback" });
 }
 
-function sessions(state: State) {
+export function sessions(state: Pick<State, "revoked">) {
 	function get(headers: Headers.Headers) {
 		// A browser socket authenticates with its first frame, which the host turns into a bearer authorization header.
 		const id = headers.authorization?.replace(/^Bearer /u, "");

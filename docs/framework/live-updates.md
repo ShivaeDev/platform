@@ -31,7 +31,7 @@ const makeNotesRepository = makeRepository(StoredNote, {
 
 A model with `bucket` fields needs `collection`: its name must equal `tableName`, so a repository on `water_entries` takes `collection("water_entries", ...)`, and its bucket fields must match the model's. Otherwise building the repository fails with `BucketRegistrationError` before any write, and its message names what to change, as the [registration stories](../../packages/sql/src/bucketRegistration.spec.ts) show.
 
-Repository writes derive record keys and affected old and new bucket keys from the rows SQL returns, inside the write's transaction. Moving a note between owners announces both owners' buckets. Commands over these repositories use `invalidates: () => []`; do not repeat record or bucket keys there or call an invalidation helper at write sites. The [bucket stories](../../packages/sql/src/bucketKeys.spec.ts) cover inserts, moves and deletes against PostgreSQL.
+Repository writes derive record keys and affected old and new bucket keys from the rows SQL returns, inside the write's transaction. Moving a note between owners announces both owners' buckets. A command whose writes go through these repositories declares no `invalidates` and calls no invalidation helper at its write sites. A command declares `invalidates` only for a change that no repository write or recorded `changes` announces, such as a write to a store outside PostgreSQL; the host publishes those keys after the handler returns, and the live queries that read them rerun. The [bucket stories](../../packages/sql/src/bucketKeys.spec.ts) cover inserts, moves and deletes against PostgreSQL.
 
 Use `transact` from `@shivaedev/sql/transact.ts` for an enclosing transaction, in request handlers and workers alike. A repository write opens `transact` when called alone and joins an enclosing one. Its pre-commit hook sends PostgreSQL NOTIFY on the writing connection, so rollback discards the notification with the write, as the [commit and rollback stories](../../packages/sql/src/automaticChanges.spec.ts) prove. A bare native transaction has no observed commit boundary.
 
@@ -55,23 +55,36 @@ A raw SQL move must include both the old and new bucket keys. Repository writes 
 
 ## Declare who may read, and let the reads name their keys
 
-A query declares its decoded input, result and `readPolicy` together. `readPolicy(payload, viewer)` returns an Effect boolean. `viewer` is the session's `Option<{ id: string }>`; the browser does not send the identity. Policies may use browser-safe Effect service tags whose implementations the server supplies.
+A query's `readPolicy(payload, viewer)` returns an Effect boolean. `viewer` is the session's `Option<{ id: string }>`; the browser does not send the identity. Policies may use browser-safe Effect service tags whose implementations the server supplies. A query that declares no `readPolicy` gets contract's `signedIn`, which admits any signed-in viewer, so the starter's notes queries write none:
 
 ```ts
-import { Schema } from "effect";
-import { collection } from "@shivaedev/changes/keys.ts";
-import { contract } from "@shivaedev/contract/contract.ts";
+import { Effect, Option } from "effect";
 import { query } from "@shivaedev/contract/operation.ts";
-import { signedIn } from "@shivaedev/contract/readPolicy.ts";
-import { AuthenticatedUser } from "@shivaedev/identity/middleware.ts";
+import { NotFound } from "@shivaedev/errors/taxonomy.ts";
+import { SessionUser } from "@shivaedev/identity/identity.ts";
+import { NoteId } from "#modules/notes/model.ts";
+import { NotesRepository } from "#modules/notes/server/Repository.ts";
 
-const notes = collection("notes", Schema.Number, { userId: Schema.String });
-const Get = query("get", { payload: { id: Schema.Number }, readPolicy: signedIn, success: Schema.String });
-const List = query("list", { readPolicy: signedIn, success: Schema.Array(Schema.String) });
-const Notes = contract("notes", { queries: [Get, List] }).middleware(AuthenticatedUser);
+export const Get = query("get", {
+	payload: NoteId,
+	*run({ id }) {
+		const repository = yield* NotesRepository;
+		const { id: userId } = yield* SessionUser;
+		const row = yield* repository.findOne({ where: { id, userId } });
+		return yield* Option.match(row, { onNone: () => Effect.fail(new NotFound({ message: "Note not found" })), onSome: Effect.succeed });
+	},
+});
+
+export const List = query("list", {
+	*run() {
+		const repository = yield* NotesRepository;
+		const { id: userId } = yield* SessionUser;
+		return yield* repository.findMany({ orderBy: { direction: "desc", field: "id" }, where: { userId } });
+	},
+});
 ```
 
-Neither query declares `reads`. A query that declares no keys listens on what its repository reads filter by, named from their arguments before the statement is sent. The starter's `get` handler reads `findOne({ where: { id, userId } })` and listens on that note's row; its `list` handler reads `findMany({ where: { userId } })` and listens on the owner's `userId` bucket. A read that pins every column of a tuple bucket, such as `findMany({ where: { ownerId, day } })` over an `ownerDay` tuple declared on the collection as the [sql guide](../../packages/sql/README.md#transactions-and-invalidation) shows, listens on that tuple's key; a tuple pinned only in part pins nothing, so the read falls back to a single-column bucket it pins. A read that pins no id and no bucket, or only buckets over 1,000 keys, listens on the whole table. The [sql guide](../../packages/sql/README.md#live-reads-listen-on-what-they-filter-by) lists which key each filter pins. Filters on other columns do not narrow the key: a list filtered by owner and status reruns for any write in the owner's bucket.
+Neither query declares `reads`. A query that declares no keys listens on what its repository reads filter by, named from their arguments before the statement is sent. `get` reads `findOne({ where: { id, userId } })` and listens on that note's row; `list` reads `findMany({ where: { userId } })` and listens on the owner's `userId` bucket. A read that pins every column of a tuple bucket, such as `findMany({ where: { ownerId, day } })` over an `ownerDay` tuple declared on the collection as the [sql guide](../../packages/sql/README.md#transactions-and-invalidation) shows, listens on that tuple's key; a tuple pinned only in part pins nothing, so the read falls back to a single-column bucket it pins. A read that pins no id and no bucket, or only buckets over 1,000 keys, listens on the whole table. The [sql guide](../../packages/sql/README.md#live-reads-listen-on-what-they-filter-by) lists which key each filter pins. Filters on other columns do not narrow the key: a list filtered by owner and status reruns for any write in the owner's bucket.
 
 Declared keys win. A query that declares `reads`, `serverReads` or `readsCollections` listens exactly on those keys, and its repository reads add none. Declare them when the keys cannot come from a repository read:
 

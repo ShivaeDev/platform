@@ -12,7 +12,11 @@ const RECOGNIZED: ReadonlySet<string> = new Set([
 	"lint/correctness/noComponentHookFactories",
 	"lint/style/noDoneCallback",
 	"lint/style/noDefaultExport",
+	"lint/suspicious/noShadowRestrictedNames",
 ]);
+
+// Effect names these root modules after the globals they extend, and its own docs import them unaliased.
+const EFFECT_GLOBALS: ReadonlySet<string> = new Set(["Array", "BigInt", "Boolean", "Function", "Number", "RegExp", "String", "Symbol"]);
 
 function generatorParameter(node: ts.Node, syntax: Syntax): boolean {
 	const parameter = node.parent;
@@ -42,6 +46,19 @@ function tagHandler(node: ts.Node, syntax: Syntax): boolean {
 	return nativeEffectCall(call, "catchTags", syntax) && call.arguments.includes(handlers);
 }
 
+function effectGlobal(node: ts.Node): boolean {
+	const specifier = node.parent;
+	if (!(ts.isIdentifier(node) && EFFECT_GLOBALS.has(node.text) && ts.isImportSpecifier(specifier)) || specifier.name !== node) {
+		return false;
+	}
+	const declaration = specifier.parent.parent.parent;
+	return (
+		(specifier.propertyName ?? specifier.name).text === node.text
+		&& ts.isStringLiteral(declaration.moduleSpecifier)
+		&& declaration.moduleSpecifier.text === "effect"
+	);
+}
+
 function misclassified(diagnostic: Diagnostic, syntax: Syntax): boolean {
 	if (diagnostic.category === "lint/style/noDefaultExport") {
 		return pluginContract(syntax);
@@ -58,6 +75,8 @@ function misclassified(diagnostic: Diagnostic, syntax: Syntax): boolean {
 			return generatorParameter(node, syntax);
 		case "lint/correctness/noComponentHookFactories":
 			return tagHandler(node, syntax);
+		case "lint/suspicious/noShadowRestrictedNames":
+			return effectGlobal(node);
 		default:
 			return false;
 	}
