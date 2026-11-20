@@ -31,7 +31,7 @@ function hostGlobal(node: ts.Node): boolean {
 	if (scope === undefined) {
 		return !ts.isExternalModule(node.getSourceFile());
 	}
-	return ts.isGlobalScopeAugmentation(scope) || (!ts.isStringLiteral(scope.name) && hostGlobal(scope));
+	return (scope.flags & ts.NodeFlags.GlobalAugmentation) !== 0 || (!ts.isStringLiteral(scope.name) && hostGlobal(scope));
 }
 
 function installedLibrary(file: ts.SourceFile, workspace: ReadonlySet<string>): boolean {
