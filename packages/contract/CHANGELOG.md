@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.52.0 - 2026-11-20
+
+### Added
+
+- `warmQueries` in `warmQueries.ts`, a registry atom naming the queries a session keeps mounted. A query listed there when it mounts does not hold back the client activity's `firstSettled` flag while it awaits its first result; it still counts in `initialQueries`.
+
 ## 0.51.0 - 2026-11-20
 
 ### Added

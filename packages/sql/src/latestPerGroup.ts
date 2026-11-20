@@ -38,7 +38,7 @@ export const latestPerGroup = Effect.fnUntraced(function* (model: Model.Any, tab
 
 	return Effect.fnUntraced(function* (query: LatestPerGroup<Model.Any>, order: Fragment, rowLimit: number) {
 		yield* Effect.forEach(query.partitionBy, fieldAt);
-		const predicate = yield* where(query.where, true);
+		const predicate = yield* where(query.where, true, true);
 		const partitions = sql.csv(query.partitionBy.map((key) => sql`${sql(key)}`));
 		const keys = Object.keys(model.fields);
 		const columns = sql.csv(groupColumns(model.fields, keys).map(({ column }) => sql`${sql(column)}`));
@@ -47,7 +47,7 @@ export const latestPerGroup = Effect.fnUntraced(function* (model: Model.Any, tab
 			return [];
 		}
 		if (pinned !== undefined && sql.onDialectOrElse({ orElse: () => false, pg: () => true })) {
-			const remaining = yield* where(pinned.remaining, true);
+			const remaining = yield* where(pinned.remaining, true, true);
 			const tuple = pinned.tuple;
 			const tupleRows = pinned.groups.map((group) => tuple?.fields.map((key) => group[query.partitionBy.indexOf(key)]) ?? group);
 			const tupleSource =

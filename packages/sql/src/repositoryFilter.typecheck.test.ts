@@ -84,10 +84,14 @@ const program = Effect.gen(function* () {
 	plain.findMany({ where: { value: listedRange } });
 	// @ts-expect-error Delete refuses a list that carries another operator.
 	plain.delete({ value: listedRange });
-	// @ts-expect-error Delete has no not-null filter.
-	plain.delete({ note: { not: null } });
-	// @ts-expect-error Delete retains its equality and list filters.
-	plain.delete({ id: { gt: 1 } });
+	plain.delete({ id: { gt: 1 }, kind: { like: "x%" }, note: { not: null } });
+	// @ts-expect-error Delete refuses a not-null filter beside a pattern, as reads do.
+	plain.delete({ note: { like: "x%", not: null } });
+	// @ts-expect-error Delete takes a not-null filter only on a field whose type admits null.
+	plain.delete({ kind: { not: null } });
+	expectTypeOf<Parameters<typeof plain.latestPerGroup>[0]["where"]>().toEqualTypeOf<NonNullable<Parameters<typeof plain.findMany>[0]>["where"]>();
+	// @ts-expect-error latestPerGroup refuses a list that carries a not-null filter, as reads do.
+	plain.latestPerGroup({ limit: 1, orderBy: [{ direction: "desc", field: "id" }], partitionBy: ["kind"], where: { note: { in: ["x"], not: null } } });
 	const deleted = plain.delete({ id: { in: [1, 2] }, kind: "x", value: { in: [1, 2] } });
 	expectTypeOf<Effect.Services<typeof deleted>>().toEqualTypeOf<FilterEncoding>();
 	expectTypeOf<Effect.Success<typeof deleted>>().toEqualTypeOf<void>();

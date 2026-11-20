@@ -27,9 +27,19 @@ function moduleOf(declaration: ts.Declaration): string | undefined {
 	return module !== undefined && ts.isStringLiteral(module) ? module.text : undefined;
 }
 
-// Library types stay out of this rule's program, so a library's Promise is recognised by the bridge that consumes it, from its import.
-export function promiseBridge(checker: ts.TypeChecker, workspace: ReadonlySet<string>) {
-	function outsideLibrary(identifier: ts.Identifier): string | undefined {
+function bridgeCall(checker: ts.TypeChecker, node: ts.Node): boolean {
+	return (
+		ts.isCallExpression(node) && /^effect(?:\.Effect|\/Effect)\.(?:tryPromise|promise)$/u.test(boundaryReference(checker, node.expression) ?? "")
+	);
+}
+
+function callbackOf(node: ts.CallExpression): ts.Node | undefined {
+	const [argument] = node.arguments;
+	return argument !== undefined && ts.isObjectLiteralExpression(argument) ? serviceProperty(argument, "try") : argument;
+}
+
+function outsideLibrary(checker: ts.TypeChecker, workspace: ReadonlySet<string>) {
+	return (identifier: ts.Identifier): string | undefined => {
 		const specifier = (checker.getSymbolAtLocation(identifier)?.declarations ?? []).map(moduleOf).find((found) => found !== undefined);
 		if (specifier === undefined || /^[.#/]/u.test(specifier)) {
 			return undefined;
@@ -38,28 +48,44 @@ export function promiseBridge(checker: ts.TypeChecker, workspace: ReadonlySet<st
 		return name === "effect" || name.startsWith("@effect/") || name.startsWith("@shivaedev/") || name.startsWith("node:") || workspace.has(name)
 			? undefined
 			: specifier;
-	}
+	};
+}
+
+// The syntax half sees a library's Promise only through the bridge that consumes it, from the import its callback calls.
+export function promiseBridge(checker: ts.TypeChecker, workspace: ReadonlySet<string>) {
+	const library = outsideLibrary(checker, workspace);
 	function bridged(callback: ts.Node): string | undefined {
 		const root = ts.isExpression(callback) && !ts.isFunctionLike(callback) ? rootIdentifier(callback) : undefined;
-		const direct = root === undefined ? undefined : outsideLibrary(root);
+		const direct = root === undefined ? undefined : library(root);
 		if (direct !== undefined) {
 			return direct;
 		}
 		function visit(node: ts.Node): string | undefined {
 			const callee = calleeOf(node);
-			return (callee === undefined ? undefined : outsideLibrary(callee)) ?? ts.forEachChild(node, visit);
+			return (callee === undefined ? undefined : library(callee)) ?? ts.forEachChild(node, visit);
 		}
 		return ts.forEachChild(callback, visit);
 	}
 	return (node: ts.Node): string | undefined => {
-		if (
-			!(ts.isCallExpression(node) && /^effect(?:\.Effect|\/Effect)\.(?:tryPromise|promise)$/u.test(boundaryReference(checker, node.expression) ?? ""))
-		) {
+		if (!(ts.isCallExpression(node) && bridgeCall(checker, node))) {
 			return undefined;
 		}
-		const [argument] = node.arguments;
-		const callback = argument !== undefined && ts.isObjectLiteralExpression(argument) ? serviceProperty(argument, "try") : argument;
-		const library = callback === undefined ? undefined : bridged(callback);
-		return library === undefined ? undefined : `Promise bridge to the library ${library}`;
+		const callback = callbackOf(node);
+		const found = callback === undefined ? undefined : bridged(callback);
+		return found === undefined ? undefined : `Promise bridge to the library ${found}`;
+	};
+}
+
+// A call inside a bridge callback whose callee is an imported library binding is the one the bridge finding already names.
+export function bridgedLibraryCall(checker: ts.TypeChecker, workspace: ReadonlySet<string>) {
+	const library = outsideLibrary(checker, workspace);
+	return (node: ts.CallExpression): boolean => {
+		const callee = calleeOf(node);
+		if (callee === undefined || library(callee) === undefined) {
+			return false;
+		}
+		const bridge = ts.findAncestor(node.parent, (ancestor) => bridgeCall(checker, ancestor));
+		const callback = bridge !== undefined && ts.isCallExpression(bridge) ? callbackOf(bridge) : undefined;
+		return callback !== undefined && callback.pos <= node.pos && node.end <= callback.end;
 	};
 }

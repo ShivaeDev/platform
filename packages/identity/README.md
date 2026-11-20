@@ -179,9 +179,10 @@ Pass `requestServices` beside `services` and `handlers` to `appHost`, or put it 
 
 Declare authentication middleware for actor-only boundaries. When a request acts on an account's data, declare its subject on the contract instead of accepting an owner id and checking it in each handler.
 
-Provide one `SessionPolicy` Layer as the host's `sessions` input. Middleware, permission routes and session resolution read that service from the Effect environment. For a Better Auth provider, adapt its existing session lookup:
+Provide one `SessionPolicy` Layer as the host's `sessions` input. Middleware, permission routes and session resolution read that service from the Effect environment. For a Better Auth provider, adapt its existing session lookup. The lookup returns Better Auth's Promise, so the module lives in `adapters/`:
 
 ```ts
+// src/server/adapters/sessions.ts
 import { Layer } from "effect";
 import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import { betterAuthSessions } from "@shivaedev/identity/server/adapters/betterAuthSessions.ts";
@@ -271,16 +272,35 @@ const authentication = Effect.gen(function* () {
 
 The adapter captures the SQL transaction at creation. An adapter created at startup does not join a later `transact` around an `auth.api` call: its auth writes commit independently and survive the application's rollback. For a shared boundary, create the adapter inside `transact`, and use it only within that transaction. Create the mount there too when its Effect hooks must share the application transaction:
 
+`auth.api` answers with Promises, so the call goes through a module in `adapters/` that returns an Effect:
+
+```ts
+// src/server/adapters/signUpEmail.ts
+import { Effect } from "effect";
+
+interface EmailAccount {
+	readonly email: string;
+	readonly name: string;
+	readonly password: string;
+}
+
+export const signUpEmail = <TCreated>(
+	auth: { readonly api: { readonly signUpEmail: (request: { readonly body: EmailAccount }) => Promise<TCreated> } },
+	body: EmailAccount,
+) => Effect.tryPromise(() => auth.api.signUpEmail({ body }));
+```
+
 ```ts
 import { SqlClient } from "effect/sql";
 import { transact } from "@shivaedev/sql/transact.ts";
+import { signUpEmail } from "#server/adapters/signUpEmail.ts";
 
 const register = (body: { email: string; name: string; password: string }) =>
 	Effect.gen(function* () {
 		const sql = yield* SqlClient.SqlClient;
 		const database = yield* betterAuthDatabase();
 		const { auth } = yield* betterAuthMount({ database, emailAndPassword: { enabled: true } });
-		const created = yield* Effect.tryPromise(() => auth.api.signUpEmail({ body }));
+		const created = yield* signUpEmail(auth, body);
 		yield* sql`insert into registrations (email) values (${created.user.email})`;
 		return created.user;
 	}).pipe(transact(), Effect.scoped);
@@ -492,12 +512,12 @@ const mounted = yield* betterAuthMount(
 );
 const sessions = Layer.succeed(SessionPolicy, {
   origin: trustedOrigins({ allow: [publicOrigin, ...nativeOrigins], missing: "allow" }),
-  provider: mounted.admittedSessions((headers) => mounted.auth.api.getSession({ headers })),
+  ...mounted.sessions,
 });
 const host = appHost({ group, handlers, routes: mounted.routes, sessions, nativeOrigins });
 ```
 
-Always wrap the session lookup in `admittedSessions`, even without a sign-in policy: it applies the mount's credential selection to the same request-local identity, profile and role middleware used by cookies. A same-origin request or a request without an Origin carrying the session cookie uses only that cookie, even if invalid or revoked; its bearer header cannot switch accounts or rescue it. Otherwise the signed bearer is resolved by Better Auth. Missing, unsigned, tampered, expired and revoked bearer sessions produce `Unauthorized` at protected RPCs.
+Always take the provider from the mount's `sessions`, or wrap a custom lookup in `admittedSessions`, even without a sign-in policy: both apply the mount's credential selection to the same request-local identity, profile and role middleware used by cookies. A same-origin request or a request without an Origin carrying the session cookie uses only that cookie, even if invalid or revoked; its bearer header cannot switch accounts or rescue it. Otherwise the signed bearer is resolved by Better Auth. Missing, unsigned, tampered, expired and revoked bearer sessions produce `Unauthorized` at protected RPCs.
 
 A native client signs in through `/api/auth/sign-in/email` with `credentials: "omit"` and its bundled Origin, reads the signed credential from the `set-auth-token` response header, and sends that exact value as `Authorization: Bearer <credential>` with `credentials: "omit"` on later auth and RPC requests. Persist it only in OS-backed secure storage, such as iOS Keychain or Android Keystore-backed storage; never use localStorage, sessionStorage or IndexedDB. Browser responses keep HttpOnly cookies and omit the plugin's token header and JSON token fields. Clients without a bundled Origin receive cookie responses.
 
@@ -543,7 +563,7 @@ const authentication = Effect.gen(function* () {
 	yield* mounted.revokeUnadmitted;
 	const sessions = Layer.succeed(SessionPolicy, {
 		origin: trustedOrigins({ allow: ["https://app.example"], missing: "reject" }),
-		provider: mounted.admittedSessions((headers) => mounted.auth.api.getSession({ headers })),
+		...mounted.sessions,
 	});
 	return { ...mounted, sessions };
 });
@@ -638,6 +658,7 @@ import { AuthenticatedUserWithProviderAccounts } from "@shivaedev/identity/middl
 import { AuthUnavailable, Unauthorized } from "@shivaedev/errors/taxonomy.ts";
 import { authenticatedUserWithProviderAccountsLayer } from "@shivaedev/identity/server/session.ts";
 
+// src/server/adapters/sessions.ts: the lookups return Better Auth's Promises.
 const sessions = Layer.succeed(SessionPolicy, {
 	origin: trustedOrigins({ allow: ["https://app.example"], missing: "reject" }),
 	...mounted.sessions,
@@ -941,6 +962,7 @@ The application host installs `CommandGuard` from `@shivaedev/contract/CommandGu
 Set `streamRevalidationInterval` in the `SessionPolicy` Layer to an Effect `Duration.Input` to change the interval for middleware using that policy:
 
 ```ts
+// src/server/adapters/sessions.ts
 import { Layer } from "effect";
 import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 const sessions = Layer.succeed(SessionPolicy, {

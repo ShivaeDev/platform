@@ -18,11 +18,13 @@ discoveredMigrations.it(
 );
 
 discoveredMigrations.it(
-	"a directory without a migrations folder fails the run with a failed migration instead of applying nothing",
+	"a directory without a migrations folder fails the run with a message naming the folder it looked for instead of applying nothing",
 	[folderMissing],
 	function* ({ migrate, runs }) {
 		yield* migrate();
 
-		expect(yield* runs()).toEqual(["failed with a failed migration: Failed to read migrations directory"]);
+		expect(yield* runs()).toEqual([
+			'failed with a failed migration: Cannot read the migrations folder <directory>/migrations: pass the folder that contains "migrations"',
+		]);
 	},
 );

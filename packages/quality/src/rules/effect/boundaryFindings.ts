@@ -47,6 +47,10 @@ function construct(node: ts.Node): string | undefined {
 	return ts.isThrowStatement(node) ? "throw statement" : asyncConstruct(node);
 }
 
+export function boundaryGuidance(name: string): string {
+	return `Uses ${name}. Model the work with Effect; fail with a tagged error (or Effect.die for a defect). When a library forces it, move that code into a module under adapters/ that returns an Effect.`;
+}
+
 // Bound without a program, the checker resolves only names declared in the module, so helpers imported from other modules and parameter types stay with the typed half.
 export function boundaryFindings(checker: ts.TypeChecker, workspace: ReadonlySet<string>, typed: boolean) {
 	const call = boundaryCalls(checker);
@@ -60,7 +64,7 @@ export function boundaryFindings(checker: ts.TypeChecker, workspace: ReadonlySet
 				findings.push({
 					file: path,
 					line: source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1,
-					message: `Uses ${name}. Model the work with Effect; fail with a tagged error (or Effect.die for a defect). When a library forces it, move that code into a module under adapters/ that returns an Effect.`,
+					message: boundaryGuidance(name),
 				});
 			}
 			ts.forEachChild(node, visit);

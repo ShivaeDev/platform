@@ -7,6 +7,7 @@ import { defineRule, type Finding, type RuleInputs, type SourceFile } from "#rul
 import { boundaryFindings } from "#rules/effect/boundaryFindings.ts";
 import { moduleBinder } from "#rules/effect/boundaryReference.ts";
 import { workspaceProgram } from "#rules/effect/workspaceProgram.ts";
+import { packageFindings } from "#rules/packageFindings.ts";
 import { parses } from "#rules/parse.ts";
 
 function groupsOf(inputs: RuleInputs, packages: readonly WorkspacePackage[]): readonly (readonly SourceFile[])[] {
@@ -81,6 +82,7 @@ function without(found: readonly Finding[], syntax: readonly Finding[]): readonl
 }
 
 // The typed half reports what the whole rule finds beyond the syntax half, whose findings a full run reuses.
+// Library return types come from the package walk's program, which resolves installed packages; this rule's own program leaves them untyped.
 function typedHalf(inputs: RuleInputs) {
 	const syntax = Effect.suspend(() => {
 		const done = syntaxRuns.get(inputs.sources);
@@ -88,8 +90,11 @@ function typedHalf(inputs: RuleInputs) {
 	});
 	return Effect.flatMap(syntax, (found) =>
 		Effect.map(
-			eachGroup(inputs, (sources, workspace) => everyFinding({ ...inputs, sources }, workspace)),
-			(every) => without(every, found),
+			Effect.all([
+				eachGroup(inputs, (sources, workspace) => everyFinding({ ...inputs, sources }, workspace)),
+				packageFindings(inputs, "effect/boundary"),
+			]),
+			([every, promised]) => [...without(every, found), ...promised],
 		),
 	);
 }
@@ -98,7 +103,7 @@ export const effectBoundary = defineRule({
 	check: syntaxHalf,
 	deepHalf: { check: typedHalf, name: "typed half" },
 	description:
-		"Use Effect instead of Promise syntax and parameters, Effect.promise or Effect.tryPromise bridges to an imported outside library, synchronous Node IO, throwing helper calls or Effect.sync with throwing APIs. Runners (Effect.run*, ManagedRuntime.make, Runtime.makeRunMain, the FiberSet, FiberMap and FiberHandle runtimes and runMain) belong at entry points (including main.tsx and entry.tsx, a top-level runMain and the import.meta.main and import.meta.url === process.argv[1] guards), tool configs and tests; a runMain inside a function or an export is reported. Within Effect code, adapters/ and test-support/ folders and tool configs directly in a package's folder, which their tool loads from that fixed path, are exempt; calls to throwing helpers defined in adapters/ are accepted. Use Effect services and tagged errors; move what a library forces into a module under adapters/ that returns an Effect. No config exceptions or inline suppressions; baseline existing debt.",
+		"Use Effect instead of Promise syntax and parameters, Effect.promise or Effect.tryPromise bridges to an imported outside library, library calls that return a Promise (in the typed half, outside tests), synchronous Node IO, throwing helper calls or Effect.sync with throwing APIs. Runners (Effect.run*, ManagedRuntime.make, Runtime.makeRunMain, the FiberSet, FiberMap and FiberHandle runtimes and runMain) belong at entry points (including main.tsx and entry.tsx, a top-level runMain and the import.meta.main and import.meta.url === process.argv[1] guards), tool configs and tests; a runMain inside a function or an export is reported. Within Effect code, adapters/ and test-support/ folders and tool configs directly in a package's folder, which their tool loads from that fixed path, are exempt; calls to throwing helpers defined in adapters/ are accepted. Use Effect services and tagged errors; move what a library forces into a module under adapters/ that returns an Effect. No config exceptions or inline suppressions; baseline existing debt.",
 	id: "effect/boundary",
 	registrable: false,
 });
