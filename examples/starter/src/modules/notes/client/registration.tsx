@@ -2,7 +2,7 @@ import { createRoute } from "@tanstack/react-router";
 import { Effect, Schema } from "effect";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import type { ReactElement } from "react";
-import { queryRoute } from "@shivaedev/react/adapters/queryRoute.ts";
+import { queryRoute } from "@shivaedev/react/client/adapters/queryRoute.ts";
 import type { RouteContext } from "#client/Module.ts";
 import { Admin } from "#modules/notes/admin/pages.ts";
 import { type AdminClient, makeAdminClient } from "#modules/notes/client/admin/make.ts";
@@ -30,27 +30,29 @@ function notesModule(client: NotesClient, admin: AdminClient) {
 		routes: (routeContext: RouteContext) => {
 			const { getParentRoute } = routeContext;
 			const parent = createRoute({ context: () => ({ client }), getParentRoute, id: "notes", staticData: { signedIn: true } });
+			const list = queryRoute(({ context }: { context: typeof parent.types.allContext }) => context.client.api.list.query());
 			const notes = createRoute({
 				component: (): ReactElement => {
 					const { client: routeClient, auth } = notes.useRouteContext();
-					return <NotesScreen client={routeClient} loaded={notes.useLoaderData()} signOut={auth.signOut} />;
+					return <NotesScreen client={routeClient} query={list.useQuery()} signOut={auth.signOut} />;
 				},
 				errorComponent: RouteFailure,
 				getParentRoute: () => parent,
-				...queryRoute(({ context }: { context: typeof parent.types.allContext }) => context.client.api.list.query()),
+				...list,
 				path: "/",
 			});
+			const noteQuery = queryRoute(({ context, params }: { context: typeof parent.types.allContext; params: { noteId: number } }) =>
+				context.client.api.get.query({ id: params.noteId }),
+			);
 			const note = createRoute({
 				component: (): ReactElement => {
 					const { client: routeClient, navigate } = note.useRouteContext();
-					const loaded = note.useLoaderData();
-					return <NoteEdit client={routeClient} key={loaded.id} loaded={loaded} onDeleted={() => navigate("/")} />;
+					const loaded = noteQuery.useLoaded();
+					return <NoteEdit client={routeClient} key={loaded.loaded.id} note={loaded} onDeleted={() => navigate("/")} />;
 				},
 				errorComponent: RouteFailure,
 				getParentRoute: () => parent,
-				...queryRoute(({ context, params }: { context: typeof parent.types.allContext; params: { noteId: number } }) =>
-					context.client.api.get.query({ id: params.noteId }),
-				),
+				...noteQuery,
 				notFoundComponent: NotFound,
 				params: {
 					parse: ({ noteId }) => ({

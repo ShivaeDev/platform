@@ -1,4 +1,4 @@
-import { queryRoute } from "#adapters/queryRoute.ts";
+import { queryRoute } from "#client/adapters/queryRoute.ts";
 import type { RouterSearch, root } from "#test/routerApp.ts";
 
 export const noteQuery = queryRoute(

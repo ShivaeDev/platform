@@ -3,6 +3,7 @@ import { Effect } from "effect";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import type { ReactElement } from "react";
 import { PermissionBoundaryError } from "@shivaedev/react/adapters/permissionBoundary.ts";
+import { signInRedirect } from "@shivaedev/react/adapters/signInRedirect.ts";
 import type { AppSession, AuthActions } from "#client/adapters/auth.ts";
 import { Shell } from "#client/adapters/Shell.tsx";
 import { Home } from "#client/Home.tsx";
@@ -38,7 +39,15 @@ export const appRouter = Effect.fnUntraced(function* <TRoute extends AnyRoute>(
 	const routes = client.modules.flatMap((module) => module.routes({ getParentRoute: () => root }));
 	const home = createRoute({ component: (): ReactElement => <Home auth={auth} />, getParentRoute: () => root, path: "/" });
 	const router = createRouter({
-		context: { adminPages, auth, modules: client.modules, navigate: (to) => void router.navigate({ href: to }), registry, session },
+		context: {
+			adminPages,
+			auth,
+			modules: client.modules,
+			navigate: (to) => void router.navigate({ href: to }),
+			redirects: { signedOut: signInRedirect("/sign-in") },
+			registry,
+			session,
+		},
 		defaultErrorComponent: PermissionBoundaryError,
 		defaultPendingMs: Number.POSITIVE_INFINITY,
 		disableGlobalCatchBoundary: true,

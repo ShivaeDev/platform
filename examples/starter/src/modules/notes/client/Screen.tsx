@@ -1,7 +1,7 @@
 import { Option } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import { useSignOut } from "@shivaedev/react/client/adapters/useSignOut.ts";
-import { useLoaderQuery } from "@shivaedev/react/client/useLoaderQuery.ts";
+import type { LoadedQueryState } from "@shivaedev/react/client/useLoaderQuery.ts";
 import type { AuthActions } from "#client/adapters/auth.ts";
 import { Button } from "#client/ui/button.tsx";
 import { Card, CardContent } from "#client/ui/card.tsx";
@@ -12,14 +12,13 @@ import type { Note } from "#modules/notes/model.ts";
 
 export function NotesScreen({
 	client,
-	loaded,
+	query,
 	signOut,
 }: {
 	readonly client: NotesClient;
-	readonly loaded: (typeof Note.Type)[];
+	readonly query: LoadedQueryState<(typeof Note.Type)[], unknown>;
 	readonly signOut?: AuthActions["signOut"];
 }) {
-	const query = useLoaderQuery(client.api.list.query(), loaded);
 	const rows = query.data;
 	const signOutControl = signOut !== undefined && <SignOut action={signOut} />;
 	const loadFailure = Option.isSome(query.cause) && <p role="alert">Could not load notes. Try refreshing.</p>;

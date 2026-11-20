@@ -1,5 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { Option } from "effect";
+import type * as AsyncResult from "effect/reactivity/AsyncResult";
+import type * as Atom from "effect/reactivity/Atom";
 import { useId } from "react";
 import { useField } from "@shivaedev/form/adapters/react.ts";
 import type { Form } from "@shivaedev/form/shape.ts";
@@ -39,15 +41,15 @@ function Title<A, E, TRuntimeError>({ form }: { readonly form: Form<typeof NoteE
 
 export function NoteEdit({
 	client,
-	loaded,
+	note,
 	onDeleted,
 }: {
 	readonly client: NotesClient;
-	readonly loaded: typeof Note.Type;
+	readonly note: { readonly loaded: typeof Note.Type; readonly query: Atom.Atom<AsyncResult.AsyncResult<typeof Note.Type, unknown>> };
 	readonly onDeleted: () => void;
 }) {
-	const noteId = loaded.id;
-	const editor = useEditor(client.api.update, { fixed: { id: noteId }, loaded, query: client.api.get.query({ id: noteId }) });
+	const noteId = note.loaded.id;
+	const editor = useEditor(client.api.update, { ...note, fixed: { id: noteId } });
 	const currentNote = editor.query.data;
 	const loadFailure = Option.isSome(editor.query.cause) && <p role="alert">Could not load this note. Try refreshing.</p>;
 	return (

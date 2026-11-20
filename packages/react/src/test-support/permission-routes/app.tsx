@@ -5,10 +5,11 @@ import { authCall } from "@shivaedev/identity/client/adapters/authCall.ts";
 import type { PermissionSession } from "@shivaedev/identity/PermissionSession.ts";
 import { PermissionBoundaryError, useCan } from "#adapters/permissionBoundary.ts";
 import { permissionGuard } from "#adapters/permissionGuard.ts";
-import { queryRoute } from "#adapters/queryRoute.ts";
+import type { QueryRouteRedirects } from "#adapters/queryRouteFailure.ts";
+import { signInRedirect } from "#adapters/signInRedirect.ts";
+import { queryRoute } from "#client/adapters/queryRoute.ts";
 import { authAction } from "#client/authAction.ts";
 import { useQuery } from "#client/resultState.ts";
-import { useLoaderQuery } from "#client/useLoaderQuery.ts";
 import { ReadNotes } from "#test/permission-routes/feature.ts";
 import type { Host } from "#test/permission-routes/host.ts";
 import { Login, PermissionRoutes, SignOutButton } from "#test/permission-routes/view.tsx";
@@ -34,8 +35,13 @@ export function permissionApp(
 	hidden = false,
 ) {
 	const auth = { current: session };
-	const root = createRootRouteWithContext<{ registry: AtomRegistry.AtomRegistry; host: Host; auth: typeof auth }>()({
-		beforeLoad: permissionGuard({ hidden, session: () => auth.current, signIn: "/login" }),
+	const root = createRootRouteWithContext<{
+		registry: AtomRegistry.AtomRegistry;
+		host: Host;
+		auth: typeof auth;
+		redirects: Required<Pick<QueryRouteRedirects, "signedOut">>;
+	}>()({
+		beforeLoad: ({ context, ...route }) => permissionGuard({ hidden, session: () => auth.current, signedOut: context.redirects.signedOut })(route),
 		notFoundComponent: () => <h1>Page not found</h1>,
 	});
 	const signOut = authAction(
@@ -45,10 +51,13 @@ export function permissionApp(
 			return { data: undefined, error: null };
 		}),
 	);
+	const noteQuery = queryRoute(
+		({ context, params }: { context: typeof root.types.allContext; params: { id: string }; search: Record<string, never> }) =>
+			context.host.api.get.query(params),
+	);
 	const note = createRoute({
 		component: () => {
-			const { id } = note.useParams();
-			const query = useLoaderQuery(host.api.get.query({ id }), note.useLoaderData());
+			const query = noteQuery.useQuery();
 			return (
 				<>
 					<h1>{query.data}</h1>
@@ -59,9 +68,7 @@ export function permissionApp(
 		getParentRoute: () => root,
 		path: "/notes/$id",
 		staticData: { permission: ReadNotes },
-		...queryRoute(({ context, params }: { context: typeof root.types.allContext; params: { id: string }; search: Record<string, never> }) =>
-			context.host.api.get.query(params),
-		),
+		...noteQuery,
 	});
 	const direct = createRoute({
 		component: () => {
@@ -96,7 +103,7 @@ export function permissionApp(
 		validateSearch: (search: Record<string, unknown>) => (typeof search.returnTo === "string" ? { returnTo: search.returnTo } : {}),
 	});
 	const router = createRouter({
-		context: { auth, host, registry },
+		context: { auth, host, redirects: { signedOut: signInRedirect("/login") }, registry },
 		defaultErrorComponent: PermissionBoundaryError,
 		defaultPendingMs: Number.POSITIVE_INFINITY,
 		disableGlobalCatchBoundary: true,

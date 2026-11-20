@@ -643,7 +643,7 @@ With native `RpcClient.layerProtocolHttp` and `FetchHttpClient.layer` as the bro
 
 #### Route loaders with TanStack Router
 
-TanStack Router owns routes, navigation, search validation, loader data and screen components. Spread `queryRoute(buildQuery)` from `@shivaedev/react/adapters/queryRoute.ts` into `createRoute` to derive loader dependencies from validated search and load a contract query atom in the router context’s registry. A `NotFound` instance from `@shivaedev/errors/taxonomy.ts` or a `QueryReadDenied` refusal enters TanStack's not-found handling with the original rejection in the not-found component's `data` prop, preserving its message. One root `notFoundComponent` can show that message for all query routes; a route's own `notFoundComponent` takes precedence. Other typed failures reach `errorComponent` unchanged. The atom runs through its native RPC runtime and shares its execution with React. The factory receives `{ context, params, search }`: `context` is the loader’s router context, including parent `beforeLoad` contributions. Annotate it with `typeof root.types.allContext` (or the parent route’s `types.allContext`) to keep client and viewer access checked against the route’s declaration.
+TanStack Router owns routes, navigation, search validation, loader data and screen components. Declare a route's query once with `queryRoute(buildQuery)` from `@shivaedev/react/client/adapters/queryRoute.ts`, spread the result into `createRoute`, and call its `useQuery()` in the route's component. The spread derives loader dependencies from validated search and loads the contract query atom in the router context’s registry; `useQuery()` reads the same atom, so the component names neither the operation nor its arguments. A `NotFound` instance from `@shivaedev/errors/taxonomy.ts` or a `QueryReadDenied` refusal enters TanStack's not-found handling with the original rejection in the not-found component's `data` prop, preserving its message. One root `notFoundComponent` can show that message for all query routes; a route's own `notFoundComponent` takes precedence. Other typed failures reach `errorComponent` unchanged. The atom runs through its native RPC runtime and shares its execution with React. The factory receives `{ context, params, search }`: `context` is the loader’s router context, including parent `beforeLoad` contributions. Annotate it with `typeof root.types.allContext` (or the parent route’s `types.allContext`) to keep client and viewer access checked against the route’s declaration.
 
 This example assumes an application-owned `api.get.query({ id, page })` returning `{ id, title }`, with declared `NotFound` and `NoteMissing` rejections:
 
@@ -655,8 +655,7 @@ import { Effect, Option, Predicate, Schema } from "effect";
 import type { ReactNode } from "react";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { NotFound } from "@shivaedev/errors/taxonomy.ts";
-import { queryRoute } from "@shivaedev/react/adapters/queryRoute.ts";
-import { useLoaderQuery } from "@shivaedev/react/client/useLoaderQuery.ts";
+import { queryRoute } from "@shivaedev/react/client/adapters/queryRoute.ts";
 import { api } from "./notes-client.ts";
 
 const registry = AtomRegistry.make();
@@ -704,7 +703,7 @@ function Shell({ children }: { readonly children: ReactNode }) {
 	);
 }
 function Note() {
-	const query = useLoaderQuery(api.get.query({ ...note.useParams(), ...note.useSearch() }), note.useLoaderData());
+	const query = noteQuery.useQuery();
 	return <h1>{query.data.title}</h1>;
 }
 function Failure({ error }: ErrorComponentProps) {
@@ -736,28 +735,30 @@ export function App() {
 
 Keep the result of `queryRoute` to call its `useRetry()` hook inside that route's error component. The returned callback refreshes the query using the current match's params, decoded search dependencies and context, then invalidates that match. A successful retry renders the route again without replacing the surrounding shell or its draft inputs.
 
-For redirects, supply `redirects.signedOut` and `redirects.refused` in the optional second argument. The signed-out callback handles the shared `Unauthorized` rejection; the refusal callback handles `Forbidden` and `QueryReadDenied`. Use TanStack's typed `redirect` with a registered router (or an explicit router type), and `signInSearch` to carry the requested path, search and fragment into sign-in's `returnTo`. Destinations and UI remain application choices:
+State where a signed-out visitor goes once, as `redirects.signedOut` in the router's context. A query route whose query fails with the shared `Unauthorized` rejection redirects there, and `permissionGuard` takes the same callback. `signInRedirect(path)` from `@shivaedev/react/adapters/signInRedirect.ts` builds it: a TanStack redirect to `path` that carries the requested path, search and fragment in sign-in's `returnTo` search field. `redirects.refused` handles `Forbidden` and `QueryReadDenied` the same way. A route overrides either target for its own query with `queryRoute(buildQuery, { redirects })`:
 
 ```ts
-import { redirect } from "@tanstack/react-router";
-import { queryRoute } from "@shivaedev/react/adapters/queryRoute.ts";
-import { signInSearch } from "@shivaedev/react/signInSearch.ts";
+import { createRootRouteWithContext, createRouter, redirect } from "@tanstack/react-router";
+import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
+import { queryRoute } from "@shivaedev/react/client/adapters/queryRoute.ts";
+import type { QueryRouteRedirects } from "@shivaedev/react/adapters/queryRouteFailure.ts";
+import { signInRedirect } from "@shivaedev/react/adapters/signInRedirect.ts";
 
-const noteQuery = queryRoute(buildQuery, {
-	redirects: {
-		signedOut: (location) => redirect({ to: "/sign-in", search: signInSearch(location) }),
-		refused: () => redirect({ to: "/no-access" }),
-	},
+const root = createRootRouteWithContext<{ registry: AtomRegistry.AtomRegistry; redirects: QueryRouteRedirects }>()();
+const router = createRouter({
+	context: { registry, redirects: { signedOut: signInRedirect("/sign-in"), refused: () => redirect({ to: "/no-access" }) } },
+	routeTree,
 });
+const memberNote = queryRoute(buildQuery, { redirects: { signedOut: signInRedirect("/members/sign-in") } });
 ```
 
-Without the corresponding callback, failures retain their normal error or not-found handling. `NotFound` continues to use the not-found screen even when refusal redirects are configured.
+Without a callback at either level, failures keep their normal error or not-found handling. `NotFound` continues to use the not-found screen even when refusal redirects are configured.
 
 For a loader that coordinates more work, use `loadQuery(registry, atom, loaderContext)` from `@shivaedev/react/adapters/loadQuery.ts` directly. It reads the atom in the supplied registry and throws typed failures unchanged, including `NotFound`; the loader decides how to handle them.
 
 `defaultPendingMs: Infinity` keeps the current route's data visible during navigation; the shell reads TanStack's `isLoading` to display pending state. The new route commits when its loader settles. This is TanStack's pending policy, separate from `useQuery`'s retained display. The loader hands its query over to the route's component: the first render has the loaded value, and the query handler runs once, for a live subscription and for a `live: false` query alike, even when the route mounts after the registry’s idle window.
 
-`useLoaderQuery(atom, route.useLoaderData())` subscribes to the same atom and exposes `data` as its success type, with no `Option` or Initial result. Refetches keep the last value visible. `useQuery`, `useLoaderQuery` and a loader-backed editor’s `query` expose `denied: true` for `QueryReadDenied`, alongside the typed `cause`. Use this state to replace retained content with the application’s not-found screen after access is revoked. Refused live queries stay refused through change notifications until their input or viewer changes. For a loader-backed editor, pass the loader value as `useEditor(api.save, { ...options, loaded: route.useLoaderData() })`; its form is defined on the first render and `editor.query.data` is the row directly.
+`useQuery()` reads the current match's params, decoded search, context and loader value, and exposes `data` as the query's success type, with no `Option` or Initial result. It takes the options of `useQuery` from `@shivaedev/react/client/resultState.ts`. Call it inside the route's component or a component it renders. Refetches keep the last value visible. `useQuery`, a route's `useQuery()` and a loader-backed editor’s `query` expose `denied: true` for `QueryReadDenied`, alongside the typed `cause`. Use this state to replace retained content with the application’s not-found screen after access is revoked. Refused live queries stay refused through change notifications until their input or viewer changes. For a loader-backed editor, spread the route's `useLoaded()`, which returns its atom as `query` and the loader value as `loaded`: `useEditor(api.save, { ...noteQuery.useLoaded(), fixed: { id } })`. Its form is defined on the first render and `editor.query.data` is the row directly. A loader written with `loadQuery` reads its atom with `useLoaderQuery(atom, route.useLoaderData())` from `@shivaedev/react/client/useLoaderQuery.ts`, which `useQuery()` uses underneath.
 
 `loadQuery` mounts its query while the loader runs and, once it succeeds, for a five-second hand-over window measured on the bound query's atom runtime `Clock`. A component that mounts within the window continues the loader's subscription and its first result instead of opening another. A route that is left or never mounts releases the query when the window passes; from then on the bound query uses the same retention policy as component reads, including its expiry, capacity and session ownership. A route that mounts after the window shows that kept value while a new subscription revalidates it. A returning route whose bound query still has a kept result renders it immediately as stale. Readers without data suspend until their active loader completes. Failed loaders also release execution; the route keeps its error visible and Retry starts a new load. Already mounted readers keep their data during refreshes.
 
@@ -767,9 +768,9 @@ For a loader that coordinates more work, use `loadQuery(registry, atom, loaderCo
 
 Permissions come from the session payload's `user.permissions`, populated by `@shivaedev/access` through the server's role policy. `can(session, permission)` uses access's grant evaluator without making a request: names match exactly, and an `any` grant covers an `own` check for that name. An `own` grant does not cover an `any` check. `useCan()` supplies the same check from the nearest `PermissionBoundary` for component controls. A signed-out session has no grants. These checks control visibility; the server still authorizes every request.
 
-Declare a route's requirement in TanStack's native `staticData`: `signedIn: true` admits any signed-in viewer, and `permission` requires a specific grant. Routes that declare neither stay public. Install `permissionGuard` once as the root route's `beforeLoad`; it checks all matched routes before their loaders run, including requirements on parents. Signed-out visitors go to the app's `signIn` path with the full requested location in the `returnTo` search field. A signed-in session without a required grant throws the shared `Forbidden` failure. A signed-in-only parent does not bypass a child's permission requirement.
+Declare a route's requirement in TanStack's native `staticData`: `signedIn: true` admits any signed-in viewer, and `permission` requires a specific grant. Routes that declare neither stay public. Install `permissionGuard` once as the root route's `beforeLoad`; it checks all matched routes before their loaders run, including requirements on parents. Signed-out visitors go to the guard's `signedOut` redirect; pass it the router's `redirects.signedOut` so the guard and query routes share one target. A signed-in session without a required grant throws the shared `Forbidden` failure. A signed-in-only parent does not bypass a child's permission requirement.
 
-Set `permissionGuard({ session, signIn, hidden: true })` to hide refused routes from signed-in members. The guard throws TanStack's native not-found result, renders the app's `notFoundComponent` at the requested URL and prevents the route's loader from running. Signed-out visitors still go to sign-in with their return location; sessions with the required grant still enter the route.
+Set `permissionGuard({ session, signedOut, hidden: true })` to hide refused routes from signed-in members. The guard throws TanStack's native not-found result, renders the app's `notFoundComponent` at the requested URL and prevents the route's loader from running. Signed-out visitors still go to sign-in with their return location; sessions with the required grant still enter the route.
 
 ```tsx
 import { RegistryContext } from "@effect/atom-react";
@@ -779,17 +780,23 @@ import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { permission } from "@shivaedev/access/permission.ts";
 import { Forbidden } from "@shivaedev/react/adapters/Forbidden.ts";
 import { PermissionBoundary, PermissionBoundaryError, useCan } from "@shivaedev/react/adapters/permissionBoundary.ts";
-import { useLoaderQuery } from "@shivaedev/react/client/useLoaderQuery.ts";
 import { permissionGuard } from "@shivaedev/react/adapters/permissionGuard.ts";
+import type { QueryRouteRedirects } from "@shivaedev/react/adapters/queryRouteFailure.ts";
+import { signInRedirect } from "@shivaedev/react/adapters/signInRedirect.ts";
 import type { PermissionSession } from "@shivaedev/identity/PermissionSession.ts";
 import { can } from "@shivaedev/react/can.ts";
-import { queryRoute } from "@shivaedev/react/adapters/queryRoute.ts";
+import { queryRoute } from "@shivaedev/react/client/adapters/queryRoute.ts";
 import { api, registry } from "./notes-client.ts";
 import { auth, SignIn } from "./auth.tsx";
 
 const ReadNotes = permission("notes.read");
-const root = createRootRouteWithContext<{ registry: AtomRegistry.AtomRegistry; api: typeof api; session: PermissionSession | undefined }>()({
-	beforeLoad: ({ context, ...route }) => permissionGuard({ session: () => context.session, signIn: "/login" })(route),
+const root = createRootRouteWithContext<{
+	registry: AtomRegistry.AtomRegistry;
+	api: typeof api;
+	redirects: Required<Pick<QueryRouteRedirects, "signedOut">>;
+	session: PermissionSession | undefined;
+}>()({
+	beforeLoad: ({ context, ...route }) => permissionGuard({ session: () => context.session, signedOut: context.redirects.signedOut })(route),
 });
 const profile = createRoute({
 	getParentRoute: () => root,
@@ -797,15 +804,17 @@ const profile = createRoute({
 	staticData: { signedIn: true },
 	component: () => <h1>Profile</h1>,
 });
+const noteQuery = queryRoute(
+	({ context, params }: { context: typeof root.types.allContext; params: { id: string }; search: Record<string, never> }) =>
+		context.api.get.query({ id: params.id, page: 1 }),
+);
 const note = createRoute({
 	getParentRoute: () => root,
 	path: "/notes/$id",
 	staticData: { permission: ReadNotes },
-	...queryRoute(({ context, params }: { context: typeof root.types.allContext; params: { id: string }; search: Record<string, never> }) =>
-		context.api.get.query({ id: params.id, page: 1 }),
-	),
+	...noteQuery,
 	component: () => {
-		const query = useLoaderQuery(api.get.query({ ...note.useParams(), page: 1 }), note.useLoaderData());
+		const query = noteQuery.useQuery();
 		return <h1>{query.data.title}</h1>;
 	},
 });
@@ -821,7 +830,7 @@ const login = createRoute({
 	},
 });
 const router = createRouter({
-	context: { registry, api, session: auth.session },
+	context: { registry, api, redirects: { signedOut: signInRedirect("/login") }, session: auth.session },
 	InnerWrap: PermissionShell,
 	defaultErrorComponent: PermissionBoundaryError,
 	routeTree: root.addChildren([profile, note, login]),
@@ -930,7 +939,7 @@ For other Better Auth reads, `authQuery` from `@shivaedev/react/client/authQuery
 
 Pass the auth owner’s sign-out atom to `SessionBoundary` as `signOut={signOut}`. The boundary mounts it in the auth owner’s registry and unmounts the signed-in tree while sign-out is pending, including the following session refetch. A successful action keeps the tree held until the session clears; a failed action releases the hold. Supply an atom for the sign-out request itself, and give `recheck` the auth owner’s session refresh. After the request succeeds, the boundary starts that check and retries failures while holding the tree. A failed session check never releases a successful sign-out’s hold.
 
-For an explicit sign-out in a TanStack route, use `useSignOut(signOut, { signIn: "/sign-in" })` from `@shivaedev/react/client/adapters/useSignOut.ts` in place of `useAction`. It exposes the same state and a `dispatch()` handler. The hook records sign-out intent before the request and navigates to sign-in after success. A refused request clears that intent, including when the boundary remounts its route. Repeated clicks while pending share one request and follow-up. Unmounting the component or disposing its registry stops the follow-up navigation. If a session refresh replaces the component before the response, the replacement session’s route policy owns navigation to sign-in. `permissionGuard` and `signInSearch(location)` omit `returnTo` for that intent, including when the auth owner's session refresh reruns guards first. Use `signInSearch` for module sign-in links too; ordinary visits retain the full requested location. Applications do not need history markers or Better Auth completion timing hooks.
+For an explicit sign-out in a TanStack route, use `useSignOut(signOut, { signIn: "/sign-in" })` from `@shivaedev/react/client/adapters/useSignOut.ts` in place of `useAction`. It exposes the same state and a `dispatch()` handler. The hook records sign-out intent before the request and navigates to sign-in after success. A refused request clears that intent, including when the boundary remounts its route. Repeated clicks while pending share one request and follow-up. Unmounting the component or disposing its registry stops the follow-up navigation. If a session refresh replaces the component before the response, the replacement session’s route policy owns navigation to sign-in. `signInRedirect` and `signInSearch(location)` omit `returnTo` for that intent, including when the auth owner's session refresh reruns guards first. Use `signInSearch` for module sign-in links too; ordinary visits retain the full requested location. Applications do not need history markers or Better Auth completion timing hooks.
 
 ### 3. Every day
 
@@ -1217,7 +1226,7 @@ pnpm add @shivaedev/react @effect/atom-react effect react
 pnpm add @shivaedev/form
 ```
 
-Add the optional router peer when using `queryRoute`, `loadQuery`, `permissionGuard`, `PermissionBoundary`, `PermissionBoundaryError`, `Forbidden` or `useSignOut`:
+Add the optional router peer when using `queryRoute`, `loadQuery`, `permissionGuard`, `signInRedirect`, `PermissionBoundary`, `PermissionBoundaryError`, `Forbidden` or `useSignOut`:
 
 ```sh
 pnpm add @tanstack/react-router

@@ -4,7 +4,7 @@ import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { routeReadRefused, routeRequested, routes } from "#test/routerStories.tsx";
 
 routes.it(
-	"a signed-out query redirects to sign-in and displays its full return location",
+	"a signed-out query on a route without its own redirect goes to the router's sign-in page with its full return location",
 	[routeRequested("/redirected/first?page=2#details")],
 	function* ({ heading, location, reject }) {
 		yield* reject("first", new Unauthorized({ message: "Sign in" }), 2);
@@ -16,9 +16,22 @@ routes.it(
 	},
 );
 
+routes.it(
+	"a route's own signed-out redirect wins over the router's sign-in page",
+	[routeRequested("/members/first")],
+	function* ({ heading, location, reject }) {
+		yield* reject("first", new Unauthorized({ message: "Sign in" }));
+
+		yield* outcomes([
+			["heading", () => heading(), "Members sign in here"],
+			["location", () => location(), "/member-sign-in"],
+		]);
+	},
+);
+
 const forbidden = new Forbidden({ message: "Not your note" });
 routes.it(
-	"a forbidden query redirects to the declared refusal route and renders it",
+	"a forbidden query redirects to the router's refusal route and renders it",
 	[routeRequested("/redirected/first")],
 	function* ({ heading, location, reject }) {
 		yield* reject("first", forbidden);
@@ -31,7 +44,7 @@ routes.it(
 );
 
 routes.it(
-	"a query read-policy refusal redirects to the declared refusal route and renders it",
+	"a query read-policy refusal redirects to the router's refusal route and renders it",
 	[routeReadRefused("/redirected/refused")],
 	function* ({ heading, location }) {
 		yield* outcomes([
@@ -43,7 +56,7 @@ routes.it(
 
 routes.it(
 	"an unconfigured query read-policy refusal keeps the shared not-found screen",
-	[routeReadRefused("/notes/refused")],
+	[routeReadRefused("/notes/refused", false)],
 	function* ({ heading }) {
 		expect(yield* heading()).toBe("Page not found");
 	},

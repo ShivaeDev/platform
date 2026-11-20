@@ -149,6 +149,7 @@ function* openRoute(
 	expectedFailure?: NoteFailure,
 	viewerPage = 1,
 	wait: "request" | "settled" = "request",
+	refusals = true,
 ) {
 	const registry = yield* Effect.acquireRelease(
 		Effect.sync(() => AtomRegistry.make({ "defaultIdleTTL": 400 })),
@@ -159,7 +160,7 @@ function* openRoute(
 		expectedFailure ? { onCaughtError: screenWarnings.expectCaughtError((error) => error === expectedFailure) } : undefined,
 	);
 	state.root = root;
-	const router = routerApp(registry, state.client, initial, viewerPage);
+	const router = routerApp(registry, state.client, initial, viewerPage, refusals);
 	state.router = router;
 	yield* Effect.promise(() =>
 		act(() =>
@@ -177,9 +178,10 @@ function* openRoute(
 	}
 }
 
-export function routeReadRefused(initial: string) {
-	return routes.trait("screen", `the read policy refuses the query at ${initial} before its handler runs`, (engine) =>
-		openRoute(engine, initial, undefined, 1, "settled"),
+export function routeReadRefused(initial: string, refusals = true) {
+	const redirects = refusals ? "a router that redirects refusals" : "a router without a refusal redirect";
+	return routes.trait("screen", `on ${redirects}, the read policy refuses the query at ${initial} before its handler runs`, (engine) =>
+		openRoute(engine, initial, undefined, 1, "settled", refusals),
 	);
 }
 
