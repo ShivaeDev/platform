@@ -1,5 +1,6 @@
 import { RegistryContext } from "@effect/atom-react";
 import { Effect } from "effect";
+import type * as Atom from "effect/reactivity/Atom";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { createElement, type ReactNode, useEffect, useState } from "react";
 import { LiveConnection } from "@shivaedev/contract/automaticLive.ts";
@@ -7,6 +8,7 @@ import { liveBindings } from "@shivaedev/contract/composeBindings.ts";
 import { type QueryRetentionOptions, queryRetention } from "@shivaedev/contract/queryRetention.ts";
 import { registerSessionRecheck } from "#adapters/sessionRecheck.ts";
 import { useLatestCallback } from "#adapters/useLatestCallback.ts";
+import { useWarmQueries } from "#client/adapters/useWarmQueries.ts";
 import { mountLive } from "#client/mountLive.ts";
 import { RecheckContext } from "#client/RecheckContext.ts";
 
@@ -72,7 +74,9 @@ interface SessionGenerationProps<TSession, TClient> {
 	readonly queryRetention?: QueryRetentionOptions | undefined;
 	readonly recheck: () => void;
 	readonly session: TSession;
+	readonly warm?: ((client: TClient) => readonly Atom.Atom<unknown>[]) | undefined;
 }
+const NOTHING_WARM: readonly Atom.Atom<unknown>[] = [];
 export function SessionGeneration<TSession, TClient>({
 	session,
 	connect,
@@ -80,6 +84,7 @@ export function SessionGeneration<TSession, TClient>({
 	children,
 	identity,
 	queryRetention: retention,
+	warm,
 }: SessionGenerationProps<TSession, TClient>): ReactNode {
 	const recheckLatest = useLatestCallback(recheck);
 	const [connection] = useState(() => ({ connect, session }));
@@ -104,6 +109,7 @@ export function SessionGeneration<TSession, TClient>({
 			});
 		};
 	}, [identity, owned, connection]);
+	useWarmQueries(owned.registry, warm?.(owned.client) ?? NOTHING_WARM);
 	return createElement(
 		RecheckContext.Provider,
 		{ value: recheckLatest },

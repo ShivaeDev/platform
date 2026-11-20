@@ -3,6 +3,7 @@ import { type ClientActivityState, type ConnectionStatus, isClientSettled } from
 
 export function activityState() {
 	let held = 0;
+	let warmWaiting = 0;
 	let answered = false;
 	let connection: ConnectionStatus = "live";
 	const state = Effect.runSync(
@@ -24,7 +25,8 @@ export function activityState() {
 		);
 	}
 	function latched(current: ClientActivityState): ClientActivityState {
-		return answered && !current.firstSettled && isClientSettled(current) ? { ...current, firstSettled: true } : current;
+		const settled = isClientSettled({ ...current, initialQueries: current.initialQueries - warmWaiting });
+		return answered && !current.firstSettled && settled ? { ...current, firstSettled: true } : current;
 	}
 	return {
 		activity: Object.assign(SubscriptionRef.changes(state), { current: SubscriptionRef.get(state) }),
@@ -46,6 +48,10 @@ export function activityState() {
 		setConnection: (connectionStatus: ConnectionStatus) => {
 			connection = connectionStatus;
 			publish();
+		},
+		warming: (delta: number) => {
+			warmWaiting += delta;
+			Effect.runSync(SubscriptionRef.update(state, latched));
 		},
 	};
 }

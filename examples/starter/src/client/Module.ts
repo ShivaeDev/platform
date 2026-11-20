@@ -1,5 +1,6 @@
 import type { AnyRoute } from "@tanstack/react-router";
 import type { Effect } from "effect";
+import type * as Atom from "effect/reactivity/Atom";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import type { ReactNode } from "react";
 import { type BindingComposition, composeBindings, liveBindings } from "@shivaedev/contract/composeBindings.ts";
@@ -24,6 +25,7 @@ export interface ClientModule<TRoute extends AnyRoute = AnyRoute> {
 	readonly menu?: readonly ReactNode[];
 	readonly overlays?: readonly ReactNode[];
 	readonly routes: (context: RouteContext) => readonly TRoute[];
+	readonly warm?: readonly Atom.Atom<unknown>[];
 }
 
 export type ClientRegistration = Effect.Effect<ClientModule, never, AtomRegistry.AtomRegistry>;

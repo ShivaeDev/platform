@@ -19,13 +19,17 @@ export const recentQueries = storyKit({
 		const view = yield* screen.open();
 		const run = Effect.runPromiseWith(yield* Effect.context());
 		const loader = { done: Promise.resolve() };
-		return { controls, host, loader, retention, run, screen, view };
+		const warmIds: string[] = [];
+		return { controls, host, loader, retention, run, screen, view, warmIds };
 	},
 	inspect: ({ host, view }) => ({ reads: host.reads, screen: view.container.innerHTML }),
 	name: "recent query screens",
-	stages: ["policy", "screen"],
-	verbs: ({ controls, host, loader, retention, run, screen, view }, story) => {
+	stages: ["policy", "warm", "screen"],
+	verbs: ({ controls, host, loader, retention, run, screen, view, warmIds }, story) => {
 		screen.tell = story.tell;
+		function shownId() {
+			return view.container.querySelector("output")?.dataset.id;
+		}
 		return {
 			answer: (title: string) =>
 				screen
@@ -34,19 +38,22 @@ export const recentQueries = storyKit({
 						await loader.done;
 					})
 					.pipe(Effect.andThen(settleScreen(view.container, () => view.container.querySelector('[data-pending="true"]') !== null, story.tell))),
+			firstShown: () => Effect.sync(() => view.container.querySelector("output")?.dataset.first),
 			handOverWindowPasses: () => {
 				story.tell(`the loader's ${HAND_OVER_WINDOW} hand-over window passes without a reader`);
 				return untilTimer(HAND_OVER_WINDOW).pipe(Effect.andThen(passes(HAND_OVER_WINDOW, Queue.take(host.closed))));
 			},
-			leave: () =>
-				screen
-					.act("leave the note screen", () => {
+			leave: () => {
+				const kept = warmIds.includes(shownId() ?? "");
+				return screen
+					.act(`leave the note screen${kept ? ", whose note stays warm" : ""}`, () => {
 						if (controls.show === undefined) {
 							throw new Error("No signed-in screen");
 						}
 						controls.show(undefined);
 					})
-					.pipe(Effect.andThen(Queue.take(host.closed))),
+					.pipe(Effect.andThen(kept ? Effect.void : Queue.take(host.closed)));
+			},
 			open: (id = "one") =>
 				screen.act(`open note ${id}`, () => {
 					if (controls.show === undefined) {
@@ -56,6 +63,16 @@ export const recentQueries = storyKit({
 				}),
 			pass: (duration: Duration.Input) => screen.act(`${duration} passes on the story clock`, () => run(passes(duration, Effect.void))),
 			reads: () => Effect.sync(() => [...host.reads]),
+			replaceWarm: (previous: string, next: string) =>
+				screen
+					.act(`the warm list names note ${next} in place of note ${previous}`, () => {
+						if (controls.warm === undefined) {
+							throw new Error("No signed-in session");
+						}
+						warmIds.splice(warmIds.indexOf(previous), 1, next);
+						controls.warm([...warmIds]);
+					})
+					.pipe(Effect.andThen(Queue.take(host.closed))),
 			session: (user: string | undefined) =>
 				screen.act(`the auth owner changes to ${user ?? "signed out"}`, () => {
 					if (controls.session === undefined) {
@@ -68,6 +85,15 @@ export const recentQueries = storyKit({
 					stale: view.container.querySelector("output")?.dataset.stale === "true",
 					title: view.container.querySelector("output")?.textContent ?? view.container.textContent,
 				})),
+			signOut: () =>
+				screen
+					.act("alice signs out", () => {
+						if (controls.session === undefined) {
+							throw new Error("No session owner");
+						}
+						controls.session(undefined);
+					})
+					.pipe(Effect.andThen(Queue.take(host.closed))),
 			startLoader: (id = "one") =>
 				Effect.sync(() => {
 					story.tell(`the route loader reads note ${id}`);
@@ -78,6 +104,7 @@ export const recentQueries = storyKit({
 						() => undefined,
 					);
 				}),
+			subscriptions: () => Effect.sync(() => host.subscriptions.open),
 			untilRetained: () => untilTimer(retention.timeToLive ?? "5 minutes"),
 		};
 	},
@@ -88,6 +115,9 @@ export function policy(options: QueryRetentionOptions) {
 		Effect.sync(() => Object.assign(retention, options)),
 	);
 }
-export const signedIn = recentQueries.trait("screen", "alice is signed in at Home", ({ controls, host, retention, view }) =>
-	Effect.promise(() => view.render(<App client={host.client} controls={controls} retention={retention} />)),
+export function warm(...ids: readonly string[]) {
+	return recentQueries.trait("warm", `the session keeps note ${ids.join(" and ")} warm`, ({ warmIds }) => Effect.sync(() => warmIds.push(...ids)));
+}
+export const signedIn = recentQueries.trait("screen", "alice is signed in at Home", ({ controls, host, retention, view, warmIds }) =>
+	Effect.promise(() => view.render(<App client={host.client} controls={controls} retention={retention} warm={warmIds} />)),
 );
