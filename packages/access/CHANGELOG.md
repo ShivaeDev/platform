@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.7.0 - 2026-11-20
+
+### Added
+
+- `MissingPermission` in `refusal.ts` is the `cause` of every `Forbidden` that `forbidden(permission)` builds; its `permission` names the grant that was missing, for logs and for code.
+
+### Changed
+
+- `forbidden(permission)` says "You do not have permission to do this." instead of naming the permission, because the client shows a shared rejection's message to the person as it arrives.
+
+### Breaking
+
+- code that read the permission out of a `Forbidden` message reads `error.cause.permission` after checking `error.cause instanceof MissingPermission`; branch on the `Forbidden` tag, never on its message.
+
 ## 0.6.6 - 2026-11-20
 
 ### Changed
