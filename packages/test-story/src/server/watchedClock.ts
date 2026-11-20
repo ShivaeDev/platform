@@ -1,7 +1,6 @@
 import * as Clock from "effect/Clock";
 import * as Duration from "effect/Duration";
 import * as Effect from "effect/Effect";
-import * as Option from "effect/Option";
 import * as Queue from "effect/Queue";
 import * as Stream from "effect/Stream";
 import * as TestClock from "effect/testing/TestClock";
@@ -69,14 +68,10 @@ function isWatchedClock(clock: Clock.Clock): clock is WatchedClock {
 }
 
 export function untilTimer(interval: Duration.Input, options?: Omit<UntilOptions, "name">) {
-	const parsed = Duration.fromInput(interval);
-	if (Option.isNone(parsed)) {
-		return Effect.die(new Error('untilTimer cannot read its interval as a duration.\nhelp: Pass a Duration or a string such as "1 minute".'));
-	}
-	const duration = parsed.value;
+	const millis = Duration.toMillis(interval);
 	return Clock.clockWith((clock) =>
 		isWatchedClock(clock)
-			? until(clock.sleepStarts, Duration.equals(duration), { ...options, name: `sleep for ${Duration.toMillis(duration)}ms` })
+			? until(clock.sleepStarts, (started) => Duration.toMillis(started) === millis, { ...options, name: `sleep for ${millis}ms` })
 			: Effect.die(new Error('untilTimer requires a watched TestClock.\nhelp: Use clock: "test" on storyKit or provide watchedClock as Clock.')),
 	);
 }

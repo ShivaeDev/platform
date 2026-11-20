@@ -40,11 +40,7 @@ export const observeUntil = Effect.fn("PostgresTest.observeUntil")(function* <A,
 	waitingFor: string,
 	options?: ObserveOptions,
 ) {
-	const parsed = Duration.fromInput(options?.within ?? "5 seconds");
-	if (Option.isNone(parsed)) {
-		return yield* Effect.die(new Error('The within option is not a duration.\nhelp: Pass a Duration or a string such as "5 seconds".'));
-	}
-	const within = parsed.value;
+	const within = Duration.millis(Duration.toMillis(options?.within ?? "5 seconds"));
 	const stableReads = options?.stableReads ?? 2;
 	const clock = options?.clock === "test" ? { deadline: Effect.sleep, pause: TestClock.adjust } : yield* CatalogClock;
 	const pause = clock.pause(options?.every ?? "25 millis");
