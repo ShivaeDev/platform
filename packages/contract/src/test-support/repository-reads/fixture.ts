@@ -13,7 +13,7 @@ import { defineModule } from "#defineModule.ts";
 import { moduleHandlers } from "#moduleHandlers.ts";
 import { command, query } from "#operation.ts";
 import { CurrentViewer, signedIn, type Viewer } from "#readPolicy.ts";
-import { Diary, DiaryDay, diaryMigration, EveryDiaryEntry, WriteDiary } from "#test/repository-reads/diary.ts";
+import { Diary, DiaryDay, diaryMigration, diaryWire, EveryDiaryEntry, WriteDiary } from "#test/repository-reads/diary.ts";
 
 export class StoredBook extends Model.Class<StoredBook>("LibraryBook")({ id: Schema.Number, shelf: bucket(Schema.Number), title: Schema.String }) {}
 export class StoredLoan extends Model.Class<StoredLoan>("LibraryLoan")({ book: Schema.Number, id: Schema.Number, reader: bucket(Schema.String) }) {}
@@ -69,7 +69,6 @@ const Book = query("book", {
 		const { books: rows } = yield* Library;
 		return (yield* Effect.orDie(rows.findById(id))).title;
 	},
-	success: Schema.String,
 });
 const RereadBook = query("rereadBook", {
 	payload: { id: Schema.Number, times: Schema.Number },
@@ -79,7 +78,6 @@ const RereadBook = query("rereadBook", {
 		const reads = yield* Effect.orDie(Effect.forEach(Array.from({ length: times }), () => rows.findById(id)));
 		return reads.at(-1)?.title ?? "";
 	},
-	success: Schema.String,
 });
 const Shelf = query("shelf", {
 	payload: { shelf: Schema.Number },
@@ -87,7 +85,6 @@ const Shelf = query("shelf", {
 	*run({ shelf }) {
 		return yield* titlesOn(shelf);
 	},
-	success: Titles,
 });
 const DeclaredShelf = query("declaredShelf", {
 	payload: { shelf: Schema.Number },
@@ -98,7 +95,6 @@ const DeclaredShelf = query("declaredShelf", {
 		const all = yield* Effect.orDie(rows.findMany(byId));
 		return all.filter((book) => book.shelf === shelf).map(({ title }) => title);
 	},
-	success: Titles,
 });
 const Catalog = query("catalog", {
 	readPolicy: signedIn,
@@ -106,7 +102,6 @@ const Catalog = query("catalog", {
 		const { books: rows } = yield* Library;
 		return (yield* Effect.orDie(rows.findMany(byId))).map(({ title }) => title);
 	},
-	success: Titles,
 });
 const Reader = query("reader", {
 	readPolicy: signedIn,
@@ -114,7 +109,6 @@ const Reader = query("reader", {
 		const { readers } = yield* Library;
 		return (yield* Effect.orDie(readers.findById(readerOf(yield* CurrentViewer)))).shelf;
 	},
-	success: Schema.Number,
 });
 const ReaderShelf = query("readerShelf", {
 	payload: { shelf: Schema.Number },
@@ -127,7 +121,6 @@ const ReaderShelf = query("readerShelf", {
 	*run({ shelf }) {
 		return yield* titlesOn(shelf);
 	},
-	success: Titles,
 });
 const Title = Schema.Struct({ title: Schema.String });
 const LoansOnShelf = query("loansOnShelf", {
@@ -141,7 +134,6 @@ const LoansOnShelf = query("loansOnShelf", {
 			order by b.id`);
 		return (yield* Effect.orDie(Schema.decodeUnknownEffect(Schema.Array(Title))(rows))).map(({ title }) => title);
 	},
-	success: Titles,
 });
 const EveryLoan = query("everyLoan", {
 	readPolicy: signedIn,
@@ -149,7 +141,6 @@ const EveryLoan = query("everyLoan", {
 		const { loans: rows } = yield* Library;
 		return (yield* Effect.orDie(rows.findMany(byId))).map(({ book, reader }) => `${reader} has book ${book}`);
 	},
-	success: Titles,
 });
 const unmarkedTitles = Effect.gen(function* () {
 	const sql = yield* SqlClient.SqlClient;
@@ -161,7 +152,6 @@ const UnmarkedTitles = query("unmarkedTitles", {
 	*run() {
 		return yield* unmarkedTitles;
 	},
-	success: Titles,
 });
 const UnmarkedTitlesReadingNothing = query("unmarkedTitlesReadingNothing", {
 	readPolicy: signedIn,
@@ -169,7 +159,6 @@ const UnmarkedTitlesReadingNothing = query("unmarkedTitlesReadingNothing", {
 	*run() {
 		return yield* unmarkedTitles;
 	},
-	success: Titles,
 });
 const Retitle = command("retitle", {
 	payload: { id: Schema.Number, title: Schema.String },
@@ -217,6 +206,20 @@ export const Libraries = defineModule({
 		WriteDiary,
 	],
 	requires: [Library, Diary, SqlClient.SqlClient],
+	wire: {
+		...diaryWire,
+		book: { rejections: {}, success: Schema.String },
+		catalog: { rejections: {}, success: Titles },
+		declaredShelf: { rejections: {}, success: Titles },
+		everyLoan: { rejections: {}, success: Titles },
+		loansOnShelf: { rejections: {}, success: Titles },
+		reader: { rejections: {}, success: Schema.Number },
+		readerShelf: { rejections: {}, success: Titles },
+		rereadBook: { rejections: {}, success: Schema.String },
+		shelf: { rejections: {}, success: Titles },
+		unmarkedTitles: { rejections: {}, success: Titles },
+		unmarkedTitlesReadingNothing: { rejections: {}, success: Titles },
+	},
 });
 
 export const handlers = {

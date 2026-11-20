@@ -1,4 +1,5 @@
 import { Schema } from "effect";
+import { defineModule } from "#defineModule.ts";
 import { query } from "#operation.ts";
 import { SessionUser } from "#test/runNotes.ts";
 
@@ -8,12 +9,18 @@ interface PinnableNote {
 	readonly title: string;
 }
 
-query("listsPinnable", {
+const Operation = query("listsPinnable", {
 	reads: () => [],
 	*run() {
 		const { id } = yield* SessionUser;
 		const notes: readonly PinnableNote[] = [{ id: 1, pinned: true, title: id }];
 		return notes;
 	},
-	success: Schema.Array(Schema.Struct({ id: Schema.Number, title: Schema.String })),
+});
+
+defineModule({
+	name: "listsPinnable",
+	operations: [Operation],
+	requires: [SessionUser],
+	wire: { listsPinnable: { rejections: {}, success: Schema.Array(Schema.Struct({ id: Schema.Number, title: Schema.String })) } },
 });

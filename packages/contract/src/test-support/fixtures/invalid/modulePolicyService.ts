@@ -1,4 +1,4 @@
-import { Effect, Option } from "effect";
+import { Effect, Option, Schema } from "effect";
 import { defineModule } from "#defineModule.ts";
 import { query } from "#operation.ts";
 import { NoteId, NotesRepository, SessionUser } from "#test/runNotes.ts";
@@ -21,4 +21,5 @@ defineModule({
 	name: "owned",
 	operations: [Owned],
 	requires: [SessionUser],
+	wire: { owned: { rejections: {}, success: Schema.String } },
 });

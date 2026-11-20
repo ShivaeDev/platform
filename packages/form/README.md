@@ -269,7 +269,7 @@ Whole-form Schema refinements are available through `errorAt([])` after submissi
 
 ### Map save rejections to fields
 
-`rejecting` from `@shivaedev/form/fieldRejection.ts` wraps a save with field feedback. It takes the form schema, the save function and a `rejectField` callback or `undefined`. With `undefined`, `fieldRejectionOf(schema)` uses `@shivaedev/errors` to recognize tagged string-field rejections and selects names in that schema. Other failures keep their original error.
+`rejecting` from `@shivaedev/form/fieldRejection.ts` wraps a save with field feedback. It takes the form schema, the save function and a `rejectField` callback or `undefined`. With `undefined`, `fieldRejectionOf(schema)` uses `@shivaedev/errors` to recognize tagged string-field rejections and selects names in that schema. Other failures keep their original error, including a rejection that names no field of the form or carries no field. `FieldRejectionMapping` makes `rejectField` required only when a tagged error's `field` type includes literal names outside the form; a plain `string` field leaves the default in charge.
 
 For a service whose rejection names a nested value, return a path tuple from the callback:
 
