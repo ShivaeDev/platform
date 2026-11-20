@@ -1,4 +1,5 @@
 import { Option, Schema } from "effect";
+import { privateKeyBlocks } from "#privateKeyBlocks.ts";
 import { sensitiveAssignmentValues } from "#sensitiveAssignmentValues.ts";
 
 export const REDACTED = "<redacted>";
@@ -43,19 +44,23 @@ export function isSensitiveKey(key: string): boolean {
 }
 const AUTH_SCHEME = /\b(?<scheme>Bearer|Basic)\s+[A-Za-z0-9%._~+/-]+=*/giu;
 const JWT = /\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]*/gu;
-const PRIVATE_KEY = /-----BEGIN (?<kind>(?:[A-Z0-9]+ )*PRIVATE KEY)-----[\s\S]*?-----END \k<kind>-----/gu;
-function redactAssignments(text: string, sensitive: SensitiveKey): string {
+// Schemes other than Bearer and Basic, such as `token` or `Digest`, are only recognisable after the header name.
+const AUTHORIZATION_HEADER = /\b(?<header>(?:proxy-)?authorization:[ \t]*[A-Za-z][\w-]*[ \t]+)[^\s"',;]+/giu;
+function mask(text: string, ranges: ReadonlyArray<readonly [number, number]>): string {
 	let result = "";
 	let cursor = 0;
-	for (const [start, end] of sensitiveAssignmentValues(text, sensitive)) {
+	for (const [start, end] of ranges) {
 		result += `${text.slice(cursor, start)}${REDACTED}`;
 		cursor = end;
 	}
 	return result + text.slice(cursor);
 }
 function scrub(text: string, sensitive: SensitiveKey): string {
-	const credentials = text.replaceAll(PRIVATE_KEY, REDACTED).replaceAll(AUTH_SCHEME, `$<scheme> ${REDACTED}`).replaceAll(JWT, REDACTED);
-	return redactAssignments(credentials, sensitive);
+	const credentials = mask(text, privateKeyBlocks(text))
+		.replaceAll(AUTH_SCHEME, `$<scheme> ${REDACTED}`)
+		.replaceAll(AUTHORIZATION_HEADER, `$<header>${REDACTED}`)
+		.replaceAll(JWT, REDACTED);
+	return mask(credentials, sensitiveAssignmentValues(credentials, sensitive));
 }
 function redactSchemaValues(text: string): string {
 	return text

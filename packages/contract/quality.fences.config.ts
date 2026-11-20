@@ -17,6 +17,7 @@ export default [
 					"packages/errors/src/boundary.ts",
 					"packages/errors/src/GeneratedSuccess.ts",
 					"packages/errors/src/infrastructure.ts",
+					"packages/errors/src/privateKeyBlocks.ts",
 					"packages/errors/src/redact.ts",
 					"packages/errors/src/redactCause.ts",
 					"packages/errors/src/sensitive.ts",

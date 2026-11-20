@@ -17,3 +17,17 @@ for (const kind of ["failure", "defect"] as const) {
 		expect(reports[0]?.text).not.toMatch(/plaintext/u);
 	});
 }
+
+errors.it(
+	"the reporter receives a defect whose message quotes escaped JSON with its access token masked",
+	[],
+	function* ({ recordedReports, reportFault }) {
+		const fault = new Error(String.raw`upstream answered {"error":"{\"access_token\":\"token-plaintext\",\"detail\":\"expired\"}"}`);
+
+		yield* reportFault("defect", fault);
+
+		expect(yield* recordedReports()).toMatchObject([
+			{ defects: [{ message: String.raw`upstream answered {"error":"{\"access_token\":\"<redacted>\",\"detail\":\"expired\"}"}` }] },
+		]);
+	},
+);
