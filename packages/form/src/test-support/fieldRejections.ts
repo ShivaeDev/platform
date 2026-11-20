@@ -26,18 +26,33 @@ export const rejectedProfiles = formStories(() => Profile, {
 	verbs: () => ({}),
 });
 
+function conflictFailure(driver: { readonly result: () => Effect.Effect<unknown, unknown> }) {
+	return () =>
+		driver.result().pipe(
+			Effect.match({
+				onFailure: (error) =>
+					error instanceof Conflict
+						? `${error.field === undefined ? "conflict" : `conflict on ${error.field}`}: ${error.message}`
+						: "unexpected failure",
+				onSuccess: () => "saved",
+			}),
+		);
+}
+
 export const unmappedProfiles = formStories(() => Profile, {
 	config: () => ({ initialValues, onSubmit: rejecting(Profile, saveProfile, undefined), runtime }),
 	support: () => undefined,
-	verbs: (driver) => ({
-		failure: () =>
-			driver.result().pipe(
-				Effect.match({
-					onFailure: (error) => (error instanceof Conflict ? `conflict on ${error.field}: ${error.message}` : "unexpected failure"),
-					onSuccess: () => "saved",
-				}),
-			),
+	verbs: (driver) => ({ failure: conflictFailure(driver) }),
+});
+
+export const fieldlessProfiles = formStories(() => Profile, {
+	config: () => ({
+		initialValues,
+		onSubmit: rejecting(Profile, (_values: typeof Profile.Type) => Effect.fail(new Conflict({ message: "Profile changed elsewhere" })), undefined),
+		runtime,
 	}),
+	support: () => undefined,
+	verbs: (driver) => ({ failure: conflictFailure(driver) }),
 });
 
 export const unavailableProfiles = formStories(() => Profile, {

@@ -1,7 +1,6 @@
 import { Option } from "effect";
 import { useEffect, useState } from "react";
 import { isConflict } from "@shivaedev/errors/taxonomy.ts";
-import { fieldRejectionOf } from "@shivaedev/form/fieldRejection.ts";
 import { useCreate } from "#client/create.ts";
 import type { InvoiceLine, makeInvoiceLineServer } from "#test/invoice-line-editor/backend.ts";
 import { InvoiceLineDraft, InvoiceLineForm, values } from "#test/invoice-line-editor/Screen.ts";
@@ -20,7 +19,6 @@ export function InvoiceLineOneShot({
 		create: (draft) => api.save.run({ expectedVersion: original.version, id: original.id, ...draft }),
 		fields: InvoiceLineDraft,
 		initialValues: values(original),
-		rejectField: fieldRejectionOf(InvoiceLineDraft),
 		runtime,
 	});
 	useEffect(() => {

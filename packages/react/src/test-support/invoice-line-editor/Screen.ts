@@ -1,7 +1,6 @@
 import { Option, Schema } from "effect";
 import { createElement, Fragment, type ReactNode } from "react";
 import { useField } from "@shivaedev/form/adapters/react.ts";
-import { fieldRejectionOf } from "@shivaedev/form/fieldRejection.ts";
 import type { Form } from "@shivaedev/form/shape.ts";
 import { useCreate } from "#client/create.ts";
 import { useEditor } from "#client/editor.ts";
@@ -83,7 +82,6 @@ export function InvoiceLineScreen({ id, server: { api, runtime } }: { readonly i
 	const editor = useEditor({
 		fields: InvoiceLineDraft,
 		query: api.get.query({ id }),
-		rejectField: fieldRejectionOf(InvoiceLineDraft),
 		runtime,
 		save: (line) => api.save.run({ expectedVersion: version, id, ...line }),
 		values,
