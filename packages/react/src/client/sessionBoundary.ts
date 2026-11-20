@@ -11,7 +11,7 @@ import { SessionGeneration } from "#client/adapters/SessionGeneration.ts";
 import { SessionHandoff } from "#client/adapters/SessionHandoff.ts";
 import { SessionSignOut } from "#client/adapters/SessionSignOut.ts";
 import { useSessionRetry } from "#client/adapters/useSessionRetry.ts";
-import { useStoredQueryWipes } from "#client/adapters/useStoredQueries.ts";
+import { useDeviceWipe, useStoredQueryWipes } from "#client/adapters/useStoredQueries.ts";
 import { RecheckContext } from "#client/RecheckContext.ts";
 import { SignOutRegistryContext } from "#client/SignOutRegistryContext.ts";
 import { useDraftOwner } from "#client/useDraftOwner.ts";
@@ -53,6 +53,7 @@ export function SessionBoundary<TSession, TClient>({
 	const current = useDraftOwner(id);
 	const retry = useSessionRetry(recheck, id, runtime);
 	useStoredQueryWipes(persist, id);
+	const wipe = useDeviceWipe(persist);
 	if (session === undefined) {
 		return createElement(Fragment, null, signedOut);
 	}
@@ -75,7 +76,7 @@ export function SessionBoundary<TSession, TClient>({
 			createElement(
 				SessionHandoff,
 				{ key: id, navigate, redirectTo },
-				signOut === undefined ? generation : createElement(SessionSignOut, { action: signOut, recheck: retry }, generation),
+				signOut === undefined ? generation : createElement(SessionSignOut, { action: signOut, recheck: retry, wipe }, generation),
 			),
 		),
 	);

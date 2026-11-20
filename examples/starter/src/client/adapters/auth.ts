@@ -1,5 +1,7 @@
 import { createAuthClient } from "better-auth/react";
+import { Layer } from "effect";
 import * as Atom from "effect/reactivity/Atom";
+import { browserQueryStorage } from "@shivaedev/contract/adapters/browserQueryStorage.ts";
 import type { AuthFailure } from "@shivaedev/identity/client/AuthFailure.ts";
 import { authCall } from "@shivaedev/identity/client/adapters/authCall.ts";
 import { authSession as readSession } from "@shivaedev/identity/client/adapters/authSession.ts";
@@ -17,6 +19,9 @@ export interface AuthActions {
 	readonly submit: Atom.AtomResultFn<{ readonly mode: "sign-in" | "sign-up"; readonly credentials: Credentials }, unknown, AuthFailure>;
 }
 
+// One Layer for both, so every wipe of the remembered session also wipes the stored query results.
+export const deviceStorage = Layer.merge(browserSessionMemory, browserQueryStorage);
+
 export function makeAuth(options: {
 	readonly baseUrl: string;
 	readonly fetchOptions?: NonNullable<Parameters<typeof createAuthClient>[0]>["fetchOptions"];
@@ -24,7 +29,7 @@ export function makeAuth(options: {
 	const client = createAuthClient({ "baseURL": options.baseUrl, ...("fetchOptions" in options ? { fetchOptions: options.fetchOptions } : {}) });
 	const session = authSession(
 		readSession((signal) => client.getSession({ fetchOptions: { signal }, query: { disableCookieCache: true } })),
-		{ remember: browserSessionMemory },
+		{ remember: deviceStorage },
 	);
 	const actions: AuthActions = {
 		resetPassword: authAction(authCall((body, signal) => client.resetPassword({ ...body, fetchOptions: { signal } }))),

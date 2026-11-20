@@ -1,9 +1,10 @@
-import { Effect, Exit, type Layer } from "effect";
+import { Effect, Exit, type Layer, Option } from "effect";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { clearStoredQueries, openStoredQueries, queryPersistence } from "@shivaedev/contract/adapters/queryPersistence.ts";
 import type { QueryStorageProvider } from "@shivaedev/contract/QueryStorage.ts";
 import { type OpenedQueryStorage, storedQueries } from "@shivaedev/contract/storedQueries.ts";
+import { forgetSession, SessionMemory } from "@shivaedev/identity/client/SessionMemory.ts";
 import { pageHidden } from "#client/pageHidden.ts";
 
 type Opened = { readonly storage: OpenedQueryStorage | undefined } | undefined;
@@ -48,4 +49,18 @@ export function useStoredQueryWipes(persist: Layer.Layer<QueryStorageProvider> |
 		}
 		Effect.runFork(clearStoredQueries(identity === undefined ? undefined : before).pipe(Effect.provide(persist)));
 	}, [persist, identity]);
+}
+
+// A storage Layer that also supplies the remembered session forgets it in the same wipe, so a sign-out through the boundary leaves neither behind.
+const deviceWipe = Effect.gen(function* () {
+	const memory = yield* Effect.serviceOption(SessionMemory);
+	yield* Option.isSome(memory) ? forgetSession.pipe(Effect.provideService(SessionMemory, memory.value)) : clearStoredQueries();
+});
+
+export function useDeviceWipe(persist: Layer.Layer<QueryStorageProvider> | undefined): () => void {
+	return useCallback(() => {
+		if (persist !== undefined) {
+			Effect.runFork(deviceWipe.pipe(Effect.provide(persist)));
+		}
+	}, [persist]);
 }

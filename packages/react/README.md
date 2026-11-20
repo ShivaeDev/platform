@@ -125,6 +125,19 @@ Every bound query result that retention keeps is also written to the device unde
 
 The boundary wipes stored results when `session` becomes `undefined` (a sign-out or a signed-out answer of the session check, including at launch) and the previous user's results when another user signs in. A query that answers `QueryReadDenied` or `NotFound`, or whose stored value no longer decodes, loses its entry. Storage the browser refuses leaves the generation without stored results.
 
+With a [remembered session](#better-auth-actions), give `authSession`'s `remember` and `persist` one Layer, so the two are wiped together:
+
+```ts
+import { Layer } from "effect";
+import { browserQueryStorage } from "@shivaedev/contract/adapters/browserQueryStorage.ts";
+import { browserSessionMemory } from "@shivaedev/identity/client/adapters/browserSessionMemory.ts";
+
+export const deviceStorage = Layer.merge(browserSessionMemory, browserQueryStorage);
+// authSession(read, { remember: deviceStorage }) and <SessionBoundary persist={deviceStorage} …>
+```
+
+Identity's `forgetSession` then wipes the stored results with the memory, which covers a passed expiry at launch as well. A sign-out through `SessionBoundary`'s `signOut` action wipes both as soon as the sign-out request succeeds, even when the session check after it never answers.
+
 What this means for the person using the application: their data rests on the device, readable by anyone using that browser profile. Signing out on another device cannot erase it until the application next runs online here. A stored result can be days old; it shows as updating until the live result arrives, one subscription round trip after the socket opens.
 
 #### Session-scoped bindings

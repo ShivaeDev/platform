@@ -2,8 +2,9 @@ import { Effect, Option } from "effect";
 import * as Atom from "effect/reactivity/Atom";
 import { useState } from "react";
 import type { RememberedSession } from "@shivaedev/identity/client/SessionMemory.ts";
+import { useSignOut } from "#client/adapters/useSignOut.ts";
 import type { RememberedAuthSession } from "#client/authSession.ts";
-import { useAction, useQuery } from "#client/resultState.ts";
+import { useQuery } from "#client/resultState.ts";
 import { SessionBoundary } from "#client/sessionBoundary.ts";
 import type { RememberedClient } from "#test/remembered-session/client.ts";
 
@@ -17,7 +18,7 @@ function SignedOut({ client }: { readonly client: RememberedClient }) {
 }
 
 function SignOutButton({ action }: { readonly action: Atom.AtomResultFn<void, void, never> }) {
-	const signOut = useAction(action);
+	const signOut = useSignOut(action, { signIn: "/sign-in" });
 	return (
 		<button onClick={() => signOut.dispatch()} type="button">
 			Sign out
@@ -25,8 +26,16 @@ function SignOutButton({ action }: { readonly action: Atom.AtomResultFn<void, vo
 	);
 }
 
-export function RememberedApp({ client, session }: { readonly client: RememberedClient; readonly session: RememberedAuthSession<unknown> }) {
-	const [signOut] = useState(() => Atom.fn<void>()(() => session.signOut(Effect.void)));
+export function RememberedApp({
+	client,
+	session,
+	signOutVia = "session",
+}: {
+	readonly client: RememberedClient;
+	readonly session: RememberedAuthSession<unknown>;
+	readonly signOutVia?: "boundary" | "session";
+}) {
+	const [signOut] = useState(() => Atom.fn<void>()(() => (signOutVia === "session" ? session.signOut(Effect.void) : client.signOutRequest)));
 	const query = useQuery(session.atom);
 	const current = Option.getOrNull(query.data);
 	if (Option.isNone(query.data) && query.pending) {
@@ -44,6 +53,7 @@ export function RememberedApp({ client, session }: { readonly client: Remembered
 				return generation;
 			}}
 			identify={identify}
+			persist={client.memory}
 			recheck={session.refresh}
 			session={current ?? undefined}
 			signedOut={<SignedOut client={client} />}
