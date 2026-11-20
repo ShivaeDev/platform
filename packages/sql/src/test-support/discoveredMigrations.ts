@@ -3,9 +3,9 @@ import { NodeServices } from "@effect/platform-node";
 import { Effect, Exit, FileSystem } from "effect";
 import { SqlClient } from "effect/sql";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { loadMigrationsIn } from "#loadMigrationsIn.ts";
 import { MIGRATIONS_FOLDER } from "#migration.ts";
 import { migratePostgres } from "#migrations.ts";
-import { migrationsFromDirectory } from "#migrationsFromDirectory.ts";
 import { onPostgres } from "#test/engines.ts";
 import type { Applied } from "#test/migrationEngine.ts";
 import { outcomeOf } from "#test/outcome.ts";
@@ -33,7 +33,7 @@ export default Effect.gen(function* () {
 
 function migrateFolder({ directory, schema }: FolderEngine) {
 	return migratePostgres({
-		loader: migrationsFromDirectory(directory).pipe(Effect.provide(NodeServices.layer)),
+		loader: loadMigrationsIn(directory).pipe(Effect.provide(NodeServices.layer)),
 		lockTimeout: "5 seconds",
 		table: `${schema}_migrations`,
 	});
@@ -71,7 +71,7 @@ export const discoveredMigrations = storyKit({
 			Effect.gen(function* () {
 				story.tell("a runner migrates the files discovered in the directory's migrations folder");
 				const exit = yield* Effect.exit(migrateFolder(engine));
-				engine.runs.push(Exit.isSuccess(exit) ? exit.value : outcomeOf(exit));
+				engine.runs.push(Exit.isSuccess(exit) ? exit.value : outcomeOf(exit).replaceAll(engine.directory, "<directory>"));
 			}),
 		runs: () => Effect.sync(() => [...engine.runs]),
 	}),
