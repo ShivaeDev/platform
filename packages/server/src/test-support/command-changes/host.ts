@@ -8,7 +8,7 @@ import { postgresChanges } from "@shivaedev/sql/postgresChanges.ts";
 import { notes } from "#test/command-changes/fixture.ts";
 
 export const host = Effect.fnUntraced(function* (
-	client: PgClient.PgClient,
+	client: PgClient.PgClient & SqlClient.SqlClient,
 	channel: string,
 	faults: { broadcastFails: boolean },
 	syncClient: string,

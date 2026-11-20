@@ -3,10 +3,11 @@ import * as Atom from "effect/reactivity/Atom";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import type * as AtomRpc from "effect/reactivity/AtomRpc";
 import * as Reactivity from "effect/reactivity/Reactivity";
-import type { Rpc, RpcSchema } from "effect/rpc";
+import type { Rpc } from "effect/rpc";
 import type { Key } from "@shivaedev/changes/keys.ts";
 import type { BindingOwner } from "#adapters/bindingOwner.ts";
 import { clientId } from "#adapters/clientId.ts";
+import { streamingClient, unaryClient } from "#adapters/erasedClient.ts";
 import type { automaticLive } from "#automaticLive.ts";
 import type { QueryOptions, RunOptions } from "#bind.ts";
 import { clientActivities } from "#clientActivities.ts";
@@ -21,13 +22,6 @@ import { type CommandObserver, reflectCommand } from "#reflectCommand.ts";
 import { retainQuery } from "#retainQuery.ts";
 import { subjectSerializationKey, withSubject } from "#subjectHeader.ts";
 
-type ErasedClient = AtomRpc.AtomRpcClient<unknown, string, Rpc.Rpc<string, Schema.Top, Schema.Top, Schema.Top>>;
-type ErasedStreamingClient = AtomRpc.AtomRpcClient<
-	unknown,
-	string,
-	Rpc.Rpc<string, Schema.Top, RpcSchema.Stream<Schema.Top, Schema.Top>, Schema.Never>
->;
-
 // `runtime.fn(api.save.run)` passes its function context as the second argument, so only an options object selects a subject.
 function runSubject(options: unknown): string | undefined {
 	return typeof options === "object" && options !== null && "subject" in options && typeof options.subject === "string" ? options.subject : undefined;
@@ -38,8 +32,8 @@ export function clientOperations(
 	automatic: ReturnType<typeof automaticLive>,
 	owner?: BindingOwner,
 ) {
-	const ordinaryClient: ErasedClient = service;
-	const streaming: ErasedStreamingClient = service;
+	const ordinaryClient = unaryClient(service);
+	const streaming = streamingClient(service);
 	function run<A, E>(effect: Effect.Effect<A, E, unknown>) {
 		return owner === undefined ? effect : Effect.suspend(() => AtomRegistry.getResult(owner.registry, ordinaryClient.runtime.atom(effect)));
 	}
