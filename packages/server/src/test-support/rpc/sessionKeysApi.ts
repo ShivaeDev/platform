@@ -70,7 +70,7 @@ const write = Effect.fnUntraced(function* ({ id, value, announce, reject }: type
 			return yield* new Conflict({ message: "Write rejected" });
 		}
 		return value;
-	}).pipe(transact({ onSqlError: (error) => error }), Effect.catchTag("SqlError", Effect.die));
+	}).pipe(transact(), Effect.catchTag("SqlError", Effect.die));
 });
 function listOwn() {
 	return read({ id: "theme" });

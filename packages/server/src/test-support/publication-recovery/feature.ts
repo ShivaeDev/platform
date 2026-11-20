@@ -34,9 +34,5 @@ export const handlers = Api.application.toLayer({
 			Effect.orDie,
 		),
 	"recovery.save": ({ title }) =>
-		SqlClient.SqlClient.use((sql) => sql`insert into recovery_notes values (${title})`).pipe(
-			transact({ onSqlError: (error) => error }),
-			Effect.as({ title }),
-			Effect.orDie,
-		),
+		SqlClient.SqlClient.use((sql) => sql`insert into recovery_notes values (${title})`).pipe(transact(), Effect.as({ title }), Effect.orDie),
 });

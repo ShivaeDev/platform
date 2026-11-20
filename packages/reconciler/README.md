@@ -41,7 +41,7 @@ const application = Effect.gen(function* () {
 	yield* Effect.gen(function* () {
 		yield* sql`update tasks set title = 'ready' where id = 1`;
 		yield* changes({ tasks: [tasks.item(1)] }).record();
-	}).pipe(transact({ onSqlError: (error) => error }));
+	}).pipe(transact());
 	return worker;
 });
 ```

@@ -46,7 +46,7 @@ export const keyed = storyKit({
 			Effect.gen(function* () {
 				yield* sql`insert into tasks (id, title) values (${id}, ${title})`;
 				yield* changes({ tasks: [tasks.item(id)] }).record();
-			}).pipe(transact({ onSqlError: (error) => error })),
+			}).pipe(transact()),
 		complete: (id: number) =>
 			Effect.suspend(() => {
 				const gate = gates.get(id);
@@ -67,7 +67,7 @@ export const keyed = storyKit({
 			Effect.gen(function* () {
 				yield* sql`delete from tasks where id = ${id}`;
 				yield* changes({ tasks: [tasks.item(id)] }).record();
-			}).pipe(transact({ onSqlError: (error) => error })),
+			}).pipe(transact()),
 		settled: () => Queue.take(settled),
 		started: () => Queue.take(started),
 		stopped: () => Queue.take(stopped),
