@@ -1,6 +1,7 @@
 import { createRootRoute, createRoute, createRouter, Outlet, type RouterHistory, RouterProvider, useRouterState } from "@tanstack/react-router";
 import { useState } from "react";
 import { permissionGuard } from "#adapters/permissionGuard.ts";
+import { signInRedirect } from "#adapters/signInRedirect.ts";
 import { SessionBoundary } from "#client/sessionBoundary.ts";
 
 export interface BoundarySession {
@@ -45,7 +46,7 @@ function Routes({
 }) {
 	const [router] = useState(() => {
 		const root = createRootRoute({
-			beforeLoad: permissionGuard({ session: () => (session === undefined ? undefined : { user: {} }), signIn: "/sign-in" }),
+			beforeLoad: permissionGuard({ session: () => (session === undefined ? undefined : { user: {} }), signedOut: signInRedirect("/sign-in") }),
 			component: Outlet,
 		});
 		const login = createRoute({

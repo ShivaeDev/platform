@@ -1,7 +1,6 @@
 import { type ErrorComponentProps, getRouteApi, Link, type NotFoundRouteProps, Outlet, useRouterState } from "@tanstack/react-router";
 import { useLayoutEffect } from "react";
 import { isNotFound } from "@shivaedev/errors/taxonomy.ts";
-import { useLoaderQuery } from "#client/useLoaderQuery.ts";
 import { noteQuery } from "#test/noteQuery.ts";
 import type { routerApp } from "#test/routerApp.ts";
 import { NoteMissing } from "#test/routerClient.ts";
@@ -25,9 +24,8 @@ export function RouterShell() {
 
 export function RouterNote() {
 	const row = noteRoute.useLoaderData<Router>();
-	const { client, frames, viewer } = noteRoute.useRouteContext<Router>();
-	const search = noteRoute.useSearch<Router>();
-	const query = useLoaderQuery(client.api.get.query({ id: row.id, page: search.page * viewer.page }), row);
+	const { frames } = noteRoute.useRouteContext<Router>();
+	const query = noteQuery.useQuery();
 	useLayoutEffect(() => {
 		frames.push(query.data.title);
 	}, [frames, query.data.title]);
@@ -82,6 +80,10 @@ export function RouterPending() {
 export function RouterSignIn() {
 	const { returnTo } = getRouteApi<"/sign-in", Router>("/sign-in").useSearch<Router>();
 	return <h1>Sign in to return to {returnTo}</h1>;
+}
+
+export function RouterMemberSignIn() {
+	return <h1>Members sign in here</h1>;
 }
 
 export function RouterRefused() {

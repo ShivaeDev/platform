@@ -1,7 +1,7 @@
 import { createMemoryHistory, createRootRouteWithContext, createRoute, createRouter, Outlet } from "@tanstack/react-router";
 import type { Effect } from "effect";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
-import { queryRoute } from "#adapters/queryRoute.ts";
+import { queryRoute } from "#client/adapters/queryRoute.ts";
 import type { deniedLiveClient } from "#test/denied-live/client.ts";
 import { Note } from "#test/denied-live/Note.tsx";
 

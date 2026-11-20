@@ -2,7 +2,7 @@ import { createRootRouteWithContext, createRoute } from "@tanstack/react-router"
 import { Schema } from "effect";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { expectTypeOf } from "vitest";
-import { queryRoute } from "#adapters/queryRoute.ts";
+import { queryRoute } from "#client/adapters/queryRoute.ts";
 import { RouterSearch } from "#test/routerApp.ts";
 import type { routerClient } from "#test/routerClient.ts";
 
@@ -38,6 +38,11 @@ export function typedQueryRoute() {
 	expectTypeOf<typeof route.types.loaderData>().toEqualTypeOf<{ readonly id: string; readonly title: string }>();
 	expectTypeOf<typeof route.types.fullSearchSchema>().toEqualTypeOf<{ readonly page: number }>();
 	expectTypeOf<typeof route.types.allParams>().toEqualTypeOf<{ id: number }>();
+	const firstNote = queryRoute(({ context }: { context: typeof root.types.allContext; params: object; search: object }) =>
+		context.client.api.get.query({ id: "first", page: 1 }),
+	);
+	expectTypeOf<ReturnType<typeof firstNote.useQuery>["data"]>().toEqualTypeOf<{ readonly id: string; readonly title: string }>();
+	expectTypeOf<ReturnType<typeof firstNote.useLoaded>["loaded"]>().toEqualTypeOf<{ readonly id: string; readonly title: string }>();
 	const requiresSession = queryRoute(({ context }: { context: typeof root.types.allContext & { session: string } }) =>
 		context.client.api.get.query({ id: context.session, page: 1 }),
 	);

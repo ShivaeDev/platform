@@ -19,8 +19,8 @@ import { Notices } from "#client/Notices.tsx";
 import { SessionApp } from "#client/SessionApp.tsx";
 import { CodePreview, type CodePreviewLine } from "#modules/notes/client/CodePreview.tsx";
 import { notesRegistration } from "#modules/notes/client/registration.tsx";
-import { NotesScreen } from "#modules/notes/client/Screen.tsx";
 import { notesClient } from "#modules/notes/test-support/client.ts";
+import { LoadedScreen } from "#modules/notes/test-support/LoadedScreen.tsx";
 import { screenAuth } from "#modules/notes/test-support/screenAuth.ts";
 import type { Screen } from "#modules/notes/test-support/screenState.ts";
 import { settleQuery } from "#modules/notes/test-support/settleQuery.ts";
@@ -152,7 +152,7 @@ export const openNotes = Effect.fn("ScreenStory.openNotes")(function* (engine: S
 	yield* Effect.promise(() =>
 		view.render(
 			<Notices>
-				<NotesScreen client={engine.client} loaded={loaded} {...(signOut === undefined ? {} : { signOut })} />
+				<LoadedScreen client={engine.client} loaded={loaded} signOut={signOut} />
 			</Notices>,
 		),
 	);
