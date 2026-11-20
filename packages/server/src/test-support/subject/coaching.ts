@@ -80,7 +80,7 @@ const migrations = {
 	}),
 };
 
-export const coachingModule = { migrations, module: Coaching, name: "coaching", services: CoachDelegation.layer } satisfies AppModule;
+export const coachingModule = { migrations, module: Coaching, services: CoachDelegation.layer } satisfies AppModule;
 
 // The same module registered by an application that forgot the delegation rule's service.
-export const coachingWithoutRule = { migrations, module: Coaching, name: "coaching", services: Layer.empty } satisfies AppModule;
+export const coachingWithoutRule = { migrations, module: Coaching, services: Layer.empty } satisfies AppModule;

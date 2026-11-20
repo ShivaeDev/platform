@@ -57,26 +57,19 @@ A single repository write commits on its own: the repository derives record and 
 `src/modules/bookmarks/server/registration.ts` registers the module with the host, as [the notes registration](../../examples/starter/src/modules/notes/server/registration.ts) does:
 
 ```ts
-import * as NodeServices from "@effect/platform-node/NodeServices";
-import { Effect, Path } from "effect";
-import * as MigratorFileSystem from "effect/sql/MigratorFileSystem";
 import type { AppModule } from "@shivaedev/server/AppModule.ts";
+import { migrationsIn } from "@shivaedev/server/adapters/migrationsIn.ts";
 import { Bookmarks } from "#modules/bookmarks/Bookmarks.ts";
 import { BookmarksRepository } from "#modules/bookmarks/server/Repository.ts";
 
 export const bookmarksRegistration = {
-	migrations: {
-		loader: Effect.flatMap(Path.Path, (path) => MigratorFileSystem.fromFileSystem(path.join(import.meta.dirname, "migrations"))).pipe(
-			Effect.provide(NodeServices.layer),
-		),
-	},
+	migrations: migrationsIn(import.meta.dirname),
 	module: Bookmarks,
-	name: "bookmarks",
 	services: BookmarksRepository.layer,
 } satisfies AppModule;
 ```
 
-The host serves each operation from `module:` through the module's generated handlers, which check each query's read policy, run `run` and apply the failure boundary; the registration writes no handlers. `services` provides what `requires` lists, except the SQL client and the other services the host provides. Declare the registration with `satisfies AppModule`, so its type keeps the module's `requires`. Optional fields add `admin`, `ports`, `queues` and `workers`: `admin` is the result of `registerAdmin`; `ports` is a Layer of default adapters, overridden by the composition's `replacements` Layer; for jobs, spread the `queues` and `workers` returned by `jobModule` onto the same registration.
+The host serves each operation from `module:` through the module's generated handlers, which check each query's read policy, run `run` and apply the failure boundary; the registration writes no handlers. The module already carries its name, so the registration gives none. `migrationsIn(import.meta.dirname)` loads the numbered files in the `migrations` folder beside the registration with Effect's `MigratorFileSystem.fromFileSystem` and Node's file system; a module without tables leaves `migrations` out. `services` provides what `requires` lists, except the SQL client and the other services the host provides. Declare the registration with `satisfies AppModule`, so its type keeps the module's `requires`. Optional fields add `admin`, `ports`, `queues` and `workers`: `admin` is the result of `registerAdmin`; `ports` is a Layer of default adapters, overridden by the composition's `replacements` Layer; for jobs, spread the `queues` and `workers` returned by `jobModule` onto the same registration.
 
 The command adds `bookmarksRegistration` to the `modules` list in [`src/server/modules.ts`](../../examples/starter/src/server/modules.ts). That list feeds `appModules`, which combines the modules, services, migration loaders and the optional fields. Both application processes use this composition, and the foundation's server Jobs handlers receive the queues collected from these entries. The browser keeps its own payload schemas and bindings without importing server registrations.
 

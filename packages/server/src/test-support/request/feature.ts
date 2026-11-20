@@ -1,5 +1,4 @@
 import { Context, Deferred, Effect, Layer, Option, Ref, Schema } from "effect";
-import { Migrator } from "effect/sql";
 import { contract } from "@shivaedev/contract/contract.ts";
 import { HostVersion } from "@shivaedev/contract/HostVersion.ts";
 import { query } from "@shivaedev/contract/operation.ts";
@@ -47,7 +46,6 @@ export const openHost = Effect.fnUntraced(function* (build: () => number) {
 					return [first, yield* view.read()];
 				}),
 		}),
-		migrations: { loader: Migrator.fromRecord({}) },
 		name: "request",
 		requestServices: requestViewService.layer,
 		services: Layer.effect(
