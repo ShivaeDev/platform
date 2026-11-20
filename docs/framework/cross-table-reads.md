@@ -1,6 +1,6 @@
 # Cross-table reads with native SqlSchema
 
-A dashboard can read tables owned by different repositories without adding joins to either repository. Keep each repository responsible for one table; put the cross-table query in the service of the module that owns the read. Here, the dashboard owns the combined view of pull requests and their reports. The pull-request and report modules still own their models, repositories and writes.
+A dashboard can read tables owned by different repositories without adding joins to either repository. Keep each repository responsible for one table; put the cross-table query in the module that owns the read, where its operations yield it. Here, the dashboard owns the combined view of pull requests and their reports. The pull-request and report modules still own their models, repositories and writes.
 
 ## Compose the models' field schemas
 
@@ -10,26 +10,9 @@ PostgreSQL stores the IDs in `integer` columns, the title and score in `text` co
 
 Use the models' `.fields` schemas for the read result, including their storage codecs. A new standalone schema with handwritten field types would let the read drift from its repositories. For a left join, wrap every selected column from the optional side in `Schema.NullOr`, even if that column is non-nullable in its own table.
 
-## Own the query in the dashboard service
+## Own the query in the dashboard module
 
-The dashboard [service](../../packages/sql/src/test-support/cross-table/dashboard/service.ts) declares its dependencies once and names its operations. Each operation is an `Effect.fn("Dashboard.<operation>")` export in its own file beside `service.ts`; the initializer owns no state. Table names are application configuration supplied through a `DashboardConfig` service. Both repositories and this service use the same native `SqlClient`, which each operation yields like any other dependency:
-
-```ts
-import { Effect } from "effect";
-import { SqlClient } from "effect/sql";
-import { defineService } from "@shivaedev/service/defineService.ts";
-import { DashboardConfig } from "./Config.ts";
-import { findReport } from "./findReport.ts";
-import { listPullRequests } from "./listPullRequests.ts";
-import { listReports } from "./listReports.ts";
-
-export const dashboardService = defineService({
-	id: "@shivaedev/sql/dashboard/Service",
-	requires: [SqlClient.SqlClient, DashboardConfig],
-	initialize: Effect.void,
-	methods: () => ({ findReport, listPullRequests, listReports }),
-});
-```
+Each cross-table read is an `Effect.fn("Dashboard.<read>")` export in its own file of the dashboard module's server code, as the [reported pull-request read](../../packages/sql/src/test-support/cross-table/dashboard/listReports.ts) is. It yields the native `SqlClient`, which the repositories use too, and a `DashboardConfig` service that names the tables as application configuration. No service wraps the reads: the module's operations yield them.
 
 The [result schemas](../../packages/sql/src/test-support/cross-table/dashboard/rows.ts) compose the models' fields:
 
@@ -87,16 +70,19 @@ export const listReports = Effect.fn("Dashboard.listReports")(function* (request
 
 `findReport` uses `SqlSchema.findOneOption` with the model's ID schema. It returns `Option.some` with a decoded row when a report exists, and `Option.none` when the join matches nothing. The unique report foreign key makes this a single-row query; `findOneOption` itself does not enforce uniqueness.
 
-Provide the service's layer from the application database layer, then call it from the dashboard module:
+A query of the dashboard module returns the read as its result:
 
 ```ts
-const recentReports = Effect.gen(function* () {
-	const dashboard = yield* dashboardService;
-	return yield* dashboard.listReports({ since: DateTime.makeUnsafe("2026-10-25T11:00:00Z") });
-}).pipe(Effect.provide(dashboardService.layer), Effect.provideService(DashboardConfig, { pullRequests: "pull_requests", reports: "reports" }));
+export const Reports = query("reports", {
+	payload: Since,
+	reads: () => [pullRequests.list, reports.list],
+	*run(request) {
+		return yield* listReports(request);
+	},
+});
 ```
 
-This effect still requires the application's `SqlClient`. Import `DateTime` and `Effect` from `effect`, and `dashboardService` and `DashboardConfig` from their defining modules. Authorization and any caller-specific filters belong in this application service.
+`pullRequests` and `reports` are the tables' collections, declared with `collection` from `@shivaedev/changes/keys.ts`. A read through the native `sql` tag names no key, so the query declares the tables it joins in `reads` and reruns when either changes, as the [contract guide](../../packages/contract/README.md#query-policies-record-keys-and-buckets) explains. The generator writes the result's wire from `run`'s type: `updatedAt` travels as a `DateTime.Utc` and `score` as a number. The module's registration provides the configuration beside the host's `SqlClient`, with `services: Layer.succeed(DashboardConfig, { pullRequests: "pull_requests", reports: "reports" })`. Authorization and any caller-specific filters belong in the operation.
 
 ## Keep the boundary explicit
 

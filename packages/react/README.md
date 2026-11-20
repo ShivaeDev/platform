@@ -273,23 +273,16 @@ The hook owns retained display data and the native atom owns execution and cachi
 
 For both queries and actions, a successful `undefined` is `Option.some(undefined)` in `data`, with `pending` and `refreshing` false. A defect or interruption is available as `Option.some(cause)` in `cause`; they do not request a session recheck, even when the defect has an `Unauthorized` tag.
 
-The example's action returns a value; it does not persist the report or invalidate its query. In an application, use the native RPC query and mutation atoms instead:
+The example's action returns a value; it does not persist the report or invalidate its query. In an application, pass the bound query and command of a module's generated contract instead:
 
 ```ts
-const notes = useQuery(
-	NotesClient.query("ListNotes", undefined, {
-		reactivityKeys: ["notes"],
-	}),
-);
-const create = useAction(NotesClient.mutation("CreateNote"));
+const notes = useQuery(api.list.query());
+const add = useAction(api.add);
 
-create.dispatch({
-	payload: { title: "Morning walk" },
-	reactivityKeys: ["notes"],
-});
+add.dispatch({ title: "Morning walk" });
 ```
 
-`NotesClient` is an application's `AtomRpc.Service` with `ListNotes` and `CreateNote` RPCs. The native mutation's reactivity keys refresh the matching query after success.
+`api` comes from `makeClient` over the module's generated contract, as the [contract guide](https://github.com/ShivaeDev/platform/blob/main/packages/contract/README.md#the-wire-and-the-browsers-contract) describes, with a `list` query and an `add` command that takes `{ title }`. The command's success refreshes the queries that read its keys.
 
 An action's `dispatch(input)` returns `void`. Read the atom's latest result from `data`, `cause` or `result`. With the default `Atom.fn` action, a later dispatch interrupts the earlier work and the shared state reports the later result.
 
@@ -852,7 +845,7 @@ function Controls() {
 	return can(ReadNotes) ? <button type="button">Read notes</button> : null;
 }
 
-function PermissionShell({ children }: { readonly children: ReactNode }): ReactNode {
+function PermissionShell({ children }: { readonly children: ReactNode }) {
 	const session = useRouter<typeof router>().options.context?.session;
 	return (
 		<PermissionBoundary session={session} fallback={<NoAccess />}>
@@ -884,7 +877,7 @@ const showNotes = can(auth.session, ReadNotes);
 
 `auth` owns the current session and passes it to `App`; `SignIn` updates that session before invoking `onSignedIn`. Use the session's registry for router context and React, as with other query routes. Importing `permissionGuard` augments TanStack's `StaticDataRouteOption`; route options and their inference remain native. The guard returns `void` explicitly, so `beforeLoad` needs no return annotation, including when it reads the session from route context.
 
-`InnerWrap` puts `PermissionBoundary` inside the router. Its fallback can render `Link` and read route context. Set `defaultErrorComponent: PermissionBoundaryError` so route and loader failures reach the boundary's fallback while TanStack keeps its navigation controller mounted. This lets a refused viewer follow the fallback link without reloading the page. Keep `disableGlobalCatchBoundary: true`; other errors propagate to an enclosing application boundary. A route-specific `errorComponent` owns any failures it consumes.
+`InnerWrap` puts `PermissionBoundary` inside the router, and the boundary's fallback can render `Link` and read route context. TanStack types `InnerWrap` as a component that returns an element, so `PermissionShell` leaves its return type to inference; annotated as returning `ReactNode`, it does not compile. Set `defaultErrorComponent: PermissionBoundaryError` so route and loader failures reach the boundary's fallback while TanStack keeps its navigation controller mounted. This lets a refused viewer follow the fallback link without reloading the page. Keep `disableGlobalCatchBoundary: true`; other errors propagate to an enclosing application boundary. A route-specific `errorComponent` owns any failures it consumes.
 
 `Forbidden` from `@shivaedev/react/adapters/Forbidden.ts` supplies the no-access heading, explanation and a router link. Set `to` to a route the viewer may open. Optional `title`, `children`, `backLabel` and `className` let the application choose wording and layout. The default heading is “Permission denied” and the link says “Go back”.
 
@@ -1067,22 +1060,49 @@ These lines belong inside a component; `text` and `ClipboardDenied` belong to th
 
 #### Render tests in happy-dom
 
-Use `@shivaedev/test-story/client/adapters/react.ts` with Vitest's `happy-dom` environment. Install contract and changes for the example's query, command and key declarations, and the testing peers and environment in your app's dev dependencies:
+Use `@shivaedev/test-story/client/adapters/react.ts` with Vitest's `happy-dom` environment. Install changes, contract and identity for the module's keys, operations, middleware and client binding, and the testing peers and environment in your app's dev dependencies:
 
 ```sh
-pnpm add @shivaedev/changes @shivaedev/contract
+pnpm add @shivaedev/changes @shivaedev/contract @shivaedev/identity
 pnpm add -D @shivaedev/test-story @effect/platform-node @effect/vitest vitest happy-dom react-dom @types/react-dom
 ```
 
-Configure Vitest with `test: { environment: "happy-dom" }`, or select that environment for your DOM test project. Keep the engine, rendering and verbs in a story kit under `src/test-support/notesScreen.tsx`. This kit runs the declared query and command against native RPC test handlers and gives the screen driver the registry's pending signal:
+Configure Vitest with `test: { environment: "happy-dom" }`, or select that environment for your DOM test project. The screen below reads a defined `notes` module, whose operations yield a `NoteTitles` service and run behind identity's `Authenticated` middleware:
+
+```ts
+import { defineModule } from "@shivaedev/contract/defineModule.ts";
+import { command, query } from "@shivaedev/contract/operation.ts";
+import { Authenticated } from "@shivaedev/identity/middleware.ts";
+import { notesWire } from "#generated/modules/notes/Notes.ts";
+import { NoteTitle, notes } from "#modules/notes/model.ts";
+import { NoteTitles } from "#modules/notes/services.ts";
+
+const List = query("list", {
+	reads: () => [notes.list],
+	*run() {
+		return yield* (yield* NoteTitles).all;
+	},
+});
+const Add = command("add", {
+	invalidates: () => [notes.list],
+	payload: NoteTitle,
+	*run({ title }) {
+		yield* (yield* NoteTitles).add(title);
+	},
+});
+export const Notes = defineModule({ middleware: Authenticated, name: "notes", operations: [List, Add], wire: notesWire });
+```
+
+`model.ts` declares `notes` as `collection("notes", Schema.Number)` and `NoteTitle` as `Schema.Struct({ title: Schema.String })`, and `services.ts` declares `NoteTitles` with an `all` Effect of titles and an `add(title)` method. Keep the engine, rendering and verbs in a story kit under `src/test-support/notesScreen.tsx`. This kit serves the module's own handlers from `moduleHandlers` over native RPC, with an in-memory `NoteTitles` and a fake `Authenticated` that signs alice in, binds the generated contract and gives the screen driver the registry's pending signal:
 
 ```tsx
-import { Effect, Layer, Option, Ref, Schema, Stream } from "effect";
+import { Effect, Layer, Option, Ref } from "effect";
 import { act, createElement } from "react";
-import { collection } from "@shivaedev/changes/keys.ts";
 import { makeClient } from "@shivaedev/contract/bind.ts";
-import { contract } from "@shivaedev/contract/contract.ts";
-import { command, query } from "@shivaedev/contract/operation.ts";
+import { moduleHandlers } from "@shivaedev/contract/moduleHandlers.ts";
+import { CurrentViewer } from "@shivaedev/contract/readPolicy.ts";
+import { Identity } from "@shivaedev/identity/identity.ts";
+import { Authenticated } from "@shivaedev/identity/middleware.ts";
 import { layerMemoryProtocol } from "@shivaedev/test-kits/contract/testing.ts";
 import { screenPending } from "@shivaedev/react/adapters/screenPending.ts";
 import { useAction, useQuery } from "@shivaedev/react/client/resultState.ts";
@@ -1090,33 +1110,29 @@ import { render } from "@shivaedev/test-story/client/adapters/react.ts";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
-
-const notes = collection("notes", Schema.Number);
-const List = query("list", { readPolicy: () => Effect.succeed(true), reads: () => [notes.list], success: Schema.Array(Schema.String) });
-const Add = command("add", { invalidates: () => [notes.list], payload: { title: Schema.String } });
-const Notes = contract("notes", { commands: [Add], queries: [List] });
+import { Notes } from "#generated/modules/notes/Notes.ts";
+import { Notes as NotesModule } from "#modules/notes/Notes.ts";
+import { NoteTitles } from "#modules/notes/services.ts";
 
 export const notesScreen = storyKit({
 	*create() {
-		const handlers = Notes.toLayer(
-			Effect.gen(function* () {
-				const stored = yield* Ref.make<readonly string[]>([]);
-				return Notes.of({
-					"notes.$changes": () => Stream.never,
-					"notes.add": ({ title }) => Ref.update(stored, (all) => [...all, title]),
-					"notes.list": () => Ref.get(stored),
-				});
-			}),
+		const stored = yield* Ref.make<readonly string[]>([]);
+		const titles = Layer.succeed(NoteTitles, {
+			add: (title) => Ref.update(stored, (all) => [...all, title]),
+			all: Ref.get(stored),
+		});
+		const signedIn = Layer.succeed(Authenticated, (effect) =>
+			effect.pipe(Effect.provideService(CurrentViewer, Option.some({ id: "alice" })), Effect.provideService(Identity, { id: "alice" })),
 		);
-		const { api, Client } = makeClient(Notes, {
+		const handlers = moduleHandlers(NotesModule).pipe(Layer.provide(titles));
+		const { api } = makeClient(Notes, {
 			live: false,
-			protocol: layerMemoryProtocol(Notes).pipe(Layer.provide(handlers)),
+			protocol: layerMemoryProtocol(NotesModule.application).pipe(Layer.provide([handlers, signedIn])),
 			url: "memory://notes",
 		});
-		const add = Client.runtime.fn(api.add.run);
 		function NotesView() {
 			const list = useQuery(api.list.query());
-			const action = useAction(add);
+			const add = useAction(api.add);
 			return createElement(
 				"section",
 				null,
@@ -1124,8 +1140,8 @@ export const notesScreen = storyKit({
 				createElement(
 					"button",
 					{
-						disabled: list.pending || action.pending,
-						onClick: () => action.dispatch({ title: "Morning walk" }),
+						disabled: list.pending || add.pending,
+						onClick: () => add.dispatch({ title: "Morning walk" }),
 						type: "button",
 					},
 					"Add",
@@ -1179,7 +1195,7 @@ notesScreen.it("a command refetches the rendered notes through native RPC", [], 
 
 `render(node, options?)` returns the attached `container`, its fresh native `registry`, `render(nextNode)` to update the same root and registry, and `unmount()` to release the root, registry and container. The options are React's own `RootOptions`, passed to `createRoot`, including `onCaughtError`, `onUncaughtError` and `onRecoverableError`. Acquire the view with `Effect.acquireRelease` so its scope releases it on success, failure or interruption. The screen driver's `act` adapter keeps component interactions and settling inside React's `act`. `expectNoReactWarnings()` registers a Vitest hook that fails a test if it logged to `console.error`.
 
-The RPC layer stays application-owned: replace these in-memory handlers with the service Layer your component needs. Services declare their dependencies once in `requires` and yield them in their operations, including `Identity` for the caller. Register caller-dependent Layers in the host’s `requestServices` slot and shared repository Layers in `services`; handlers yield the service during each call and pass only the operation’s payload. Test-support services follow the same model, with `Effect.void` initialization when they own no lifetime state and captured-context bridges in `adapters/`.
+The kit runs the module's real operations, read policies included, and replaces only the service they yield and the session. `moduleHandlers` requires exactly the services the operations yield beyond the middleware, so the compiler names one the kit forgets. The fake middleware provides the viewer the default `signedIn` policy checks and the `Identity` the operations may yield; without a viewer, the list answers `QueryReadDenied`. The starter's [notes screen kit](https://github.com/ShivaeDev/platform/blob/main/examples/starter/src/modules/notes/test-support/client.ts) fakes its middleware the same way. A story about persistence or the real session runs the operations through the application host, as the starter's application kit does.
 
 For a boundary fallback test, keep the warnings guard and declare the caught error inside the test. `expectCaughtError(predicate)` returns an `onCaughtError` handler that accepts matching errors without logging them. The guard fails if the handler receives any other error or the expected error never arrives. Other console errors and React warnings still fail the guard.
 

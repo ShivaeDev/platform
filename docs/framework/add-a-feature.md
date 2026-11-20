@@ -11,7 +11,7 @@ pnpm test src/modules/bookmarks/server/lifecycle.spec.ts
 
 Run this from your generated app directory. The command writes a defined module in the notes shape: `Bookmarks.ts` with `defineModule`, a `model.ts`, one file per operation under `server/` (`List.ts`, `Create.ts`), the repository, next numbered migration, a client of the generated contract and an application story kit, and adds the server registration, which names `module:`, once to `src/server/modules.ts`. It accepts both full and minimal apps, names existing destination files instead of overwriting them, and requires the starter's `const modules = [...] as const;` module list. The resource starts with an `Item` model containing an id and a trimmed nonempty title. Its list and create operations require a session and keep each account's data private, and an open list reruns for its owner's new items and not for another account's. Admin pages, jobs and UI routes are optional additions. The generated PostgreSQL stories run through the real application host.
 
-The numbered sections explain the files the command writes, then the UI and integration code you add. Keep already-applied migrations unchanged when extending a generated module.
+The numbered sections explain the files the command writes, then the UI and integration code you add; the last section moves a module written in the old form to this shape. Keep already-applied migrations unchanged when extending a generated module.
 
 A feature is a module under `src/modules`. The bookmarks module lives in `src/modules/bookmarks`: the browser-safe model in `model.ts`, the defined module in `Bookmarks.ts`, operations, persistence and the server registration in `server/`, React components in `client/` and its story kits in `test-support/`. `Bookmarks.ts` imports the operations, so the browser never imports it or anything under `server/`; client code imports the generated contract from `#generated/modules/bookmarks/Bookmarks.ts` and the model. Register the server feature once in `src/server/modules.ts`; the host, worker and admin handlers use that list. Register browser routes and bindings separately in `src/client/modules.ts`. Browser-only queue schemas belong in `src/admin/foundation.ts` when the Jobs view needs to decode their payloads. This walkthrough covers a query and a create command; the notes module's background word-count job is an optional extension described in [Add a job](./quickstart.md#add-a-job).
 
@@ -47,13 +47,69 @@ Each operation is its own file under `server/`, written once as its business log
 
 `server/Create.ts` exports `Create`, a `command` with `payload: Fields` whose `run` yields the repository and `SessionUser`, inserts `{ title, userId }` and maps the row through `toItem`. The owner comes from the session, never the form. The repository announces the created record and its owner's bucket when the insert commits, so the command declares no `invalidates`. A command declares `invalidates` only when it changes something no repository write or recorded `changes` announces, as the [live-update guide](./live-updates.md#mark-buckets-on-the-stored-model) explains.
 
-Neither operation states its success or failures. The build generates them from `run`'s type into the module's wire and browser contract, and the framework adds `InternalServerError` and `ServiceUnavailable` to every operation and puts the failure boundary around each handler: a retryable failure, such as a `SqlError` from a lost connection or a deadlock, answers `ServiceUnavailable`, and any other failure outside the operation's rejections, such as a constraint violation `run` does not map, answers `InternalServerError`. A failure the browser should handle is an exported tagged error class that `run` raises, and the generated contract carries it; the [contract guide](../../packages/contract/README.md#an-operation-written-as-its-payload-and-run) shows one.
-
 A single repository write commits on its own: the repository derives record and bucket keys from the written rows and announces them when that write commits. Wrap writes in `transact` from `@shivaedev/sql/transact.ts` only when several must commit together; rollback then discards every write and its announcement. The notes `create` operation wraps a note's insert and its word-count job, because jobs' `enqueue` joins the open SQL transaction on the same connection. Bookmarks has one write and no job, so it needs no `transact`. Workers use the same model repository and the same rule for `transact`. Only raw-SQL writers declare write keys manually: use `changes` from `@shivaedev/sql/changes.ts` and call its `record()` method inside the write's `transact`, as shown in [the live-update guide](./live-updates.md#raw-sql-writers).
+
+Neither operation states its success or failures. The build generates them from `run`'s type into the module's wire and browser contract, and the framework adds `InternalServerError` and `ServiceUnavailable` to every operation and puts the failure boundary around each handler: a retryable failure, such as a `SqlError` from a lost connection or a deadlock, answers `ServiceUnavailable`, and any other failure outside the operation's rejections, such as a constraint violation `run` does not map, answers `InternalServerError`. A stale write to a versioned repository, such as the notes `update` and `delete` operations make, answers the shared `Conflict` without the operation mapping it.
+
+A failure the person should see is an exported tagged error class that `run` raises, and the generated contract carries it. To refuse a second bookmark with the same title beside the title input, declare a field rejection in `model.ts` with `fieldRejection` from `@shivaedev/contract/rejection.ts`, built from the payload's fields:
+
+```ts
+export class TitleTaken extends Schema.TaggedError<TitleTaken>()("TitleTaken", fieldRejection(Fields)) {}
+```
+
+Then raise it from `run`:
+
+```ts
+export const Create = command("create", {
+	payload: Fields,
+	*run({ title }) {
+		const repository = yield* BookmarksRepository;
+		const { id: userId } = yield* SessionUser;
+		if (Option.isSome(yield* repository.findOne({ where: { title, userId } }))) {
+			return yield* new TitleTaken({ field: "title", message: "You already saved a bookmark with that title" });
+		}
+		return yield* repository.insert({ title, userId }).pipe(Effect.map(toItem));
+	},
+});
+```
+
+The generated wire lists `TitleTaken` as `create`'s rejection, and the form in step 7 shows its message under the title input. Keep the class in `model.ts`, not beside the operation: the generated file imports each rejection from the file that declares it, and the browser imports the generated file, so a class in an operation or module file would put server code in the browser bundle, which the build refuses.
+
+A query that needs another rule than a signed-in session writes `readPolicy(payload, viewer)`, which returns an Effect of a boolean and may yield the module's services. A `get` query that only the bookmark's owner may open reads the row in its policy:
+
+```ts
+export const Get = query("get", {
+	payload: ItemId,
+	readPolicy: ({ id }, viewer) =>
+		Effect.gen(function* () {
+			const repository = yield* BookmarksRepository;
+			const row = yield* repository.findOne({ where: { id } });
+			return Option.exists(viewer, ({ id: viewerId }) => Option.exists(row, ({ userId }) => userId === viewerId));
+		}),
+	*run({ id }) {
+		const repository = yield* BookmarksRepository;
+		const row = yield* repository.findOne({ where: { id } });
+		return yield* Option.match(row, {
+			onNone: () => Effect.fail(new NotFound({ message: "Bookmark not found" })),
+			onSome: (found) => Effect.succeed(toItem(found)),
+		});
+	},
+});
+```
+
+`ItemId` is `Schema.Struct({ id: Schema.Number })` in `model.ts`, and `NotFound` comes from `@shivaedev/errors/taxonomy.ts`. The module's handler checks the policy before `run`, and a live subscription checks it again before each rerun; `false` answers `QueryReadDenied`, and a typed failure the policy raises joins the query's rejections. A denial tells the viewer the bookmark exists. The notes `get` query keeps `signedIn` and checks ownership in `run` through [`ownedNote`](../../examples/starter/src/modules/notes/server/owned.ts) instead, so another account's note answers `NotFound`, like a missing one. The [contract guide](../../packages/contract/README.md#query-policies-record-keys-and-buckets) describes policies that check permissions or hide existence.
 
 ## 5. Define the module and register it
 
-`src/modules/bookmarks/Bookmarks.ts` defines the module with `defineModule` from `@shivaedev/contract/defineModule.ts`, as [`Notes.ts`](../../examples/starter/src/modules/notes/Notes.ts) does. It names the module `bookmarks`, lists `operations: [List, Create]`, applies `AuthenticatedUser` from `@shivaedev/identity/middleware.ts` as `middleware` and passes `wire: bookmarksWire` from `#generated/modules/bookmarks/Bookmarks.ts`. It lists no services: the module's type carries every service the operations yield except those the middleware provides, such as `SessionUser`, and the server registration must provide them. `pnpm generate`, which the type check, tests, dev server and build run first, writes the wire and the browser contract from each `run`, and the compiler compares the wire with every `run` on each type check, so a stale file is an error on the module that names the operation.
+`src/modules/bookmarks/Bookmarks.ts` defines the module with `defineModule` from `@shivaedev/contract/defineModule.ts`, as [`Notes.ts`](../../examples/starter/src/modules/notes/Notes.ts) does. It names the module `bookmarks`, lists `operations: [List, Create]`, with `Get` added when you write it, applies `AuthenticatedUser` from `@shivaedev/identity/middleware.ts` as `middleware` and passes `wire: bookmarksWire` from `#generated/modules/bookmarks/Bookmarks.ts`. It lists no services: the module's type carries every service the operations yield except those the middleware provides, such as `SessionUser`, and the server registration must provide them. `pnpm generate`, which the type check, tests, dev server and build run first, writes the wire and the browser contract from each `run`, and the compiler compares the wire with every `run` on each type check, so a stale file is an error on the module that names the operation.
+
+The generator never loosens a type. When `run` returns something with no exact wire form, such as a `Map`, a class that is not an exported Schema class, or a row whose model holds a server-only field, or fails with something that has no `_tag`, it refuses the module with a message that names the operation, the type, where in the result it sits and what to write instead:
+
+```text
+refused.returnsMap: run returns Map<string, number> at success, which has no exact wire form; return a plain object, an array or a string-keyed record
+```
+
+Change `run` as the message says, for example by returning `toItem(row)` rather than the stored row; an operation has no `success` or `rejections` to state beside `run`. A refusal stops `pnpm generate`, the tests, the dev server and the build with the same message. The [build guide](../../packages/build/README.md#what-run-may-return) lists every type `run` may return.
 
 `src/modules/bookmarks/server/registration.ts` registers the module with the host, as [the notes registration](../../examples/starter/src/modules/notes/server/registration.ts) does:
 
@@ -78,13 +134,13 @@ The command adds `bookmarksRegistration` to the `modules` list in [`src/server/m
 
 The command writes `src/modules/bookmarks/client/make.ts`, as [the notes client](../../examples/starter/src/modules/notes/client/make.ts) does: `makeBookmarksClient` calls `makeClient(Bookmarks, { url, ...options })` from `@shivaedev/contract/bind.ts` with the generated contract and returns its `api` and `runtime`.
 
-Create `client/registration.tsx` following [the notes client registration](../../examples/starter/src/modules/notes/client/registration.tsx). It returns the module's `api` and its routes. Under the module's parent route, which puts `client` in its route context as the notes registration does, declare the list once as `const list = queryRoute(({ context }: { context: typeof parent.types.allContext }) => context.client.api.list.query())` from `@shivaedev/react/client/adapters/queryRoute.ts`. The annotation gives the factory the parent's route context. Then add a `/bookmarks` route with TanStack's `createRoute`, spreading `list` so the loader reads the list in the session's registry, and give it an error component. Add the registration to the `modules` list in [`src/client/modules.ts`](../../examples/starter/src/client/modules.ts). The session boundary mounts the module's bound live connection, so the list also refreshes after another session writes.
+Create `client/registration.tsx` following [the notes client registration](../../examples/starter/src/modules/notes/client/registration.tsx). It returns the module's `api` and its routes. Under the module's parent route, which puts `client` in its route context as the notes registration does, declare the list once as `const list = queryRoute(({ context }: { context: typeof parent.types.allContext }) => context.client.api.list.query())` from `@shivaedev/react/client/adapters/queryRoute.ts`. The annotation gives the factory the parent's route context. Then add a `/bookmarks` route with TanStack's `createRoute`, spreading `list` so the loader reads the list in the session's registry, render the screen with `list.useQuery()`, which reads the same query without naming it again, and give it an error component. The notes parent route declares `staticData: { signedIn: true }`, so the root route's guard sends a signed-out visitor to the router's `redirects.signedOut`, which [`appRouter.tsx`](../../examples/starter/src/client/appRouter.tsx) sets once with `signInRedirect("/sign-in")`; a list query that answers `Unauthorized` redirects there too, so the route names no sign-in target. Add the registration to the `modules` list in [`src/client/modules.ts`](../../examples/starter/src/client/modules.ts). The session boundary mounts the module's bound live connection, so the list also refreshes after another session writes.
 
 ## 7. Build the form and screen
 
 Follow [the notes create form](../../examples/starter/src/modules/notes/client/Create.tsx). Import `useCreate` from `@shivaedev/react/client/create.ts` and `useField` from `@shivaedev/form/adapters/react.ts`. Call `useCreate(client.api.create, { initialValues: { title: "" } })`; the form's fields come from the command's payload. Bind the title input to the field's value, change and blur handlers, and submit with `create.save()`.
 
-Keep a label, field error, save failure and pending button state. Follow [the notes screen](../../examples/starter/src/modules/notes/client/Screen.tsx), which renders the state the route component reads with `list.useQuery()`. The repository's committed bucket announcement refreshes that list. Applications own the wording and layout; the form owns encoded input and submission state.
+Keep a label, the field's error and the pending button state. The form writes no failure handling: a blank or whitespace-only title shows "Enter a title" without a request, a `TitleTaken` rejection lands on the title field, a shared rejection, such as the `TooManyRequests` of the notes `create` operation's rate limit, shows its message through the application's notice host, and a lost connection or a server failure shows that host's one failure wording. A rejection the module declares for itself that names no field of the form needs a handler in `failures`, and the call does not compile without one; the [react guide](../../packages/react/README.md#failures-of-commands-and-saves) gives the rules. Follow [the notes screen](../../examples/starter/src/modules/notes/client/Screen.tsx), which renders the state the route component reads with `list.useQuery()`. The repository's committed bucket announcement refreshes that list. Applications own the wording and layout; the form owns encoded input and submission state.
 
 ## 8. Call an outside API
 
@@ -114,3 +170,17 @@ pnpm lint
 pnpm typecheck
 pnpm build
 ```
+
+## Move an existing module to this shape
+
+An application whose modules declare operations without `run`, group them with `contract` and serve them with a handler map moves one module at a time. The host serves both forms side by side: a defined module registers as `module:`, a contract served by hand-written handlers keeps its `group` plus `handlers` registration, and both sit in the same `modules` list, as the [server guide](../../packages/server/README.md#host-the-application) shows. The host refuses to start when a defined module's queries are served by any handler other than its generated ones, so all of a module's operations move together. For one module:
+
+1. Write each operation as its own file under `server/`: the handler's body becomes `run`, and the declaration keeps only its `payload`. Drop `success` and `rejections`, which the generator derives, a `readPolicy` of `signedIn`, which is the default, and an `invalidates` that returns no keys, which is the default too. Keep `reads` and `invalidates` that name keys, and a policy that is not `signedIn`.
+2. Return the public shape from `run`, such as `toItem(row)`. What `run` returns is what the browser receives; no success schema drops the fields a row carries beyond it.
+3. Delete failure handling that existed only for the boundary. `InternalServerError` and `ServiceUnavailable` are on every operation and can no longer be listed, and the boundary answers a retryable `SqlError` itself, so `catchTag("SqlError", …)` and a `transact({ onSqlError })` that mapped every SQL failure go. A constraint violation that means something to the person stays mapped in `run`, with `mapSqlError` from `@shivaedev/sql/mapSqlError.ts` or a `catchTag`, as the [constraint guide](./constraint-errors.md) shows. A stale write to a versioned repository answers `Conflict` without a mapping.
+4. Move what the generated file must import into `model.ts` or another file the operations import through a package import such as `#modules/bookmarks/model.ts`: rejection classes, payload schemas and the collections that `reads` and `invalidates` use. The generator refuses a value declared in the operation's own file or imported there by a relative path.
+5. Let each operation yield what it needs. A service whose methods only forwarded to the repository has no callers once the operations yield the repository, and goes; a service with its own state or ports stays and is yielded the same way.
+6. Write the module file with `defineModule`, under the contract's name and with its `middleware`, `subject` and `keyScope`. A module's RPC tags are its name and the operation's name joined by a dot, as a contract's are, so the client's calls keep their names.
+7. Register it with `module:` in place of `group` and `handlers`, keeping `services` and `ports` for what the operations yield, and import the generated contract from `#generated/...` in client code in place of the shared contract.
+
+A stream is always declared without `run`, so a module's stream stays in a `contract` of its own name, served by its hand-written handlers and registered as `group` plus `handlers` beside the defined module; every module and contract carries its own `<name>.$changes` subscription. While some modules still have old-form contracts that the browser imports, list their folders in `oldFormFolders` so the build's bundle check excuses them, and remove each entry with its module's move; the [build guide](../../packages/build/README.md#folders-still-on-the-old-operation-form) describes the option. A story kit that fakes a moved module serves its generated contract with `Notes.application.toLayer`, as [the notes screen kit's fake host](../../examples/starter/src/modules/notes/test-support/client.ts) does; the compiler then holds each fake handler to the success and rejections the operation's `run` admits.

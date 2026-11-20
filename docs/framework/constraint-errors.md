@@ -1,6 +1,6 @@
 # Constraint failures at the application boundary
 
-Use `mapSqlError` from `@shivaedev/sql/mapSqlError.ts` to map named unique, foreign-key and check violations to the owning application's errors. Every other SQL failure goes to the supplied fallback. The result type is the union of the mapped domain errors and the fallback, with no `SqlError` remaining.
+Use `mapSqlError` from `@shivaedev/sql/mapSqlError.ts` to map named unique, foreign-key and check violations to the owning application's errors. Every other SQL failure goes to the supplied fallback. The result type is the union of the mapped domain errors and what the fallback returns, so a fallback that returns the `SqlError` keeps it in the error channel.
 
 ```ts
 import { mapSqlError } from "@shivaedev/sql/mapSqlError.ts";
@@ -12,13 +12,13 @@ const onSqlError = mapSqlError({
 		"orders_customer_fkey": () => new CustomerMissing(),
 		"orders_total_check": () => new InvalidTotal(),
 	},
-	fallback: (error) => new ServiceUnavailable({ cause: error }),
+	fallback: (error) => error,
 });
 
 const saved = save.pipe(transact({ onSqlError }));
 ```
 
-The migration owns the constraint names; the application owns the error types and messages. Each callback receives the original `SqlError`. An unknown constraint, a violation without a recognized name, or any other SQL failure uses `fallback`. PostgreSQL supplies foreign-key and check constraint names through the native driver's cause; `UniqueViolation` supplies its constraint directly. PostgreSQL clips identifiers to 63 bytes at a character boundary, so declare the full name and the mapper matches the clipped name PostgreSQL reports. Other drivers may not identify constraints with the same precision.
+The migration owns the constraint names; the application owns the error types and messages. Each callback receives the original `SqlError`. An unknown constraint, a violation without a recognized name, or any other SQL failure uses `fallback`. In an operation's `run`, return the `SqlError` itself there, as above: the RPC boundary answers a retryable one, such as a lost connection, with `ServiceUnavailable`, and any other, such as a violation nobody named, with `InternalServerError`, which it reports. Mapping every SQL failure to `ServiceUnavailable` would tell the person to retry a write that retrying cannot fix. PostgreSQL supplies foreign-key and check constraint names through the native driver's cause; `UniqueViolation` supplies its constraint directly. PostgreSQL clips identifiers to 63 bytes at a character boundary, so declare the full name and the mapper matches the clipped name PostgreSQL reports. Other drivers may not identify constraints with the same precision.
 
 For an Effect that fails with `SqlError`, including generic `Effect<A, SqlError, R>` code, use the same mapper with `Effect.mapError`:
 
