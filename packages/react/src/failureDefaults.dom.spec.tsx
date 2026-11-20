@@ -191,3 +191,87 @@ failures.it(
 		expect(yield* note()).toEqual(["This draft could not be opened"]);
 	},
 );
+
+failures.it(
+	"a command that answers SubtitleRejected with the message shorthand shows the server's message",
+	[failureScreen()],
+	function* ({ notices, press, serverAnswers }) {
+		yield* serverAnswers("SubtitleRejected");
+
+		yield* press("Rename with the server's words");
+
+		expect(yield* notices()).toEqual(["The subtitle is too long"]);
+	},
+);
+
+failures.it(
+	"a command whose SubtitleRejected handler returns silent shows nothing for it",
+	[failureScreen()],
+	function* ({ notices, press, serverAnswers }) {
+		yield* serverAnswers("SubtitleRejected");
+
+		yield* press("Rename with a quiet handler");
+
+		expect(yield* notices()).toEqual([]);
+	},
+);
+
+failures.it(
+	"a command failing with ServiceUnavailable reaches the failure host with the server's message",
+	[failureScreen()],
+	function* ({ notices, outageIs, press }) {
+		yield* outageIs("ServiceUnavailable");
+
+		yield* press("Rename during an outage");
+
+		expect(yield* notices()).toEqual(["Drafts are down for maintenance"]);
+	},
+);
+
+failures.it(
+	"a command failing with AuthUnavailable reaches the failure host as unavailable with the server's message",
+	[failureScreen({ hostWording: (failure) => ({ message: `${failure.kind}: ${failure.message}` }) }, "whose failure host shows the kind")],
+	function* ({ notices, outageIs, press }) {
+		yield* outageIs("AuthUnavailable");
+
+		yield* press("Rename during an outage");
+
+		expect(yield* notices()).toEqual(["unavailable: Sign-in is unavailable right now"]);
+	},
+);
+
+failures.it(
+	"a command failing with InternalServerError reaches the failure host with the server's redacted message",
+	[failureScreen()],
+	function* ({ notices, outageIs, press }) {
+		yield* outageIs("InternalServerError");
+
+		yield* press("Rename during an outage");
+
+		expect(yield* notices()).toEqual(["The server could not finish the rename"]);
+	},
+);
+
+failures.it(
+	"an undoable change rejected with a shared Conflict shows the server's message with no failure handler",
+	[failureScreen()],
+	function* ({ notices, press, serverAnswers }) {
+		yield* serverAnswers("Conflict");
+
+		yield* press("Rename with undo");
+
+		expect(yield* notices()).toEqual(["Someone else saved this draft"]);
+	},
+);
+
+failures.it(
+	"an undoable change hands its own input to the SubtitleRejected handler",
+	[failureScreen()],
+	function* ({ notices, press, serverAnswers }) {
+		yield* serverAnswers("SubtitleRejected");
+
+		yield* press("Rename with undo");
+
+		expect(yield* notices()).toEqual(["Draft kept its title: The subtitle is too long"]);
+	},
+);

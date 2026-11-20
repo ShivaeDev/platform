@@ -6,11 +6,12 @@ import { SocketOpenError } from "effect/socket/Socket";
 import { bind } from "@shivaedev/contract/bind.ts";
 import { contract } from "@shivaedev/contract/contract.ts";
 import { command, query } from "@shivaedev/contract/operation.ts";
-import { Conflict, NotFound, Unauthorized } from "@shivaedev/errors/taxonomy.ts";
+import { AuthUnavailable, Conflict, InternalServerError, NotFound, ServiceUnavailable, Unauthorized } from "@shivaedev/errors/taxonomy.ts";
 
 export class SubtitleRejected extends Schema.TaggedError<SubtitleRejected>()("SubtitleRejected", { message: Schema.String }) {}
 
 export type Answer = "Conflict" | "Conflict on title" | "NotFound" | "SubtitleRejected" | "Unauthorized";
+export type Outage = "AuthUnavailable" | "InternalServerError" | "ServiceUnavailable";
 
 const Rename = command("rename", {
 	invalidates: () => [],
@@ -41,10 +42,22 @@ function rejection(answer: Answer) {
 	}
 }
 
+function outage(failure: Outage) {
+	switch (failure) {
+		case "AuthUnavailable":
+			return new AuthUnavailable({ message: "Sign-in is unavailable right now" });
+		case "InternalServerError":
+			return new InternalServerError({ message: "The server could not finish the rename" });
+		case "ServiceUnavailable":
+			return new ServiceUnavailable({ message: "Drafts are down for maintenance" });
+	}
+}
+
 export function failureClient() {
-	const server: { answer: Answer; noteReads: number; readonly reread: Deferred.Deferred<void> } = {
+	const server: { answer: Answer; noteReads: number; outage: Outage; readonly reread: Deferred.Deferred<void> } = {
 		answer: "Conflict",
 		noteReads: 0,
+		outage: "ServiceUnavailable",
 		reread: Deferred.makeUnsafe<void>(),
 	};
 	const handlers = Drafts.toLayer(
@@ -69,7 +82,7 @@ export function failureClient() {
 	const api = bind(Drafts, Client, { live: false });
 	return {
 		api,
-		// Custom operations stand in for a lost connection and a handler that dies.
+		// Custom operations stand in for a lost connection, a server outage and a handler that dies.
 		dies: { run: (_input: { readonly title: string }) => Effect.die(new Error("Database password rejected for user app")), runtime: Client.runtime },
 		note: api.note.query(),
 		offline: {
@@ -78,6 +91,7 @@ export function failureClient() {
 			runtime: Client.runtime,
 		},
 		server,
+		unavailable: { run: (_input: { readonly title: string }) => Effect.fail(outage(server.outage)), runtime: Client.runtime },
 	};
 }
 export type FailureClient = ReturnType<typeof failureClient>;

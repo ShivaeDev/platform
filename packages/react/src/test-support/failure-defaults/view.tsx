@@ -1,6 +1,7 @@
-import { Schema } from "effect";
+import { Effect, Schema } from "effect";
 import { Suspense } from "react";
 import { useField } from "@shivaedev/form/adapters/react.ts";
+import { useUndoableChange } from "#client/adapters/useUndoableChange.ts";
 import { useCreate } from "#client/create.ts";
 import { NoticeHost } from "#client/notices.ts";
 import { QueryView, QueryViewDefaults } from "#client/QueryView.ts";
@@ -30,6 +31,15 @@ function renamedFirst() {
 function onTitle(error: SubtitleRejected) {
 	return { field: "title" as const, message: error.message };
 }
+function quietly() {
+	return "silent" as const;
+}
+function keptTitle(error: SubtitleRejected, input: { readonly title: string }) {
+	return { message: `${input.title} kept its title: ${error.message}` };
+}
+
+// The deploy gate is open: these stories are about the change's failures, not a pending update.
+const openGate = { block: Effect.succeed(() => undefined) };
 
 // No hook here words a shared rejection, a lost connection or a defect: those reach the defaults.
 function Commands({ client }: { readonly client: FailureClient }) {
@@ -51,6 +61,27 @@ function Commands({ client }: { readonly client: FailureClient }) {
 			<ActionButton label="Rename with its own wording" onClick={() => worded.dispatch(draft)} pending={worded.pending} />
 			<ActionButton label="Rename offline" onClick={() => offline.dispatch(draft)} pending={offline.pending || alsoOffline.pending} />
 			<ActionButton label="Rename with a dying server" onClick={() => dies.dispatch(draft)} pending={dies.pending} />
+		</>
+	);
+}
+
+function MoreCommands({ client }: { readonly client: FailureClient }) {
+	const serverWords = useAction(client.api.rename, { failures: { SubtitleRejected: "message" } });
+	const quietHandler = useAction(client.api.rename, { failures: { SubtitleRejected: quietly } });
+	const outage = useAction(client.unavailable);
+	const undoable = useUndoableChange(client.api.rename, {
+		describe: (title) => `Renamed to ${title}`,
+		failures: { SubtitleRejected: keptTitle },
+		undoInput: (_title, input) => input,
+		update: openGate,
+	});
+	const draft = { title: "Draft" };
+	return (
+		<>
+			<ActionButton label="Rename with the server's words" onClick={() => serverWords.dispatch(draft)} pending={serverWords.pending} />
+			<ActionButton label="Rename with a quiet handler" onClick={() => quietHandler.dispatch(draft)} pending={quietHandler.pending} />
+			<ActionButton label="Rename during an outage" onClick={() => outage.dispatch(draft)} pending={outage.pending} />
+			<ActionButton label="Rename with undo" onClick={() => undoable.remove(draft)} pending={undoable.pending} />
 		</>
 	);
 }
@@ -91,6 +122,7 @@ function Screen({ state }: { readonly state: FailureScreen }) {
 	const body = (
 		<>
 			<Commands client={state.client} />
+			<MoreCommands client={state.client} />
 			<RenameForm client={state.client} />
 			<DyingForm client={state.client} />
 			<Note client={state.client} />

@@ -1,7 +1,7 @@
 import { Deferred, Effect } from "effect";
 import type { Rendered } from "@shivaedev/test-story/client/adapters/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { type Answer, failureClient } from "#test/failure-defaults/client.ts";
+import { type Answer, failureClient, type Outage } from "#test/failure-defaults/client.ts";
 import { FailureDefaultsView, type FailureScreen } from "#test/failure-defaults/view.tsx";
 import { timesWords } from "#test/outcomeWords.ts";
 import type { Screen } from "#test/Screen.ts";
@@ -19,6 +19,10 @@ type Control =
 	| "Rename with its own wording"
 	| "Rename offline"
 	| "Rename with a dying server"
+	| "Rename with the server's words"
+	| "Rename with a quiet handler"
+	| "Rename during an outage"
+	| "Rename with undo"
 	| "Save form"
 	| "Save with a dying server";
 
@@ -60,6 +64,11 @@ export const failures = storyKit(
 			note: () => Effect.sync(() => texts(state, "[data-note], [role='alert']:not([data-notice]), [role='status']:not([data-notice])")),
 			// A notice's own paragraph holds its words; the buttons beside it are the host's.
 			notices: () => Effect.sync(() => texts(state, "[data-notice] > p")),
+			outageIs: (outage: Outage) =>
+				Effect.sync(() => {
+					screen.tell(`the server is out with ${outage}`);
+					state.current.client.server.outage = outage;
+				}),
 			press: (control: Control) => press(state, screen, control),
 			rechecks: () => Effect.sync(() => timesWords(state.current.rechecks)),
 			retry: () => screen.driver(container(state)).click({ name: "Retry", role: "button" }),
