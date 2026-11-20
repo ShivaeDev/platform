@@ -23,6 +23,7 @@ export interface Declared<
 	readonly name: TName;
 	readonly queries: TQueries;
 	readonly streams: TStreams;
+	readonly subject?: SubjectDeclaration;
 }
 
 export interface Contract<
@@ -135,5 +136,6 @@ export function declaredGroup(name: string, operations: Operations): DeclaredGro
 		name,
 		queries,
 		streams,
+		...(operations.subject === undefined ? {} : { subject: operations.subject }),
 	});
 }

@@ -5,6 +5,7 @@ import { CurrentViewer, type PolicyChannels } from "@shivaedev/contract/readPoli
 import type { MissingReadPolicy, QueryReadDenied } from "@shivaedev/contract/readPolicyErrors.ts";
 import type { QueryReference } from "@shivaedev/contract/serverMetadata.ts";
 import { Identity } from "#identity.ts";
+import { SubjectRecheck } from "#server/SubjectRecheck.ts";
 
 export function resolveChanges<TRpc extends Rpc.Any>(
 	rpc: TRpc,
@@ -19,6 +20,8 @@ export function resolveChanges(rpc: Rpc.Any, references: readonly QueryReference
 		const identity = yield* Effect.serviceOption(Identity);
 		const current = yield* CurrentViewer;
 		const viewer = Option.orElse(identity, () => current);
-		return yield* querySubscription(rpc, references, viewer);
+		const recheck = yield* SubjectRecheck;
+		const subscription = yield* querySubscription(rpc, references, viewer);
+		return { ...subscription, authorized: Effect.andThen(recheck, subscription.authorized) };
 	})();
 }

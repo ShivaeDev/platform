@@ -50,6 +50,17 @@ export class BucketRegistrationError extends Data.TaggedError("BucketRegistratio
 	}
 }
 
+export class ServerOnlyKeyError extends Data.TaggedError("ServerOnlyKeyError")<{
+	readonly tableName: string;
+	readonly fields: readonly string[];
+}> {
+	override get message() {
+		return `Repository for ${this.tableName}: server-only fields ${JSON.stringify(this.fields)} cannot be an ID column or a bucket, because their values would be announced as change keys; key the table by another column`;
+	}
+}
+
+export type RepositoryBuildError = BucketRegistrationError | ServerOnlyKeyError;
+
 export const validateRepositoryCollection = Effect.fnUntraced(function* (
 	fields: Schema.Struct.Fields,
 	options: { readonly tableName: string; readonly collection?: RepositoryCollection },

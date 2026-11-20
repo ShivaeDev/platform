@@ -8,9 +8,10 @@ import { type ConflictColumns, type ConflictWrites, makeConflictWrites } from "#
 import { makeInsertFromSelect, type SelectWrites } from "#insertFromSelect.ts";
 import { makeRecordRead } from "#recordRepositoryRead.ts";
 import { repositoryChanges } from "#repositoryChanges.ts";
-import { type BucketRegistrationError, type RepositoryOptions, validateRepositoryCollection } from "#repositoryCollection.ts";
+import { type RepositoryBuildError, type RepositoryOptions, validateRepositoryCollection } from "#repositoryCollection.ts";
 import type { FindManyFilter, RepositoryFilter, RepositoryListFilter } from "#repositoryFilter.ts";
 import { makeQueries, type Queries } from "#repositoryQueries.ts";
+import { refuseServerOnlyKeys } from "#serverOnly.ts";
 import type { VersionedRepositoryShape } from "#VersionedRepositoryShape.ts";
 import { type IdColumn, makeVersionedWrites, type VersionColumn } from "#versionedRepository.ts";
 
@@ -61,7 +62,7 @@ export function makeRepository<
 ): Effect.Effect<
 	VersionedRepositoryShape<TModel, TId, TVersion> &
 		Pick<ConflictWrites<TModel, never, TModel["fields"][Extract<TWhere, keyof TModel["fields"]>]["EncodingServices"]>, "insertOrIgnore">,
-	BucketRegistrationError,
+	RepositoryBuildError,
 	SqlClient.SqlClient
 >;
 export function makeRepository<
@@ -75,7 +76,7 @@ export function makeRepository<
 		readonly conflictColumns?: never;
 		readonly conflictWhere?: never;
 	},
-): Effect.Effect<VersionedRepositoryShape<TModel, TId, TVersion>, BucketRegistrationError, SqlClient.SqlClient>;
+): Effect.Effect<VersionedRepositoryShape<TModel, TId, TVersion>, RepositoryBuildError, SqlClient.SqlClient>;
 export function makeRepository<
 	TModel extends Model.Any,
 	const TId extends PrimaryKey<TModel>,
@@ -98,17 +99,13 @@ export function makeRepository<
 			TConflict[number] | (TId extends readonly PropertyKey[] ? TId[number] : TId),
 			TModel["fields"][Extract<TWhere, keyof TModel["fields"]>]["EncodingServices"]
 		>,
-	BucketRegistrationError,
+	RepositoryBuildError,
 	SqlClient.SqlClient
 >;
 export function makeRepository<TModel extends Model.Any, const TId extends PrimaryKey<TModel>>(
 	model: TModel,
 	options: RepositoryOptions<TId> & { readonly versionColumn?: never; readonly conflictColumns?: never; readonly conflictWhere?: never },
-): Effect.Effect<
-	Repository<TModel, TId> & BatchWrites<TModel> & SelectWrites<TModel> & Queries<TModel>,
-	BucketRegistrationError,
-	SqlClient.SqlClient
->;
+): Effect.Effect<Repository<TModel, TId> & BatchWrites<TModel> & SelectWrites<TModel> & Queries<TModel>, RepositoryBuildError, SqlClient.SqlClient>;
 export function makeRepository<TModel extends Model.Any, TId extends IdColumn<TModel>>(
 	model: TModel,
 	options: RepositoryOptions<TId | readonly [TId, TId, ...TId[]]> & {
@@ -116,10 +113,11 @@ export function makeRepository<TModel extends Model.Any, TId extends IdColumn<TM
 		readonly conflictColumns?: readonly string[];
 		readonly conflictWhere?: Readonly<Record<string, unknown>>;
 	},
-): Effect.Effect<unknown, BucketRegistrationError, SqlClient.SqlClient> {
+): Effect.Effect<unknown, RepositoryBuildError, SqlClient.SqlClient> {
 	return Effect.fnUntraced(function* () {
-		yield* validateRepositoryCollection(model.fields, options);
 		const idColumns = (typeof options.idColumn === "object" ? options.idColumn : [options.idColumn]).map(String);
+		yield* refuseServerOnlyKeys(options.tableName, idColumns, model.fields, options.collection?.tuples);
+		yield* validateRepositoryCollection(model.fields, options);
 		const changes = yield* repositoryChanges(options.tableName, idColumns, model.fields, options.collection?.tuples);
 		const recordRead = makeRecordRead(model, { idColumns, tableName: options.tableName, tuples: options.collection?.tuples });
 		const crud = {

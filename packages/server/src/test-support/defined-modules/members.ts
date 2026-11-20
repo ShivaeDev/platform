@@ -1,4 +1,4 @@
-import { Effect, Schema } from "effect";
+import { Effect, Redacted, Schema } from "effect";
 import { Model } from "effect/schema";
 import { Migrator, SqlClient } from "effect/sql";
 import { defineModule } from "@shivaedev/contract/defineModule.ts";
@@ -6,13 +6,15 @@ import { command, query } from "@shivaedev/contract/operation.ts";
 import { MaybeAuthenticated } from "@shivaedev/identity/middleware.ts";
 import { defineRepository } from "@shivaedev/sql/defineRepository.ts";
 import { makeRepository } from "@shivaedev/sql/repository.ts";
+import { serverOnly } from "@shivaedev/sql/serverOnly.ts";
 import type { AppModule } from "#AppModule.ts";
 
-// The server's model marks address sensitive once; nothing else in the module does.
+// The server's model marks address sensitive and passcode server-only once; nothing else in the module does.
 class Member extends Model.Class<Member>("Member")({
 	address: Schema.String.annotate({ sensitive: true }),
 	id: Model.Field({ json: Schema.Number, select: Schema.Number, update: Schema.Number }),
 	name: Schema.String,
+	passcode: serverOnly(Schema.String),
 }) {}
 
 const MembersRepository = defineRepository({
@@ -35,7 +37,9 @@ function join(address: Schema.String) {
 		payload: { address, name: Schema.String },
 		*run(member) {
 			const members = yield* MembersRepository;
-			return toMember(yield* members.insert(Member.insert.make({ address: member.address, name: member.name })));
+			return toMember(
+				yield* members.insert(Member.insert.make({ address: member.address, name: member.name, passcode: Redacted.make(`${member.name}-passcode`) })),
+			);
 		},
 	});
 }
@@ -43,9 +47,9 @@ function join(address: Schema.String) {
 const Show = query("show", {
 	payload: { id: Schema.Number },
 	*run({ id }) {
-		const member = toMember(yield* storedMember(id));
-		yield* Effect.logInfo("member shown", member);
-		return member;
+		const stored = yield* storedMember(id);
+		yield* Effect.logInfo("member shown", { ...toMember(stored), passcode: Redacted.value(stored.passcode) });
+		return toMember(stored);
 	},
 });
 
@@ -83,7 +87,9 @@ const PrivateJoinMembers = defineModule({
 
 const migrations = {
 	loader: Migrator.fromRecord({
-		"003_members": SqlClient.SqlClient.use((sql) => sql`create table members (id serial primary key, name text not null, address text not null)`),
+		"003_members": SqlClient.SqlClient.use(
+			(sql) => sql`create table members (id serial primary key, name text not null, address text not null, passcode text not null)`,
+		),
 	}),
 };
 

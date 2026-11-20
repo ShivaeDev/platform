@@ -4,7 +4,7 @@ import type { subjectMiddleware } from "#subjectMiddleware.ts";
 
 export interface SubjectDeclaration {
 	readonly error: Schema.Top;
-	readonly middleware: Effect.Effect<RpcMiddleware.Any, never, unknown>;
+	readonly middleware: Effect.Effect<RpcMiddleware.Any, unknown, unknown>;
 }
 
 export type SubjectProvides<TSubject extends SubjectDeclaration> =

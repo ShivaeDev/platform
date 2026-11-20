@@ -43,16 +43,20 @@ An **Origin policy** is a function of the transport request's origin, headers an
 A **subject** is the account whose data this request acts on. The actor remains the session user. `Subject` from `@shivaedev/identity/subject.ts` provides `{ id: SubjectId }`, where `SubjectId` is a branded string. `selfSubject` resolves it from the session, ignoring account-selection headers. It also provides `Identity` and `SessionUser`. A `defineService` that needs the caller declares those services in `requires`, yields them in its operations and registers its Layer in the host's `requestServices` slot. The host builds it after session middleware, once per RPC call. Its callers yield the service and call its methods without providing dependencies or passing the acting user's id. Global services yield global dependencies; caller-dependent services belong in the request slot.
 
 ```ts
-import { Effect, Schema } from "effect";
-import { contract } from "@shivaedev/contract/contract.ts";
+import { Schema } from "effect";
+import { defineModule } from "@shivaedev/contract/defineModule.ts";
 import { command } from "@shivaedev/contract/operation.ts";
 import { selfSubject, Subject } from "@shivaedev/identity/subject.ts";
+import { accountWire } from "#generated/modules/account/Account.ts";
 
-const Save = command("save", { payload: { title: Schema.String }, success: Schema.String, invalidates: () => [] });
-export const Account = contract("account", { commands: [Save], subject: selfSubject });
-export const Handlers = Account.application.toLayer({
-	"account.save": ({ title }) => Effect.map(Subject, ({ id }) => `${id}: ${title}`),
+const Save = command("save", {
+	payload: { title: Schema.String },
+	*run({ title }) {
+		const { id } = yield* Subject;
+		return `${id}: ${title}`;
+	},
 });
+export const Account = defineModule({ name: "account", operations: [Save], requires: [], subject: selfSubject, wire: accountWire });
 ```
 
 For delegation, use `accountSubject` with an application permission and a typed refusal:
@@ -72,6 +76,51 @@ const delegated = accountSubject({
 ```
 
 Pass `subject: delegated` to the contract. A delegated call selects the account with the `x-platform-subject` header of its own RPC message, which a bound client sets from the `subject` option (see [contract's declared subjects](https://github.com/ShivaeDev/platform/tree/main/packages/contract#whose-account-a-request-acts-on)); without one, the guard falls back to that header on the transport, such as a Node client's WebSocket upgrade, and omitting both selects the session account. The subject is the only header the guard takes from the message: the session, Origin, cookies and authorization still come from the transport, so a message cannot forge them. Because each call carries its own subject, one socket, including a browser's or Capacitor app's first-frame bearer socket, serves the actor's own data and any number of subjects at once. Acting on another account requires the named permission's `any` grant. An `own` grant does not authorize another account. A refusal reaches the native client as the declared error instance before the handler runs. Every stream, including a live query's changes stream, rechecks at the session's `streamRevalidationInterval` (30 seconds by default) with its own subject: the recheck looks the session up again, shared by every stream on the same socket, and repeats the permission check for that stream's subject, so a stream whose grant was withdrawn ends with the declared refusal. Reruns after a change keep the stream's subject. `Identity` and `SessionUser` still describe the actor when `Subject` describes another account. The session provider must supply the `SessionUserSchema` profile fields, as for `AuthenticatedUser`.
+
+#### Module delegation
+
+When an application decides who may act for whom, such as "a coach may read an assigned client's data in these modules but change none of it", declare the delegation once with `delegatedSubject` and name it as the `subject` of each module it covers. The declaration is browser-safe; it names the service that answers for it and the typed refusal a client receives:
+
+```ts
+import { Schema } from "effect";
+import { delegatedSubject } from "@shivaedev/identity/subject.ts";
+
+export class NotYourClient extends Schema.TaggedError<NotYourClient>()("NotYourClient", { client: Schema.String }) {}
+export const actsAsCoach = delegatedSubject({
+	service: "app/CoachDelegation",
+	refusal: NotYourClient,
+	deny: (client) => new NotYourClient({ client }),
+});
+
+export const Training = defineModule({ name: "training", operations: [Plan, SavePlan], requires: [SqlClient.SqlClient], subject: actsAsCoach });
+```
+
+On the server the application answers one question with a service whose id is the declaration's `service`. Its `allows` operation receives a `DelegationRequest`, `{ subject, module, operation, kind }`, and returns whether the actor may make that call; it may fail with an identity failure, such as `AuthUnavailable`, or the declared refusal. It reads the actor from `CurrentViewer` in `@shivaedev/contract/readPolicy.ts`, which the guard sets to the actor for each question; `CurrentViewer` is a reference, so the service lists only its own dependencies in `requires` and is registered once in the host's `services`:
+
+```ts
+import { Effect, Option } from "effect";
+import { SqlClient } from "effect/sql";
+import { CurrentViewer } from "@shivaedev/contract/readPolicy.ts";
+import type { DelegationRequest } from "@shivaedev/identity/subject.ts";
+
+export const allows = Effect.fn("CoachDelegation.allows")(function* ({ kind, subject }: DelegationRequest) {
+	const coach = yield* CurrentViewer;
+	if (Option.isNone(coach) || kind === "write") {
+		return false;
+	}
+	const sql = yield* SqlClient.SqlClient;
+	const assigned = yield* sql`select 1 from coach_assignments where coach = ${coach.value.id} and client = ${subject}`.pipe(Effect.orDie);
+	return assigned.length > 0;
+});
+```
+
+The service module is an ordinary `defineService({ id: "app/CoachDelegation", requires: [SqlClient.SqlClient], initialize: Effect.void, methods: () => ({ allows }) })`. The declaration's service is a requirement of the host, so the compiler rejects a host that serves a module naming `actsAsCoach` without that service's Layer; a host built anyway fails to start with `DelegationRuleMissing`, whose message names the service id to add to the host's services.
+
+The guard never asks when the subject is the actor: the actor's own data on the same socket always works. Otherwise it derives `kind` from the RPC at run time: a query, a live query's changes stream and any other stream are `read`, a command is `write`, and an RPC no contract marked counts as `write`. `module` and `operation` name the call. When `allows` returns `false`, the call fails with the declared refusal before the handler runs. A check that only one operation needs stays in that operation's handler and applies on top of the module's rule.
+
+Reads need no extra read policy: a query's read policy still sees the actor as `CurrentViewer`, so the default `signedIn` policy serves an approved subject, and the handler reads the client's data through `Subject`. A query whose policy compares the payload or viewer with an owner refuses a delegated actor as it did before.
+
+Each stream asks the rule again at every recheck, with its own subject. A delegated live query's changes stream also asks before each update it sends with data, so once the rule says `false` the stream ends with the declared refusal instead of delivering the next change. Between the revocation and the next change or recheck, the stream delivers nothing new and its client keeps showing the last result it had; a change whose rerun had already passed the question when the revocation committed can still arrive. An application stream other than a live query's changes stream is asked only at the recheck, every `streamRevalidationInterval` (30 seconds by default), and keeps sending until then.
 
 `appHost` installs `subjectResolverLayer()` from `@shivaedev/identity/server/subjectResolverLayer.ts` for session hosts. Custom native RPC hosts provide that Layer with their `SessionPolicy` and install `subjectLayers(group)` from `@shivaedev/contract/subjectLayers.ts` when building the native RPC server. The subject declaration includes authentication failures in the client's error type; it needs no separate authentication middleware.
 
@@ -807,7 +856,7 @@ An operation on one record reads that record's owner and uses the application's 
 
 ### Session-scoped contract keys
 
-For self-only features, declare `contract("preferences", { keyScope: "session", subject: selfSubject, queries, commands })`. The client registry owns cache isolation. Server subscriptions use the same plain record, list and bucket keys as repository writes. Handlers read their owner from `Subject`, and queries need no additional session keys. Matching keys trigger each subscriber's read policy before it can receive a hint or result; shared dependencies can cause authorized rechecks across accounts.
+For self-only features, define the module with `keyScope: "session"` and `subject: selfSubject`, as in `defineModule({ keyScope: "session", name: "preferences", operations, requires, subject: selfSubject, wire })`. The client registry owns cache isolation. Server subscriptions use the same plain record, list and bucket keys as repository writes. Handlers read their owner from `Subject`, and queries need no additional session keys. Matching keys trigger each subscriber's read policy before it can receive a hint or result; shared dependencies can cause authorized rechecks across accounts.
 
 The host's generated `$changes` handler accepts `{ queries: [{ query: "get", payload: { id: "theme" } }] }` and resolves the declared query dependencies during that subscription invocation. It accepts no physical subscription keys or caller-selected scope.
 
@@ -815,7 +864,7 @@ The host's generated `$changes` handler accepts `{ queries: [{ query: "get", pay
 
 Declared-key publication retries twice, after 50 ms and 100 ms, without rerunning the handler. Exhausted retries preserve the committed result. On a database-backed host, they mark local live streams for Resync and attempt a broadcast Resync on the PostgreSQL change channel. If that broadcast also fails, the server logs that other hosts may remain stale. There is no durable replay: a remote host whose listener remains healthy cannot discover a notification that never reached PostgreSQL. A client reconnect reconciles its streams.
 
-Hosted applications use `Api.application.toLayer(...)` and let `appHost` own `$changes`. A custom change handler accepts query references and resolves them inside `Stream.unwrap`, after authentication has provided `Identity`:
+Hosted applications let `appHost` own `$changes`: neither a defined module's handlers nor handlers built with `Api.application.toLayer(...)` serve it. A custom change handler accepts query references and resolves them inside `Stream.unwrap`, after authentication has provided `Identity`:
 
 ```ts
 import { Effect, Stream } from "effect";

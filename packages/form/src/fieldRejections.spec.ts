@@ -1,6 +1,6 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { commandRejectedAccounts, rejectedProfiles, unavailableProfiles, unmappedProfiles } from "#test/fieldRejections.ts";
+import { commandRejectedAccounts, fieldlessProfiles, rejectedProfiles, unavailableProfiles, unmappedProfiles } from "#test/fieldRejections.ts";
 
 rejectedProfiles.it("a save's mapped rejection appears on the nested name and leaves its sibling clear", [], function* ({ feedbackAt, submit }) {
 	expect(yield* feedbackAt(["profile", "name"])).toBeUndefined();
@@ -18,6 +18,15 @@ unmappedProfiles.it("a rejection naming no form field stays a save failure", [],
 
 	yield* outcomes([
 		["save failure", () => failure(), "conflict on name: Name is already used"],
+		["profile feedback", () => feedbackOn("profile"), undefined],
+	]);
+});
+
+fieldlessProfiles.it("a rejection without a field stays a save failure", [], function* ({ failure, feedbackOn, submit }) {
+	yield* submit();
+
+	yield* outcomes([
+		["save failure", () => failure(), "conflict: Profile changed elsewhere"],
 		["profile feedback", () => feedbackOn("profile"), undefined],
 	]);
 });

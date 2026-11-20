@@ -38,7 +38,7 @@ Redaction masks common credential shapes in strings (Bearer and Basic credential
 
 ## Services that need the caller
 
-The caller is an ambient service for the request, never an argument. Handlers and service operations that need who asked yield `SessionUser`, `Identity`, `OptionalIdentity` or `Subject`; an operation never takes the acting user's id. A target id, such as the account an administrator acts on, is an ordinary argument. A service whose operations yield the caller lists it in `requires`, so its Layer can only be built where the middleware has provided the caller: per request, never once for the host.
+The caller is an ambient service for the request, never an argument. Handlers and service operations that need who asked yield `SessionUser`, `Identity`, `OptionalIdentity` or `Subject`; an operation never takes the acting user's id. A target id, such as the account an administrator acts on, is an ordinary argument. A service whose operations yield the caller lists it in `requires`, so its Layer can only be built where the middleware has provided the caller: per request, never once for the host. The one global service that learns the caller per call is a delegation rule: the subject guard sets `CurrentViewer`, a reference, to the actor around each question it asks the rule, before the request services exist.
 
 ## Transport headers and message headers
 
@@ -46,7 +46,7 @@ The `headers` that native RpcServer passes to middleware are not the HTTP reques
 
 `resolveSession`, and therefore `authenticatedLayer` and `maybeAuthenticatedLayer`, ignore message headers. They read the `HttpServerRequest` that RpcServer runs each request with: the POST for HTTP and the upgrade request for WebSocket. Both the Origin policy and the session provider see only those headers. When there is no `HttpServerRequest`, as with `RpcTest`, workers or a raw socket server, the RPC headers are used, because there are no transport headers to prefer and no browser attaches ambient credentials.
 
-The declared subject is the one exception, and it is not a credential: identity's subject guard reads `x-platform-subject` from the merged headers, so a call's message names the account it acts on and the transport's value is the fallback. The guard then authorizes that account against the session it resolved from the transport, before the handler and at every stream recheck, so naming an account grants nothing.
+The declared subject is the one exception, and it is not a credential: identity's subject guard reads `x-platform-subject` from the merged headers, so a call's message names the account it acts on and the transport's value is the fallback. The guard then authorizes that account against the session it resolved from the transport, before the handler and at every stream recheck, so naming an account grants nothing. For `delegatedSubject`, the authorization is the application's rule, asked per call with whether the RPC reads or writes, and again before each update of a delegated live query.
 
 An application-owned middleware that reads any header for a security decision calls `transportHeaders(headers)` from `@shivaedev/identity/server/transportHeaders.ts` instead of using `headers` directly. The request id is still read from the RPC headers, so a client can set it per call.
 

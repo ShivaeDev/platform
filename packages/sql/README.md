@@ -180,6 +180,40 @@ For a PostgreSQL `json` column, wrap the value schema with `json` from `@shivaed
 
 `json` keeps key order, not bytes. The value still passes through `JSON.stringify` on the way in and `JSON.parse` on the way out: JavaScript puts integer-like keys such as `"1"` before the others, and the whitespace and number spelling of a value another client stored, such as `1.0`, are gone once the repository writes it back. A `Schema.Struct` value schema writes its keys in the schema's order, whatever order the input had; a schema that keeps the input's own keys, such as `Schema.Record(Schema.String, Schema.Unknown)`, keeps their order. PostgreSQL has no equality operator for `json`, so an equality filter on such a field fails with `SqlError`. For exact bytes, store the serialized text in a `text` column with `Schema.String`.
 
+#### Fields that never leave the server
+
+A hashed password or a provider refresh token belongs in the row and nowhere a client can read it. Declare it with `serverOnly` from `@shivaedev/sql/serverOnly.ts`:
+
+```ts
+import { Schema } from "effect";
+import { Model } from "effect/schema";
+import { serverOnly } from "@shivaedev/sql/serverOnly.ts";
+
+class Credential extends Model.Class<Credential>("Credential")({
+	digest: serverOnly(Schema.String),
+	id: Model.Field({ json: Schema.Number, select: Schema.Number, update: Schema.Number }),
+	owner: Schema.String,
+}) {}
+```
+
+`serverOnly(schema)` returns this native field, with no JSON variants:
+
+```ts
+Model.Field({
+	insert: Schema.RedactedFromValue(schema),
+	select: Schema.RedactedFromValue(schema, { disallowEncode: true }),
+	update: Schema.RedactedFromValue(schema),
+});
+```
+
+The column holds the plain value, and the repository hands the handler a `Redacted<T>` that prints `<redacted>` in logs and defects; open it with `Redacted.value` where the server needs it. Under `appHost`, the field's name is also masked in every diagnostic, so a log that holds the opened value under that name still prints `<redacted>`. Inserts, updates, projections, `latestPerGroup`, upserts and `insertOrIgnore` on a unique constraint over the field, and equality, `in` and `deleteBatched` filters by a `Redacted` value all work against PostgreSQL. Building a repository fails with `ServerOnlyKeyError` when the field is the ID column, a bucket or a tuple bucket column, because those values are announced as change keys.
+
+The select variant refuses every encode. A contract that names the class as a success, or any other path that sends the stored row through Effect RPC, fails to encode it: the client receives a defect that names the field's path, such as `at ["value"]["digest"]`, and no part of the value. The generator in [`@shivaedev/build`](https://github.com/ShivaeDev/platform/tree/main/packages/build) refuses an operation whose `run` returns a `Redacted`, so a module's operations return a public shape of the row. A handler that returns the row typed as a public struct sends only the struct's fields.
+
+This mark differs from a `sensitive: true` annotation, which [`@shivaedev/errors`](https://github.com/ShivaeDev/platform/tree/main/packages/errors#masking-secrets-in-failures) uses to mask a field in diagnostics while its value still reaches the client that owns it. Use `sensitive: true` for a value the client may see but logs may not, and `serverOnly` for a value only the server may hold.
+
+Only `serverOnly` refuses the wire. `Model.Sensitive(Schema.RedactedFromValue(schema))` and `Model.Sensitive(schema)` leave the field out of the JSON variants, but the class itself encodes the plain value, so a contract that sends the class sends it; do not use them for a field that must stay on the server.
+
 ### Share a table's repository and domain reads between services
 
 Use `defineRepository` from `@shivaedev/sql/defineRepository.ts` to give the table's repository and its domain operations one native Effect service and Layer. Its initializer returns the whole public shape: values, repositories and functions are all allowed. Services declare that repository tag in `requires`, then read it from the environment. Keep repository construction out of each service's initializer.
@@ -858,7 +892,7 @@ A query of alice's entries for day 1 reads `entries.bucket.ownerDay({ ownerId: "
 
 Bucket writes require PostgreSQL 18 or later: native `RETURNING old` supplies old values atomically, including for conflict updates. Repositories without single-column or tuple buckets keep their existing SQL dialect support. Bulk writes keep every record and bucket key; the PostgreSQL publisher splits large batches into NOTIFY payloads.
 
-Record and bucket keys that must commit atomically with a write come from this model and repository path. A command's `invalidates(payload, result, viewer)` runs after its handler returns and uses a separate publication transaction. Failed publication retries twice with 50 ms and 100 ms backoffs. If those attempts fail, `postgresChanges` resynchronizes local live streams and broadcasts Resync on its change channel. If PostgreSQL also rejects the broadcast or cannot be reached, local streams still resynchronize, but healthy listeners on other hosts can miss the write until they reconnect or otherwise reconcile. The failure is logged; NOTIFY provides no durable replay.
+Record and bucket keys that must commit atomically with a write come from this model and repository path. A command's `invalidates` runs after its handler returns and uses a separate publication transaction. Failed publication retries twice with 50 ms and 100 ms backoffs. If those attempts fail, `postgresChanges` resynchronizes local live streams and broadcasts Resync on its change channel. If PostgreSQL also rejects the broadcast or cannot be reached, local streams still resynchronize, but healthy listeners on other hosts can miss the write until they reconnect or otherwise reconcile. The failure is logged; NOTIFY provides no durable replay.
 
 The transaction rules follow the database owner:
 - A typed failure or interruption before commit rolls back and announces nothing. A failed deferred `COMMIT` fails with its `SqlError`, mapped by `onSqlError` when one is given, and also announces nothing.
@@ -1064,6 +1098,9 @@ Import the module that defines the name; there is no root entry.
 - `@shivaedev/sql/postgresRelease.ts`: `postgresRelease(release, table?)`, `readPostgresRelease(table?)` — Release marker schema component and its reader.
 - `@shivaedev/sql/postgresChanges.ts`: `postgresChanges(options)` — Scoped PostgreSQL LISTEN/NOTIFY Layer for commit-bound invalidation.
 - `@shivaedev/sql/repositoryCollection.ts`: `BucketRegistrationError` — Registration failure with table, collection and bucket field names and invalid tuple columns.
+- `@shivaedev/sql/repositoryCollection.ts`: `ServerOnlyKeyError` — Repository build failure naming the server-only fields used as an ID column, bucket or tuple bucket column.
+- `@shivaedev/sql/repositoryCollection.ts`: `RepositoryBuildError` — The failures `makeRepository` can fail with: `BucketRegistrationError | ServerOnlyKeyError`.
+- `@shivaedev/sql/serverOnly.ts`: `serverOnly(schema)` — Model field stored as the plain value, read as `Redacted`, absent from JSON variants, and refused by every encode of the select variant.
 - `@shivaedev/sql/changes.ts`: `changes(covers)`, `ChangeDeclaration` — Declares a raw writer's table, record and bucket keys once, with a `record(options?)` action.
 - `@shivaedev/test-kits/sql/testing.ts`: `withChangeCoverage(body, { covers })`, `expectPublished(keys)`, `UnannouncedWrites`, `PublishedKeysMismatch` — Test assertions that every write announced its keys and that the expected keys were published.
 
