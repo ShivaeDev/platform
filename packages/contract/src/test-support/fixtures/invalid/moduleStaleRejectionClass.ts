@@ -19,6 +19,5 @@ const Operation = command("raisesOtherTitleTaken", {
 defineModule({
 	name: "raisesOtherTitleTaken",
 	operations: [Operation],
-	requires: [SessionUser],
 	wire: { raisesOtherTitleTaken: { rejections: { TitleTaken }, success: Schema.String } },
 });

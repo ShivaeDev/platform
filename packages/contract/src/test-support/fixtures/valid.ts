@@ -139,7 +139,6 @@ export const RunHistory = query("history", {
 export const HistoryNotes = defineModule({
 	name: "historyNotes",
 	operations: [RunHistory],
-	requires: [RunNotes.SessionUser],
 	wire: {
 		history: {
 			rejections: {},
@@ -170,17 +169,46 @@ export const SessionNotes = defineModule({
 			},
 		}),
 	],
-	requires: [RunNotes.NotesRepository],
 	wire: { rename: { rejections: { NotFound }, success: Schema.String } },
 });
+export const ImportNotes = defineModule({
+	name: "importNotes",
+	operations: [
+		command("importTitle", {
+			payload: RunNotes.NoteId,
+			*run({ id }) {
+				return yield* (yield* RunNotes.NoteSource).title(id);
+			},
+		}),
+		query("owned", {
+			payload: RunNotes.NoteId,
+			readPolicy: ({ id }, viewer) =>
+				Effect.gen(function* () {
+					const repository = yield* RunNotes.NotesRepository;
+					return Option.isSome(viewer) && Option.isSome(yield* repository.findOne(id, viewer.value.id));
+				}),
+			reads: () => [],
+			*run({ id }) {
+				const { id: userId } = yield* RunNotes.SessionUser;
+				return `${userId}: ${id}`;
+			},
+		}),
+	],
+	wire: { importTitle: { rejections: {}, success: Schema.String }, owned: { rejections: {}, success: Schema.String } },
+});
 type Requirements<TLayer> = TLayer extends Layer.Layer<infer _A, infer _E, infer R> ? R : never;
-type SessionNotesNeeds = Requirements<ReturnType<typeof moduleHandlers<typeof SessionNotes>>>;
-export const sessionNotesNeedRequires: [SessionNotesNeeds, RunNotes.NotesRepository] extends [RunNotes.NotesRepository, SessionNotesNeeds]
-	? true
-	: false = true;
-type ModuleNotesNeeds = Requirements<ReturnType<typeof moduleHandlers<typeof ModuleNotes.Notes>>>;
-export const moduleNotesNeedRequires: [ModuleNotesNeeds, ModuleNotes.NotesStore] extends [ModuleNotes.NotesStore, ModuleNotesNeeds] ? true : false =
-	true;
+type Exactly<TActual, TExpected> = [TActual, TExpected] extends [TExpected, TActual] ? true : false;
+// SessionGuard provides SessionUser per call, so the handlers leave it out of what they require.
+export const sessionNotesNeedRepository: Exactly<
+	Requirements<ReturnType<typeof moduleHandlers<typeof SessionNotes>>>,
+	RunNotes.NotesRepository
+> = true;
+export const moduleNotesNeedStore: Exactly<Requirements<ReturnType<typeof moduleHandlers<typeof ModuleNotes.Notes>>>, ModuleNotes.NotesStore> = true;
+// Without middleware the handlers require what each run yields and what the read policy yields.
+export const importNotesNeedRunAndPolicyServices: Exactly<
+	Requirements<ReturnType<typeof moduleHandlers<typeof ImportNotes>>>,
+	RunNotes.NoteSource | RunNotes.SessionUser | RunNotes.NotesRepository
+> = true;
 export class ModuleClient extends AtomRpc.Service<ModuleClient>()("fixture/ModuleClient", {
 	group: ModuleNotes.Notes,
 	protocol: RpcClient.layerProtocolHttp({ url: "http://127.0.0.1/rpc" }).pipe(Layer.provide([FetchHttpClient.layer, RpcSerialization.layerJson])),

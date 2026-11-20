@@ -62,7 +62,6 @@ const Write = command("write", {
 export const Coaching = defineModule({
 	name: "coaching",
 	operations: [Note, Diary, Write],
-	requires: [SqlClient.SqlClient],
 	subject: actsAsCoach,
 	wire: {
 		diary: { rejections: { DiaryPrivate }, success: Schema.String },

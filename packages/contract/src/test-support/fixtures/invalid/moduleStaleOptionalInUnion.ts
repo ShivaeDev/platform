@@ -21,6 +21,5 @@ const Operation = query("findsPinnable", {
 defineModule({
 	name: "findsPinnable",
 	operations: [Operation],
-	requires: [SessionUser],
 	wire: { findsPinnable: { rejections: {}, success: Schema.NullOr(Schema.Struct({ id: Schema.Number, title: Schema.String })) } },
 });

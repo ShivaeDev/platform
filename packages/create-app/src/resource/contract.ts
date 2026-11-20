@@ -25,13 +25,11 @@ import { AuthenticatedUser } from "@shivaedev/identity/middleware.ts";
 import { ${camel}Wire } from "#generated/modules/${name}/${pascal}.ts";
 import { Create } from "#modules/${name}/server/Create.ts";
 import { List } from "#modules/${name}/server/List.ts";
-import { ${pascal}Repository } from "#modules/${name}/server/Repository.ts";
 
 export const ${pascal} = defineModule({
 	middleware: AuthenticatedUser,
 	name: "${name}",
 	operations: [List, Create],
-	requires: [${pascal}Repository],
 	wire: ${camel}Wire,
 });
 `;

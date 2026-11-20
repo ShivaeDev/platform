@@ -107,7 +107,6 @@ export const Notes = defineModule({
 	middleware: Caller,
 	name: "moduleNotes",
 	operations: [List, Get, Create, Touch],
-	requires: [NotesStore],
 	wire: {
 		create: { rejections: { TitleTaken, Unauthorized }, success: Note },
 		get: { rejections: { NotFound }, success: Note },

@@ -16,6 +16,5 @@ const Remove = command("remove", {
 defineModule({
 	name: "removes",
 	operations: [Remove],
-	requires: [SessionUser],
 	wire: {},
 });

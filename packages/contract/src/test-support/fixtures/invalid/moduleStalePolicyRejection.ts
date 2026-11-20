@@ -17,6 +17,5 @@ const Operation = query("forgetsPolicyFailure", {
 defineModule({
 	name: "forgetsPolicyFailure",
 	operations: [Operation],
-	requires: [SessionUser],
 	wire: { forgetsPolicyFailure: { rejections: {}, success: Schema.String } },
 });

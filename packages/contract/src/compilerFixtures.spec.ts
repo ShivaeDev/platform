@@ -38,7 +38,6 @@ const runFixtures = {
 
 const moduleFixtures = {
 	moduleMissingFromWire: ["missingFromWire", 'OperationMissingFromWire<"count", "the generated file is stale; run pnpm generate">'],
-	modulePolicyService: ["owned", 'OperationNeedsUndeclaredServices<"owned", NotesRepository>'],
 	moduleRejectionMissingFromWire: ["removes", 'OperationMissingFromWire<"remove", "the generated file is stale; run pnpm generate">'],
 	moduleRepeatedName: ["lists", 'OperationNameRepeated<"list">'],
 	moduleStaleAutomaticRejection: [
@@ -122,7 +121,6 @@ const moduleFixtures = {
 		"returnsPlainNote",
 		'WireSuccessStale<"returnsPlainNote", "the generated file is stale; run pnpm generate", { id: number; title: string; }, Note>',
 	],
-	moduleUndeclaredService: ["imports", 'OperationNeedsUndeclaredServices<"importTitle", NoteSource>'],
 } as const;
 
 compilerStory.it(
@@ -171,7 +169,7 @@ for (const [fixture, problem] of Object.entries(runFixtures)) {
 }
 
 compilerStory.it(
-	"a module defined from operations written as payload and run compiles, and its handlers require exactly its requires",
+	"a module defined from operations written as payload and run compiles, and its handlers require exactly what its runs and read policies yield beyond its middleware",
 	[],
 	function* ({ compileValidModule }) {
 		expect(yield* compileValidModule()).toBe('compiled cleanly, declaring Module<"sessionNotes"');

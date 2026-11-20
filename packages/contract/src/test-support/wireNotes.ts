@@ -68,6 +68,5 @@ export const WireNotes = defineModule({
 	middleware: WireCaller,
 	name: "wireNotes",
 	operations: [List, Create],
-	requires: [WireNotesStore],
 	wire: wireNotesWire,
 });

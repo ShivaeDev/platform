@@ -14,6 +14,5 @@ const reading = {
 defineModule({
 	name: "lists",
 	operations: [query("list", reading), query("list", { ...reading })],
-	requires: [SessionUser],
 	wire: { list: { rejections: {}, success: Schema.String } },
 });

@@ -15,6 +15,5 @@ const Operation = command("leaksRow", {
 defineModule({
 	name: "leaksRow",
 	operations: [Operation],
-	requires: [NotesRepository, SessionUser],
 	wire: { leaksRow: { rejections: {}, success: Schema.Struct({ id: Schema.Number, title: Schema.String }) } },
 });

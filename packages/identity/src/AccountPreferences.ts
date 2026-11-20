@@ -34,7 +34,6 @@ const CapturePreferences = command("capture", {
 export const AccountPreferences = defineModule({
 	name: "identity.accountPreferences",
 	operations: [GetPreferences, SetPreferences, CapturePreferences],
-	requires: [AccountPreferencesStore],
 	subject: selfSubject,
 	wire: identityAccountPreferencesWire,
 });

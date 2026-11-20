@@ -1,5 +1,4 @@
 import { Schema } from "effect";
-import { SqlClient } from "effect/sql";
 import { defineModule } from "@shivaedev/contract/defineModule.ts";
 import { command, query } from "@shivaedev/contract/operation.ts";
 import { identitySessionsWire } from "#generated/Sessions.ts";
@@ -27,6 +26,5 @@ export const Sessions = defineModule({
 	middleware: SessionsPermission,
 	name: "identity.sessions",
 	operations: [ListSessions, RevokeSession],
-	requires: [SqlClient.SqlClient],
 	wire: identitySessionsWire,
 });

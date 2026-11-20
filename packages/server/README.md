@@ -102,18 +102,18 @@ const hosts = Effect.gen(function* () {
 });
 ```
 
-A module defined with `defineModule` from `@shivaedev/contract/defineModule.ts` registers as `module:`, and the host builds its group and its handlers with `moduleHandlers`. Its `services` provide what the module's `requires` lists, except the SQL client and the other services the host provides. An RPC group that is not a defined module, such as a contract served by hand-written handlers, registers as `group` plus `handlers` instead, and both kinds sit in one application's module list:
+A module defined with `defineModule` from `@shivaedev/contract/defineModule.ts` registers as `module:`, and the host builds its group and its handlers with `moduleHandlers`. Its handlers need the services its operations' `run` and read policies yield, less what its middleware and subject provide per call; the registration's `services` and `ports` provide them, except the SQL client and the other services the host provides. An RPC group that is not a defined module, such as a contract served by hand-written handlers, registers as `group` plus `handlers` instead, and both kinds sit in one application's module list:
 
 ```ts
 import { Layer } from "effect";
-import { SqlClient } from "effect/sql";
 import { defineModule } from "@shivaedev/contract/defineModule.ts";
 import { migrationsIn } from "@shivaedev/server/adapters/migrationsIn.ts";
 import type { AppModule } from "@shivaedev/server/AppModule.ts";
+import { notesWire } from "#generated/modules/notes/Notes.ts";
 import { Create, Get } from "./notes/operations.ts";
 import { Drafts, readDraft } from "./drafts.ts";
 
-export const Notes = defineModule({ name: "notes", operations: [Create, Get], requires: [SqlClient.SqlClient] });
+export const Notes = defineModule({ name: "notes", operations: [Create, Get], wire: notesWire });
 
 export const notes = { migrations: migrationsIn(import.meta.dirname), module: Notes, services: Layer.empty } satisfies AppModule;
 
@@ -127,7 +127,14 @@ export const drafts = {
 
 A defined module's generated handlers check each query's read policy with the module's services. Hand-written handlers would move that check to the host's read-policy guard, in the handlers' own context, so a defined module would have two paths. `AppModule` refuses a defined module as `group` at compile time, and the host refuses to start when any query of a defined module is served by another handler: it fails with `HandWrittenModuleHandlers` from `@shivaedev/server/HandWrittenModuleHandlers.ts`, whose `module`, `queries` and `message` name the module, each affected query and the `module:` registration to use instead. Fakes in this repository's own stories opt out through `replacedModuleHandlers` in the package's test support, which is not published.
 
-`appModules` reads a defined module's `requires` from its registration's own type, so it refuses a registration typed as `AppModule`, returned by a helper typed that way, or whose `module` is typed as `RegisteredModule`: that type has lost the services the module's handlers need. A `group` plus `handlers` registration typed as `AppModule` is refused too, because its type is the same. Declare the registration with `satisfies AppModule` instead.
+`appModules` refuses a registration list in which a defined module's operation yields a service that no registration's `services`, `ports` or `requestServices` provide and the host does not provide, as it provides the SQL client and `Reactivity`. The second line of the compiler's message names the module, the operation and each missing service:
+
+```
+src/test-support/compiler-fixtures/unprovidedService.ts(26,12): error TS2345: Argument of type '[{ module: Module<"imports", readonly [ServedCommand<"importTitle", Struct<{ id: Number; }>, String, Flat<Automatic>, Effect<string, never, NoteSource>>] & readonly ModuleOperation[], ModuleRequirements<...>, never, undefined, undefined>; services: Layer<...>; }]' is not assignable to parameter of type 'readonly [{ module: Module<"imports", readonly [ServedCommand<"importTitle", Struct<{ id: Number; }>, String, Flat<Automatic>, Effect<string, never, NoteSource>>] & readonly ModuleOperation[], ModuleRequirements<...>, never, undefined, undefined>; services: Layer<...>; }] & { ...; } & OperationServicesNotProvided<...>'.
+  Type '[{ module: Module<"imports", readonly [ServedCommand<"importTitle", Struct<{ id: Number; }>, String, Flat<Automatic>, Effect<string, never, NoteSource>>] & readonly ModuleOperation[], ModuleRequirements<...>, never, undefined, undefined>; services: Layer<...>; }]' is not assignable to type 'OperationServicesNotProvided<"imports", "importTitle", NoteSource>'.
+```
+
+A service may come from another registration in the same list. The `replacements` Layer only overrides default ports, so a service that only the replacements provide is refused too: give it a default in a registration's `ports`. A service the application provides around the host instead belongs in a registration. The check reads each module's services from its registration's own type, so it refuses a registration typed as `AppModule`, returned by a helper typed that way, or whose `module` is typed as `RegisteredModule`: that type has lost the services the module's handlers need. A `group` plus `handlers` registration typed as `AppModule` is refused too, because its type is the same. Declare the registration with `satisfies AppModule` instead.
 
 `appModules` returns an Effect that rejects duplicate queue names before building any host. `DuplicateModuleQueue` from `@shivaedev/server/DuplicateModuleQueue.ts` identifies `queue`, `firstModule` and `secondModule`, naming a defined module by its own name; repeating a name within one module also fails. It combines the native RPC groups, handler Layers, the migration loaders and schema components of the modules that declare `migrations`, skipping the rest. It includes each admin registration's group and handlers and exposes their merged registry as `modules.admin`. Migration numbers belong to one application-wide sequence. Existing hosts can continue to supply their groups, handlers, services and migrations directly.
 

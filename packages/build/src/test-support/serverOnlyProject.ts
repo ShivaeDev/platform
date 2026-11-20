@@ -28,7 +28,6 @@ export const Accounts = defineModule({
 		ReturnsGrant,
 		ReturnsFolder,
 	],
-	requires: [],
 	wire: {},
 });
 `,

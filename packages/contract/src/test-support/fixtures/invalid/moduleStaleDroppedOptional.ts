@@ -14,7 +14,6 @@ const Operation = command("neverPins", {
 defineModule({
 	name: "neverPins",
 	operations: [Operation],
-	requires: [SessionUser],
 	wire: {
 		neverPins: { rejections: {}, success: Schema.Struct({ id: Schema.Number, pinned: Schema.optionalKey(Schema.Boolean), title: Schema.String }) },
 	},

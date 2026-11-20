@@ -26,6 +26,5 @@ const Operation = query("listsPlainNotes", {
 defineModule({
 	name: "listsPlainNotes",
 	operations: [Operation],
-	requires: [NotesRepository, SessionUser],
 	wire: { listsPlainNotes: { rejections: {}, success: Schema.Array(Note) } },
 });

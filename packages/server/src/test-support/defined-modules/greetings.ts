@@ -16,7 +16,6 @@ export const Greetings = defineModule({
 	middleware: MaybeAuthenticated,
 	name: "greetings",
 	operations: [Greet],
-	requires: [],
 	wire: { greet: { rejections: {}, success: Schema.String } },
 });
 
