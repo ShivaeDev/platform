@@ -64,7 +64,6 @@ function accepted(checker: ts.TypeChecker, node: ts.Node): boolean {
 	return false;
 }
 
-// An imported function is keyed by its module and name; a member call on a value that resolves to nothing the module imports is keyed by its name.
 function unsafeKey(checker: ts.TypeChecker, node: ts.Expression, called: boolean): string | undefined {
 	const name = nameOf(node) ?? "";
 	if (!UNSAFE_NAME.test(name)) {

@@ -23,7 +23,7 @@ export interface OtlpReceiverOptions {
 
 export const otlpReceiver = Effect.fnUntraced(function* (options: OtlpReceiverOptions = {}) {
 	const requests: OtlpExport[] = [];
-	const signals = recordedSignals<OtlpSpan>();
+	const signals = yield* recordedSignals<OtlpSpan>();
 	const server = yield* otlpServer(requests, signals.push, options);
 	const url = yield* loopbackServer(server);
 	const { otlpTracing } = yield* Effect.promise(() => import("#server/otlpTracing.ts"));
