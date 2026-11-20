@@ -1,5 +1,6 @@
+import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { discoveredMigrations, folderApplied } from "#test/discoveredMigrations.ts";
+import { discoveredMigrations, folderApplied, folderMissing } from "#test/discoveredMigrations.ts";
 
 discoveredMigrations.it(
 	"adding a higher-numbered file to the migrations folder applies only that migration on the next run",
@@ -13,5 +14,15 @@ discoveredMigrations.it(
 			["labels", () => labels(), ["Discovered"]],
 			["runs", () => runs(), [[[2, "seed_labels"]]]],
 		]);
+	},
+);
+
+discoveredMigrations.it(
+	"a directory without a migrations folder fails the run with a failed migration instead of applying nothing",
+	[folderMissing],
+	function* ({ migrate, runs }) {
+		yield* migrate();
+
+		expect(yield* runs()).toEqual(["failed with a failed migration: Failed to read migrations directory"]);
 	},
 );
