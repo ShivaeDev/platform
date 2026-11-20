@@ -58,3 +58,7 @@ notesStory.it(
 		]);
 	},
 );
+
+notesStory.it("the bound rename command carries its declared payload schema, which names the note's id and title", [], function* ({ renamePayload }) {
+	expect(yield* renamePayload()).toEqual(["id", "title"]);
+});

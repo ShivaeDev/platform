@@ -18,8 +18,7 @@ export function AdminSessions({
 			currentSessionId={currentSessionId}
 			list={client.sessions.list.query}
 			onCurrentSessionRevoked={signOut.dispatch}
-			revoke={client.sessions.revoke.run}
-			runtime={client.runtime}
+			revoke={client.sessions.revoke}
 		/>
 	);
 }

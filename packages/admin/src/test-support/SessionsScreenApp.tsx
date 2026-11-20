@@ -20,8 +20,7 @@ export function SessionsScreenApp({
 			currentSessionId={engine.viewerId()}
 			list={engine.api.list.query}
 			onCurrentSessionRevoked={() => signOut(true)}
-			revoke={engine.api.revoke.run}
-			runtime={engine.runtime}
+			revoke={engine.api.revoke}
 		/>
 	);
 }

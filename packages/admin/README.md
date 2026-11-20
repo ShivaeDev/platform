@@ -256,13 +256,7 @@ import { SessionsView } from "@shivaedev/admin/client/adapters/SessionsView.ts";
 
 const sessions = bind(SessionsPage.contract, Client);
 
-<SessionsView
-	currentSessionId={currentSession.id}
-	list={sessions.list.query}
-	revoke={sessions.revoke.run}
-	runtime={Client.runtime}
-	onCurrentSessionRevoked={signOut}
-/>;
+<SessionsView currentSessionId={currentSession.id} list={sessions.list.query} revoke={sessions.revoke} onCurrentSessionRevoked={signOut} />;
 ```
 
 The view lists signed-in sessions with the user's name and email, started, last activity and expiry times. It marks the supplied current session id and asks for confirmation in the page before revoking. A successful revoke refreshes the bound list. Revoking the current session calls `onCurrentSessionRevoked`; the application uses that callback to clear its auth state and navigate to sign-in. The starter mounts this page at `/admin/sessions` and connects the callback to its sign-out flow.

@@ -1,21 +1,20 @@
-import { type Effect, Equal, Option, type Schema } from "effect";
-import type * as Atom from "effect/reactivity/Atom";
+import { Equal, Option, type Schema } from "effect";
 import { useCallback, useState } from "react";
 import { usePersistedDraft } from "@shivaedev/form/adapters/react.ts";
 import type { FieldRejectionMapping } from "@shivaedev/form/fieldRejection.ts";
 import type { PersistedDraftConfig } from "@shivaedev/form/persistence.ts";
 import type { Decoded, Encoded, FieldFailure, Fields, Form, Services } from "@shivaedev/form/shape.ts";
-import type { AtomServices } from "#AtomServices.ts";
+import { formFields } from "#client/adapters/formFields.ts";
+import { typedCreate } from "#client/adapters/operationHooks.ts";
 import { useSubmissionCallbacks } from "#client/adapters/useSubmissionCallbacks.ts";
+import type { BoundOperation, LooseOperation } from "#client/boundOperation.ts";
 import type { NoticeFeedback } from "#client/notices.ts";
+import type { DecodingServicesOption, FieldsOption, FixedOption, FormFields, NoFixed, Unfixed } from "#client/operationForm.ts";
 import { type SaveState, useSaveState } from "#client/saveState.ts";
 import { type SubmissionConfig, submission } from "#submission.ts";
-export type CreateConfig<TFields extends Fields, TCreated, TSaveError, R, TRuntimeError> = {
+export type CreateOptions<TFields extends Fields, TCreated, TSaveError, R, TRuntimeError> = {
 	readonly persistedDraft?: PersistedDraftConfig | undefined;
-	readonly fields: Schema.Struct<TFields>;
 	readonly initialValues: Encoded<TFields>;
-	readonly create: (values: Decoded<TFields>) => Effect.Effect<TCreated, TSaveError, AtomServices<R>>;
-	readonly runtime: Atom.AtomRuntime<Services<TFields, R>, TRuntimeError>;
 	readonly notices?: NoticeFeedback<Decoded<TFields>, TCreated, TSaveError, Services<TFields, R>>;
 } & FieldRejectionMapping<TFields, TSaveError> &
 	Pick<SubmissionConfig<TFields, TCreated, TSaveError, R, TRuntimeError>, "requiredMessages" | "checks" | "debounce" | "arrayKeys">;
@@ -33,27 +32,55 @@ function resetValues(baseline: Readonly<Record<string, unknown>>, current: Reado
 		}),
 	);
 }
-export function useCreate<TFields extends Fields, TCreated, TSaveError, R, TRuntimeError>(
-	config: CreateConfig<TFields, TCreated, TSaveError, R, TRuntimeError>,
-): Create<TFields, TCreated, TSaveError, TRuntimeError> {
+export type UseCreate = <
+	TInput,
+	TCreated,
+	TSaveError,
+	R,
+	TRuntimeError,
+	TPayload = never,
+	TFixed extends Partial<TInput> = NoFixed,
+	TFields extends Fields = never,
+>(
+	operation: BoundOperation<TInput, TCreated, TSaveError, R, TRuntimeError> & { readonly payload?: TPayload },
+	options: NoInfer<CreateOptions<FormFields<TPayload, TFixed, TFields>, TCreated, TSaveError, R, TRuntimeError>> &
+		FieldsOption<TPayload, TFields> &
+		FixedOption<TInput, TFixed, Unfixed<TInput, FormFields<TPayload, TFixed, TFields>, TFixed>> &
+		NoInfer<DecodingServicesOption<FormFields<TPayload, TFixed, TFields>, R>>,
+) => Create<FormFields<TPayload, TFixed, TFields>, TCreated, TSaveError, TRuntimeError>;
+export type LooseCreate = (
+	operation: LooseOperation,
+	options: CreateOptions<Fields, unknown, unknown, unknown, unknown> & { readonly fields?: Schema.Struct<Fields>; readonly fixed?: object },
+) => Create<Fields, unknown, unknown, unknown>;
+const useLooseCreate: LooseCreate = (operation, options) => {
+	const { fixed } = options;
+	const { runtime } = operation;
+	const fields = formFields(operation.payload, options.fields, fixed);
+	const config = { ...options, fields, runtime };
 	const persistedDraft = usePersistedDraft(config.persistedDraft);
-	const callbacks = useSubmissionCallbacks(config.fields, config.create, config.rejectField, config.runtime, config.notices);
+	const callbacks = useSubmissionCallbacks(
+		fields,
+		(values: Decoded<Fields>) => operation.run({ ...fixed, ...values }),
+		config.rejectField,
+		runtime,
+		config.notices,
+	);
 	function initialize() {
-		const { fields, initialValues, runtime } = config;
+		const { initialValues } = config;
 		function makeSubmission() {
 			return submission({ ...config, ...callbacks, fields, initialValues, persistedDraft, runtime });
 		}
-		return { baseline: initialValues, created: Option.none<TCreated>(), current: makeSubmission(), fields, fresh: makeSubmission, runtime };
+		return { baseline: initialValues, created: Option.none<unknown>(), current: makeSubmission(), fields, fresh: makeSubmission, runtime };
 	}
 	const [held, hold] = useState(initialize);
 	let entry = held;
-	if (entry.fields !== config.fields || entry.runtime !== config.runtime) {
+	if (entry.fields !== fields || entry.runtime !== runtime) {
 		entry = initialize();
 		hold(entry);
 	}
 	const { baseline, created, current, fresh } = entry;
 	const settled = useCallback(
-		(value: TCreated) => {
+		(value: unknown) => {
 			const next = fresh();
 			next.form.values.set(resetValues(baseline, current.form.values.value, current.submitted()));
 			hold({ ...entry, created: Option.some(value), current: next });
@@ -61,4 +88,5 @@ export function useCreate<TFields extends Fields, TCreated, TSaveError, R, TRunt
 		[entry, current, fresh, baseline],
 	);
 	return { ...useSaveState(current.form, settled), created, form: current.form };
-}
+};
+export const useCreate = typedCreate(useLooseCreate);

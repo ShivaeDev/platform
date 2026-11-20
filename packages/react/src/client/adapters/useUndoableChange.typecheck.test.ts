@@ -28,12 +28,12 @@ const missing = Effect.fnUntraced(function* (_input: Input) {
 });
 
 export function useUndoTypes(update: ReturnType<typeof deployUpdate>) {
-	const change = useUndoableChange({ run, runtime, update }, { describe: (row, input) => `${row.id}: ${input.removed}` });
+	const change = useUndoableChange({ run, runtime }, { describe: (row, input) => `${row.id}: ${input.removed}`, update });
 	const failure: AsyncResult.AsyncResult<Row, Conflict> = change.undoResult;
 	const notice: Option.Option<{ readonly value: Row; readonly input: Input; readonly message: string }> = change.notice;
 	const runtimeFailure: AsyncResult.AsyncResult<Row, Conflict | "Unavailable"> = useUndoableChange(
-		{ run, runtime: failingRuntime, update },
-		{ describe: (row) => row.id },
+		{ run, runtime: failingRuntime },
+		{ describe: (row) => row.id, update },
 	).removeResult;
 	change.remove({ expectedVersion: 7, id: "first", removed: true }, { id: "first", removed: false });
 	// @ts-expect-error Removal needs an expected version.
@@ -41,9 +41,9 @@ export function useUndoTypes(update: ReturnType<typeof deployUpdate>) {
 	// @ts-expect-error Undo retains the command's domain payload.
 	change.remove({ expectedVersion: 7, id: "first", removed: true }, { id: 1, removed: false });
 	// @ts-expect-error The runtime must supply the command's services.
-	useUndoableChange({ run: missing, runtime, update }, { describe: () => "Removed" });
+	useUndoableChange({ run: missing, runtime }, { describe: () => "Removed", update });
 	// @ts-expect-error A versioned result is required.
-	useUndoableChange({ run: (_input: Input) => Effect.void, runtime, update }, { describe: () => "Removed" });
+	useUndoableChange({ run: (_input: Input) => Effect.void, runtime }, { describe: () => "Removed", update });
 	return { failure, notice, runtimeFailure };
 }
 
@@ -56,8 +56,12 @@ const batchRun: (input: BatchInput) => Effect.Effect<{ readonly undo: string }, 
 
 export function useBatchUndoTypes(update: ReturnType<typeof deployUpdate>) {
 	const change = useUndoableChange(
-		{ run: batchRun, runtime, update },
-		{ describe: (saved, input) => `${saved.undo}: ${input.ids.join(",")}`, undoInput: (saved, input) => ({ ids: input.ids, token: saved.undo }) },
+		{ run: batchRun, runtime },
+		{
+			describe: (saved, input) => `${saved.undo}: ${input.ids.join(",")}`,
+			undoInput: (saved, input) => ({ ids: input.ids, token: saved.undo }),
+			update,
+		},
 	);
 	const failure: AsyncResult.AsyncResult<{ readonly undo: string }, Conflict> = change.undoResult;
 	change.remove({ ids: ["first", "second"] });
@@ -66,11 +70,11 @@ export function useBatchUndoTypes(update: ReturnType<typeof deployUpdate>) {
 	// @ts-expect-error Custom Undo builds its input from the successful command result.
 	change.remove({ ids: ["first"] }, { ids: ["first"] });
 	// @ts-expect-error A non-versioned command requires an undoInput callback.
-	useUndoableChange({ run: batchRun, runtime, update }, { describe: () => "Changed" });
+	useUndoableChange({ run: batchRun, runtime }, { describe: () => "Changed", update });
 	useUndoableChange(
 		// @ts-expect-error The inverse must be a valid command input.
-		{ run: batchRun, runtime, update },
-		{ describe: () => "Changed", undoInput: (saved) => ({ ids: [saved.undo], token: 1 }) },
+		{ run: batchRun, runtime },
+		{ describe: () => "Changed", undoInput: (saved) => ({ ids: [saved.undo], token: 1 }), update },
 	);
 	return { failure };
 }

@@ -35,20 +35,26 @@ export interface QueryOptions extends RunOptions {
 	readonly serializationKey?: string;
 }
 
-// `runtime.fn(api.save.run)` and `useAction(runtime, api.save.run)` call `run` with the atom's function context second, which selects no subject.
+// `runtime.fn(api.save.run)` and the React action hooks call `run` with the atom's function context second, which selects no subject.
 type Run<TPayload, TResult> = (payload: TPayload, options?: RunOptions | Atom.FnContext) => TResult;
+
+type DeclaredPayload<R> = R extends { readonly payloadSchema: infer TPayload } ? TPayload : never;
 
 export interface BoundQuery<R, TSelf, TSubscription = never> {
 	readonly query: (payload: Rpc.Payload<R>, options?: QueryOptions) => Atom.Atom<AsyncResult.AsyncResult<Rpc.Success<R>, Failure<R | TSubscription>>>;
 	readonly run: Run<Rpc.Payload<R>, Effect.Effect<Rpc.Success<R>, RunFailure<R>, TSelf>>;
+	readonly runtime: Atom.AtomRuntime<TSelf>;
 }
 
 export interface BoundCommand<R, TSelf> {
+	readonly payload: DeclaredPayload<R>;
 	readonly run: Run<Rpc.Payload<R>, Effect.Effect<Rpc.Success<R>, RunFailure<R>, TSelf | Reactivity.Reactivity>>;
+	readonly runtime: Atom.AtomRuntime<TSelf>;
 }
 
 export interface BoundStream<R, TSelf> {
 	readonly run: Run<Rpc.Payload<R>, Stream.Stream<Rpc.SuccessChunk<R>, RunFailure<R>, TSelf | Rpc.ServicesClient<R>>>;
+	readonly runtime: Atom.AtomRuntime<TSelf>;
 }
 
 export type Bound<
@@ -135,14 +141,8 @@ export function makeClient(
 	const connection = rpcClient(contract.declaration.name, options.group ?? contract, options);
 	const bindingOptions: BindOptions = options;
 	const owner = bindingOwner(contract.declaration.keyScope, bindingOptions.registry);
-	const automatic = automaticLive(
-		connection.Client,
-		contract.declaration.name,
-		owner,
-		bindingOptions.resume,
-		bindingOptions.live,
-		bindingOptions.resumeWindow,
-	);
+	const { live, resume, resumeWindow } = bindingOptions;
+	const automatic = automaticLive(connection.Client, contract.declaration.name, owner, resume, live, resumeWindow);
 	const operations = clientOperations(connection.Client, automatic, owner);
 	const api = bindOperations(contract.declaration, operations, automatic.subscription);
 	return Object.assign(connection, { api, sync: operations.sync });

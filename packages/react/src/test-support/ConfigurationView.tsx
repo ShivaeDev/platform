@@ -14,7 +14,6 @@ export function ConfigurationView(props: ConfigurationProps) {
 		fields: props.fields,
 		persistedDraft: { key: `${props.kind}-${revision}`, now: props.now, storage: () => window.localStorage },
 		...(mapping ? { rejectField: (_error: Rejected) => ({ field: "name" as const, message: revision }) } : {}),
-		runtime: props.runtime,
 	};
 	function save(values: Name) {
 		return Effect.gen(function* () {
@@ -30,33 +29,31 @@ export function ConfigurationView(props: ConfigurationProps) {
 		});
 	}
 	return props.kind === "create" ? (
-		<CreateView config={config} held={held} revision={revision} save={save} />
+		<CreateView config={config} held={held} revision={revision} runtime={props.runtime} save={save} />
 	) : (
-		<EditorView config={config} held={held} revision={revision} save={save} />
+		<EditorView config={config} held={held} revision={revision} runtime={props.runtime} save={save} />
 	);
 }
 interface ViewProps {
-	readonly config: Pick<ConfigurationProps, "fields" | "runtime"> & {
+	readonly config: Pick<ConfigurationProps, "fields"> & {
 		readonly persistedDraft: PersistedDraftConfig;
 		readonly rejectField?: (error: Rejected) => { field: "name"; message: string };
 	};
 	readonly held: ConfigurationProps["held"];
 	readonly revision: string;
+	readonly runtime: ConfigurationProps["runtime"];
 	readonly save: (values: Name) => Effect.Effect<Name, Rejected, Destination>;
 }
-function CreateView({ config, held, revision, save }: ViewProps) {
-	const current = useCreate({ ...config, create: (values) => save(values), initialValues: { name: revision } });
+function CreateView({ config, held, revision, runtime, save }: ViewProps) {
+	const current = useCreate({ run: save, runtime }, { ...config, initialValues: { name: revision } });
 	held.current = current;
 	return <Controls current={current} />;
 }
-function EditorView({ config, held, revision, save }: ViewProps) {
-	const current = useEditor({
-		...config,
-		loaded: { name: "stored" },
-		query,
-		save: (values) => save(values),
-		values: (row) => ({ name: `${revision}:${row.name}` }),
-	});
+function EditorView({ config, held, revision, runtime, save }: ViewProps) {
+	const current = useEditor(
+		{ run: save, runtime },
+		{ ...config, loaded: { name: "stored" }, query, values: (row) => ({ name: `${revision}:${row.name}` }) },
+	);
 	held.current = current;
 	return <Controls current={current} />;
 }

@@ -1,7 +1,7 @@
 import { RegistryContext } from "@effect/atom-react";
 import { Effect, Layer, Option, Schema, SchemaGetter } from "effect";
 import * as Atom from "effect/reactivity/Atom";
-import { useContext, useMemo } from "react";
+import { useCallback, useContext, useMemo } from "react";
 import { useField, useSubmit } from "@shivaedev/form/adapters/react.ts";
 import { useCreate } from "#client/create.ts";
 import { type Editor, useEditor } from "#client/editor.ts";
@@ -32,15 +32,14 @@ export function CreateSubmitView({ state, slow, rejected }: { readonly state: Su
 				: Schema.String,
 		});
 	}, [slow, state]);
-	const current = useCreate({
-		create: (values) =>
+	const run = useCallback(
+		(values: { readonly name: string }) =>
 			rejected && values.name === "Taken"
 				? Effect.fail(new NameRejected({ field: "name", message: "Name is already used" }))
 				: Effect.sync(() => ({ id: state.names.push(values.name), name: slow ? values.name : values.name.trim() })),
-		fields: Submission,
-		initialValues: { name: "" },
-		runtime,
-	});
+		[rejected, slow, state],
+	);
+	const current = useCreate({ run, runtime }, { fields: Submission, initialValues: { name: "" } });
 	const name = useField(current.form, "name");
 	const submit = useSubmit(current.form);
 	const registry = useContext(RegistryContext);
@@ -65,14 +64,11 @@ export function CreateSubmitView({ state, slow, rejected }: { readonly state: Su
 	);
 }
 const query = Atom.make(Effect.succeed({ id: 1, name: "desk lamps" }));
+function saveUpper(values: typeof Name.Type) {
+	return Effect.succeed({ id: 1, name: values.name.toUpperCase() });
+}
 export function EditorSubmitView() {
-	const editor = useEditor({
-		fields: Name,
-		query,
-		runtime,
-		save: (values) => Effect.succeed({ id: 1, name: values.name.toUpperCase() }),
-		values: (row) => ({ name: row.name }),
-	});
+	const editor = useEditor({ run: saveUpper, runtime }, { fields: Name, query, values: (row) => ({ name: row.name }) });
 	const registry = useContext(RegistryContext);
 	return editor.form ? <LoadedEditor editor={editor} registry={registry} /> : null;
 }

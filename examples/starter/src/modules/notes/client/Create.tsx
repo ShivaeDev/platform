@@ -5,17 +5,11 @@ import { useCreate } from "@shivaedev/react/client/create.ts";
 import { Button } from "#client/ui/button.tsx";
 import { Input } from "#client/ui/input.tsx";
 import type { NotesClient } from "#modules/notes/client/make.ts";
-import { NoteFields } from "#modules/notes/model.ts";
 
 export function NoteCreate({ client }: { readonly client: NotesClient }) {
 	const titleId = useId();
 	const errorId = useId();
-	const create = useCreate({
-		create: client.api.create.run,
-		fields: NoteFields,
-		initialValues: { title: "" },
-		runtime: client.runtime,
-	});
+	const create = useCreate(client.api.create, { initialValues: { title: "" } });
 	const title = useField(create.form, "title");
 	const titleError = Boolean(title.error) && (
 		<p className="text-destructive text-sm" id={errorId} role="alert">

@@ -9,16 +9,10 @@ Live query screens and route loaders receive their first authorized result on th
 A refresh should not blank a useful screen. A save response should not erase what someone typed while waiting. Signing in as someone else should not inherit the previous person's draft. These hooks and the session boundary handle those transitions around native atoms and forms:
 
 ```ts
-const editor = useEditor({
-	query: api.get.query({ id }),
-	fields: InvoiceLineFields,
-	values: (line) => ({ name: line.name, quantity: String(line.quantity) }),
-	save: (values) => api.save.run({ id, ...values }),
-	runtime: InvoiceLinesClient.runtime,
-});
+const editor = useEditor(api.save, { query: api.get.query({ id }), fixed: { id } });
 ```
 
-`api` is the application's native RPC binding, and `InvoiceLineFields` describes its inputs. The editor creates the form when the row arrives. A refresh updates untouched fields and keeps edited ones; a save receives the server's normalized result while keeping edits made during the request. The component renders the form and decides what its loading and error messages say.
+`api` is the application's contract binding: `api.save` is a command that carries its runtime and its payload schema, so the editor takes its fields from the payload, fills them from the loaded row and adds `id` to every save. The editor creates the form when the row arrives. A refresh updates untouched fields and keeps edited ones; a save receives the server's normalized result while keeping edits made during the request. The component renders the form and decides what its loading and error messages say.
 
 ## Using it
 
@@ -304,7 +298,7 @@ An action's `dispatch(input)` returns `void`. Read the atom's latest result from
 
 #### An editor and a create form
 
-The next module assumes a sibling `invoice-lines-client.ts` exports a contract-bound `api` with `get`, `save` and `create`, and its native `InvoiceLinesClient`. `get` returns `{ id, name, quantity }`; both commands return the saved row. The [contract guide](https://github.com/ShivaeDev/platform/blob/main/packages/contract/README.md) describes that binding.
+The next module assumes a sibling `invoice-lines-client.ts` exports a contract-bound `api` with `get`, `save` and `create`. `get` returns `{ id, name, quantity }`, `save` takes `{ id, name, quantity }`, `create` takes `{ name, quantity }`, and both commands return the saved row. The [contract guide](https://github.com/ShivaeDev/platform/blob/main/packages/contract/README.md) describes that binding.
 
 ```tsx
 import { useCreate } from "@shivaedev/react/client/create.ts";
@@ -313,7 +307,7 @@ import { QueryView } from "@shivaedev/react/client/QueryView.ts";
 import { useField } from "@shivaedev/form/adapters/react.ts";
 import type { Form } from "@shivaedev/form/shape.ts";
 import { Option, Schema } from "effect";
-import { api, InvoiceLinesClient } from "./invoice-lines-client.ts";
+import { api } from "./invoice-lines-client.ts";
 
 const InvoiceLineFields = Schema.Struct({
 	name: Schema.String,
@@ -341,13 +335,7 @@ function Inputs<A, E, ER>({ form }: { readonly form: Form<Fields, A, E, ER> }) {
 }
 
 export function InvoiceLineEditor({ id }: { readonly id: number }) {
-	const editor = useEditor({
-		query: api.get.query({ id }),
-		fields: InvoiceLineFields,
-		values: (line) => ({ name: line.name, quantity: String(line.quantity) }),
-		save: (values) => api.save.run({ id, ...values }),
-		runtime: InvoiceLinesClient.runtime,
-	});
+	const editor = useEditor(api.save, { query: api.get.query({ id }), fields: InvoiceLineFields, fixed: { id } });
 	return (
 		<QueryView
 			query={editor.query}
@@ -388,12 +376,7 @@ export function InvoiceLineEditor({ id }: { readonly id: number }) {
 }
 
 export function InvoiceLineCreate() {
-	const create = useCreate({
-		fields: InvoiceLineFields,
-		initialValues: { name: "", quantity: "" },
-		create: api.create.run,
-		runtime: InvoiceLinesClient.runtime,
-	});
+	const create = useCreate(api.create, { fields: InvoiceLineFields, initialValues: { name: "", quantity: "" } });
 	return (
 		<form
 			onSubmit={(event) => {
@@ -412,7 +395,13 @@ export function InvoiceLineCreate() {
 }
 ```
 
-The form holds strings for both inputs. Its schema decodes `quantity` to a number before `save` or `create` receives it. `values(row)` converts server rows back to input values. The runtime supplies the services needed by schema decoding and the command Effect.
+Both hooks take the bound command first. It carries the atom runtime that runs it and supplies the services of schema decoding, and its payload schema. Without `fields`, the form's fields are the payload's fields minus the keys in `fixed`. Pass `fields` when an input holds another encoding than the payload, as here: the inputs hold strings and `InvoiceLineFields` decodes `quantity` to a number before the command receives it. A command whose payload is not a struct needs `fields`.
+
+`fixed` holds the payload fields the form does not edit, such as the record's `id` or an expected version; every save sends `{ ...fixed, ...values }`. `fixed` and the form's fields together must cover the payload exactly. A missing key, a key outside the payload and a value of the wrong type are compile errors that name the key: an editor for `{ id, title, expectedVersion }` given `fixed: { id }` reports `Property 'expectedVersion' is missing`, and `fixed: { owner: "ada" }` reports `Type '"ada"' is not assignable to type '"is not a field of the command's payload"'`. A query passed where a command belongs reports `a bound query only reads: read it with useQuery, and pass a command here`.
+
+An editor fills its inputs by encoding each loaded or saved row with the form's field schemas, without rerunning their checks, because the row already passed its schema. Pass `values(row)` when the row's shape differs from the fields or a field's encoding needs services; the compiler requires it then. A payload field the row lacks must go in `fixed`. Put a payload field the user must not edit, such as `id`, in `fixed` even when the row has it, so it stays out of drafts.
+
+For a save that is not a single bound command, pass `{ run, runtime }`: `run` takes the decoded values and returns the Effect, and `runtime` provides its services. Spread a bound command into it, `{ ...api.save, runtime }`, to run it on another runtime.
 
 The editor's form is absent until its first row arrives. A different query atom creates a new form, so another record starts without the previous draft. Refresh results adopt untouched fields and leave edited fields alone. Saved rows supply server normalization while edits made during the save remain dirty. A refresh failure keeps the draft, and `query.refresh()` retries.
 
@@ -422,7 +411,7 @@ A successful create replaces its form with one at `initialValues`, keeping field
 
 #### One-shot create and edit
 
-Use `useCreate` when the app already has the opening values and needs one submission. Its `create` callback accepts any submission Effect, including an update command; `created` holds that Effect's successful result. Creation above and the query-free edit below use the same form lifecycle. No upsert or new form hook is needed: creation and update remain separate domain commands with explicit payloads.
+Use `useCreate` when the app already has the opening values and needs one submission. It accepts any command, including an update command; `created` holds the command's successful result. Creation above and the query-free edit below use the same form lifecycle. No upsert or new form hook is needed: creation and update remain separate domain commands with explicit payloads.
 
 For this versioned example, the app's `save` command requires `{ id, expectedVersion, name, quantity }` and returns the row with its new `version`. It rejects a stale version with a tagged `Conflict` error. Reuse `InvoiceLineFields` and `Inputs` from above:
 
@@ -440,16 +429,10 @@ type VersionedLine = {
 
 export function OneShotEdit({ opening, onSaved }: { readonly opening: VersionedLine; readonly onSaved: (line: VersionedLine) => void }) {
 	const [original] = useState(opening);
-	const edit = useCreate({
+	const edit = useCreate(api.save, {
 		fields: InvoiceLineFields,
+		fixed: { id: original.id, expectedVersion: original.version },
 		initialValues: { name: original.name, quantity: String(original.quantity) },
-		create: (values) =>
-			api.save.run({
-				id: original.id,
-				expectedVersion: original.version,
-				...values,
-			}),
-		runtime: InvoiceLinesClient.runtime,
 	});
 	useEffect(() => {
 		if (Option.isSome(edit.created)) onSaved(edit.created.value);
@@ -482,28 +465,23 @@ Use `useEditor` for a continuing editor that subscribes to a record, merges refr
 A tagged error with string `_tag` and `message`, and a `field` naming a form field, becomes that field's message by default. Other typed save failures appear in `failure`. The native `cause` also exposes defects, interruptions and form validation failures; use it for a general failure alert so a save that dies is visible. Use `rejectField` when the server uses a different shape or field name:
 
 ```ts
-const TitleFields = Schema.Struct({ title: Schema.String });
-
-const editor = useEditor({
+const editor = useEditor(api.retitle, {
 	query,
-	fields: TitleFields,
-	values: (row) => ({ title: row.title }),
-	save,
-	runtime,
+	fixed: { id },
 	rejectField: (error) => (error._tag === "SubtitleRejected" ? { field: "title", message: error.message } : undefined),
 });
 ```
 
-Here `save` has a tagged `SubtitleRejected` failure referring to the server's `subtitle`, while the form calls the input `title`. If a tagged error's field type includes literal names outside the form, `rejectField` is required at compile time. A plain `string` field, required or optional as on `Conflict` and `BadRequest` from `@shivaedev/errors/taxonomy.ts`, does not require it: the default mapping shows a rejection naming a form field on that field and leaves any other rejection in `failure`. The mapper can return `undefined` to leave an error as a non-field failure.
+Here `api.retitle` takes `{ id, title }` and has a tagged `SubtitleRejected` failure referring to the server's `subtitle`, while the form calls the input `title`. If a tagged error's field type includes literal names outside the form, `rejectField` is required at compile time. A plain `string` field, required or optional as on `Conflict` and `BadRequest` from `@shivaedev/errors/taxonomy.ts`, does not require it: the default mapping shows a rejection naming a form field on that field and leaves any other rejection in `failure`. The mapper can return `undefined` to leave an error as a non-field failure.
 
 #### Query, command and form feedback
 
-Use `useQuery` with `QueryView` for reads, the Effect overload of `useAction` for commands, and `useCreate` or `useEditor` for form submissions. Give these owners notice descriptors and mount one `NoticeHost` inside the session boundary. contract still runs commands and invalidates queries; form still owns submission, fields and drafts. The app supplies wording, Undo payloads and expected versions.
+Use `useQuery` with `QueryView` for reads, `useAction` with a bound command for commands, and `useCreate` or `useEditor` for form submissions. Give these owners notice descriptors and mount one `NoticeHost` inside the session boundary. contract still runs commands and invalidates queries; form still owns submission, fields and drafts. The app supplies wording, Undo payloads and expected versions.
 
-The Effect overload of `useAction` accepts `notices.onSuccess(value, input)` and `notices.onFailure(error, input)`. Each callback returns a descriptor or `undefined`. Independent concurrent completions publish independently, preserving the invocation's input. `useCreate` and `useEditor` accept the same `notices` option around their existing save Effects. Use the descriptors instead of screen-local notice state, expiry timers or result-watching effects:
+`useAction` with a command accepts `notices.onSuccess(value, input)` and `notices.onFailure(error, input)`. Each callback returns a descriptor or `undefined`. Independent concurrent completions publish independently, preserving the invocation's input. `useCreate` and `useEditor` accept the same `notices` option around their existing save Effects. Use the descriptors instead of screen-local notice state, expiry timers or result-watching effects:
 
 ```ts
-const remove = useAction(OrdersClient.runtime, api.remove.run, {
+const remove = useAction(api.remove, {
 	concurrent: true,
 	notices: {
 		onSuccess: (removed, input) => ({
@@ -522,7 +500,7 @@ const remove = useAction(OrdersClient.runtime, api.remove.run, {
 });
 ```
 
-`OrdersClient`, `api`, the restore payload and its expected version belong to the application. The host runs the supplied Effect with the operation's native runtime, disables repeated dispatch while it is pending and exposes the outcome on that action. A failed Undo stays on its original notice; it does not become another operation failure notice. Command execution and invalidation remain with contract, and form submission remains with form.
+`api`, the restore payload and its expected version belong to the application. The host runs the supplied Effect with the operation's native runtime, disables repeated dispatch while it is pending and exposes the outcome on that action. A failed Undo stays on its original notice; it does not become another operation failure notice. Command execution and invalidation remain with contract, and form submission remains with form.
 
 For query failures, pass `useQuery(atom, { notice: ({ cause, refreshing }) => descriptor })`. `useEditor` accepts the same callback as `queryNotice` for its query. `refreshing` distinguishes a failure with retained data from an initial load failure. Each settled failed result publishes once per hook; a rerender does not replay it. Omit the callback or return `undefined` for operations that need no notice.
 
@@ -534,16 +512,13 @@ const notes = useQuery(api.list.query(), {
 		message: refreshing ? "Refresh failed" : "Load failed",
 	}),
 });
-const save = useCreate({
-	fields: TitleFields,
+const save = useCreate(api.save, {
 	initialValues: { title: "" },
-	create: api.save.run,
-	runtime: NotesClient.runtime,
 	notices: { onSuccess: (title) => ({ message: `Saved ${title}` }) },
 });
 ```
 
-Here `api`, `NotesClient` and `TitleFields` belong to the app. Render `notes` through `QueryView`: its loading renderer shows pending work, its failure renderer offers `notes.refresh` as Retry, and its content renderer holds the form and command controls. Bind fields with form's `useField`, submit with `save.save()` and disable Save with `save.saving`. A tagged field rejection stays beside that input. A held save keeps newer edits when it completes and publishes its success notice before the invalidated query finishes. A failed refresh keeps the last content and the draft while publishing the refresh notice.
+Here `api` belongs to the app, and `api.save` takes `{ title }` and returns the saved title. Render `notes` through `QueryView`: its loading renderer shows pending work, its failure renderer offers `notes.refresh` as Retry, and its content renderer holds the form and command controls. Bind fields with form's `useField`, submit with `save.save()` and disable Save with `save.saving`. A tagged field rejection stays beside that input. A held save keeps newer edits when it completes and publishes its success notice before the invalidated query finishes. A failed refresh keeps the last content and the draft while publishing the refresh notice.
 
 Replacing the session during a command or Undo disposes the outgoing registry: late completion callbacks and outcomes do not publish, and retained notice action and dismiss handlers cannot change the new host.
 
@@ -551,10 +526,10 @@ A descriptor has `message`, optional `expiresIn` as a native Duration, and optio
 
 #### Completion inside each command invocation
 
-Pass the native runtime and the original bound command Effect to `useAction` when the screen needs feedback for each invocation:
+Pass the bound command to `useAction` when the screen needs feedback for each invocation:
 
 ```tsx
-const rename = useAction(ReportsClient.runtime, api.rename.run, {
+const rename = useAction(api.rename, {
 	notices: {
 		onSuccess: (saved, input) => ({ message: `Renamed ${input.id} to ${saved.title}` }),
 		onFailure: (_error, input) => ({ message: `Could not rename ${input.id}` }),
@@ -562,9 +537,9 @@ const rename = useAction(ReportsClient.runtime, api.rename.run, {
 });
 ```
 
-`ReportsClient` and `api` belong to the application. Input, success, typed failure and runtime requirements are inferred from the command. Use `notices` for the feedback path above. The optional synchronous `onSuccess(value, input)` and `onFailure(error, input)` callbacks are also available for application completion work. They run inside each invocation using the latest committed callbacks and that invocation's input and outcome. Rerendering a result does not replay completion, and an abandoned render cannot replace the committed callback. A callback that throws becomes a native defect; it does not call `onFailure` as a domain rejection.
+`api` belongs to the application. Input, success, typed failure and runtime requirements are inferred from the command. Use `notices` for the feedback path above. The optional synchronous `onSuccess(value, input)` and `onFailure(error, input)` callbacks are also available for application completion work. They run inside each invocation using the latest committed callbacks and that invocation's input and outcome. Rerendering a result does not replay completion, and an abandoned render cannot replace the committed callback. A callback that throws becomes a native defect; it does not call `onFailure` as a domain rejection.
 
-The command's identity is the native action atom, or the `run` function in the runtime overload. Pass a stable bound function such as `api.rename.run`; memoize wrappers with `useCallback` or `useMemo`. A `run` written inline in the component is a new function on every render: its next render fails with an error that names `useAction`, says `run` must stay the same function and gives this fix, where React alone reports only `Too many re-renders`. Changing the command on a mounted control keeps `pending` true until its outgoing request settles. Its result, data and cause stay with the outgoing command: a refusal or success from Launch never appears on a replacement Resume control. Resume dispatches its own function and input. Completion callbacks for the outgoing runtime command stop when it is replaced; callbacks for the same command still use the latest committed props.
+The command's identity is the native action atom, or the operation's `run` function and `runtime`. A bound command such as `api.rename` keeps both; memoize a custom `run` in `{ run, runtime }` with `useCallback` or `useMemo`. A `run` written inline in the component is a new function on every render: its next render fails with an error that names `useAction`, says `run` must stay the same function and gives this fix, where React alone reports only `Too many re-renders`. Changing the command on a mounted control keeps `pending` true until its outgoing request settles. Its result, data and cause stay with the outgoing command: a refusal or success from Launch never appears on a replacement Resume control. Resume dispatches its own function and input. Completion callbacks for the outgoing runtime command stop when it is replaced; callbacks for the same command still use the latest committed props.
 
 The hook calls the supplied Effect once. A bound contract command still owns invalidation, and completion does not wait for server query reruns and their pushed results. Undo payloads, expected versions and presentation text stay in the application.
 
@@ -574,14 +549,14 @@ A typed `Unauthorized` failure asks the session owner to recheck once per failed
 
 #### Remove with a version-guarded Undo
 
-Use `useUndoableChange` from `@shivaedev/react/client/adapters/useUndoableChange.ts` when a versioned command also performs its inverse. Its payload includes `expectedVersion: number`, and its success includes `version: number`. Supply the bound command's `run`, its native `runtime`, and the application's `deployUpdate` as `update`:
+Use `useUndoableChange` from `@shivaedev/react/client/adapters/useUndoableChange.ts` when a versioned command also performs its inverse. Its payload includes `expectedVersion: number`, and its success includes `version: number`. Pass the bound command, and the application's `deployUpdate` as the `update` option:
 
 ```tsx
 import { Option } from "effect";
 import { useUndoableChange } from "@shivaedev/react/client/adapters/useUndoableChange.ts";
 
 function RemoveNote({ note }: { readonly note: { id: string; version: number } }) {
-	const change = useUndoableChange({ ...api.change, runtime: NotesClient.runtime, update }, { describe: (saved) => `Removed ${saved.id}` });
+	const change = useUndoableChange(api.change, { describe: (saved) => `Removed ${saved.id}`, update });
 	const notice = Option.getOrUndefined(change.notice);
 	return (
 		<>
@@ -604,34 +579,32 @@ function RemoveNote({ note }: { readonly note: { id: string; version: number } }
 }
 ```
 
-`api`, `NotesClient`, the soft-removal payload and `update` belong to the application. `remove(input, inverse)` captures the inverse domain fields. `undo()` sends those fields through the same command with `expectedVersion` set to the successful removal's returned `version`. The server must enforce that version and declare its typed conflict; a later edit then refuses Undo without overwriting the row. `removeResult` and `undoResult` preserve the native `AsyncResult`, including typed failures. Successful Undo clears its notice; a failed Undo leaves it available.
+`api`, the soft-removal payload and `update` belong to the application. `remove(input, inverse)` captures the inverse domain fields. `undo()` sends those fields through the same command with `expectedVersion` set to the successful removal's returned `version`. The server must enforce that version and declare its typed conflict; a later edit then refuses Undo without overwriting the row. `removeResult` and `undoResult` preserve the native `AsyncResult`, including typed failures. Successful Undo clears its notice; a failed Undo leaves it available.
 
 For a batch command, supply `undoInput(value, input)` to build the complete inverse payload from its successful result and original input. This overload accepts any command payload and success shape and uses `remove(input)` with no second argument:
 
 ```tsx
-const change = useUndoableChange(
-	{ ...api.editEntries, runtime: DiaryClient.runtime, update },
-	{
-		describe: () => "Changed diary entries",
-		undoInput: (saved) => ({ _tag: "undo" as const, token: saved.undo }),
-	},
-);
+const change = useUndoableChange(api.editEntries, {
+	describe: () => "Changed diary entries",
+	undoInput: (saved) => ({ _tag: "undo" as const, token: saved.undo }),
+	update,
+});
 change.remove({ _tag: "edit", rows: selectedVersions, scale: 0.5, copies: true });
 ```
 
-`api.editEntries`, `DiaryClient` and the payload shape belong to the application. The hook captures the inverse when the command succeeds and submits it unchanged through the same command on Undo. The result can carry a set of row versions with their previous values, or an opaque server-issued undo token; neither requires a top-level `expectedVersion` or `version`. The server owns the transaction: restore each changed row under its own returned version, remove rows the batch created under their own guards, and reject the whole inverse with a typed conflict if any guard is stale. React stories exercise portion scaling, copy removal and stale guards against PostgreSQL; the hook supplies no database undo engine.
+`api.editEntries` and the payload shape belong to the application. The hook captures the inverse when the command succeeds and submits it unchanged through the same command on Undo. The result can carry a set of row versions with their previous values, or an opaque server-issued undo token; neither requires a top-level `expectedVersion` or `version`. The server owns the transaction: restore each changed row under its own returned version, remove rows the batch created under their own guards, and reject the whole inverse with a typed conflict if any guard is stale. React stories exercise portion scaling, copy removal and stale guards against PostgreSQL; the hook supplies no database undo engine.
 
 `notice` is a native `Option` containing `message`, the submitted `input` and returned `value`. Only the most recently dispatched removal can publish it, even when replies arrive in reverse order. An older Undo cannot clear a newer notice. `removing` and `undoing` describe the two writes, and `pending` includes either. Each invocation holds `update.block` for its whole Effect lifetime, so overlapping writes hold deployment activation until all finish. The hook keeps UI wording and inverse domain data in the app; no `NoticeHost` is needed.
 
 #### Commands with a pending display value
 
-Use `usePendingCommand` for a command acting on a query row, such as a list toggle. Pass the bound command with its client's runtime, the row's current server value and the display value an input asks for:
+Use `usePendingCommand` for a command acting on a query row, such as a list toggle. Pass the bound command, the row's current server value and the display value an input asks for:
 
 ```tsx
 import { usePendingCommand } from "@shivaedev/react/client/pendingCommand.ts";
 
 function EnabledToggle({ row }: { readonly row: { readonly id: number; readonly enabled: boolean } }) {
-	const command = usePendingCommand({ ...api.toggle, runtime: ItemsClient.runtime }, { value: row.enabled, wanted: (input) => input.enabled });
+	const command = usePendingCommand(api.toggle, { value: row.enabled, wanted: (input) => input.enabled });
 	return (
 		<button
 			aria-pressed={command.value}
@@ -645,7 +618,7 @@ function EnabledToggle({ row }: { readonly row: { readonly id: number; readonly 
 }
 ```
 
-The example assumes a bound `api.toggle` whose `run` accepts `{ id, enabled }` and its native `ItemsClient`. `run` is the command's identity and must stay the same function between renders, as for `useAction`. Each use of the hook owns its action state, so one row can fail while another keeps its requested display.
+The example assumes a bound `api.toggle` that takes `{ id, enabled }`. Its `run` and `runtime` are the command's identity and must stay the same between renders, as for `useAction`. Each use of the hook owns its action state, so one row can fail while another keeps its requested display.
 
 `command.value` changes on dispatch and holds the requested value until the command is [reflected](https://github.com/ShivaeDev/platform/blob/main/packages/contract/README.md#when-a-commands-change-is-on-the-screen): every live query open on the connection shows the server's state after it. A switch backed by a live query therefore does not fall back to the old server value between the command's reply and the server's update, and a command that changes nothing frees the switch without an update. `pending` covers that whole interval, and `result`, `data` and `cause` settle when it ends. After the hold ends, `value` follows the server again, even if it differs from the requested value. A command failure immediately returns to the server value and remains typed in `result` and `cause`, just as with `useAction`. This binding holds a display value; it applies no optimistic update and does not write to the query cache.
 
@@ -790,7 +763,7 @@ For a loader that coordinates more work, use `loadQuery(registry, atom, loaderCo
 
 `defaultPendingMs: Infinity` keeps the current route's data visible during navigation; the shell reads TanStack's `isLoading` to display pending state. The new route commits when its loader settles. This is TanStack's pending policy, separate from `useQuery`'s retained display. The loader hands its query over to the route's component: the first render has the loaded value, and the query handler runs once, for a live subscription and for a `live: false` query alike, even when the route mounts after the registry’s idle window.
 
-`useLoaderQuery(atom, route.useLoaderData())` subscribes to the same atom and exposes `data` as its success type, with no `Option` or Initial result. Refetches keep the last value visible. `useQuery`, `useLoaderQuery` and a loader-backed editor’s `query` expose `denied: true` for `QueryReadDenied`, alongside the typed `cause`. Use this state to replace retained content with the application’s not-found screen after access is revoked. Refused live queries stay refused through change notifications until their input or viewer changes. For a loader-backed editor, pass the loader value as `useEditor({ ...config, loaded: route.useLoaderData() })`; its form is defined on the first render and `editor.query.data` is the row directly.
+`useLoaderQuery(atom, route.useLoaderData())` subscribes to the same atom and exposes `data` as its success type, with no `Option` or Initial result. Refetches keep the last value visible. `useQuery`, `useLoaderQuery` and a loader-backed editor’s `query` expose `denied: true` for `QueryReadDenied`, alongside the typed `cause`. Use this state to replace retained content with the application’s not-found screen after access is revoked. Refused live queries stay refused through change notifications until their input or viewer changes. For a loader-backed editor, pass the loader value as `useEditor(api.save, { ...options, loaded: route.useLoaderData() })`; its form is defined on the first render and `editor.query.data` is the row directly.
 
 `loadQuery` mounts its query while the loader runs and, once it succeeds, for a five-second hand-over window measured on the bound query's atom runtime `Clock`. A component that mounts within the window continues the loader's subscription and its first result instead of opening another. A route that is left or never mounts releases the query when the window passes; from then on the bound query uses the same retention policy as component reads, including its expiry, capacity and session ownership. A route that mounts after the window shows that kept value while a new subscription revalidates it. A returning route whose bound query still has a kept result renders it immediately as stale. Readers without data suspend until their active loader completes. Failed loaders also release execution; the route keeps its error visible and Retry starts a new load. Already mounted readers keep their data during refreshes.
 
@@ -971,13 +944,13 @@ These rules apply to each component and test you write.
 
 #### Hook configuration between renders
 
-`useCreate` calls the latest committed render's `create`, and `useEditor` calls its latest `save`. Both hooks use the latest `rejectField` when a save fails, including when the mapper is removed to restore automatic field mapping. Inline callbacks may close over changing props or state without replacing the form or losing edits.
+`useCreate` and `useEditor` call the latest committed render's operation `run` with that render's `fixed` values. Both hooks use the latest `rejectField` when a save fails, including when the mapper is removed to restore automatic field mapping. An inline `run` or callback may close over changing props or state without replacing the form or losing edits.
 
-Changing the `fields` schema or `runtime` by reference replaces either hook's form and discards its in-memory draft and submission state. A changed editor `query` also starts a new form. Keep schemas, runtimes and query atoms outside components or memoize them; constructing a schema on every render continually replaces the form.
+Changing the `fields` schema or the operation's `runtime` replaces either hook's form and discards its in-memory draft and submission state. A changed editor `query` also starts a new form. Keep schemas, runtimes and query atoms outside components or memoize them; constructing a schema on every render continually replaces the form.
 
-`useEditor`, `useCreate` and the lower-level `submission` accept form’s `requiredMessages`, `checks`, `debounce` and `arrayKeys`. Required wording and checks use encoded field names and values; check services come from the supplied runtime, and array key selectors receive encoded elements. Form owns check scheduling, stale feedback and keyed rejection tracking.
+`useEditor`, `useCreate` and the lower-level `submission` accept form’s `requiredMessages`, `checks`, `debounce` and `arrayKeys`. Required wording and checks use encoded field names and values; check services come from the operation's runtime, and array key selectors receive encoded elements. Form owns check scheduling, stale feedback and keyed rejection tracking.
 
-`initialValues` (create), `values` (editor), `persistedDraft`, `requiredMessages`, `checks`, `debounce` and `arrayKeys` are setup options, captured when the hook first creates a form and again when `fields`, `runtime` or editor `query` changes. Successful creates reuse the captured setup options for the next entry. Changing setup options alone does not replace an existing form; remount the component with a different React `key` to apply them. An editor's `loaded` value remains a fallback for query data, as with `useLoaderQuery`.
+`initialValues` (create), `values` (editor), `persistedDraft`, `requiredMessages`, `checks`, `debounce` and `arrayKeys` are setup options, captured when the hook first creates a form and again when its fields, `runtime` or editor `query` changes. Successful creates reuse the captured setup options for the next entry. Changing setup options alone does not replace an existing form; remount the component with a different React `key` to apply them. An editor's `loaded` value remains a fallback for query data, as with `useLoaderQuery`.
 
 #### Resume and refresh policy
 

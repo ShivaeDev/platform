@@ -3,15 +3,11 @@ import { Effect, Option } from "effect";
 import type * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as Atom from "effect/reactivity/Atom";
 import { useContext, useMemo } from "react";
-import type { AtomServices } from "#AtomServices.ts";
+import type { BoundOperation } from "#client/boundOperation.ts";
 import type { deployUpdate } from "#client/deployUpdate.ts";
 import { useAction } from "#client/resultState.ts";
 
-export interface VersionedChangeCommand<TInput, A, E, R, TRuntimeError> {
-	readonly run: (input: TInput) => Effect.Effect<A, E, AtomServices<R>>;
-	readonly runtime: Atom.AtomRuntime<R, TRuntimeError>;
-	readonly update: Pick<ReturnType<typeof deployUpdate>, "block">;
-}
+type DeployUpdate = Pick<ReturnType<typeof deployUpdate>, "block">;
 
 export interface UndoableNotice<TInput, A> {
 	readonly input: TInput;
@@ -31,24 +27,27 @@ export interface UndoableChange<TInput, A, E, TInverse extends readonly unknown[
 }
 
 export function useUndoableChange<TInput, A, E, R, TRuntimeError>(
-	command: VersionedChangeCommand<TInput, A, E, R, TRuntimeError>,
+	command: BoundOperation<TInput, A, E, R, TRuntimeError>,
 	options: {
 		readonly describe: (value: NoInfer<A>, input: NoInfer<TInput>) => string;
 		readonly undoInput: (value: NoInfer<A>, input: NoInfer<TInput>) => NoInfer<TInput>;
+		readonly update: DeployUpdate;
 	},
 ): UndoableChange<TInput, A, E | TRuntimeError, []>;
 export function useUndoableChange<TInput extends { readonly expectedVersion: number }, A extends { readonly version: number }, E, R, TRuntimeError>(
-	command: VersionedChangeCommand<TInput, A, E, R, TRuntimeError>,
-	options: { readonly describe: (value: NoInfer<A>, input: NoInfer<TInput>) => string },
+	command: BoundOperation<TInput, A, E, R, TRuntimeError>,
+	options: { readonly describe: (value: NoInfer<A>, input: NoInfer<TInput>) => string; readonly update: DeployUpdate },
 ): UndoableChange<TInput, A, E | TRuntimeError, [inverse: Omit<TInput, "expectedVersion">]>;
 export function useUndoableChange<TInput, A extends { readonly version: number }, E, R, TRuntimeError>(
-	command: VersionedChangeCommand<TInput, A, E, R, TRuntimeError>,
+	command: BoundOperation<TInput, A, E, R, TRuntimeError>,
 	options: {
 		readonly describe: (value: A, input: TInput) => string;
 		readonly undoInput?: (value: A, input: TInput) => TInput;
+		readonly update: DeployUpdate;
 	},
 ) {
-	const { run, runtime, update } = command;
+	const { run, runtime } = command;
+	const { update } = options;
 	const registry = useContext(RegistryContext);
 	type Entry = UndoableNotice<TInput, A> & { readonly inverse: TInput };
 	interface Removal {
@@ -71,22 +70,28 @@ export function useUndoableChange<TInput, A extends { readonly version: number }
 	);
 	const removeRun = useMemo(() => (request: Removal) => execute(request.input), [execute]);
 	const undoRun = useMemo(() => (entry: Entry) => execute(entry.inverse), [execute]);
-	const removal = useAction(owner.runtime, removeRun, {
-		concurrent: true,
-		onSuccess: (value, { input, inverse, sequence }) => {
-			if (sequence === owner.sequence) {
-				const undoInput = options.undoInput ? options.undoInput(value, input) : { ...input, ...inverse, expectedVersion: value.version };
-				owner.registry.set(owner.notice, Option.some({ input, inverse: undoInput, message: options.describe(value, input), value }));
-			}
+	const removal = useAction(
+		{ run: removeRun, runtime: owner.runtime },
+		{
+			concurrent: true,
+			onSuccess: (value, { input, inverse, sequence }) => {
+				if (sequence === owner.sequence) {
+					const undoInput = options.undoInput ? options.undoInput(value, input) : { ...input, ...inverse, expectedVersion: value.version };
+					owner.registry.set(owner.notice, Option.some({ input, inverse: undoInput, message: options.describe(value, input), value }));
+				}
+			},
 		},
-	});
-	const restoration = useAction(owner.runtime, undoRun, {
-		onSuccess: (_value, entry) => {
-			if (Option.getOrUndefined(owner.registry.get(owner.notice)) === entry) {
-				owner.registry.set(owner.notice, Option.none());
-			}
+	);
+	const restoration = useAction(
+		{ run: undoRun, runtime: owner.runtime },
+		{
+			onSuccess: (_value, entry) => {
+				if (Option.getOrUndefined(owner.registry.get(owner.notice)) === entry) {
+					owner.registry.set(owner.notice, Option.none());
+				}
+			},
 		},
-	});
+	);
 	const notice: Option.Option<UndoableNotice<TInput, A>> = useAtomValue(owner.notice);
 	return {
 		notice,

@@ -17,7 +17,7 @@ function save(state: Model, values: Values) {
 }
 
 export function Editor({ state }: { readonly state: Model }) {
-	const editor = useEditor({ fields: Fields, query: state.query, runtime, save: (values) => save(state, values), values: (row) => row });
+	const editor = useEditor({ run: (values: Values) => save(state, values), runtime }, { fields: Fields, query: state.query, values: (row) => row });
 	const registry = useContext(RegistryContext);
 	return editor.form ? (
 		<Controls
@@ -28,7 +28,7 @@ export function Editor({ state }: { readonly state: Model }) {
 }
 
 export function Create({ state }: { readonly state: Model }) {
-	const current = useCreate({ create: (values) => save(state, values), fields: Fields, initialValues: initial, runtime });
+	const current = useCreate({ run: (values: Values) => save(state, values), runtime }, { fields: Fields, initialValues: initial });
 	return <Controls current={current} />;
 }
 

@@ -16,7 +16,7 @@ export function Action({ client }: { readonly client: Client }) {
 	);
 }
 export function Create({ client }: { readonly client: Client }) {
-	const create = useCreate({ create: client.run, fields: EmptyFields, initialValues: {}, runtime: client.runtime });
+	const create = useCreate({ run: client.run, runtime: client.runtime }, { fields: EmptyFields, initialValues: {} });
 	return (
 		<button disabled={create.saving} onClick={create.save} type="button">
 			Write
@@ -26,7 +26,7 @@ export function Create({ client }: { readonly client: Client }) {
 
 const emptyRow = Atom.make(Effect.succeed(""));
 export function Editor({ client }: { readonly client: Client }) {
-	const editor = useEditor({ fields: EmptyFields, query: emptyRow, runtime: client.runtime, save: client.run, values: () => ({}) });
+	const editor = useEditor({ run: client.run, runtime: client.runtime }, { fields: EmptyFields, query: emptyRow, values: () => ({}) });
 	return (
 		<button disabled={!editor.form || editor.saving} onClick={editor.save} type="button">
 			Write

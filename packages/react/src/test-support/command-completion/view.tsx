@@ -31,24 +31,27 @@ function Commands({ state }: { readonly state: CompletionScreen }) {
 		},
 		[client, state.uninterruptible],
 	);
-	const action = useAction(client.runtime, run, {
-		concurrent: state.concurrent,
-		notices: {
-			onFailure: (error, input) => ({ message: `${callback}: ${input.title} rejected: ${error._tag} / ${currentList}` }),
-			onSuccess: (value, input) => ({ message: `${callback}: ${input.title} -> ${value} / ${currentList}` }),
+	const action = useAction(
+		{ run, runtime: client.runtime },
+		{
+			concurrent: state.concurrent,
+			notices: {
+				onFailure: (error, input) => ({ message: `${callback}: ${input.title} rejected: ${error._tag} / ${currentList}` }),
+				onSuccess: (value, input) => ({ message: `${callback}: ${input.title} -> ${value} / ${currentList}` }),
+			},
+			onFailure: (error, input) => {
+				notices.push(`${callback}: ${input.title} rejected: ${error._tag}`);
+				present(`${callback}: ${input.title} rejected: ${error._tag} / ${currentList}`);
+			},
+			onSuccess: (value, input) => {
+				if (defect) {
+					throw new Error("Presentation failed");
+				}
+				notices.push(`${callback}: ${input.title} -> ${value}`);
+				present(`${callback}: ${input.title} -> ${value} / ${currentList}`);
+			},
 		},
-		onFailure: (error, input) => {
-			notices.push(`${callback}: ${input.title} rejected: ${error._tag}`);
-			present(`${callback}: ${input.title} rejected: ${error._tag} / ${currentList}`);
-		},
-		onSuccess: (value, input) => {
-			if (defect) {
-				throw new Error("Presentation failed");
-			}
-			notices.push(`${callback}: ${input.title} -> ${value}`);
-			present(`${callback}: ${input.title} -> ${value} / ${currentList}`);
-		},
-	});
+	);
 	if (state.suspend !== undefined) {
 		state.attempts.push(callback);
 		throw state.suspend;

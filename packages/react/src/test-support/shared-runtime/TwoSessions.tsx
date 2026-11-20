@@ -7,7 +7,7 @@ import { type Backend, bindPreferences, type Person } from "#test/shared-runtime
 
 function PreferencesScreen({ person, preferences }: { readonly person: Person; readonly preferences: ReturnType<typeof bindPreferences> }) {
 	const self = useQuery(preferences.api.self.query());
-	const save = useAction(preferences.runtime, preferences.api.save.run);
+	const save = useAction(preferences.api.save);
 	const [title, setTitle] = useState("");
 	return (
 		<section aria-label={person}>

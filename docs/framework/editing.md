@@ -1,20 +1,14 @@
 # Editing a record and creating one
 
-`useEditor` (`@shivaedev/react/client/editor.ts`) and `useCreate` (`@shivaedev/react/client/create.ts`) join three existing pieces: a query atom (for example `api.get.query({ id })` from an `@shivaedev/contract` binding), an `@shivaedev/form` form, and a save Effect (`api.save.run(...)`). They add no cache, no mutation atom and no second form model. `@shivaedev/react` depends directly on `@shivaedev/form`; `SessionBoundary` also uses form's draft session context to own persisted drafts.
+`useEditor` (`@shivaedev/react/client/editor.ts`) and `useCreate` (`@shivaedev/react/client/create.ts`) join three existing pieces: a query atom (for example `api.get.query({ id })` from an `@shivaedev/contract` binding), an `@shivaedev/form` form, and a bound command (`api.save`), which carries its runtime and payload schema. They add no cache, no mutation atom and no second form model. `@shivaedev/react` depends directly on `@shivaedev/form`; `SessionBoundary` also uses form's draft session context to own persisted drafts.
 
 ```ts
-const editor = useEditor({
-	query: api.get.query({ id }),
-	fields: InvoiceLineFields,
-	values: (line) => ({ name: line.name, quantity: String(line.quantity) }),
-	save: (values) => api.save.run({ id, ...values }),
-	runtime: InvoiceLinesClient.runtime,
-});
+const editor = useEditor(api.save, { query: api.get.query({ id }), fields: InvoiceLineFields, fixed: { id } });
 if (editor.form === undefined) return editor.query.pending ? <Loading /> : <LoadFailed retry={editor.query.refresh} />;
 return <InvoiceLineForm form={editor.form} save={editor.save} saving={editor.saving} failure={editor.failure} />;
 ```
 
-Inside `InvoiceLineForm`, `useField(form, "name")` from `@shivaedev/form/adapters/react.ts` supplies value, change, blur and message.
+`InvoiceLineFields` holds the quantity as text; without it the fields would be the command's payload fields minus `fixed`. The editor fills the inputs by encoding each row with those fields, and every save sends `{ ...fixed, ...values }`. `fixed` and the fields must cover the payload exactly, or the call does not compile and the error names the key. Inside `InvoiceLineForm`, `useField(form, "name")` from `@shivaedev/form/adapters/react.ts` supplies value, change, blur and message.
 
 ## Behavior
 
@@ -26,14 +20,14 @@ Inside `InvoiceLineForm`, `useField(form, "name")` from `@shivaedev/form/adapter
 - `save()` does nothing while a save is running. Submitting through form's own API (`useSubmit(form).run()` or setting `form.submit`) settles the same way: the editor receives the saved row and a create resets.
 - `Unauthorized` from the query or the save asks the enclosing `SessionBoundary` to re-check the session.
 
-`useCreate({ fields, initialValues, create, runtime })` has the same save state with a permanent `form` and `created: Option<A>`. After success it replaces the form with a fresh one at `initialValues`, carrying over fields changed after the submit was pressed (while its schema decoded or the create ran). The fresh form has no touched or submitted state, so empty required fields do not show messages after a reset.
+`useCreate(api.create, { initialValues })` has the same save state with a permanent `form` and `created: Option<A>`. After success it replaces the form with a fresh one at `initialValues`, carrying over fields changed after the submit was pressed (while its schema decoded or the create ran). The fresh form has no touched or submitted state, so empty required fields do not show messages after a reset.
 
 ## Compared with tRPC, TanStack Query and React Hook Form
 
 | Concern             | tRPC + TanStack Query + RHF                                                    | This stack                                                                  |
 | ------------------- | ------------------------------------------------------------------------------ | --------------------------------------------------------------------------- |
 | Load                | `trpc.invoiceLine.get.useQuery({ id })`                                        | `api.get.query({ id })` passed to `useEditor`                               |
-| Form defaults       | `useForm({ defaultValues })` plus `reset(data)` in an effect once data arrives | `values(row)`; created on first data                                        |
+| Form defaults       | `useForm({ defaultValues })` plus `reset(data)` in an effect once data arrives | the row encoded with the fields; created on first data                      |
 | Refetch while dirty | `reset` overwrites edits unless `keepDirtyValues` is set; whole-form policy    | per-field merge by default                                                  |
 | Save                | `useMutation` + `onSuccess: invalidate` + `reset(saved)`                       | `save: api.save.run(...)`; contract invalidates, editor receives the result |
 | Server field errors | map `error.data` to `setError(field, ...)` by hand                             | typed field rejection attaches automatically                                |

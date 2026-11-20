@@ -5,7 +5,7 @@ import type { connect } from "#test/socket-clock/connect.ts";
 
 type Client = Effect.Success<ReturnType<typeof connect>>;
 export function View({ client }: { readonly client: Client }) {
-	const action = useAction(client.runtime, client.api.save.run);
+	const action = useAction({ ...client.api.save, runtime: client.runtime });
 	const connection = useConnectionStatus(client.connection);
 	const message = Option.match(action.cause, {
 		onNone: () => Option.getOrElse(action.data, () => "Ready"),

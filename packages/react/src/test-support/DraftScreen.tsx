@@ -7,7 +7,7 @@ import { DraftFields, draftRuntime, type ScreenProps, type ViewEditor } from "#t
 
 export function DraftScreen({ held, persistedDraft, query, save }: ScreenProps) {
 	held.registry = useContext(RegistryContext);
-	const editor = useEditor({ fields: DraftFields, persistedDraft, query, runtime: draftRuntime, save, values: (row) => row });
+	const editor = useEditor({ run: save, runtime: draftRuntime }, { fields: DraftFields, persistedDraft, query, values: (row) => row });
 	held.current = editor;
 	return editor.form ? <DraftInputs editor={editor} /> : null;
 }

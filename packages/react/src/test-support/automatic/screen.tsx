@@ -17,7 +17,7 @@ export function Notes({ client }: { readonly client: ReturnType<typeof connect> 
 	const status = useAtomValue(client.api[LiveConnection].status);
 	const [second, showSecond] = useState(true);
 	const [title, setTitle] = useState("");
-	const action = useAction(client.runtime, client.api.rename.run);
+	const action = useAction(client.api.rename);
 	const secondRead = second ? <Read client={client} id={2} /> : null;
 	const connectionLabel = status.connection === "reconnecting" ? "Reconnecting" : status.connection;
 	const toggleLabel = second ? "Hide second" : "Show second";

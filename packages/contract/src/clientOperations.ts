@@ -78,6 +78,7 @@ export function clientOperations(
 			},
 			run: (payload: unknown, options?: RunOptions | Atom.FnContext) =>
 				run(ordinaryClient.use((client) => client(tag, payload, { headers: withSubject(undefined, runSubject(options)) }))),
+			runtime: ordinaryClient.runtime,
 		};
 	}
 
@@ -101,8 +102,10 @@ export function clientOperations(
 			);
 		}
 		return {
+			payload: command.payload,
 			run: (payload: unknown, options?: RunOptions | Atom.FnContext) =>
 				Effect.flatMap(observed, (observer) => run(send(observer, payload, runSubject(options)))),
+			runtime: ordinaryClient.runtime,
 		};
 	}
 
@@ -128,6 +131,7 @@ export function clientOperations(
 							{ bufferSize: 1 },
 						);
 			},
+			runtime: streaming.runtime,
 		};
 	}
 
