@@ -108,3 +108,79 @@ it("server diagnostics preserve quoted literals outside credential and schema co
 	const message = `TypeError: "a public operation" is not a function`;
 	expect(redactText(message, isSensitiveKey)).toBe(message);
 });
+
+it.each([
+	['"password": "hunter2"', '"password": "<redacted>"'],
+	["'password': 'hunter2'", "'password': '<redacted>'"],
+	["'token'='abc'", "'token'='<redacted>'"],
+	['"token"="abc"', '"token"="<redacted>"'],
+	["'token'=abc and more", "'token'=<redacted> and more"],
+	["password=hunter2", "password=<redacted>"],
+	["password: hunter2", "password: <redacted>"],
+	["password: Cannot be empty", "password: <redacted> be empty"],
+	['{"apiKey":"abc"}', '{"apiKey":"<redacted>"}'],
+	['{"apiKey": abc}', '{"apiKey": <redacted>'],
+	['{"apiKey": abc }', '{"apiKey": <redacted> }'],
+	['{"pin":1234,"status":"ready"}', '{"pin":<redacted>,"status":"ready"}'],
+	['"password": hunter2', '"password": <redacted>'],
+	['"password": Swordfish', '"password": <redacted>'],
+	['"password": Swordfish\nnext line', '"password": <redacted>\nnext line'],
+	['"password": hunter2 was rejected', '"password": <redacted> was rejected'],
+	['"password": HUNTER was rejected', '"password": <redacted> was rejected'],
+	['"password": Swordfish, then', '"password": <redacted>, then'],
+	['"password": Swordfish; then', '"password": <redacted>; then'],
+	['password": Swordfish is set', 'password": <redacted> is set'],
+	["'password\": Swordfish is set", "'password\": <redacted> is set"],
+	["_password=abc", "_password=<redacted>"],
+	["--password=abc", "--password=<redacted>"],
+	["1password=abc", "1password=<redacted>"],
+	["https://example.test/path?token=abc&x=1", "https://example.test/path?token=<redacted>&x=<redacted>"],
+	['"x.password" = "abc"', '"x.password" = "<redacted>"'],
+	['"\'token\'": "abc"', '"\'token\'": "<redacted>"'],
+	["'\"token\"': 'abc'", "'\"token\"': '<redacted>'"],
+	["message=\"'token'='abc'\"", "message=\"'token'='<redacted>'\""],
+])("keeps masking the assignment in %s", (input, expected) => {
+	expect(redactText(input, isSensitiveKey)).toBe(expected);
+});
+
+it.each([
+	['"user.password": Cannot encode Redacted', '"user.password": Cannot encode Redacted'],
+	["'user.password': Cannot encode Redacted", "'user.password': Cannot encode Redacted"],
+	['"apiKey" : is missing', '"apiKey" : is missing'],
+	['"x.token": Expected string, got "abc"\n  at ["x"]["token"]', '"x.token": Expected string, got <redacted>\n  at ["x"]["token"]'],
+	[
+		'"user.password": Cannot encode Redacted; token=abc and "apiKey": "def"',
+		'"user.password": Cannot encode Redacted; token=<redacted> and "apiKey": "<redacted>"',
+	],
+	['"user.password": Cannot encode password=hunter2', '"user.password": Cannot encode password=<redacted>'],
+	[
+		'"password": "hunter2"\n"user.password": Cannot encode Redacted\n"token": abc',
+		'"password": "<redacted>"\n"user.password": Cannot encode Redacted\n"token": <redacted>',
+	],
+	['note="\\"password\\": Cannot encode"', 'note="\\"password\\": Cannot encode"'],
+	["'\"user.password\": Cannot encode Redacted'", "'\"user.password\": Cannot encode Redacted'"],
+])("keeps the prose after a quoted sensitive path in %s", (input, expected) => {
+	expect(redactText(input, isSensitiveKey)).toBe(expected);
+});
+
+it("uses the caller's sensitive-name policy for a quoted path followed by prose", () => {
+	expect(redactText('"x.y": Cannot encode Redacted', (key) => key === "x.y", Number.POSITIVE_INFINITY)).toBe('"x.y": Cannot encode Redacted');
+	expect(redactText('"x.y": "abc"', (key) => key === "x.y")).toBe('"x.y": "<redacted>"');
+});
+
+it.each([
+	["one name-shaped run", "a".repeat(200_000)],
+	["one run with separators", "a_".repeat(100_000)],
+	["one dotted run", "a.".repeat(100_000)],
+	["one path of dotted segments", `/${"a.".repeat(100_000)}`],
+	["chained assignments", "a=".repeat(100_000)],
+	["chained sensitive assignments", "token=".repeat(30_000)],
+	["many quoted paths", '"password": Cannot '.repeat(10_000)],
+	["unclosed quoted values", "password='".repeat(20_000)],
+	["whitespace before a missing separator", `password${" ".repeat(200_000)}x`],
+	["many schema expectations on one line", "Expected ".repeat(20_000)],
+])("scans %s in linear time", (_name, input) => {
+	const started = performance.now();
+	redactText(input, isSensitiveKey, Number.POSITIVE_INFINITY);
+	expect(performance.now() - started).toBeLessThan(1000);
+});
