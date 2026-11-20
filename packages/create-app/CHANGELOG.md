@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.47.0 - 2026-11-20
+
+### Added
+
+- generated apps' client modules take an optional `warm` array of bound queries that `SessionApp` keeps subscribed for the session; the notes module lists its notes list.
+
+### Changed
+
+- generated apps start from the last verified session, so a returning person never sees "Checking your session…" and an offline launch shows the app instead of "Could not check your session."; their sign-out wipes the remembered session as soon as it succeeds.
+
 ## 0.46.6 - 2026-11-20
 
 ### Changed
