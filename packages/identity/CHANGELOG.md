@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.35.0 - 2026-11-20
+
+### Added
+
+- `SessionMemory` in `client/SessionMemory.ts` is the port for the last verified session on a device, with `recallSession`, `rememberSession` and `forgetSession`, the one wipe behind sign-out, another user, a signed-out answer and a passed expiry. It keeps the user id, the session id, the permissions and the session's expiry, never a credential. `browserSessionMemory` in `client/adapters/browserSessionMemory.ts` stores it in `localStorage`.
+
 ## 0.34.2 - 2026-11-20
 
 ### Changed
