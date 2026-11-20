@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.9.1 - 2026-11-20
+
+### Fixed
+
+- the `bodyExcerpt` and `message` of a status failure mask secrets in JSON escaped inside the remote's error body, such as `{"error":"{\"access_token\":\"…\"}"}`, which they previously carried in plain text.
+
 ## 0.9.0 - 2026-11-20
 
 ### Added

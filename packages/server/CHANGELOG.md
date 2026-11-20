@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.38.0 - 2026-11-20
+
+### Changed
+
+- `migrationsIn(directory)` finds the `migrations` folder in `directory` through `migrationsFromDirectory` from `@shivaedev/sql/migrationsFromDirectory.ts`, so a module registration and a runner outside the host share one discovery path and one folder convention.
+
+### Breaking
+
+- `appModules` refuses, at compile time, a registration list in which a defined module's operation yields a service that no registration's `services`, `ports` or `requestServices` provide and the host does not provide. The message names the problem as `OperationServicesNotProvided<"<module>", "<operation>", <Service>>` from `@shivaedev/server/providedModules.ts`. A service an application used to provide around the host, or only through `replacements`, moves into a registration's `services` or `ports`.
+
 ## 0.37.0 - 2026-11-20
 
 ### Added

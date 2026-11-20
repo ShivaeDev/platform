@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.43.1 - 2026-11-20
+
+### Changed
+
+- Update `@shivaedev/errors` from 0.13.1 to 0.14.0.
+- Update `@shivaedev/sql` from 0.51.0 to 0.52.0.
+
 ## 0.43.0 - 2026-11-20
 
 ### Added

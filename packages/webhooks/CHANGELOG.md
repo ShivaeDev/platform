@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.12.4 - 2026-11-20
+
+### Changed
+
+- Update `@shivaedev/github` from 0.17.5 to 0.17.6.
+- Update `@shivaedev/http` from 0.9.0 to 0.9.1.
+- Update `@shivaedev/jobs` from 0.43.0 to 0.43.1.
+- Update `@shivaedev/sql` from 0.51.0 to 0.52.0.
+
 ## 0.12.3 - 2026-11-20
 
 ### Changed

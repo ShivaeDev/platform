@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.52.0 - 2026-11-20
+
+### Breaking
+
+- `migrationsFromDirectory(directory)` reads the `migrations` folder in `directory` instead of `src/server/migrations` under an application root, so it works from any registration's own directory. Pass the directory that holds the folder: replace `migrationsFromDirectory(process.cwd())` with `migrationsFromDirectory(import.meta.dirname)` in a file in `src/server/`, or with `migrationsFromDirectory(path.join(root, "src/server"))`. A directory without a `migrations` folder still fails the run with `MigrationError` (`kind: "Failed"`).
+- `migration.ts` exports `MIGRATIONS_FOLDER` (`"migrations"`), the folder name discovery appends, in place of `MIGRATIONS_DIRECTORY` (`"src/server/migrations"`). Replace `MIGRATIONS_DIRECTORY` with `MIGRATIONS_FOLDER` joined to the directory that holds the folder, such as `` `src/server/${MIGRATIONS_FOLDER}` ``.
+
 ## 0.51.0 - 2026-11-20
 
 ### Added
