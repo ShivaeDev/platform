@@ -9,6 +9,8 @@ import type { StandardSchemaV1 } from "#standardSchema.ts";
 
 export interface Finding {
 	readonly count?: number | undefined;
+	// An evidence-only finding is never reported: it keeps a module in adapters/ for something the rule accepts elsewhere.
+	readonly evidenceOnly?: true | undefined;
 	readonly file: string;
 	readonly fix?: { readonly end: number; readonly replacement: string; readonly start: number } | undefined;
 	readonly line?: number | undefined;
@@ -35,6 +37,7 @@ export interface TypeScriptProgram {
 }
 
 export interface RuleInputs {
+	readonly collectsEvidence?: boolean;
 	readonly configFile?: string;
 	readonly entries?: readonly string[];
 	readonly evidence?: ReadonlySet<string>;

@@ -1,10 +1,10 @@
 import { Effect } from "effect";
 import ts from "typescript";
-import { inTestSupport } from "#naming/unsafeFolders.ts";
-import type { Finding, SourceFile, TypeScriptProgram } from "#rule.ts";
+import type { Finding, RuleInputs, SourceFile, TypeScriptProgram } from "#rule.ts";
 import { parse } from "#rules/parse.ts";
 import { SQL_ROW_CAST } from "#rules/suppressions/hiddenCast.ts";
 import { readonlyWrite, writeCandidate } from "#rules/suppressions/readonlyWrite.ts";
+import { skipsUnsafeFolder } from "#rules/unsafeFindings.ts";
 
 function typedNodes(source: ts.SourceFile): readonly ts.Node[] {
 	const nodes: ts.Node[] = [];
@@ -34,7 +34,7 @@ function typedCast(node: ts.Node, checker: ts.TypeChecker): string | undefined {
 
 function candidate(file: SourceFile): boolean {
 	const source = parse(file);
-	return !inTestSupport(file.path) && source !== undefined && typedNodes(source).length > 0;
+	return source !== undefined && typedNodes(source).length > 0;
 }
 
 function typedCasts(sources: readonly SourceFile[], { checker, sourceFile }: TypeScriptProgram): readonly Finding[] {
@@ -51,6 +51,9 @@ function typedCasts(sources: readonly SourceFile[], { checker, sourceFile }: Typ
 	});
 }
 
-export function typedCastCheck() {
-	return Effect.withSpan(Effect.succeed({ checks: candidate, findings: typedCasts }), "Suppressions.typedCastCheck");
+export function typedCastCheck(inputs: RuleInputs) {
+	return Effect.withSpan(
+		Effect.succeed({ checks: (file: SourceFile) => !skipsUnsafeFolder(inputs, file.path) && candidate(file), findings: typedCasts }),
+		"Suppressions.typedCastCheck",
+	);
 }

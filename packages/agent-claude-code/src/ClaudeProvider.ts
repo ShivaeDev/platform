@@ -1,6 +1,6 @@
 import type { getSubagentMessages, listSubagents, Options, Query, SDKMessage, SDKUserMessage } from "@anthropic-ai/claude-agent-sdk";
 import { Context, Layer } from "effect";
-import { loadClaudeSdk } from "#loadClaudeSdk.ts";
+import { loadClaudeSdk } from "#adapters/loadClaudeSdk.ts";
 export class ClaudeProvider extends Context.Service<
 	ClaudeProvider,
 	{

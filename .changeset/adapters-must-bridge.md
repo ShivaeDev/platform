@@ -64,7 +64,6 @@
 - `@shivaedev/admin`: import from `@shivaedev/admin/client/timestampText.ts` instead of `@shivaedev/admin/client/adapters/timestampText.ts`, which moved out of `adapters/`.
 - `@shivaedev/agent-claude-code`: import from `@shivaedev/agent-claude-code/ClaudeProvider.ts` instead of `@shivaedev/agent-claude-code/adapters/ClaudeProvider.ts`, which moved out of `adapters/`.
 - `@shivaedev/agent-claude-code`: import from `@shivaedev/agent-claude-code/blocks.ts` instead of `@shivaedev/agent-claude-code/adapters/blocks.ts`, which moved out of `adapters/`.
-- `@shivaedev/agent-claude-code`: import from `@shivaedev/agent-claude-code/loadClaudeSdk.ts` instead of `@shivaedev/agent-claude-code/adapters/loadClaudeSdk.ts`, which moved out of `adapters/`.
 - `@shivaedev/agent-claude-code`: import from `@shivaedev/agent-claude-code/mirrorKeys.ts` instead of `@shivaedev/agent-claude-code/adapters/mirrorKeys.ts`, which moved out of `adapters/`.
 - `@shivaedev/agent-claude-code`: import from `@shivaedev/agent-claude-code/openSessionMapping.ts` instead of `@shivaedev/agent-claude-code/adapters/openSessionMapping.ts`, which moved out of `adapters/`.
 - `@shivaedev/agent-claude-code`: import from `@shivaedev/agent-claude-code/openSubsessions.ts` instead of `@shivaedev/agent-claude-code/adapters/openSubsessions.ts`, which moved out of `adapters/`.
@@ -191,14 +190,12 @@
 - `@shivaedev/identity`: import from `@shivaedev/identity/server/better-auth/userDataExport.ts` instead of `@shivaedev/identity/server/better-auth/adapters/userDataExport.ts`, which moved out of `adapters/`.
 - `@shivaedev/identity`: import from `@shivaedev/identity/server/better-auth/userDirectory.ts` instead of `@shivaedev/identity/server/better-auth/adapters/userDirectory.ts`, which moved out of `adapters/`.
 - `@shivaedev/jobs`: import from `@shivaedev/jobs/server/clientErrorSubscription.ts` instead of `@shivaedev/jobs/server/adapters/clientErrorSubscription.ts`, which moved out of `adapters/`.
-- `@shivaedev/jobs`: import from `@shivaedev/jobs/server/ensureQueue.ts` instead of `@shivaedev/jobs/server/adapters/ensureQueue.ts`, which moved out of `adapters/`.
 - `@shivaedev/jobs`: import from `@shivaedev/jobs/server/inspectionLayer.ts` instead of `@shivaedev/jobs/server/adapters/inspectionLayer.ts`, which moved out of `adapters/`.
 - `@shivaedev/jobs`: import from `@shivaedev/jobs/server/inspectionPlan.ts` instead of `@shivaedev/jobs/server/adapters/inspectionPlan.ts`, which moved out of `adapters/`.
 - `@shivaedev/jobs`: import from `@shivaedev/jobs/server/localInspectionChanges.ts` instead of `@shivaedev/jobs/server/adapters/localInspectionChanges.ts`, which moved out of `adapters/`.
 - `@shivaedev/jobs`: import from `@shivaedev/jobs/server/operationsLayer.ts` instead of `@shivaedev/jobs/server/adapters/operationsLayer.ts`, which moved out of `adapters/`.
 - `@shivaedev/jobs`: import from `@shivaedev/jobs/server/pgBossSchemaStatus.ts` instead of `@shivaedev/jobs/server/adapters/pgBossSchemaStatus.ts`, which moved out of `adapters/`.
 - `@shivaedev/jobs`: import from `@shivaedev/jobs/server/queueSignal.ts` instead of `@shivaedev/jobs/server/adapters/queueSignal.ts`, which moved out of `adapters/`.
-- `@shivaedev/jobs`: import from `@shivaedev/jobs/server/retryWake.ts` instead of `@shivaedev/jobs/server/adapters/retryWake.ts`, which moved out of `adapters/`.
 - `@shivaedev/local-postgres`: import from `@shivaedev/local-postgres/server/clientConnection.ts` instead of `@shivaedev/local-postgres/server/adapters/clientConnection.ts`, which moved out of `adapters/`.
 - `@shivaedev/local-postgres`: import from `@shivaedev/local-postgres/server/docker.ts` instead of `@shivaedev/local-postgres/server/adapters/docker.ts`, which moved out of `adapters/`.
 - `@shivaedev/local-postgres`: import from `@shivaedev/local-postgres/server/ensureConnections.ts` instead of `@shivaedev/local-postgres/server/adapters/ensureConnections.ts`, which moved out of `adapters/`.
@@ -355,7 +352,6 @@
 - `@shivaedev/test-kits`: import from `@shivaedev/test-kits/github/webhookDelivery.ts` instead of `@shivaedev/test-kits/github/adapters/webhookDelivery.ts`, which moved out of `adapters/`.
 - `@shivaedev/test-kits`: import from `@shivaedev/test-kits/jobs/queueSignal.ts` instead of `@shivaedev/test-kits/jobs/adapters/queueSignal.ts`, which moved out of `adapters/`.
 - `@shivaedev/test-kits`: import from `@shivaedev/test-kits/jobs/quotedSchema.ts` instead of `@shivaedev/test-kits/jobs/adapters/quotedSchema.ts`, which moved out of `adapters/`.
-- `@shivaedev/test-kits`: import from `@shivaedev/test-kits/jobs/testingEngine.ts` instead of `@shivaedev/test-kits/jobs/adapters/testingEngine.ts`, which moved out of `adapters/`.
 - `@shivaedev/test-kits`: import from `@shivaedev/test-kits/jobs/testingSignal.ts` instead of `@shivaedev/test-kits/jobs/adapters/testingSignal.ts`, which moved out of `adapters/`.
 - `@shivaedev/test-sql`: import from `@shivaedev/test-sql/server/postgresTestContext.ts` instead of `@shivaedev/test-sql/server/adapters/postgresTestContext.ts`, which moved out of `adapters/`.
 - `@shivaedev/test-story`: import from `@shivaedev/test-story/server/assertOutcomes.ts` instead of `@shivaedev/test-story/server/adapters/assertOutcomes.ts`, which moved out of `adapters/`.
@@ -366,7 +362,6 @@
 - `@shivaedev/test-story`: import from `@shivaedev/test-story/server/screenLoading.ts` instead of `@shivaedev/test-story/server/adapters/screenLoading.ts`, which moved out of `adapters/`.
 - `@shivaedev/test-story`: import from `@shivaedev/test-story/server/screenMutations.ts` instead of `@shivaedev/test-story/server/adapters/screenMutations.ts`, which moved out of `adapters/`.
 - `@shivaedev/test-story`: import from `@shivaedev/test-story/server/screenNavigation.ts` instead of `@shivaedev/test-story/server/adapters/screenNavigation.ts`, which moved out of `adapters/`.
-- `@shivaedev/test-story`: import from `@shivaedev/test-story/server/seedCookies.ts` instead of `@shivaedev/test-story/server/adapters/seedCookies.ts`, which moved out of `adapters/`.
 - `@shivaedev/vitest-rerun`: import from `@shivaedev/vitest-rerun/mergeSnapshotSummary.ts` instead of `@shivaedev/vitest-rerun/adapters/mergeSnapshotSummary.ts`, which moved out of `adapters/`.
 - `@shivaedev/vitest-rerun`: import from `@shivaedev/vitest-rerun/tasks.ts` instead of `@shivaedev/vitest-rerun/adapters/tasks.ts`, which moved out of `adapters/`.
 - `@shivaedev/vitest-rerun`: `@shivaedev/vitest-rerun/adapters/vitestRuntime.ts` is removed; `vitestRunnerLayer` from `@shivaedev/vitest-rerun/vitest-runner/layer.ts` provides the runtime it held.

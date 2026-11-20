@@ -113,7 +113,7 @@ export const runRules = Effect.fn("Engine.runRules")(function* (
 		inputs,
 		yield* runTiers(
 			remaining.filter((rule) => !readsEvidence(rule)).flatMap((rule) => runsOf(rule, skippedHalves)),
-			inputs,
+			{ ...inputs, collectsEvidence: remaining.some(readsEvidence) },
 		),
 	);
 	const seen = new Set<string>();

@@ -41,7 +41,7 @@ ruleStory.it(
 );
 
 ruleStory.it(
-	"effect/boundary accepts plain-value library calls and bridges to workspace code or dynamic imports in core code",
+	"effect/boundary accepts plain-value library calls and bridges to a Promise typed by the repository's own interface, to workspace code or to dynamic imports in core code",
 	[
 		repositoryHas(
 			{ content: "export const later = (id: string) => Promise.resolve(id);", path: "src/adapters/later.ts" },
@@ -50,9 +50,12 @@ ruleStory.it(
 					'import { Effect } from "effect";',
 					'import { label } from "remote-client";',
 					'import { later } from "./adapters/later.ts";',
+					"interface Queue { create(name: string): Promise<void> }",
 					"export const title = (id: string) => Effect.succeed(label(id));",
+					'export const create = (queue: Queue) => Effect.tryPromise(() => queue.create("jobs"));',
 					"export const wait = (id: string) => Effect.promise(() => later(id));",
 					'export const loaded = Effect.promise(() => import("remote-client"));',
+					'export const own = Effect.promise(() => import("./adapters/later.ts"));',
 				].join("\n"),
 				path: "src/work.ts",
 			},

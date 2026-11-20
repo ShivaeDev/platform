@@ -74,7 +74,16 @@ function located(diagnostic: Diagnostic): string {
 }
 
 // What the ambient-runtime plugin reports in adapters/ only once its folder exemption is lifted is evidence that a module belongs there; the unconditional bans fire in both passes and cancel out.
-const adapterEvidence = Effect.fn("Biome.adapterEvidence")(function* ({ exceptions = [], nonEffectFolders, sources, root }: RuleInputs) {
+const adapterEvidence = Effect.fn("Biome.adapterEvidence")(function* ({
+	collectsEvidence,
+	exceptions = [],
+	nonEffectFolders,
+	sources,
+	root,
+}: RuleInputs) {
+	if (collectsEvidence !== true) {
+		return [];
+	}
 	const adapters = sources.map((source) => source.path).filter((path) => inAdapters(path) && !inTestSupport(path) && PLUGGED.test(path));
 	if (adapters.length === 0) {
 		return [];

@@ -3,8 +3,8 @@ import type { ClientUpdateOptions, ClientUpdateRequest, ClientUpdateResult, PgBo
 import type { EngineClient } from "@shivaedev/jobs/server/engineClient.ts";
 import type { EnqueueOptions } from "@shivaedev/jobs/server/enqueueOptions.ts";
 import type { WorkerJob } from "@shivaedev/jobs/server/job.ts";
+import { testingEngine } from "#jobs/adapters/testingEngine.ts";
 import { testingExpirations } from "#jobs/adapters/testingExpirations.ts";
-import { testingEngine } from "#jobs/testingEngine.ts";
 import type { TestingBatch, TestingWork } from "#jobs/testingIdle.ts";
 
 export interface TestingControls {

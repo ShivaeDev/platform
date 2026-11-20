@@ -32,12 +32,4 @@ describe("contextCaptureCheck.checks", () => {
 			expect(checks("src/run.ts", text)).toBe(false);
 		});
 	}
-
-	it("type-checks a runtime bridge in adapters/, whose finding is evidence that it belongs there", () => {
-		expect(checks("src/adapters/run.ts", `${EFFECT}Effect.runPromiseWith(context)(effect);`)).toBe(true);
-	});
-
-	it("leaves out a kit in test-support/", () => {
-		expect(checks("src/test-support/run.ts", `${EFFECT}Effect.runPromiseWith(context)(effect);`)).toBe(false);
-	});
 });

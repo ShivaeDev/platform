@@ -2,20 +2,19 @@ import { join } from "node:path";
 import { Effect } from "effect";
 import { isPackageRootConfig } from "#imports/isTooling.ts";
 import { packageOf, type WorkspacePackage, workspacePackages } from "#imports/workspace.ts";
-import { inTestSupport } from "#naming/unsafeFolders.ts";
 import { defineRule, type Finding, type RuleInputs, type SourceFile } from "#rule.ts";
 import { boundaryFindings } from "#rules/effect/boundaryFindings.ts";
 import { moduleBinder } from "#rules/effect/boundaryReference.ts";
 import { workspaceProgram } from "#rules/effect/workspaceProgram.ts";
 import { packageFindings } from "#rules/packageFindings.ts";
 import { parses } from "#rules/parse.ts";
-import { unsafeFindings } from "#rules/unsafeFindings.ts";
+import { skipsUnsafeFolder, unsafeFindings } from "#rules/unsafeFindings.ts";
 
 function groupsOf(inputs: RuleInputs, packages: readonly WorkspacePackage[]): readonly (readonly SourceFile[])[] {
 	const groups = new Map<string, SourceFile[]>();
 	for (const source of inputs.sources) {
 		if (
-			inTestSupport(source.path)
+			skipsUnsafeFolder(inputs, source.path)
 			|| !/\.[cm]?[jt]sx?$/u.test(source.path)
 			|| isPackageRootConfig(packageOf(packages, source.path)?.directory ?? ".", source.path)
 		) {

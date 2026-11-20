@@ -80,10 +80,13 @@ export const plainAdapters: readonly SeedFile[] = [
 export const BRIDGES: Readonly<Record<string, string>> = {
 	"src/adapters/capture.ts":
 		'import { Context, Effect } from "effect";\n\nexport function provided<A>(effect: Effect.Effect<A, never, never>, context: Context.Context<never>) {\n\treturn Effect.provideContext(effect, context);\n}\n',
+	"src/adapters/createQueue.ts":
+		'import { Effect } from "effect";\n\nexport interface Queue {\n\tcreate(name: string): Promise<void>;\n}\n\nexport function createQueue(queue: Queue, name: string) {\n\treturn Effect.tryPromise(() => queue.create(name));\n}\n',
 	"src/adapters/digest.ts":
 		'import { createHash } from "node:crypto";\n\nexport function digest(text: string): string {\n\treturn createHash("sha256").update(text).digest("hex");\n}\n',
 	"src/adapters/draft.ts": 'export function draft(): string | null {\n\treturn localStorage.getItem("draft");\n}\n',
 	"src/adapters/later.ts": "export function later(run: () => void): void {\n\tsetTimeout(run, 10);\n}\n",
+	"src/adapters/loadRemote.ts": 'import { Effect } from "effect";\n\nexport const loadRemote = Effect.promise(() => import("remote"));\n',
 	"src/adapters/lookup.ts":
 		'import { Effect } from "effect";\nimport type { Client } from "remote";\n\nexport function lookup(client: Client, id: string) {\n\treturn Effect.tryPromise(() => client.load(id));\n}\n',
 	"src/adapters/parseDate.ts":

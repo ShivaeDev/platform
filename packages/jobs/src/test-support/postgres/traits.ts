@@ -1,7 +1,7 @@
 import { Effect, Redacted, type Schema } from "effect";
 import type { JobInsert } from "pg-boss";
+import { testingEngine } from "@shivaedev/test-kits/jobs/adapters/testingEngine.ts";
 import type { PgBossTesting } from "@shivaedev/test-kits/jobs/testing.ts";
-import { testingEngine } from "@shivaedev/test-kits/jobs/testingEngine.ts";
 import { disconnectProxy } from "@shivaedev/test-sql/server/disconnectProxy.ts";
 import type { QueueDefinition } from "#server/definition.ts";
 import { serverTlsAbsent } from "#test/postgres/connections.ts";

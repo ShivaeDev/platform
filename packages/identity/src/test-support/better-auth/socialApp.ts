@@ -1,5 +1,5 @@
 import { signedInUser } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
-import { seedCookies } from "@shivaedev/test-story/server/seedCookies.ts";
+import { seedCookies } from "@shivaedev/test-story/server/adapters/seedCookies.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { socialEngine } from "#test/better-auth/socialEngine.ts";
 import { socialVerbs } from "#test/better-auth/socialVerbs.ts";

@@ -7,7 +7,7 @@ import { postgresLayer } from "@shivaedev/sql/postgresLayer.ts";
 import { AppAccess } from "#AppAccess.ts";
 import { Owner } from "#roles/Owner.ts";
 import { User } from "#roles/User.ts";
-import { signUpEmail } from "#server/admin/signUpEmail.ts";
+import { signUpEmail } from "#server/admin/adapters/signUpEmail.ts";
 import { authOptions } from "#server/authOptions.ts";
 
 export const createAdmin = Effect.fn("App.createAdmin")(

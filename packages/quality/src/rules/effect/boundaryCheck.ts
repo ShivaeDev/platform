@@ -2,11 +2,11 @@ import { Effect } from "effect";
 import ts from "typescript";
 import { isPackageRootConfig } from "#imports/isTooling.ts";
 import { packageOf, workspacePackages } from "#imports/workspace.ts";
-import { inTestSupport } from "#naming/unsafeFolders.ts";
 import type { Finding, RuleInputs, SourceFile, TypeScriptProgram } from "#rule.ts";
 import { boundaryGuidance } from "#rules/effect/boundaryFindings.ts";
 import { promiseCall } from "#rules/effect/promiseCall.ts";
 import { parses } from "#rules/parse.ts";
+import { skipsUnsafeFolder } from "#rules/unsafeFindings.ts";
 
 // TypeScript 6 fails with a Debug Failure when it resolves a story kit's it call against installed declarations, so tests stay with the syntax half; a failure elsewhere names its file.
 const TEST = /\.(?:test|spec)\.[cm]?[jt]sx?$/u;
@@ -16,7 +16,7 @@ export const boundaryCheck = Effect.fn("Boundary.boundaryCheck")(function* (inpu
 	const workspace = new Set(packages.map((owner) => owner.name));
 	return {
 		checks: (file: SourceFile) =>
-			!(inTestSupport(file.path) || TEST.test(file.path))
+			!(skipsUnsafeFolder(inputs, file.path) || TEST.test(file.path))
 			&& /\.[cm]?[jt]sx?$/u.test(file.path)
 			&& !isPackageRootConfig(packageOf(packages, file.path)?.directory ?? ".", file.path)
 			&& parses(file),

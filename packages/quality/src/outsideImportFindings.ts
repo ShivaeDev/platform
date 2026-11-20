@@ -8,9 +8,9 @@ import { isPackageRootConfig } from "#imports/isTooling.ts";
 import type { PnpmWorkspaceFailure } from "#imports/pnpmWorkspacePatterns.ts";
 import { packageOf } from "#imports/workspace.ts";
 import type { ManifestReadFailure } from "#manifestInventory.ts";
-import { inTestSupport } from "#naming/unsafeFolders.ts";
 import type { Finding, RuleInputs } from "#rule.ts";
 import { entryModules } from "#rules/effect/boundaryReference.ts";
+import { skipsUnsafeFolder } from "#rules/unsafeFindings.ts";
 
 // Path functions compute strings and touch no file system or process state, so they need no adapter.
 const PURE_BUILTINS = new Set(["node:path", "node:path/posix", "node:path/win32"]);
@@ -29,7 +29,7 @@ export const outsideImportFindings = Effect.fn("Imports.outsideImportFindings")(
 		&& !PURE_BUILTINS.has(edge.to.package)
 		&& edge.kind === "import"
 		&& !edge.type
-		&& !inTestSupport(edge.from)
+		&& !skipsUnsafeFolder(inputs, edge.from)
 		&& !isPackageRootConfig(packageOf(graph.packages, edge.from)?.directory ?? ".", edge.from)
 			? [{ ...edge, name: edge.to.package }]
 			: [],

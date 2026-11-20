@@ -38,20 +38,30 @@ function callbackOf(node: ts.CallExpression): ts.Node | undefined {
 	return argument !== undefined && ts.isObjectLiteralExpression(argument) ? serviceProperty(argument, "try") : argument;
 }
 
+function ownSpecifier(specifier: string, workspace: ReadonlySet<string>): boolean {
+	if (/^[.#/]/u.test(specifier)) {
+		return true;
+	}
+	const name = packageNameOf(specifier);
+	return name === "effect" || name.startsWith("@effect/") || name.startsWith("@shivaedev/") || workspace.has(name);
+}
+
+function ownImport(callback: ts.Node, workspace: ReadonlySet<string>): boolean {
+	const body = ts.isArrowFunction(callback) && ts.isExpression(callback.body) ? callback.body : undefined;
+	const [specifier] = body !== undefined && ts.isCallExpression(body) && body.expression.kind === ts.SyntaxKind.ImportKeyword ? body.arguments : [];
+	return specifier !== undefined && ts.isStringLiteralLike(specifier) && ownSpecifier(specifier.text, workspace);
+}
+
 function outsideLibrary(checker: ts.TypeChecker, workspace: ReadonlySet<string>) {
 	return (identifier: ts.Identifier): string | undefined => {
 		const specifier = (checker.getSymbolAtLocation(identifier)?.declarations ?? []).map(moduleOf).find((found) => found !== undefined);
-		if (specifier === undefined || /^[.#/]/u.test(specifier)) {
-			return undefined;
-		}
-		const name = packageNameOf(specifier);
-		return name === "effect" || name.startsWith("@effect/") || name.startsWith("@shivaedev/") || name.startsWith("node:") || workspace.has(name)
-			? undefined
-			: specifier;
+		return specifier === undefined || specifier.startsWith("node:") || ownSpecifier(specifier, workspace) ? undefined : specifier;
 	};
 }
 
-// The syntax half sees a library's Promise only through the bridge that consumes it, from the import its callback calls.
+export const UNNAMED_BRIDGE = "a Promise bridge";
+
+// Every Effect.promise or Effect.tryPromise turns a Promise into an Effect, whatever produced it. Only a bridge whose callback calls an imported library is named and reported; the others are adapters/ evidence, because a client typed by the repository's own interface or a dynamic import is accepted in core code. A dynamic import of the repository's own module or Effect only defers its evaluation and is no bridge.
 export function promiseBridge(checker: ts.TypeChecker, workspace: ReadonlySet<string>) {
 	const library = outsideLibrary(checker, workspace);
 	function bridged(callback: ts.Node): string | undefined {
@@ -71,8 +81,11 @@ export function promiseBridge(checker: ts.TypeChecker, workspace: ReadonlySet<st
 			return undefined;
 		}
 		const callback = callbackOf(node);
+		if (callback !== undefined && ownImport(callback, workspace)) {
+			return undefined;
+		}
 		const found = callback === undefined ? undefined : bridged(callback);
-		return found === undefined ? undefined : `Promise bridge to the library ${found}`;
+		return found === undefined ? UNNAMED_BRIDGE : `Promise bridge to the library ${found}`;
 	};
 }
 
