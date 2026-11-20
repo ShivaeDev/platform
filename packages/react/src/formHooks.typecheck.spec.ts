@@ -47,6 +47,6 @@ expectTypeOf<{
 	save: typeof saveStale;
 	values: (record: Row) => { title: string };
 }>().not.toExtend<EditorConfig<Fields, Row, never, StaleRejected, never, never>>();
-expectTypeOf<{ create: typeof saveConflict; fields: typeof Title; initialValues: { title: string }; runtime: typeof runtime }>().not.toExtend<
+expectTypeOf<{ create: typeof saveConflict; fields: typeof Title; initialValues: { title: string }; runtime: typeof runtime }>().toExtend<
 	CreateConfig<Fields, never, Conflict, never, never>
 >();

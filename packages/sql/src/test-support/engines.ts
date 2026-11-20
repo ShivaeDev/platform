@@ -1,4 +1,3 @@
-import * as PgClient from "@effect/sql-pg/PgClient";
 import * as SqliteClient from "@effect/sql-sqlite-node/SqliteClient";
 import { Context, Effect, Layer } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
@@ -16,18 +15,16 @@ export const onPostgres = {
 	runIf: configured,
 } as const;
 
-const postgresClients = Layer.effectContext(
-	Effect.map(Layer.build(postgresLayer), (context) =>
-		Context.make(SqlClient.SqlClient, Context.get(context, SqlClient.SqlClient)).pipe(
-			Context.add(PgClient.PgClient, Context.get(context, PgClient.PgClient)),
-		),
-	),
-);
+// Kits shared between databases expose only the generic SQL client, so a story written once reaches neither database's driver.
+function sqlClientOf<E>(layer: Layer.Layer<SqlClient.SqlClient, E>) {
+	return Layer.effectContext(
+		Effect.map(Layer.build(layer), (context) => Context.make(SqlClient.SqlClient, Context.get(context, SqlClient.SqlClient))),
+	);
+}
 
-// Kits shared with SQLite expose only the SQL clients, so a story written once cannot reach the PostgreSQL pool.
-export const onPostgresClients = { ...onPostgres, layer: Layer.merge(postgresClients, perStory) } as const;
+export const onPostgresClients = { ...onPostgres, layer: Layer.merge(sqlClientOf(postgresLayer), perStory) } as const;
 
-const sqliteLayer = Layer.merge(SqliteClient.layer({ filename: ":memory:" }), perStory);
+const sqliteLayer = Layer.merge(sqlClientOf(SqliteClient.layer({ filename: ":memory:" })), perStory);
 
 export const onSqlite = {
 	around: <A, E, R>(effect: Effect.Effect<A, E, R>) => Effect.provide(effect, Layer.fresh(sqliteLayer)),

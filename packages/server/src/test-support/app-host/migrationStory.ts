@@ -19,7 +19,6 @@ export interface MigrationState {
 	booted?: BootedHost;
 	gate?: Effect.Success<ReturnType<typeof disconnectProxy>>;
 	hostUrl: Redacted.Redacted;
-	interruption?: Fiber.Fiber<unknown>;
 	readonly lifecycle: string[];
 	readonly migrations: { readonly components: SchemaComponent[]; readonly loader: ReturnType<typeof migrationLoader>; readonly table: string };
 	step: string;
@@ -123,13 +122,6 @@ export const migrationHost = storyKit({
 				state.step = yield* state.booted.next;
 			});
 		},
-		interruptionProgress: () =>
-			Effect.sync(() => {
-				if (state.interruption === undefined) {
-					return "not interrupted";
-				}
-				return state.interruption.pollUnsafe() === undefined ? "waiting for the pool to disconnect" : "finished";
-			}),
 		migrationLog: (message: string) =>
 			Effect.sync(() => {
 				const entry = bootedOf(state)
@@ -142,15 +134,6 @@ export const migrationHost = storyKit({
 			Effect.sync(() =>
 				state.gate === undefined ? "no gate between the host and PostgreSQL" : countWords(state.gate.openClients(), "open connection"),
 			),
-		peerAcknowledgesDisconnects: () => {
-			story.tell("PostgreSQL's disconnect acknowledgements reach the host");
-			return Effect.gen(function* () {
-				state.gate?.release();
-				if (state.interruption !== undefined) {
-					yield* Fiber.await(state.interruption);
-				}
-			});
-		},
 		pingHost: () => answered(Effect.suspend(() => bootedOf(state).ping)),
 		pollBudgetExpires: () => {
 			story.tell("poll intervals pass until the wait budget expires");
@@ -168,6 +151,10 @@ export const migrationHost = storyKit({
 				state.step = yield* bootedOf(state).next;
 			});
 		},
+		postgresEndsEveryBackend: () => {
+			story.tell("PostgreSQL ends every backend of the host while the gate still holds its disconnect acknowledgements");
+			return Effect.promise(() => state.gate?.allHeld ?? Promise.resolve()).pipe(Effect.timeout("20 seconds"));
+		},
 		startupFailure: () =>
 			Effect.flatMap(
 				Effect.sync(() => bootedOf(state)),
@@ -175,12 +162,7 @@ export const migrationHost = storyKit({
 			),
 		theHostIsInterrupted: () => {
 			story.tell("the waiting host is interrupted while PostgreSQL holds its disconnect acknowledgements");
-			return Effect.gen(function* () {
-				state.interruption = yield* Fiber.interrupt(bootedOf(state).fiber).pipe(Effect.forkScoped);
-				if (state.gate !== undefined) {
-					yield* Effect.promise(() => state.gate?.disconnecting ?? Promise.resolve());
-				}
-			});
+			return Effect.suspend(() => Fiber.interrupt(bootedOf(state).fiber));
 		},
 		timePasses: (duration: Duration.Input) => {
 			story.tell(`${Duration.format(Duration.fromInputUnsafe(duration))} pass`);

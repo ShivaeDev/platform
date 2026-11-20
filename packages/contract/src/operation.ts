@@ -5,9 +5,8 @@ import { type CommandDeclaration, type Loose, operation, type QueryDeclaration, 
 import type { QueryServerReads } from "#QueryServerReads.ts";
 import { type QueryReadPolicy, signedIn, type Viewer } from "#readPolicy.ts";
 import type { Reject, RejectedBy, RejectionSpecs, Rejections, RejectionUnion } from "#rejection.ts";
-import type { ClassRejections, Pending, RunEffect, SpecsOf, SuccessSchema } from "#runProof.ts";
-import type { LooseCommand, LooseQuery, RunCommandDeclaration, RunQueryDeclaration, ServedCommand, ServedQueryOf } from "#servedOperation.ts";
-import { runOf, withAutomatic } from "#servedOperation.ts";
+import type { LooseCommand, LooseQuery, RunCommandDeclaration, RunQueryDeclaration, ServedCommandOf, ServedQueryOf } from "#servedOperation.ts";
+import { invalidatesOf, runOf, withAutomatic } from "#servedOperation.ts";
 
 export type PayloadSchema<TPayload extends Schema.Top | Schema.Struct.Fields> = TPayload extends Schema.Struct.Fields
 	? Schema.Struct<TPayload>
@@ -90,18 +89,16 @@ export function query<
 export function query<
 	const TName extends string,
 	TYielded extends Effect.Effect<unknown, unknown, unknown> = never,
-	TReturn = Pending,
+	TReturn = unknown,
 	TPayload extends Schema.Top | Schema.Struct.Fields = Schema.Void,
-	TSuccess extends Schema.Top | undefined = undefined,
-	const TSpecs extends ClassRejections | undefined = undefined,
 	TPolicyError = never,
 	TPolicyServices = never,
 	TReads extends Effect.Effect<readonly Key[], unknown, unknown> = never,
 	const TCollections extends readonly { readonly name: string }[] | undefined = undefined,
 >(
 	name: TName,
-	declaration: RunQueryDeclaration<TName, TPayload, TYielded, TReturn, TSuccess, TSpecs, TPolicyError, TPolicyServices, TReads, TCollections>,
-): NoInfer<ServedQueryOf<TName, TPayload, TYielded, TReturn, TSuccess, TSpecs, TPolicyError, TPolicyServices, TReads>>;
+	declaration: RunQueryDeclaration<TName, TPayload, TYielded, TReturn, TPolicyError, TPolicyServices, TReads, TCollections>,
+): NoInfer<ServedQueryOf<TName, TPayload, TYielded, TReturn, TPolicyError, TPolicyServices, TReads>>;
 export function query(name: string, declaration: LooseQuery): QueryShape {
 	const collections: readonly Key[] = declaration.readsCollections?.map((collection) => ({ _tag: "List", collection: collection.name })) ?? [];
 	return {
@@ -126,16 +123,11 @@ export function command<
 export function command<
 	const TName extends string,
 	TYielded extends Effect.Effect<unknown, unknown, unknown> = never,
-	TReturn = Pending,
+	TReturn = unknown,
 	TPayload extends Schema.Top | Schema.Struct.Fields = Schema.Void,
-	TSuccess extends Schema.Top | undefined = undefined,
-	const TSpecs extends ClassRejections | undefined = undefined,
->(
-	name: TName,
-	declaration: RunCommandDeclaration<TName, TPayload, TYielded, TReturn, TSuccess, TSpecs>,
-): NoInfer<ServedCommand<TName, PayloadSchema<TPayload>, SuccessSchema<TSuccess>, SpecsOf<TSpecs>, RunEffect<TYielded, TReturn>>>;
+>(name: TName, declaration: RunCommandDeclaration<TName, TPayload, TYielded, TReturn>): NoInfer<ServedCommandOf<TName, TPayload, TYielded, TReturn>>;
 export function command(name: string, declaration: LooseCommand): CommandShape {
-	return { ...operation("command", name, withAutomatic(declaration)), invalidates: declaration.invalidates ?? (() => []), ...runOf(declaration) };
+	return { ...operation("command", name, withAutomatic(declaration)), invalidates: invalidatesOf(declaration), ...runOf(declaration) };
 }
 
 export function stream<

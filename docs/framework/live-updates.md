@@ -21,15 +21,10 @@ class StoredNote extends Model.Class<StoredNote>("StoredNote")({
 	userId: bucket(Schema.String),
 }) {}
 
-const makeNotesRepository = makeRepository(StoredNote, {
-	collection: notes,
-	idColumn: "id",
-	spanPrefix: "Notes",
-	tableName: "notes",
-});
+const makeNotesRepository = makeRepository(StoredNote, { collection: notes });
 ```
 
-A model with `bucket` fields needs `collection`: its name must equal `tableName`, so a repository on `water_entries` takes `collection("water_entries", ...)`, and its bucket fields must match the model's. Otherwise building the repository fails with `BucketRegistrationError` before any write, and its message names what to change, as the [registration stories](../../packages/sql/src/bucketRegistration.spec.ts) show.
+A model with `bucket` fields needs `collection`, and the collection names the table: `collection("water_entries", ...)` makes a repository on `water_entries`, and `tableName` is not accepted beside it. Its bucket fields must match the model's. Otherwise building the repository fails with `BucketRegistrationError` before any write, and its message names what to change, as the [registration stories](../../packages/sql/src/bucketRegistration.spec.ts) show.
 
 Repository writes derive record keys and affected old and new bucket keys from the rows SQL returns, inside the write's transaction. Moving a note between owners announces both owners' buckets. A command whose writes go through these repositories declares no `invalidates` and calls no invalidation helper at its write sites. A command declares `invalidates` only for a change that no repository write or recorded `changes` announces, such as a write to a store outside PostgreSQL; the host publishes those keys after the handler returns, and the live queries that read them rerun. The [bucket stories](../../packages/sql/src/bucketKeys.spec.ts) cover inserts, moves and deletes against PostgreSQL.
 

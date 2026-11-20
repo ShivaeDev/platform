@@ -38,9 +38,6 @@ export const collectionEngine = Effect.gen(function* () {
 	const services = yield* Layer.build(appDatabase({ config: { databaseUrl: database.url }, migrations, postgresSettings: {} }));
 	const repository = yield* makeRepository(Workspace, {
 		collection: workspaces,
-		idColumn: "id",
-		spanPrefix: "AdminWorkspaces",
-		tableName: "admin_workspaces",
 	}).pipe(Effect.provideContext(services));
 	const session = yield* Ref.make<Option.Option<UserSessionShape>>(Option.none());
 	const registration = registerAdmin(adminRegistry(page), {

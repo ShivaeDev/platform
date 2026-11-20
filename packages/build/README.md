@@ -215,6 +215,12 @@ refused.returnsMap: run returns Map<string, number> at success, which has no exa
 
 The path after `at` points into the returned value, such as `success.summary`.
 
+A `Redacted` value never leaves the server. An operation whose success holds one is refused wherever it sits: in the returned object, an array or record, or a field of an exported Schema or Model class that the wire would otherwise carry by name, such as a stored row with a [server-only field](https://github.com/ShivaeDev/platform/tree/main/packages/sql#fields-that-never-leave-the-server). Return a public shape of the row instead, such as `{ id: row.id, owner: row.owner }`. A payload may still carry a `Redacted`, such as a password in a sign-in command.
+
+```text
+accounts.returnsRow: run returns a Redacted value at success.digest, a field of the Schema class Credential, which never leaves the server; return a public shape without that field, such as an object of the fields the browser needs
+```
+
 ### Rejections
 
 An operation's rejections are the tagged failures of its `run` and, for a query, of its read policy, each the exported class it is raised as and imported from the module that declares it. Two classes of the same shape and tag are different rejections: the generated file imports the one `run` raises. A failure that states `isRetryable`, a `SchemaError`, a `QueryReadDenied` and the automatic `InternalServerError` and `ServiceUnavailable` are left out, and nothing adds a `Conflict`. Any failure class with an `isRetryable` property is infrastructure and reaches the browser as one of the two automatic failures, so never put `isRetryable` on a rejection the browser should receive. A failure without a `_tag`, whose class is not exported, or whose class is not a Schema class, such as a `Data.TaggedError`, is refused:

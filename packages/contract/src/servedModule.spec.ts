@@ -92,6 +92,19 @@ moduleStory.it(
 );
 
 moduleStory.it(
+	"a command whose run contributes its result's note with commandResult announces that note, and readers of another note hear nothing",
+	[noteStored("bob", "Taxes"), noteStored("alice", "Taxes")],
+	function* ({ heardAnnouncements, touch }) {
+		const answer = yield* touch("alice", "Taxes");
+
+		yield* outcomes([
+			["answer", () => Effect.succeed(answer), "note 2: Taxes"],
+			["announcements", () => heardAnnouncements(), ["note 2"]],
+		]);
+	},
+);
+
+moduleStory.it(
 	"a retryable store failure in the read policy of a live subscription answers ServiceUnavailable",
 	[noteStored("alice", "Groceries"), storeFails("unavailable")],
 	function* ({ subscribe }) {

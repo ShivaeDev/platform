@@ -1,6 +1,8 @@
 import { Data, Effect, Order, type Schema } from "effect";
+import type { Model } from "effect/schema";
 import { declaredBuckets } from "@shivaedev/changes/buckets.ts";
 import { isBucketSchema } from "@shivaedev/changes/keys.ts";
+import type { IdColumn } from "#versionedRepository.ts";
 
 export interface RepositoryCollection {
 	readonly bucket: Readonly<Record<string, unknown>>;
@@ -8,15 +10,21 @@ export interface RepositoryCollection {
 	readonly tuples?: Readonly<Record<string, readonly [string, string, ...string[]]>>;
 }
 
-export interface RepositoryOptions<TId> {
-	readonly collection?: RepositoryCollection;
-	readonly idColumn: TId;
-	readonly spanPrefix: string;
-	readonly tableName: string;
-}
+export type RepositoryTable =
+	| { readonly collection: RepositoryCollection; readonly tableName?: never }
+	| { readonly collection?: never; readonly tableName: string };
 
-function sameFields(left: readonly string[], right: readonly string[]) {
-	return left.length === right.length && left.every((field, index) => field === right[index]);
+// A model without an id field has no default ID column to fall back on, so it must name one.
+export type RepositoryOptions<TModel extends Model.Any, TId> = RepositoryTable & {
+	readonly idColumn?: TId;
+	readonly spanPrefix?: string;
+} & ("id" extends IdColumn<TModel> ? unknown : { readonly idColumn: TId });
+
+export function resolveRepositoryOptions<TOptions extends RepositoryTable & { readonly idColumn?: unknown; readonly spanPrefix?: string }>(
+	options: TOptions,
+) {
+	const tableName = options.collection === undefined ? options.tableName : options.collection.name;
+	return { ...options, idColumn: options.idColumn ?? "id", spanPrefix: options.spanPrefix ?? tableName, tableName };
 }
 
 export class BucketRegistrationError extends Data.TaggedError("BucketRegistrationError")<{
@@ -36,19 +44,22 @@ export class BucketRegistrationError extends Data.TaggedError("BucketRegistratio
 			return `${registration}: tuple columns ${JSON.stringify(this.invalidTupleColumns)} must be model fields that decode to strings, numbers or absent values`;
 		}
 		if (this.collectionName === undefined) {
-			return `${registration}: model bucket fields ${JSON.stringify(this.modelFields)} need the repository's collection option, a collection named "${this.tableName}" with exactly those bucket fields`;
+			return `${registration}: model bucket fields ${JSON.stringify(this.modelFields)} need the repository's collection option in place of tableName: a collection named "${this.tableName}" with exactly those bucket fields`;
 		}
-		const disagreements = [
-			...(this.collectionName === this.tableName
-				? []
-				: [`collection name "${this.collectionName}" must equal table name "${this.tableName}", because the collection name is the table name`]),
-			...(sameFields(this.modelFields, this.collectionFields)
-				? []
-				: [`collection bucket fields ${JSON.stringify(this.collectionFields)} must equal model bucket fields ${JSON.stringify(this.modelFields)}`]),
-		];
-		return `${registration}: ${disagreements.join("; ")}`;
+		return `${registration}: collection bucket fields ${JSON.stringify(this.collectionFields)} must equal model bucket fields ${JSON.stringify(this.modelFields)}`;
 	}
 }
+
+export class ServerOnlyKeyError extends Data.TaggedError("ServerOnlyKeyError")<{
+	readonly tableName: string;
+	readonly fields: readonly string[];
+}> {
+	override get message() {
+		return `Repository for ${this.tableName}: server-only fields ${JSON.stringify(this.fields)} cannot be an ID column or a bucket, because their values would be announced as change keys; key the table by another column`;
+	}
+}
+
+export type RepositoryBuildError = BucketRegistrationError | ServerOnlyKeyError;
 
 export const validateRepositoryCollection = Effect.fnUntraced(function* (
 	fields: Schema.Struct.Fields,
@@ -74,7 +85,7 @@ export const validateRepositoryCollection = Effect.fnUntraced(function* (
 		invalidFields.length === 0
 		&& invalidTupleColumns.length === 0
 		&& ((options.collection === undefined && modelFields.length === 0)
-			|| (options.collection?.name === options.tableName
+			|| (options.collection !== undefined
 				&& modelFields.length === collectionFields.length
 				&& modelFields.every((field, index) => field === collectionFields[index])))
 	) {

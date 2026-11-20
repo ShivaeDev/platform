@@ -6,7 +6,6 @@ import { collectionStory } from "#test/collectionStory.ts";
 
 for (const [mismatch, keys, name, fields] of [
 	["missing collection", undefined, undefined, []],
-	["wrong table", collection("other", Schema.Int, { tenant: Schema.String }), "other", ["tenant"]],
 	["missing bucket", collection("workspaces", Schema.Int), "workspaces", []],
 	["wrong field", collection("workspaces", Schema.Int, { owner: Schema.String }), "workspaces", ["owner"]],
 	["extra bucket", collection("workspaces", Schema.Int, { tenant: Schema.String, title: Schema.String }), "workspaces", ["tenant", "title"]],

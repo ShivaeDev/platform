@@ -10,12 +10,6 @@ class StoredNote extends Model.Class<StoredNote>("StoredNote")({
 	userId: bucket(Schema.NullOr(Schema.String)),
 }) {}
 
-const makeNotesRepository = makeRepository(StoredNote, {
-	collection: notes,
-	idColumn: "id",
-	spanPrefix: "Notes",
-	tableName: "notes",
-	versionColumn: "version",
-});
+const makeNotesRepository = makeRepository(StoredNote, { collection: notes, versionColumn: "version" });
 
 export const NotesRepository = defineRepository({ id: "app/NotesRepository", initialize: makeNotesRepository });

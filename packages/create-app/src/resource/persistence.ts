@@ -1,6 +1,6 @@
 import type { ResourceNames } from "#resource/names.ts";
 
-export function resourceRepository({ name, pascal, table }: ResourceNames) {
+export function resourceRepository({ name, pascal }: ResourceNames) {
 	return `import { Schema } from "effect";
 import { Model } from "effect/schema";
 import { bucket } from "@shivaedev/changes/buckets.ts";
@@ -13,12 +13,7 @@ class StoredItem extends Model.Class<StoredItem>("Stored${pascal}Item")({
 	userId: bucket(Schema.String),
 }) {}
 
-const make${pascal}Repository = makeRepository(StoredItem, {
-	collection: keys,
-	idColumn: "id",
-	spanPrefix: "${pascal}",
-	tableName: "${table}",
-});
+const make${pascal}Repository = makeRepository(StoredItem, { collection: keys });
 
 export const ${pascal}Repository = defineRepository({ id: "app/${pascal}Repository", initialize: make${pascal}Repository });
 `;

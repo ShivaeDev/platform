@@ -7,9 +7,12 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { untilTimer } from "@shivaedev/test-story/server/watchedClock.ts";
 import { generate } from "#generate.ts";
 import type { GenerateFailed, GenerateReport } from "#report.ts";
+import { CREDENTIAL_MODEL } from "#test/credentialModel.ts";
 import { emptyProject, fromSource, generatedOncePerFile, typeCheck, writeFiles } from "#test/fixtureProject.ts";
 import { NOTES_PROJECT } from "#test/notesProject.ts";
+import { PUBLIC_SHAPE_PROJECT } from "#test/publicShapeProject.ts";
 import { REFUSING_PROJECT } from "#test/refusingProject.ts";
+import { SERVER_ONLY_PROJECT } from "#test/serverOnlyProject.ts";
 
 const NOTES_WIRE = "src/generated/modules/notes/notes.ts";
 const NOTES_MODEL = "src/modules/notes/model.ts";
@@ -205,6 +208,22 @@ export function notesProject() {
 export function refusingProject() {
 	return generator.trait("project", "the project has the refused module, whose operations the wire cannot carry exactly", (engine) =>
 		writeFiles(engine.root, REFUSING_PROJECT),
+	);
+}
+
+export function serverOnlyProject() {
+	return generator.trait(
+		"project",
+		"the project has the accounts module, whose operations return a stored credential or its server-only digest",
+		(engine) => writeFiles(engine.root, { ...SERVER_ONLY_PROJECT, "src/modules/accounts/model.ts": CREDENTIAL_MODEL }),
+	);
+}
+
+export function publicShapeProject() {
+	return generator.trait(
+		"project",
+		"the project has the credentials module, whose holder query returns a stored credential's public fields and whose sign-in payload carries a password",
+		(engine) => writeFiles(engine.root, { ...PUBLIC_SHAPE_PROJECT, "src/modules/credentials/model.ts": CREDENTIAL_MODEL }),
 	);
 }
 
