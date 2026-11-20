@@ -30,3 +30,15 @@ export const unpublishedContract = app.trait("source", "the packed contract has 
 		yield* fs.writeFileString(join(source, path), content);
 	}
 });
+
+export const unshippedResumeToken = app.trait(
+	"source",
+	"the packed contract's types declare a resumeToken its module does not ship",
+	function* ({ root }) {
+		const fs = yield* FileSystem.FileSystem;
+		yield* fs.writeFileString(
+			join(root, "source/resume.d.ts"),
+			"export declare const resumeSignal: string;\nexport declare const resumeToken: string;\n",
+		);
+	},
+);
