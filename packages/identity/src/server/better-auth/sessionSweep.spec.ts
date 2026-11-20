@@ -1,4 +1,3 @@
-import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { authStorage, expiredSession, mintedAccounts, withoutAuthHost } from "#test/better-auth/database.ts";
 
@@ -39,18 +38,22 @@ authStorage.it(
 );
 
 authStorage.it(
-	"a sweep reports the one expired session it removed, and the next sweep reports none",
+	"a sweep reports and announces the one expired session it removed, and the next sweep reports and announces none",
 	[mintedAccounts(), expiredSession("alice")],
-	function* ({ storedSessions, sweepExpiredSessions, sweptSessions }) {
+	function* ({ storedSessions, sweepAnnouncements, sweepExpiredSessions, sweptSessions }) {
 		yield* sweepExpiredSessions();
 
 		yield* outcomes([
 			["alice's stored sessions", () => storedSessions("alice"), 0],
 			["sessions the first sweep reports", () => sweptSessions(), 1],
+			["keys the first sweep announces", () => sweepAnnouncements(), ["identity.sessions"]],
 		]);
 
 		yield* sweepExpiredSessions();
 
-		expect(yield* sweptSessions()).toBe(0);
+		yield* outcomes([
+			["sessions the second sweep reports", () => sweptSessions(), 0],
+			["keys the second sweep announces", () => sweepAnnouncements(), []],
+		]);
 	},
 );

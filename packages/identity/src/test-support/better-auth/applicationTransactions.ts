@@ -1,6 +1,6 @@
 import { Data, Effect, Redacted } from "effect";
 import { Migrator, SqlClient } from "effect/sql";
-import { transact } from "@shivaedev/sql/transact.ts";
+import { ChangeObserver, transact } from "@shivaedev/sql/transact.ts";
 import { makePostgresTestLayer } from "@shivaedev/test-sql/server/postgres.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { migrateBetterAuth } from "#server/better-auth/adapters/migrate.ts";
@@ -8,6 +8,7 @@ import { authTestDatabase } from "#server/better-auth/testDatabase.ts";
 import { compositionHost, compositionOptions, signUpAlice } from "#test/better-auth/compositionHost.ts";
 import { storyClock, withIdentityDatabase } from "#test/clock.ts";
 import { databaseUrl } from "#test/postgres.ts";
+import { recordPublished } from "#test/recordPublished.ts";
 
 class RegistrationCancelled extends Data.TaggedError("RegistrationCancelled")<{ readonly status: number }> {}
 
@@ -25,14 +26,27 @@ export const applicationAuthTransactions = storyKit({
 		yield* migrateBetterAuth(compositionOptions);
 		yield* sql`create table registrations (email text primary key)`;
 		yield* sql`create table registration_notes (kind text primary key)`;
-		const state = { refuseAccount: false, transactionLocal: false };
-		return { sql, startup: yield* compositionHost(state), state, storage: yield* authTestDatabase };
+		const announced: unknown[] = [];
+		const state = { refuseAccount: false, signOutDuringRefresh: false, transactionLocal: false };
+		const startup = yield* compositionHost(state).pipe(Effect.provideService(ChangeObserver, recordPublished(announced)));
+		return { announced, cookie: "", sql, startup, state, storage: yield* authTestDatabase };
 	},
 	layer: postgres,
 	name: "application and auth transaction composition",
 	runIf: databaseUrl !== undefined,
-	stages: ["adapter", "admission"],
+	stages: ["adapter", "admission", "refresh"],
 	verbs: (engine, story) => ({
+		announcedLists: () => Effect.sync(() => engine.announced.filter((key) => typeof key === "string" && !key.includes(":"))),
+		refreshAlice: () => {
+			story.tell("alice's session refreshes while another tab signs her out");
+			engine.announced.splice(0);
+			return Effect.tryPromise(() => engine.startup.auth.api.getSession({ asResponse: true, headers: new Headers({ cookie: engine.cookie }) })).pipe(
+				Effect.map((response) => ({
+					cookie: response.headers.getSetCookie().some((cookie) => /session_token=;.*Max-Age=0/u.test(cookie)) ? "cleared" : "kept",
+					status: response.status,
+				})),
+			);
+		},
 		registerAlice: (outcome: "commit" | "rollback") =>
 			Effect.gen(function* () {
 				story.tell(`alice registers through auth and the application, then the application ${outcome}s`);
@@ -46,10 +60,19 @@ export const applicationAuthTransactions = storyKit({
 			}).pipe(
 				transact(),
 				Effect.catchTag("RegistrationCancelled", (error) => Effect.succeed(error.status)),
+				Effect.provideService(ChangeObserver, recordPublished(engine.announced)),
 			),
 		signUpAlice: () => {
 			story.tell("alice signs up through the startup auth mount");
 			return signUpAlice(engine.startup).pipe(
+				Effect.tap((response) =>
+					Effect.sync(() => {
+						engine.cookie = response.headers
+							.getSetCookie()
+							.map((cookie) => cookie.split(";")[0])
+							.join("; ");
+					}),
+				),
 				Effect.flatMap((response) => Effect.tryPromise(async () => ({ body: await response.json(), status: response.status }))),
 			);
 		},
@@ -72,5 +95,13 @@ export const refusingAccountHook = applicationAuthTransactions.trait(
 	"the account hook writes application SQL then refuses account creation",
 	(engine) => {
 		engine.state.refuseAccount = true;
+	},
+);
+
+export const signOutDuringRefresh = applicationAuthTransactions.trait(
+	"refresh",
+	"a session refresh finds its row deleted by a sign-out in another tab",
+	(engine) => {
+		engine.state.signOutDuringRefresh = true;
 	},
 );

@@ -3,6 +3,7 @@ import { SqlClient } from "effect/sql";
 import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
 import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
 import { betterAuthMount } from "#server/better-auth/adapters/mount.ts";
+import { authTestDatabase } from "#server/better-auth/testDatabase.ts";
 
 export const compositionOptions = {
 	"baseURL": "http://localhost:3000",
@@ -11,23 +12,34 @@ export const compositionOptions = {
 	secret: "transaction-composition-story-secret-at-least-32-characters",
 };
 
-export const compositionHost = Effect.fnUntraced(function* (state: { readonly refuseAccount: boolean }) {
+export interface CompositionState {
+	readonly refuseAccount: boolean;
+	readonly signOutDuringRefresh?: boolean;
+}
+
+function note(kind: string) {
+	return SqlClient.SqlClient.use((sql) => sql`insert into registration_notes (kind) values (${kind})`).pipe(Effect.asVoid, Effect.orDie);
+}
+
+export const compositionHost = Effect.fnUntraced(function* (state: CompositionState) {
 	const beforeAccount = Effect.fnUntraced(function* () {
-		const sql = yield* SqlClient.SqlClient;
-		yield* sql`insert into registration_notes (kind) values ('before account')`.pipe(Effect.orDie);
+		yield* note("before account");
 		if (state.refuseAccount) {
 			return yield* Effect.fail({ code: "ACCOUNT_REFUSED", message: "Account registration refused" });
 		}
 	});
-	function afterUser() {
-		return SqlClient.SqlClient.use((sql) => sql`insert into registration_notes (kind) values ('after user')`).pipe(Effect.asVoid, Effect.orDie);
+	const storage = yield* authTestDatabase;
+	function signOutElsewhere() {
+		return state.signOutDuringRefresh === true ? storage.deleteSessions.pipe(Effect.orDie) : Effect.void;
 	}
 	return yield* betterAuthMount(
-		{ ...compositionOptions, database: yield* betterAuthDatabase() },
+		// Every session lookup refreshes the session, so a story can race a refresh.
+		{ ...compositionOptions, database: yield* betterAuthDatabase(), session: { updateAge: 0 } },
 		{
 			databaseHooks: {
 				account: { create: { before: beforeAccount } },
-				user: { create: { after: afterUser } },
+				session: { update: { after: () => note("after session update"), before: signOutElsewhere } },
+				user: { create: { after: () => note("after user") } },
 			},
 		},
 	).pipe(Effect.provide(memoryStore), Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env: { "AUTH_RATE_LIMIT_ENABLED": "false" } }))));

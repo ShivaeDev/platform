@@ -1,5 +1,4 @@
 import { Effect, Queue, Result } from "effect";
-import type { Observation } from "@shivaedev/changes/observe.ts";
 import { AuthUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import { ChangeObserver, transact } from "@shivaedev/sql/transact.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
@@ -8,15 +7,7 @@ import { directoryHost } from "#test/better-auth/directoryHost.ts";
 import { mappedTables, pluginMappedTables } from "#test/better-auth/pluginMappedTables.ts";
 import { storyClock, withIdentityDatabase } from "#test/clock.ts";
 import { databaseUrl, postgres } from "#test/postgres.ts";
-
-function recordPublished(published: unknown[]) {
-	return (event: Observation<unknown>) =>
-		Effect.sync(() => {
-			if (event._tag === "Published") {
-				published.push(...event.changes);
-			}
-		});
-}
+import { recordPublished } from "#test/recordPublished.ts";
 
 function directoryKit(mapping: AuthTableOptions = {}, standalone = false) {
 	return storyKit({

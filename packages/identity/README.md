@@ -376,6 +376,8 @@ Fail a `before` hook with `{ code: "MEMBERS_ONLY", message: "Membership is requi
 
 Effect hook SQL uses the hook runtime's Effect context; it does not inherit Better Auth's internal write transaction. In a startup mount, a `before` hook's application SQL can commit even when that hook refuses the operation and Better Auth rolls back its auth rows. Use the transaction-local adapter and mount composition above when those writes must roll back together. Completing an `after` hook does not mean the outer application transaction has committed.
 
+The mount announces identity's change keys after Better Auth writes a user or a session, so live readers of `userKeys` and `sessionKeys` refresh after a sign-up, a profile change, a sign-in or a sign-out; the application writes nothing for it. A mount created inside `transact` binds the announcement to that transaction's commit, and a rollback announces nothing. A startup mount announces in a transaction of its own after Better Auth's write commits, so a reader can briefly see the new row before its screen refreshes. The announcement needs the application's `SqlClient` and `Reactivity` in the mount's context, as `appHost`'s `application` Effect provides.
+
 Native callbacks in the first argument run before the corresponding Effect callbacks. A native `before` returning `false` stops the Effect callback too. Data changes compose in order. Identity's sign-in policy still runs after the application's session hook.
 
 #### Application password-reset hook
@@ -1130,7 +1132,7 @@ Auth emails reserve one delivery attempt per account id and message kind for one
 
 ### Sweep expired sessions in a worker
 
-Better Auth removes an expired session when it is presented. Use `sweepExpiredSessions` from `@shivaedev/identity/server/better-auth/sweepExpiredSessions.ts` to remove expired rows that are never presented again. The Effect reads the application's `SqlClient`, deletes sessions whose `expiresAt` is at or before Effect's current time, and returns the number removed. It preserves live sessions and needs no Better Auth mount or auth pool. It assumes the default Better Auth PostgreSQL table and column mappings.
+Better Auth removes an expired session when it is presented. Use `sweepExpiredSessions` from `@shivaedev/identity/server/better-auth/sweepExpiredSessions.ts` to remove expired rows that are never presented again. The Effect reads the application's `SqlClient`, deletes sessions whose `expiresAt` is at or before Effect's current time, and returns the number removed. It announces `sessionKeys.list` when it removes a session. It preserves live sessions and needs no Better Auth mount or auth pool. It assumes the default Better Auth PostgreSQL table and column mappings.
 
 Register the Effect with a worker schedule, as the starter does at midnight UTC. SQL and result-decoding failures stay in the Effect's error channel.
 

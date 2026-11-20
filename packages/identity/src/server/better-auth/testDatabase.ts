@@ -21,6 +21,7 @@ export const authTestDatabase = Effect.gen(function* () {
 		Result: StoredSession,
 	});
 	return {
+		deleteSessions: sql`delete from "session"`.pipe(Effect.asVoid),
 		expireSessions: (userId?: string) =>
 			Effect.gen(function* () {
 				const expiredAt = DateTime.toDateUtc(DateTime.subtract(yield* DateTime.now, { seconds: 1 }));
