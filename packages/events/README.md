@@ -39,6 +39,7 @@ Describe the current event with Effect Schema, create ordinary repositories, the
 import { Effect, Schema } from "effect";
 import { Model } from "effect/schema";
 import { makeEventStore } from "@shivaedev/events/makeEventStore.ts";
+import { allRows } from "@shivaedev/sql/allRows.ts";
 import { makeRepository } from "@shivaedev/sql/repository.ts";
 
 class Note extends Model.Class<Note>("Note")({
@@ -58,7 +59,7 @@ const makeNotes = Effect.gen(function* () {
 			{
 				name: "names",
 				apply: ({ stream, value }) => rows.upsert({ id: stream, name: value.name }).pipe(Effect.asVoid),
-				reset: rows.delete({}),
+				reset: rows.delete(allRows),
 			},
 		],
 	});
