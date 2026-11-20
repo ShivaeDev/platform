@@ -26,9 +26,6 @@ export const counterEngine = Effect.fnUntraced(function* () {
 	const rows = yield* makeRepository(Counter, {
 		collection: collection(tableName, Schema.Number, { count: Schema.Number, label: Schema.String }),
 		conflictColumns: ["id"],
-		idColumn: "id",
-		spanPrefix: "Counter",
-		tableName,
 	});
 	const returned: unknown[] = [];
 	return { capture: yield* makeCapture<unknown>(), returned, rows, tableName };

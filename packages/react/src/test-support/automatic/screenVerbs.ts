@@ -29,7 +29,7 @@ export function screenVerbs(engine: Engine, story: { tell: (line: string) => voi
 			return Effect.gen(function* () {
 				const run = Effect.runPromiseWith(yield* Effect.context());
 				yield* Effect.promise(() => engine.screen.reconnected);
-				yield* until(engine.clock.sleeps, (interval) => Duration.toMillis(interval) > 20, {
+				yield* until(engine.clock.sleepStarts, (interval) => Duration.toMillis(interval) > 20, {
 					name: "the live subscription's retry timer",
 				});
 				yield* Effect.promise(() => act(async () => run(TestClock.adjust("2 seconds"))));

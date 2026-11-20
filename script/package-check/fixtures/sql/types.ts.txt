@@ -3,6 +3,8 @@ import { Model } from "effect/schema"
 import { invalidateOnCommit, transact } from "@shivaedev/sql/transact.ts"
 import type { UpsertRow } from "@shivaedev/sql/upsertResult.ts"
 import { makeRepository, OptimisticConcurrencyError } from "@shivaedev/sql/repository.ts"
+import { bucket } from "@shivaedev/changes/buckets.ts"
+import { collection } from "@shivaedev/changes/keys.ts"
 
 class InvoiceLine extends Model.Class<InvoiceLine>("InvoiceLine")({
   id: Schema.Number,
@@ -16,8 +18,33 @@ class Document extends Model.Class<Document>("Document")({
   lockVersion: Model.Field({ select: Schema.Number, update: Schema.Number, json: Schema.Number }),
 }) {}
 
+class Bookmark extends Model.Class<Bookmark>("Bookmark")({
+  id: Model.Field({ select: Schema.Number, update: Schema.Number, json: Schema.Number }),
+  url: Schema.String,
+  userId: bucket(Schema.String),
+}) {}
+
+class Setting extends Model.Class<Setting>("Setting")({
+  key: Schema.String,
+  value: Schema.String,
+}) {}
+
+const bookmarks = collection("bookmarks", Schema.Number, { userId: Schema.String })
+
 const program = Effect.gen(function* () {
-  const lines = yield* makeRepository(InvoiceLine, { tableName: "invoice_line", idColumn: "id", spanPrefix: "InvoiceLine" })
+  const bookmarkRows = yield* makeRepository(Bookmark, { collection: bookmarks })
+  const bookmark: Bookmark = yield* bookmarkRows.findById(1)
+  void bookmark
+  // @ts-expect-error A collection names the table, so tableName is refused beside it.
+  makeRepository(Bookmark, { collection: bookmarks, tableName: "bookmarks" })
+  // @ts-expect-error A repository without a collection names its table.
+  makeRepository(InvoiceLine, {})
+  const settings = yield* makeRepository(Setting, { tableName: "settings", idColumn: "key" })
+  const setting: Setting = yield* settings.findById("theme")
+  void setting
+  // @ts-expect-error A model without an id field names its ID column.
+  makeRepository(Setting, { tableName: "settings" })
+  const lines = yield* makeRepository(InvoiceLine, { tableName: "invoice_line" })
   const selected = yield* lines.findMany({ select: ["name", "amount"], where: { amount: 42 } })
   const rows: Array<{ readonly name: string; readonly amount: number }> = selected
   void rows
@@ -31,7 +58,7 @@ const program = Effect.gen(function* () {
   lines.findMany({ orderBy: { field: "missing", direction: "asc" } })
   // @ts-expect-error Selections cannot be empty.
   lines.findMany({ select: [] })
-  const ingest = yield* makeRepository(InvoiceLine, { tableName: "invoice_line", idColumn: ["id", "name"], conflictColumns: ["id", "name"], spanPrefix: "InvoiceLine" })
+  const ingest = yield* makeRepository(InvoiceLine, { tableName: "invoice_line", idColumn: ["id", "name"], conflictColumns: ["id", "name"] })
   const ignored = yield* ingest.insertOrIgnore({ id: 1, name: "Consulting", amount: 42 })
   const insertedMany: InvoiceLine[] = yield* lines.insertMany([{ id: 2, name: "Consulting", amount: 42 }])
   const ignoredMany: InvoiceLine[] = yield* ingest.insertManyOrIgnore([{ id: 1, name: "Consulting", amount: 42 }])
@@ -47,7 +74,7 @@ const program = Effect.gen(function* () {
   ingest.upsert({ id: 1, name: "Consulting", amount: 52 }, { updateColumns: ["name"] })
   const saved: string = yield* Effect.as(invalidateOnCommit({ invoiceLines: [1] }), "saved").pipe(transact({ onSqlError: () => "unavailable" as const }))
   void saved
-  const documents = yield* makeRepository(Document, { tableName: "documents", idColumn: "id", spanPrefix: "Document", versionColumn: "lockVersion" })
+  const documents = yield* makeRepository(Document, { tableName: "documents", versionColumn: "lockVersion" })
   const original = yield* documents.insert({ name: "Draft" })
   const updated: Document = yield* documents.update({ ...original, name: "Published" })
   yield* documents.delete(updated.id, updated.lockVersion)
@@ -58,6 +85,6 @@ const program = Effect.gen(function* () {
   // @ts-expect-error Versioned updates require the version read.
   documents.update({ id: original.id, name: "Stale" })
   // @ts-expect-error The version column must be numeric and absent from insert.
-  makeRepository(Document, { tableName: "documents", idColumn: "id", spanPrefix: "Document", versionColumn: "name" })
+  makeRepository(Document, { tableName: "documents", versionColumn: "name" })
 })
 void program

@@ -18,12 +18,13 @@ import type { Tag } from "#operationRpc.ts";
 import type { ResumeSource, ResumeWindow } from "#resume.ts";
 import { type RpcSource, rpcClient } from "#rpcClient.ts";
 
-export type Failure<R extends Rpc.Any> =
+// Like Effect's own `Rpc` helpers, these take any type: `Rpc.ExtractTag` of a generic group is not provably an `Rpc.Any`.
+export type Failure<R> =
 	R extends Rpc.Rpc<infer _Tag, infer _Payload, infer _Success, infer _Error, infer TMiddleware, infer _Requires>
 		? Rpc.ErrorExit<R> | TMiddleware["error"]["Type"] | TMiddleware["~ClientError"] | RpcClientError
 		: never;
 
-export type RunFailure<R extends Rpc.Any> = Failure<R>;
+export type RunFailure<R> = Failure<R>;
 
 export interface RunOptions {
 	readonly subject?: string;
@@ -37,16 +38,16 @@ export interface QueryOptions extends RunOptions {
 // `runtime.fn(api.save.run)` and `useAction(runtime, api.save.run)` call `run` with the atom's function context second, which selects no subject.
 type Run<TPayload, TResult> = (payload: TPayload, options?: RunOptions | Atom.FnContext) => TResult;
 
-export interface BoundQuery<R extends Rpc.Any, TSelf, TSubscription extends Rpc.Any = never> {
+export interface BoundQuery<R, TSelf, TSubscription = never> {
 	readonly query: (payload: Rpc.Payload<R>, options?: QueryOptions) => Atom.Atom<AsyncResult.AsyncResult<Rpc.Success<R>, Failure<R | TSubscription>>>;
 	readonly run: Run<Rpc.Payload<R>, Effect.Effect<Rpc.Success<R>, RunFailure<R>, TSelf>>;
 }
 
-export interface BoundCommand<R extends Rpc.Any, TSelf> {
+export interface BoundCommand<R, TSelf> {
 	readonly run: Run<Rpc.Payload<R>, Effect.Effect<Rpc.Success<R>, RunFailure<R>, TSelf | Reactivity.Reactivity>>;
 }
 
-export interface BoundStream<R extends Rpc.Any, TSelf> {
+export interface BoundStream<R, TSelf> {
 	readonly run: Run<Rpc.Payload<R>, Stream.Stream<Rpc.SuccessChunk<R>, RunFailure<R>, TSelf | Rpc.ServicesClient<R>>>;
 }
 

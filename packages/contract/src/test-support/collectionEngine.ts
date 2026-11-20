@@ -42,9 +42,6 @@ export const collectionEngine = Effect.gen(function* () {
 	const repository = yield* makeRepository(Workspace, {
 		collection: workspaces,
 		conflictColumns: ["title"],
-		idColumn: "id",
-		spanPrefix: "CollectionWorkspaces",
-		tableName: "workspaces",
 	}).pipe(Effect.provideContext(services));
 	const permissions = new Map([
 		["admin", { email: "admin@example.test", id: "admin", name: "Admin", permissions: [ManageWorkspaces] }],

@@ -78,17 +78,17 @@ export interface ModuleDefinition<
 	readonly operations: TOperations;
 	readonly requires: TRequirements;
 	readonly subject?: TSubject;
-	readonly wire?: TWire;
+	readonly wire: TWire;
 }
 
 export function defineModule<
 	const TName extends string,
 	const TOperations extends readonly ModuleOperation[],
 	const TRequirements extends RequirementRecord,
+	const TWire extends Wire,
 	TMiddleware extends RpcMiddleware.AnyService = never,
 	const TSubject extends SubjectDeclaration | undefined = undefined,
 	const TScope extends "session" | undefined = undefined,
-	const TWire extends Wire = Record<never, never>,
 >(
 	definition: ModuleDefinition<TName, TOperations, TRequirements, TMiddleware, TSubject, TScope, TWire>,
 ): Module<TName, WiredAll<TOperations, TWire> & readonly ModuleOperation[], TRequirements, TMiddleware, TSubject, TScope>;
@@ -98,9 +98,9 @@ export function defineModule(definition: {
 	readonly name: string;
 	readonly operations: readonly ModuleOperation[];
 	readonly subject?: SubjectDeclaration;
-	readonly wire?: Wire;
+	readonly wire: Wire;
 }): unknown {
-	const operations = definition.operations.map((operation) => wired(operation, definition.wire?.[operation.name]));
+	const operations = definition.operations.map((operation) => wired(operation, definition.wire[operation.name]));
 	const group = declaredGroup(definition.name, {
 		annotations: Context.make(DefinedModule, definition.name),
 		commands: operations.filter((operation) => operation.kind === "command"),

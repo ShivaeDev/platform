@@ -31,13 +31,11 @@ const Note = query("note", {
 	*run() {
 		return yield* storedNote("note");
 	},
-	success: Schema.String,
 });
 
 // The module lets a coach read; this query also refuses anyone but the client, on top of that rule.
 const Diary = query("diary", {
 	reads: () => [notes.list],
-	rejections: { DiaryPrivate },
 	*run() {
 		const { id } = yield* Subject;
 		const actor = yield* Identity;
@@ -46,7 +44,6 @@ const Diary = query("diary", {
 		}
 		return yield* storedNote("diary");
 	},
-	success: Schema.String,
 });
 
 const Write = command("write", {
@@ -60,7 +57,6 @@ const Write = command("write", {
 		);
 		return `${id}: ${note}`;
 	},
-	success: Schema.String,
 });
 
 export const Coaching = defineModule({
@@ -68,6 +64,11 @@ export const Coaching = defineModule({
 	operations: [Note, Diary, Write],
 	requires: [SqlClient.SqlClient],
 	subject: actsAsCoach,
+	wire: {
+		diary: { rejections: { DiaryPrivate }, success: Schema.String },
+		note: { rejections: {}, success: Schema.String },
+		write: { rejections: {}, success: Schema.String },
+	},
 });
 
 const migrations = {

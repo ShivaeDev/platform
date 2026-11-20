@@ -31,7 +31,7 @@ export interface TransactionEngine {
 	readonly tables: { readonly notes: string; readonly orders: string; readonly others: string };
 }
 
-function otherClient(database: Database) {
+function otherClient(database: Database): Layer.Layer<SqlClient.SqlClient, SqlError> {
 	return database === "PostgreSQL" ? Layer.fresh(postgresLayer) : Layer.fresh(SqliteClient.layer({ filename: ":memory:" }));
 }
 

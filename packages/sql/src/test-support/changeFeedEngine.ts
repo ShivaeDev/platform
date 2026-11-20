@@ -28,7 +28,7 @@ export interface ChangeFeedEngine {
 	readonly applied: string[];
 	binding: Context.Context<never> | undefined;
 	readonly channel: string;
-	readonly client: PgClient.PgClient;
+	readonly client: PgClient.PgClient & SqlClient.SqlClient;
 	readonly controls: ListenerControls;
 	readonly endings: string[];
 	readonly events: ListenerEvents;

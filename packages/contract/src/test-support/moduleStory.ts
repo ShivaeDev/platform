@@ -59,6 +59,13 @@ export const moduleStory = storyKit({
 					}),
 			);
 		},
+		touch: (person: Person, title: string) => {
+			story.tell(`${person} touches their note titled ${title} over HTTP RPC`);
+			return answered(
+				Effect.flatMap(engine.overHttp(person), (client) => client("moduleNotes.touch", { title })),
+				titled,
+			);
+		},
 	}),
 });
 
