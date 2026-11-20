@@ -48,7 +48,7 @@ export const Api = contract("compared", {
 		}),
 	],
 });
-export const repository = makeRepository(Note, { collection: notes, idColumn: "id", spanPrefix: "ComparedNotes", tableName: "compared_notes" });
+export const repository = makeRepository(Note, { collection: notes });
 export const migrations = {
 	loader: Migrator.fromRecord({
 		"1_compared_notes": Effect.gen(function* () {

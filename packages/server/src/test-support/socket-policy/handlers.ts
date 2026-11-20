@@ -18,13 +18,10 @@ export const migrations = {
 };
 export const handlers = Layer.unwrap(
 	Effect.gen(function* () {
-		const listRepository = yield* makeRepository(List, { collection: lists, idColumn: "id", spanPrefix: "Lists", tableName: "socket_lists" });
+		const listRepository = yield* makeRepository(List, { collection: lists });
 		const noteRepository = yield* makeRepository(Note, {
 			collection: notes,
 			conflictColumns: ["id"],
-			idColumn: "id",
-			spanPrefix: "Notes",
-			tableName: "socket_notes",
 		});
 		return Api.application.toLayer({
 			"socketNotes.all": () =>
