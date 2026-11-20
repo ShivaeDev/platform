@@ -4,6 +4,7 @@ import type { Permission } from "@shivaedev/access/permission.ts";
 import { authSession as readSession } from "@shivaedev/identity/client/adapters/authSession.ts";
 import { browserSessionMemory } from "@shivaedev/identity/client/adapters/browserSessionMemory.ts";
 import { rememberSession, SessionMemory } from "@shivaedev/identity/client/SessionMemory.ts";
+import { memoryQueryStorage } from "@shivaedev/test-kits/contract/memoryQueryStorage.ts";
 import { authSession } from "#client/authSession.ts";
 
 export type User = "alice" | "bob";
@@ -37,9 +38,11 @@ export function providerSession(user: User, grants: readonly string[], expiresAt
 }
 
 export function rememberedClient(clock: Clock.Clock) {
-	const memory = Layer.merge(browserSessionMemory, Layer.succeed(Clock.Clock, clock));
+	const queries = memoryQueryStorage();
+	const memory = Layer.mergeAll(browserSessionMemory, Layer.succeed(Clock.Clock, clock), queries.layer);
 	const reads: Read[] = [];
 	const generations: Generation[] = [];
+	const signOuts: (() => void)[] = [];
 	function latest() {
 		const read = reads.at(-1);
 		if (read === undefined) {
@@ -49,9 +52,11 @@ export function rememberedClient(clock: Clock.Clock) {
 	}
 	return {
 		answer: (session: ProviderSession | null) => latest().resolve({ data: session, error: null }),
+		answerSignOut: () => signOuts.shift()?.(),
 		fail: () => latest().reject(new TypeError("Failed to fetch")),
 		generations,
 		memory,
+		queries,
 		reads,
 		remember: (session: ProviderSession) => Effect.provide(rememberSession(session), memory),
 		session: () =>
@@ -62,6 +67,7 @@ export function rememberedClient(clock: Clock.Clock) {
 				),
 				{ remember: memory },
 			),
+		signOutRequest: Effect.promise(() => new Promise<void>((resolve) => signOuts.push(resolve))),
 		stored: Effect.gen(function* () {
 			const store = yield* SessionMemory;
 			return yield* store.read;

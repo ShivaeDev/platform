@@ -3,6 +3,7 @@ import * as AsyncResult from "effect/reactivity/AsyncResult";
 import type * as Atom from "effect/reactivity/Atom";
 import { activityState } from "#adapters/activityState.ts";
 import { clientConnection } from "#adapters/clientConnection.ts";
+import { shareQuerySignals } from "#querySignals.ts";
 import { wrapAtom } from "#wrapAtom.ts";
 
 type ActivityTracker = ReturnType<typeof makeActivity>;
@@ -80,6 +81,7 @@ export function makeActivity(factory: Atom.RuntimeFactory) {
 			}
 			return value;
 		});
+		shareQuerySignals(watched, atom);
 		return watched;
 	}
 	return {

@@ -33,7 +33,7 @@ export const rememberedSessions = storyKit({
 	},
 	inspect: (engine) => ({ checks: engine.client.reads.length, text: engine.view?.container.textContent }),
 	name: "remembered session launch",
-	stages: ["memory"],
+	stages: ["memory", "device"],
 	verbs: (engine, story) => {
 		engine.screen.tell = story.tell;
 		function answer(line: string, session: ProviderSession | null) {
@@ -51,11 +51,11 @@ export const rememberedSessions = storyKit({
 					}
 					return generation.registry.getNodes().size;
 				}),
-			launches: () =>
+			launches: (signOutVia?: "boundary") =>
 				Effect.gen(function* () {
-					story.tell("the app launches");
+					story.tell(signOutVia === undefined ? "the app launches" : "the app launches and signs out through SessionBoundary's own action");
 					const session = engine.client.session();
-					engine.view = yield* engine.screen.open(<RememberedApp client={engine.client} session={session} />);
+					engine.view = yield* engine.screen.open(<RememberedApp client={engine.client} session={session} signOutVia={signOutVia} />);
 				}),
 			refreshing: () => Effect.sync(() => opened(engine).container.querySelector("main")?.getAttribute("aria-busy") ?? "no shell"),
 			relaunches: () =>
@@ -67,7 +67,9 @@ export const rememberedSessions = storyKit({
 			remembered: () => engine.client.stored,
 			shown: () => Effect.sync(() => opened(engine).container.textContent),
 			signedOutAnswer: () => answer("the session check answers signed out", null),
+			signOutAnswers: () => engine.screen.act("the host answers the sign-out", engine.client.answerSignOut),
 			signsOut: () => engine.screen.driver(opened(engine).container).click({ name: "Sign out", role: "button" }),
+			storedResults: () => Effect.sync(() => [...engine.client.queries.users.keys()]),
 			timePasses: (millis: number) => engine.screen.act(`${millis} ms pass`, () => Effect.runPromise(engine.clock.adjust(millis))),
 		};
 	},
@@ -78,5 +80,9 @@ export function aliceRemembered(grants: readonly string[] = ["notes.read", "note
 		engine.client.remember(providerSession("alice", grants, HOUR)),
 	);
 }
+
+export const aliceStoredResults = rememberedSessions.trait("device", "the device holds alice's stored query results", (engine) =>
+	Effect.sync(() => engine.client.queries.users.set("alice", new Map([["notes", { key: "notes", used: 1, value: "[]" }]]))),
+);
 
 export const rememberedFor = HOUR;

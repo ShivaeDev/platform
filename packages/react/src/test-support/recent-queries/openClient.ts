@@ -2,6 +2,8 @@ import { Deferred, Effect, Layer, Queue, Schema, Stream } from "effect";
 import { makeClient } from "@shivaedev/contract/bind.ts";
 import { contract } from "@shivaedev/contract/contract.ts";
 import { query } from "@shivaedev/contract/operation.ts";
+import type { QueryReadDenied } from "@shivaedev/contract/readPolicyErrors.ts";
+import { NotFound } from "@shivaedev/errors/taxonomy.ts";
 import { layerMemoryProtocol } from "@shivaedev/test-kits/contract/testing.ts";
 import { storyRuntime } from "#test/storyRuntime.ts";
 
@@ -11,13 +13,14 @@ const Notes = contract("recentNotes", {
 			payload: { id: Schema.String },
 			readPolicy: () => Effect.succeed(true),
 			reads: () => [],
+			rejections: { NotFound },
 			success: Schema.String,
 		}),
 	],
 });
 
 export const openClient = Effect.gen(function* () {
-	const requests = yield* Queue.unbounded<Deferred.Deferred<string>>();
+	const requests = yield* Queue.unbounded<Deferred.Deferred<string, NotFound | QueryReadDenied>>();
 	const closed = yield* Queue.unbounded<void>();
 	const reads: string[] = [];
 	const subscriptions = { open: 0 };
@@ -27,7 +30,7 @@ export const openClient = Effect.gen(function* () {
 				Effect.gen(function* () {
 					subscriptions.open += 1;
 					reads.push(queries[0]?.payload.id ?? "missing id");
-					const reply = yield* Deferred.make<string>();
+					const reply = yield* Deferred.make<string, NotFound | QueryReadDenied>();
 					yield* Queue.offer(requests, reply);
 					return { _tag: "Result" as const, query: "get" as const, queryIndex: 0, value: yield* Deferred.await(reply) };
 				}),

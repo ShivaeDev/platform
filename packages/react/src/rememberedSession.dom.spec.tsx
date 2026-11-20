@@ -1,6 +1,6 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { aliceRemembered, rememberedFor, rememberedSessions } from "#test/remembered-session/story.tsx";
+import { aliceRemembered, aliceStoredResults, rememberedFor, rememberedSessions } from "#test/remembered-session/story.tsx";
 
 rememberedSessions.it(
 	"a returning person's shell renders from the remembered session while the check is on the wire",
@@ -125,5 +125,34 @@ rememberedSessions.it(
 			session: { expiresAt: new Date(2 * rememberedFor).toISOString(), id: "alice-session" },
 			user: { id: "alice", permissions: [{ name: "notes.read", strength: "any" }] },
 		});
+	},
+);
+
+rememberedSessions.it(
+	"a sign-out through SessionBoundary's own action wipes the memory and the stored results even when the check after it never answers",
+	[aliceRemembered(), aliceStoredResults],
+	function* ({ answers, launches, remembered, signOutAnswers, signsOut, storedResults }) {
+		yield* launches("boundary");
+		yield* answers("alice", ["notes.read"]);
+		yield* signsOut();
+
+		yield* signOutAnswers();
+
+		yield* outcomes([
+			["memory", () => remembered(), null],
+			["stored results", () => storedResults(), []],
+		]);
+	},
+);
+
+rememberedSessions.it(
+	"past the remembered expiry the launch wipes the stored results with the memory",
+	[aliceRemembered(), aliceStoredResults],
+	function* ({ launches, storedResults, timePasses }) {
+		yield* timePasses(rememberedFor);
+
+		yield* launches();
+
+		expect(yield* storedResults()).toEqual([]);
 	},
 );

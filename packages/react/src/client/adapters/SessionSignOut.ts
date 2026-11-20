@@ -7,10 +7,12 @@ export function SessionSignOut({
 	action,
 	children,
 	recheck,
+	wipe,
 }: {
 	readonly action: Atom.Atom<AsyncResult.AsyncResult<unknown, unknown>>;
 	readonly children?: ReactNode;
 	readonly recheck: () => void;
+	readonly wipe: () => void;
 }): ReactNode {
 	const result = useAtomValue(action);
 	const [held, hold] = useState(false);
@@ -20,8 +22,9 @@ export function SessionSignOut({
 	}
 	useEffect(() => {
 		if (held && AsyncResult.isSuccess(result) && !result.waiting) {
+			wipe();
 			recheck();
 		}
-	}, [held, result, recheck]);
+	}, [held, result, recheck, wipe]);
 	return blocked ? null : children;
 }

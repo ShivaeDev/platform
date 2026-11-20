@@ -1,5 +1,7 @@
 import { Clock, Context, Data, Effect, Option, Schema } from "effect";
 import { Permission } from "@shivaedev/access/permission.ts";
+import { clearStoredQueries } from "@shivaedev/contract/adapters/storedQueryAccess.ts";
+import { QueryStorageProvider } from "@shivaedev/contract/QueryStorage.ts";
 
 export class SessionMemoryUnavailable extends Data.TaggedError("SessionMemoryUnavailable")<{ readonly cause: unknown }> {}
 
@@ -27,9 +29,14 @@ const Stored = Schema.fromJsonString(RememberedSession);
 const decodeStored = Schema.decodeEffect(Stored);
 const encodeStored = Schema.encodeEffect(Stored);
 
+// A Layer that also supplies query storage gets the device's stored query results wiped with the memory, by every path that forgets.
 export const forgetSession: Effect.Effect<void, never, SessionMemory> = Effect.gen(function* () {
 	const memory = yield* SessionMemory;
 	yield* Effect.ignore(memory.clear);
+	const queries = yield* Effect.serviceOption(QueryStorageProvider);
+	if (Option.isSome(queries)) {
+		yield* clearStoredQueries().pipe(Effect.provideService(QueryStorageProvider, queries.value));
+	}
 });
 
 const stored = Effect.gen(function* () {

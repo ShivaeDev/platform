@@ -35,6 +35,25 @@ for (const source of ["screen", "loader"] as const) {
 	);
 }
 
+recentQueries.it(
+	"a fresh route match whose query holds a retained value commits before the subscription answers its revalidation",
+	[signedIn],
+	function* ({ answer, leave, open, openRoute, shown, untilRetained }) {
+		yield* open();
+		yield* answer("Alice's original note");
+		yield* leave();
+		yield* untilRetained();
+
+		yield* openRoute();
+
+		expect(yield* shown()).toEqual({ stale: true, title: "Alice's original note" });
+
+		yield* answer("Alice's fresh note");
+
+		expect(yield* shown()).toEqual({ stale: false, title: "Alice's fresh note" });
+	},
+);
+
 for (const options of [{}, { timeToLive: "2 seconds" }] as const) {
 	recentQueries.it(
 		`returning after ${options.timeToLive ?? "five minutes"} starts with an empty load`,
