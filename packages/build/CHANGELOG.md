@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.3.0 - 2026-11-20
+
+### Changed
+
+- Require Effect 4.1.4 and its matching platform packages.
+
+### Breaking
+
+- `generate` refuses an operation whose `run` success holds a `Redacted` anywhere, including in a field of an exported Schema or Model class that it used to write into the wire by name. Such a class, for example a stored row with a `Model.Sensitive(Schema.RedactedFromValue(...))` field, sent its value to the browser in plain text. The refusal names the field's path and says the field never leaves the server. Return a public shape of the row instead, such as `{ id: row.id, owner: row.owner }`. Payloads may still carry a `Redacted`.
+
 ## 0.2.3 - 2026-11-19
 
 ### Changed

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.78.5 - 2026-11-20
+
+### Changed
+
+- Require Effect 4.1.4 and its matching platform packages.
+- `noShadowRestrictedNames` no longer reports Effect's root modules named after a global (`Array`, `BigInt`, `Boolean`, `Function`, `Number`, `RegExp`, `String`, `Symbol`) when they are imported from `effect` under their own names. Every other shadowing of a restricted name, including those names imported from another module or renamed from another `effect` export, is still reported.
+
 ## 0.78.4 - 2026-11-19
 
 ### Changed

@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.46.4 - 2026-11-20
+
+### Changed
+
+- Require Effect 4.1.4 and its matching platform packages.
+- `create-app resource` writes the module's registration with `migrations: migrationsIn(import.meta.dirname)` and without a `name`.
+- A generated resource declares its repository as `makeRepository(StoredItem, { collection: keys })`, taking its table name from the collection and its ID column and span names from the defaults.
+
 ## 0.46.3 - 2026-11-19
 
 ### Changed

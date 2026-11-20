@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.9.20 - 2026-11-20
+
+### Changed
+
+- Require Effect 4.1.4 and its matching platform packages.
+- a stdio server whose client closes its input interrupts in-flight tools, releases their resources and exits with code 0 instead of 130. An invalid numeric tool argument is reported against Effect 4.1.4's JSON number codec, such as `Expected "Infinity" | "-Infinity" | "NaN"`, instead of `Expected number`.
+
 ## 0.9.19 - 2026-11-19
 
 ### Changed

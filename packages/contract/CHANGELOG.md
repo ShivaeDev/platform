@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.49.0 - 2026-11-20
+
+### Added
+
+- `operationKind(rpc)` from `@shivaedev/contract/operationKind.ts` tells whether an RPC reads or writes.
+- a contract's `declaration.subject` records the subject declaration it names.
+
+### Changed
+
+- Require Effect 4.1.4 and its matching platform packages.
+- a handler may also fail with an error that one of its contract's RPC middleware declares, as native Effect 4.1.4 `Rpc` handlers do. Any other undeclared error still fails compilation.
+
+### Breaking
+
+- `ChangesClient` moves from `automaticLive.ts` to `adapters/erasedClient.ts`, and `automaticLive` takes the contract's `AtomRpcClient<unknown, string, Rpc.Any>`. `liveSyncRequest` takes a flat client of `Rpc.Any | LiveSyncRpc` (`LiveSyncRpc` from `liveSyncRpc.ts`) and returns the sync command's typed Effect. Import `ChangesClient` from its new module; a client made by `makeClient` or `RpcClient.make` over a group that includes `liveSyncRpc` already has the new type.
+- `SubjectDeclaration["middleware"]` may now fail, and `subjectLayers(group)` carries that failure in its error channel. A custom native RPC host that builds `subjectLayers(group)` handles or propagates the declarations' start-time failures, such as `DelegationRuleMissing`; hosts built with `appHost` need no change.
+- An operation written with `run` no longer accepts `success` or `rejections`; its module's wire supplies both. Delete the two fields from every `query(name, { ..., *run })` and `command(name, { ..., *run })`. An operation declared without `run` keeps them, as before.
+- A run-form command's `invalidates` no longer receives the result: it is `invalidates(payload, viewer?)`. Move keys computed from the result into `run` and return through `commandResult` from `@shivaedev/contract/commandResult.ts`: change `invalidates: (_draft, note) => [notes.item(note.id)]` to `return yield* commandResult({ invalidates: [notes.item(note.id)], result: note })` at the end of `run`. Those keys are published on the server after success and reach live subscriptions; they do not enter the browser's `invalidates`. A command whose `invalidates` read the viewer from its third argument reads it from the second. `clientContract`'s `commands` take the same `invalidates(payload, viewer?)`; files written by `@shivaedev/build` copy the operation's `invalidates` and need only `pnpm generate`.
+- `defineModule` requires `wire`. A module without one passes its generated wire, as in `defineModule({ ..., wire: notesWire })` with `notesWire` from `#generated/modules/<module>/<Module>.ts`, or writes `wire: { <operation>: { rejections: { ... }, success: <schema> } }` by hand for each operation that returns a value or raises a rejection. An operation missing from the wire is `OperationMissingFromWire` when its `run` returns a value or raises a rejection; `OperationFailsOutsideItsRejections` no longer exists.
+- `ResultNeedsDeclaredSuccess`, `RunDeclaration`'s success and rejection parameters, `SuccessSchema`, `Pending`, `RejectionProblem` and the problems `SuccessDiffersFromRun`, `SuccessClassNotReturned`, `ArrayMutabilityDiffers`, `RunFailsOutsideRejections`, `RejectionsRunNeverRaises`, `RejectionClassDiffers` and `RejectionAutomatic` are removed; a stale wire still reports `WireSuccessStale` or `WireRejectionsStale`. `successProof.ts` is now `wireProof.ts`, exporting `SuccessDiffers` and `RejectionsDiffer`.
+
 ## 0.48.0 - 2026-11-19
 
 ### Added
