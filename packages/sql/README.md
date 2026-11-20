@@ -212,6 +212,27 @@ This mark differs from a `sensitive: true` annotation, which [`@shivaedev/errors
 
 Only `serverOnly` refuses the wire. `Model.Sensitive(Schema.RedactedFromValue(schema))` and `Model.Sensitive(schema)` leave the field out of the JSON variants, but the class itself encodes the plain value, so a contract that sends the class sends it; do not use them for a field that must stay on the server.
 
+#### The field that names a row's owner
+
+To export a person's data or erase their account, an application has to know which rows belong to them. Mark the one field that holds the owning person's user id with `owner` from `@shivaedev/sql/owner.ts`; identity exports and erases a person's owned rows from these marks, so a new table is covered once its model marks its owner:
+
+```ts
+import { Schema } from "effect";
+import { Model } from "effect/schema";
+import { bucket } from "@shivaedev/changes/buckets.ts";
+import { owner } from "@shivaedev/sql/owner.ts";
+
+class Note extends Model.Class<Note>("Note")({
+	id: Model.Generated(Schema.Number),
+	title: Schema.String,
+	userId: owner(bucket(Schema.NullOr(Schema.String))),
+}) {}
+```
+
+`owner(schema)` is a schema annotation like `bucket`, so a field can carry both marks and keeps both meanings. The field decodes to the user id string and may be nullable. Building a repository fails with `OwnerFieldError`, naming the table and the fields, when a model marks two owner fields or marks a `serverOnly` field as owner.
+
+Every repository built with `makeRepository` or `makeOrderedChildren` reports its model to `RepositoryModels` from `@shivaedev/sql/RepositoryModels.ts` as it is built: the table and the model, and for an owned model the owner field and its column, both named as the client's SQL name transform stores them. Inside an operation served by `appHost`, `(yield* RepositoryModels).owned` reads back every owned model the host built; outside a host it is empty. A table the application reaches only through raw SQL is covered once it has a repository on a model with an owner mark.
+
 ### Share a table's repository and domain reads between services
 
 Use `defineRepository` from `@shivaedev/sql/defineRepository.ts` to give the table's repository and its domain operations one native Effect service and Layer. Its initializer returns the whole public shape: values, repositories and functions are all allowed. Services declare that repository tag in `requires`, then read it from the environment. Keep repository construction out of each service's initializer.
@@ -1073,7 +1094,7 @@ Import the module that defines the name; there is no root entry.
 - `@shivaedev/sql/defineRepository.ts`: `defineRepository({ id, initialize })` — Native Context service and `.layer` for a shared repository shape; the initializer's dependencies, errors and scoped resources belong to its Layer.
 - `@shivaedev/sql/repository.ts`: `makeRepository(model, options)` — `collection` (required for bucket models, and it names the table) or `tableName`, scalar or composite `idColumn` (defaults to `"id"` when the model has that field), `spanPrefix` (defaults to the table name), optional `versionColumn`, `conflictColumns` and `conflictWhere`; requires native `SqlClient`.
 - `@shivaedev/sql/makeOrderedChildren.ts`: `makeOrderedChildren(model, options)` — `tableName`, `parentColumn`, `parentTable` and `positionColumn`, `idColumn` (defaults to `"id"` when the model has that field), `parentIdColumn` (defaults to `"id"`), `spanPrefix` (defaults to the table name) and optional `versionColumn`; returns `append`, `move` and `reorder` and requires native `SqlClient`.
-- `@shivaedev/sql/RepositoryModels.ts`: `RepositoryModels` — Reference that `makeRepository` and `makeOrderedChildren` call with their model while they are built; the application host provides it to mask the model's sensitive fields in every diagnostic, and its default does nothing.
+- `@shivaedev/sql/RepositoryModels.ts`: `RepositoryModels`, `RepositoryModel`, `OwnedModel`, `ModelOwner` — Reference that `makeRepository` and `makeOrderedChildren` call with `{ model, table, owner }` while they are built, and whose `owned` reads back the models with an owner field; the application host provides it to mask the model's sensitive fields in every diagnostic and to collect the owned models, and its default records nothing and reads back none.
 - `@shivaedev/sql/repository.ts`: `OptimisticConcurrencyError` — Typed stale or missing-row failure for versioned writes, with `tableName`, `id`, `expectedVersion`, `reason: "missing" | "stale"`.
 - `@shivaedev/sql/allRows.ts`: `allRows` — Filter for `delete` and `deleteBatched` that removes every row; both refuse a filter without a defined entry.
 - `@shivaedev/sql/tupleIn.ts`: `tupleIn(model, fields, tuples, types)` — Filter entry matching two or more fields together against a list of tuples, for `where` in reads and unversioned deletes.
@@ -1093,7 +1114,9 @@ Import the module that defines the name; there is no root entry.
 - `@shivaedev/sql/postgresChanges.ts`: `postgresChanges(options)` — Scoped PostgreSQL LISTEN/NOTIFY Layer for commit-bound invalidation.
 - `@shivaedev/sql/repositoryCollection.ts`: `BucketRegistrationError` — Registration failure with table, collection and bucket field names and invalid tuple columns.
 - `@shivaedev/sql/repositoryCollection.ts`: `ServerOnlyKeyError` — Repository build failure naming the server-only fields used as an ID column, bucket or tuple bucket column.
-- `@shivaedev/sql/repositoryCollection.ts`: `RepositoryBuildError` — The failures `makeRepository` can fail with: `BucketRegistrationError | ServerOnlyKeyError`.
+- `@shivaedev/sql/repositoryCollection.ts`: `OwnerFieldError` — Repository build failure naming the table and the fields when a model marks two owner fields or a server-only owner field.
+- `@shivaedev/sql/repositoryCollection.ts`: `RepositoryBuildError` — The failures `makeRepository` can fail with: `BucketRegistrationError | OwnerFieldError | ServerOnlyKeyError`.
+- `@shivaedev/sql/owner.ts`: `owner(schema)` — Annotation marking the one field that holds the owning person's user id, reported with the table and owner column through `RepositoryModels`.
 - `@shivaedev/sql/serverOnly.ts`: `serverOnly(schema)` — Model field stored as the plain value, read as `Redacted`, absent from JSON variants, and refused by every encode of the select variant.
 - `@shivaedev/sql/changes.ts`: `changes(covers)`, `ChangeDeclaration` — Declares a raw writer's table, record and bucket keys once, with a `record(options?)` action.
 - `@shivaedev/test-kits/sql/testing.ts`: `withChangeCoverage(body, { covers })`, `expectPublished(keys)`, `UnannouncedWrites`, `PublishedKeysMismatch` — Test assertions that every write announced its keys and that the expected keys were published.

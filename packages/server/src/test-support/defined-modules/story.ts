@@ -12,6 +12,7 @@ import { appModules } from "#appModules.ts";
 import { Api, draftsModule, handWrittenNotesModule, notesModule, replacedNotesModule } from "#test/defined-modules/features.ts";
 import { Greetings, greetingsModule } from "#test/defined-modules/greetings.ts";
 import { Members, membersModule, privateJoinMembersModule } from "#test/defined-modules/members.ts";
+import { OwnedData, ownedDataModule } from "#test/defined-modules/ownedData.ts";
 import { TestRoles } from "#test/permissions.ts";
 import { databaseUrl, postgres } from "#test/postgres.ts";
 
@@ -46,7 +47,7 @@ export const definedModulesHost = storyKit({
 	after: {
 		configured: Effect.fnUntraced(function* (state: State) {
 			const database = yield* PostgresTestDatabase;
-			const composed = yield* appModules([state.drafts, state.notes, state.members, state.greetings]).pipe(
+			const composed = yield* appModules([state.drafts, state.notes, state.members, state.greetings, ownedDataModule]).pipe(
 				Effect.map(Option.some),
 				Effect.catchTag("DuplicateModuleQueue", (refusal) =>
 					Effect.sync(() => {
@@ -130,6 +131,11 @@ export const definedModulesHost = storyKit({
 				Effect.provide(RpcClient.layerProtocolHttp({ url: state.url }).pipe(Layer.provide([FetchHttpClient.layer, RpcSerialization.layerNdjson]))),
 			);
 		}
+		function ownedDataClient() {
+			return RpcClient.make(OwnedData, { flatten: true }).pipe(
+				Effect.provide(RpcClient.layerProtocolHttp({ url: state.url }).pipe(Layer.provide([FetchHttpClient.layer, RpcSerialization.layerNdjson]))),
+			);
+		}
 		return {
 			auditMember: (id: number) => {
 				story.tell(`alice audits member ${id} through members.audit, whose handler dies holding the member's row`);
@@ -155,6 +161,14 @@ export const definedModulesHost = storyKit({
 				),
 			loggedMember: () =>
 				Effect.sync(() => state.logs.find(({ message }) => message[0] === "member shown")?.message[1] ?? "no log mentions a shown member"),
+			ownedModels: () => {
+				story.tell("an operation served by the host reads the owned models its repositories reported");
+				return answered(
+					Effect.flatMap(ownedDataClient(), (call) =>
+						Effect.map(call("ownedData.owned", {}), (owned) => [...owned].sort((left, right) => (left.table < right.table ? -1 : 1))),
+					),
+				);
+			},
 			readDraft: (title: string) => {
 				story.tell(`a visitor reads the draft ${title} through drafts.read`);
 				return answered(Effect.flatMap(client("a visitor"), (call) => call("drafts.read", { title })));

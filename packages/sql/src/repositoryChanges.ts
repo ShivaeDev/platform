@@ -1,23 +1,36 @@
-import { Effect, Option, Schema } from "effect";
+import { Effect, Option } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
+import type { Model } from "effect/schema";
 import { SqlClient } from "effect/sql";
 import { declaredBuckets, decodeBucketValue } from "@shivaedev/changes/buckets.ts";
 import { collectionInvalidationKeys, compositeId, type Identity, invalidationKeys, type Key, recordKey } from "@shivaedev/changes/keys.ts";
 import { ChangeDeclarations } from "#ChangeDeclarations.ts";
+import { declaredOwner } from "#owner.ts";
 import { RepositoryModels } from "#RepositoryModels.ts";
+import { sqlNameTransforms } from "#sqlNameTransforms.ts";
 import { invalidateOnCommit, transact } from "#transact.ts";
 
 export type RepositoryChanges = Effect.Success<ReturnType<typeof repositoryChanges>>;
 
 export const repositoryChanges = Effect.fnUntraced(function* (
+	model: Model.Any,
 	table: string,
 	columns: readonly string[],
-	fields: Schema.Struct.Fields = {},
 	tuples: Readonly<Record<string, readonly string[]>> = {},
 ) {
 	const sql = yield* SqlClient.SqlClient;
+	const { fields } = model;
 	// Every repository builds its changes once here, so this is where the host learns the model it is built on.
-	yield* (yield* RepositoryModels).declare(Schema.Struct(fields));
+	const ownerField = yield* declaredOwner(table, fields);
+	const names = yield* sqlNameTransforms;
+	function storedName(name: string) {
+		return names?.transformQueryNames?.(name) ?? name;
+	}
+	yield* (yield* RepositoryModels).declare({
+		model,
+		owner: ownerField === undefined ? undefined : { column: storedName(ownerField), field: ownerField },
+		table: storedName(table),
+	});
 	const declared = [
 		...declaredBuckets(fields).map(({ field }) => ({ columns: [field], field, tuple: false })),
 		...Object.entries(tuples).map(([field, tupleColumns]) => ({ columns: tupleColumns, field, tuple: true })),
