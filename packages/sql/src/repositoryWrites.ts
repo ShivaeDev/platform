@@ -2,6 +2,7 @@ import { Effect, Schema } from "effect";
 import type { Model } from "effect/schema";
 import { SqlClient, SqlSchema } from "effect/sql";
 import { storageSchema } from "#adapters/storageSchema.ts";
+import { restrictingFilter } from "#deleteFilter.ts";
 import type { RepositoryChanges } from "#repositoryChanges.ts";
 import { makeFilter } from "#repositoryFilter.ts";
 import { selectedUpdate } from "#repositoryUpdate.ts";
@@ -77,7 +78,7 @@ export const repositoryWrites = Effect.fnUntraced(function* (
 	function remove(input: unknown) {
 		return idColumns.length === 1 && isKey(input)
 			? removeByKey(input)
-			: Effect.flatMap(filterRecord(input), (filter) =>
+			: Effect.flatMap(Effect.flatMap(filterRecord(input), restrictingFilter), (filter) =>
 					Effect.flatMap(where(filter, true, true), (clause) =>
 						sql`delete from ${sql(tableName)} where ${clause} returning ${changes.returning()}`.pipe(Effect.tap(changes.record), Effect.asVoid),
 					),

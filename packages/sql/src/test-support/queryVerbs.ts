@@ -1,6 +1,7 @@
 import * as PgTypes from "@effect/sql-pg/PgTypes";
 import { BigDecimal, DateTime, Effect, Exit, Option, Predicate } from "effect";
 import * as Statement from "effect/sql/Statement";
+import { allRows } from "#allRows.ts";
 import type { Body, Step } from "#test/body.ts";
 import { TABLES } from "#test/createQueryTables.ts";
 import { attempt, outcomeOf } from "#test/outcome.ts";
@@ -105,6 +106,7 @@ export function queryVerbs(engine: Engine, tell: (line: string) => void) {
 				),
 			),
 		countPayments: (query: Query<Engine["payments"]["count"]>) => read(`the payments are counted ${described(query)}`, engine.payments.count(query)),
+		deleteEveryPayment: () => read("every payment is deleted", engine.payments.delete(allRows)),
 		deleteLedgerEntries: (where: Query<Engine["ledger"]["delete"]>) =>
 			read(`the ledger entries ${described(where)} are deleted`, engine.ledger.delete(where)),
 		deletePartialRows: (where: Query<Engine["partialRows"]["delete"]>) =>

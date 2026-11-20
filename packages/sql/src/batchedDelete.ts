@@ -3,8 +3,9 @@ import type { Model } from "effect/schema";
 import { SqlClient, SqlSchema } from "effect/sql";
 import type { SqlError } from "effect/sql/SqlError";
 import type { Fragment } from "effect/sql/Statement";
+import { type DeleteFilter, restrictingFilter } from "#deleteFilter.ts";
 import type { RepositoryChanges } from "#repositoryChanges.ts";
-import { type FindManyFilter, makeFilter } from "#repositoryFilter.ts";
+import { makeFilter } from "#repositoryFilter.ts";
 import { tryPurgeLock } from "#tryPurgeLock.ts";
 
 export interface PurgeLimits {
@@ -54,7 +55,7 @@ export const runPurgeBatches = Effect.fnUntraced(function* <E, R>(
 });
 
 export interface BatchedDeleteOptions<TModel extends Model.Any> extends PurgeLimits {
-	readonly where: FindManyFilter<TModel>;
+	readonly where: DeleteFilter<TModel>;
 }
 
 export interface BatchedDelete<TModel extends Model.Any> {
@@ -91,7 +92,7 @@ export const makeBatchedDelete = Effect.fnUntraced(function* (
 
 	return (options: BatchedDeleteOptions<Model.Any>) =>
 		Effect.gen(function* () {
-			const predicate = yield* Effect.cached(where(options.where, true, true));
+			const predicate = yield* Effect.cached(Effect.flatMap(restrictingFilter(options.where), (filter) => where(filter, true, true)));
 			return yield* runPurgeBatches(
 				tableName,
 				options,

@@ -2,6 +2,7 @@ import { Effect, Queue, type Schema } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import type { SqlError } from "effect/sql/SqlError";
 import { readKeys } from "@shivaedev/changes/keys.ts";
+import { allRows } from "@shivaedev/sql/allRows.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import type { AlreadyDone, StreamConflict, UnsupportedEventVersion } from "#errors.ts";
@@ -42,7 +43,7 @@ export const events = storyKit({
 		catchUp: () => engine.store.catchUp,
 		catchUpAudit: () => engine.auditStore.catchUp,
 		commitEarlyWriter: () => engine.release.early,
-		eraseRows: () => engine.rows.delete({}),
+		eraseRows: () => engine.rows.delete(allRows),
 		history: (stream = "alice") => engine.store.read(stream).pipe(Effect.map((entries) => entries.map(({ value }) => value))),
 		liveRows: () => Queue.take(engine.live).pipe(Effect.timeout("5 seconds")),
 		raceRebuildAndCatchUp: () => raceRebuildAndCatchUp(engine),

@@ -1,8 +1,9 @@
-import { Context, DateTime, Effect, Redacted, Schema, SchemaGetter } from "effect";
+import { Context, DateTime, Effect, Option, Redacted, Schema, SchemaGetter } from "effect";
 import { Model } from "effect/schema";
 import type { SqlClient } from "effect/sql";
 import type { SqlError } from "effect/sql/SqlError";
 import { expectTypeOf, it } from "vitest";
+import { allRows } from "#allRows.ts";
 import { makeRepository } from "#repository.ts";
 import type { BucketRegistrationError, ServerOnlyKeyError } from "#repositoryCollection.ts";
 import { serverOnly } from "#serverOnly.ts";
@@ -97,6 +98,13 @@ const program = Effect.gen(function* () {
 	expectTypeOf<Effect.Success<typeof deleted>>().toEqualTypeOf<void>();
 	expectTypeOf<Effect.Services<ReturnType<typeof plain.delete>>>().toEqualTypeOf<FilterEncoding>();
 	plain.delete(1);
+	plain.delete(allRows);
+	// @ts-expect-error A delete needs at least one defined filter entry.
+	plain.delete({});
+	const maybeKind = Option.getOrUndefined(Option.some("x"));
+	// @ts-expect-error A delete whose only entry may be undefined could match every row.
+	plain.delete({ kind: maybeKind });
+	plain.delete({ id: 1, kind: maybeKind });
 	// @ts-expect-error Delete list entries use decoded field values.
 	plain.delete({ value: { in: ["1"] } });
 	// @ts-expect-error Delete filters must name model fields.
