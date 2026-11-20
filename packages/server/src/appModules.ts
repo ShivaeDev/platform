@@ -43,9 +43,10 @@ type Ports<TModules extends readonly AppModule[]> = Layers<TModules, "ports">;
 type RequestLayer<TModule> = TModule extends { readonly requestServices: infer TLayer extends Layer.Any } ? TLayer : never;
 type RequestServices<TModules extends readonly AppModule[]> = RequestLayer<TModules[number]>;
 type Services<TModules extends readonly AppModule[]> = Layers<TModules, "services">;
-type MigrationRequirements<TModules extends readonly AppModule[]> = Effect.Services<TModules[number]["migrations"]["loader"]>;
+type Migrations<TModules extends readonly AppModule[]> = ModuleField<TModules[number], "migrations">;
+type MigrationRequirements<TModules extends readonly AppModule[]> = Effect.Services<ModuleField<Migrations<TModules>, "loader">>;
 type Components<T> = T extends readonly (infer TComponent extends SchemaComponent<unknown, unknown>)[] ? TComponent : never;
-type ModuleComponents<TModules extends AppModule> = Components<ModuleField<TModules["migrations"], "components">>;
+type ModuleComponents<TModules extends readonly AppModule[]> = Components<ModuleField<Migrations<TModules>, "components">>;
 
 export function appModules<const TModules extends readonly AppModule[], R = never, E = never, TRequirements = never>(
 	modules: TModules &
@@ -76,7 +77,7 @@ export function appModules<const TModules extends readonly AppModule[], R = neve
 		>;
 		readonly migrations: {
 			readonly loader: Migrator.Loader<MigrationRequirements<TModules>>;
-			readonly components: readonly ModuleComponents<TModules[number]>[];
+			readonly components: readonly ModuleComponents<TModules>[];
 		};
 	},
 	DuplicateModuleQueue
@@ -106,9 +107,9 @@ const composeModules = Effect.fnUntraced(function* (modules: readonly AppModule[
 		for (const queue of module.queues ?? []) {
 			const firstModule = owners.get(queue.name);
 			if (firstModule !== undefined) {
-				return yield* new DuplicateModuleQueue({ firstModule, queue: queue.name, secondModule: module.name });
+				return yield* new DuplicateModuleQueue({ firstModule, queue: queue.name, secondModule: moduleName(module) });
 			}
-			owners.set(queue.name, module.name);
+			owners.set(queue.name, moduleName(module));
 		}
 	}
 	const queues = modules.flatMap((module) => module.queues ?? []);
@@ -129,8 +130,10 @@ const composeModules = Effect.fnUntraced(function* (modules: readonly AppModule[
 			),
 		),
 		migrations: {
-			components: modules.flatMap((module) => module.migrations.components ?? []),
-			loader: Effect.all(modules.map((module) => module.migrations.loader)).pipe(Effect.map((entries) => entries.flat())),
+			components: modules.flatMap((module) => module.migrations?.components ?? []),
+			loader: Effect.all(modules.flatMap((module) => (module.migrations === undefined ? [] : [module.migrations.loader]))).pipe(
+				Effect.map((entries) => entries.flat()),
+			),
 		},
 		queues,
 		requestServices: Layer.mergeAll(Layer.empty, ...modules.map((module) => module.requestServices ?? Layer.empty)),
@@ -138,3 +141,7 @@ const composeModules = Effect.fnUntraced(function* (modules: readonly AppModule[
 		workers: Layer.mergeAll(Layer.empty, ...modules.map((module) => module.workers ?? Layer.empty)),
 	};
 });
+
+function moduleName(module: AppModule) {
+	return module.module === undefined ? module.name : module.module.declaration.name;
+}

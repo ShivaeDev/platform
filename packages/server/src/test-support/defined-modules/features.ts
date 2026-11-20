@@ -8,6 +8,7 @@ import { command, query } from "@shivaedev/contract/operation.ts";
 import { NotFound } from "@shivaedev/errors/taxonomy.ts";
 import { MaybeAuthenticated } from "@shivaedev/identity/middleware.ts";
 import type { AppModule } from "#AppModule.ts";
+import { notesMigrations } from "#test/defined-modules/src/server/notesMigrations.ts";
 import { replacedModuleHandlers } from "#test/replacedModuleHandlers.ts";
 
 const notes = collection("defined_notes", Schema.Number);
@@ -63,12 +64,6 @@ export const Drafts = contract("drafts", {
 	],
 });
 
-const notesMigrations = {
-	loader: Migrator.fromRecord({
-		"001_defined_notes": SqlClient.SqlClient.use((sql) => sql`create table defined_notes (id serial primary key, title text not null)`),
-	}),
-};
-
 export const draftsModule = {
 	group: Drafts,
 	handlers: Drafts.application.toLayer({
@@ -94,7 +89,7 @@ export const draftsModule = {
 	services: Layer.empty,
 } satisfies AppModule;
 
-export const notesModule = { migrations: notesMigrations, module: Notes, name: "notes", services: Layer.empty } satisfies AppModule;
+export const notesModule = { migrations: notesMigrations, module: Notes, services: Layer.empty } satisfies AppModule;
 
 const fakeNote = Notes.application.toLayer({
 	"notes.create": ({ title }) => Effect.succeed(title),

@@ -58,7 +58,6 @@ export const preferencesHost = Effect.fnUntraced(function* () {
 		{
 			migrations: { loader: Migrator.fromRecord({ "0001_preferences": accountPreferencesMigration }) },
 			module: AccountPreferences,
-			name: "accountPreferences",
 			services: accountPreferencesStore,
 		} satisfies AppModule,
 		{
@@ -67,7 +66,6 @@ export const preferencesHost = Effect.fnUntraced(function* () {
 				"clock.day": ({ instant }) => Effect.flatMap(AccountClock, (account) => account.logicalDay(instant)),
 				"clock.range": ({ day }) => Effect.flatMap(AccountClock, (account) => account.dayRange(day)).pipe(Effect.orDie),
 			}),
-			migrations: { loader: Migrator.fromRecord({}) },
 			name: "clock",
 			services: Layer.empty,
 		} satisfies AppModule,

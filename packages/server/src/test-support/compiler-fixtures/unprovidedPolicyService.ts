@@ -1,5 +1,4 @@
 import { Context, Effect, Layer, Option, Schema } from "effect";
-import { Migrator } from "effect/sql";
 import { defineModule } from "@shivaedev/contract/defineModule.ts";
 import { query } from "@shivaedev/contract/operation.ts";
 import type { AppModule } from "#AppModule.ts";
@@ -28,6 +27,6 @@ const Owned = defineModule({
 	wire: { title: { rejections: {}, success: Schema.String } },
 });
 
-const owned = { migrations: { loader: Migrator.fromRecord({}) }, module: Owned, name: "owned", services: Layer.empty } satisfies AppModule;
+const owned = { module: Owned, services: Layer.empty } satisfies AppModule;
 
 appModules([owned]);

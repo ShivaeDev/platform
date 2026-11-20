@@ -4,12 +4,12 @@ import { clockReadsTenSeconds, remoteAnswers } from "#test/http-client/answers.t
 import { httpClient } from "#test/http-client/story.ts";
 
 httpClient.it(
-	"a remote 503 names the status, method, host and path without the query, headers or body in its failure message",
+	"a remote 503 names the status, method, host, path and body excerpt without the query or headers in its failure message",
 	[remoteAnswers(HttpStatus.fromLiteral("ServiceUnavailable"), { "x-private-header": "header-secret" })],
 	function* ({ failureMessage, post, remoteHost }) {
 		yield* post();
 
-		expect(yield* failureMessage()).toBe(`HTTP 503: POST ${yield* remoteHost()}/answer`);
+		expect(yield* failureMessage()).toBe(`HTTP 503: POST ${yield* remoteHost()}/answer: {"item":"paper"}`);
 	},
 );
 

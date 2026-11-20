@@ -1,5 +1,4 @@
 import { Context, type Effect, Layer, Schema } from "effect";
-import { Migrator } from "effect/sql";
 import { defineModule } from "@shivaedev/contract/defineModule.ts";
 import { command } from "@shivaedev/contract/operation.ts";
 import type { AppModule } from "#AppModule.ts";
@@ -22,6 +21,6 @@ const Imports = defineModule({
 	wire: { importTitle: { rejections: {}, success: Schema.String } },
 });
 
-const imports = { migrations: { loader: Migrator.fromRecord({}) }, module: Imports, name: "imports", services: Layer.empty } satisfies AppModule;
+const imports = { module: Imports, services: Layer.empty } satisfies AppModule;
 
 appModules([imports]);
