@@ -100,15 +100,6 @@ type Automatic = "InternalServerError" | "ServiceUnavailable";
 type CreateTags = keyof typeof RunNotes.Create.rejections;
 export const automaticTags: [CreateTags, Automatic] extends [Automatic, CreateTags] ? true : false = true;
 export const RunContract = contract("runNotes", { commands: [RunNotes.Create, RunNotes.Import], queries: [RunNotes.Get, RunNotes.List] });
-export const RunCreateAnnounced = command("createAnnounced", {
-	invalidates: (_fields, note) => [RunNotes.runNotes.item(note.id)],
-	payload: RunNotes.NoteFields,
-	*run({ title }) {
-		const { id: userId } = yield* RunNotes.SessionUser;
-		return { id: 1, title, userId };
-	},
-	success: Schema.Struct({ id: Schema.Number, title: Schema.String, userId: Schema.String }),
-});
 export const RunDerived = query("derived", {
 	payload: { scope: Schema.String },
 	reads: () => [],
@@ -144,12 +135,22 @@ export const RunHistory = query("history", {
 		const change: { readonly kind: "moved" | "renamed"; readonly note?: string } = { kind: "renamed" };
 		return { author: new RevisionAuthor({ name: id }), change, latest: Option.some(revision), revisions };
 	},
-	success: Schema.Struct({
-		author: RevisionAuthor,
-		change: Schema.Union([Moved, Renamed]),
-		latest: Schema.Option(Revision),
-		revisions: Schema.Array(Revision),
-	}),
+});
+export const HistoryNotes = defineModule({
+	name: "historyNotes",
+	operations: [RunHistory],
+	requires: [RunNotes.SessionUser],
+	wire: {
+		history: {
+			rejections: {},
+			success: Schema.Struct({
+				author: RevisionAuthor,
+				change: Schema.Union([Moved, Renamed]),
+				latest: Schema.Option(Revision),
+				revisions: Schema.Array(Revision),
+			}),
+		},
+	},
 });
 
 export class SessionGuard extends RpcMiddleware.Service<SessionGuard, { provides: RunNotes.SessionUser }>()(
@@ -161,17 +162,16 @@ export const SessionNotes = defineModule({
 	operations: [
 		command("rename", {
 			payload: { id: Schema.Number, title: Schema.String },
-			rejections: { NotFound },
 			*run({ id, title }) {
 				const repository = yield* RunNotes.NotesRepository;
 				const { id: userId } = yield* RunNotes.SessionUser;
 				const note = yield* repository.findOne(id, userId);
 				return Option.isSome(note) ? title : yield* new NotFound({ message: "Note not found" });
 			},
-			success: Schema.String,
 		}),
 	],
 	requires: [RunNotes.NotesRepository],
+	wire: { rename: { rejections: { NotFound }, success: Schema.String } },
 });
 type Requirements<TLayer> = TLayer extends Layer.Layer<infer _A, infer _E, infer R> ? R : never;
 type SessionNotesNeeds = Requirements<ReturnType<typeof moduleHandlers<typeof SessionNotes>>>;

@@ -21,7 +21,7 @@ export const noteMigration = Effect.gen(function* () {
 });
 
 export const noteEngine = Effect.gen(function* () {
-	const rows = yield* makeRepository(Note, { collection: notes, idColumn: "id", spanPrefix: "Note", tableName: notes.name });
+	const rows = yield* makeRepository(Note, { collection: notes });
 	const audit = yield* makeRepository(Note, { idColumn: "id", spanPrefix: "Audit", tableName: "event_audit" });
 	const resetPause: { current?: { readonly entered: Deferred.Deferred<number>; readonly release: Deferred.Deferred<void> } } = {};
 	const projection = {

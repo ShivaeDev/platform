@@ -1,4 +1,5 @@
 import { Schema } from "effect";
+import { defineModule } from "#defineModule.ts";
 import { query } from "#operation.ts";
 import { NotesRepository, SessionUser } from "#test/runNotes.ts";
 
@@ -13,12 +14,18 @@ function plain(notes: readonly PlainNote[]): readonly { id: number; title: strin
 
 class Note extends Schema.Class<Note>("Note")({ id: Schema.Number, title: Schema.String }) {}
 
-query("listsPlainNotes", {
+const Operation = query("listsPlainNotes", {
 	reads: () => [],
 	*run() {
 		const repository = yield* NotesRepository;
 		const { id: userId } = yield* SessionUser;
 		return plain(yield* repository.findMany(userId));
 	},
-	success: Schema.Array(Note),
+});
+
+defineModule({
+	name: "listsPlainNotes",
+	operations: [Operation],
+	requires: [NotesRepository, SessionUser],
+	wire: { listsPlainNotes: { rejections: {}, success: Schema.Array(Note) } },
 });

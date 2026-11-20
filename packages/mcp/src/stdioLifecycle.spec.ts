@@ -17,7 +17,7 @@ for (const [protocol, kit] of [
 
 			yield* close();
 
-			expect(yield* exitStatus()).toBe("interrupted");
+			expect(yield* exitStatus()).toBe("exited 0");
 		},
 	);
 }
@@ -56,7 +56,7 @@ stdioStory.it(
 		yield* outcomes([
 			["tool releases its file", () => storedRelease(), "resource closed"],
 			["server stops", () => serverIsRunning(), false],
-			["server exits after interruption", () => exitStatus(), "interrupted"],
+			["server exits cleanly", () => exitStatus(), "exited 0"],
 		]);
 	},
 );

@@ -7,6 +7,7 @@ export const Accounts = defineModule({
 	name: "accounts",
 	operations: [ReturnsRow, ReturnsRows, ReturnsAccount, ReturnsSession, ReturnsToken],
 	requires: [],
+	wire: {},
 });
 `,
 	"src/modules/accounts/holders.ts": `import { Schema } from "effect";

@@ -9,11 +9,11 @@ const reading = {
 		const { id } = yield* SessionUser;
 		return id;
 	},
-	success: Schema.String,
 };
 
 defineModule({
 	name: "lists",
 	operations: [query("list", reading), query("list", { ...reading })],
 	requires: [SessionUser],
+	wire: { list: { rejections: {}, success: Schema.String } },
 });

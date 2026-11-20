@@ -71,11 +71,7 @@ class Payment extends Model.Class<Payment>("Payment")({
   }),
 }) {}
 
-const payments = yield* makeRepository(Payment, {
-  tableName: "payments",
-  idColumn: "id",
-  spanPrefix: "Payment",
-})
+const payments = yield* makeRepository(Payment, { tableName: "payments" })
 
 const rows = yield* payments.findMany({
   where: { amount: BigDecimal.fromStringUnsafe("9007199254740993.123456789012") },

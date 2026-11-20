@@ -8,9 +8,11 @@ import { collection } from "@shivaedev/changes/keys.ts";
 import { bind } from "#bind.ts";
 import { contract } from "#contract.ts";
 import { command, query, stream } from "#operation.ts";
-import { Denied, Guard, NoteMissing } from "#test/notes.ts";
+import { type Denied, Guard, NoteMissing } from "#test/notes.ts";
 
 const notes = collection("notes", Schema.Number);
+// Neither the stream nor its middleware declares this failure.
+class Undeclared extends Schema.TaggedError<Undeclared>()("Undeclared", {}) {}
 const Subscribe = stream("subscribe", {
 	payload: { id: Schema.Number },
 	reads: ({ id }) => [notes.item(id)],
@@ -42,7 +44,7 @@ contract("duplicate", { streams: [Subscribe, Subscribe] });
 // @ts-expect-error The element schema is required.
 stream("missing", { reads: () => [] });
 // @ts-expect-error A stream handler cannot return an undeclared rejection.
-Notes.of({ "notes.$changes": () => Stream.never, "notes.subscribe": () => Stream.fail(new Denied()) });
+Notes.of({ "notes.$changes": () => Stream.never, "notes.subscribe": () => Stream.fail(new Undeclared()) });
 
 const Unary = RpcGroup.make(
 	Rpc.make("notes.subscribe", { error: Subscribe.error, payload: Subscribe.payload, success: Subscribe.success }),

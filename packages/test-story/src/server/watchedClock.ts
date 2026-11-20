@@ -6,8 +6,9 @@ import * as Stream from "effect/Stream";
 import * as TestClock from "effect/testing/TestClock";
 import { type UntilOptions, until } from "#server/until.ts";
 
+// The watch extends the native instance, so its names must stay clear of the TestClock's own fields.
 export interface WatchedClock extends TestClock.TestClock {
-	readonly sleeps: Stream.Stream<Duration.Duration>;
+	readonly sleepStarts: Stream.Stream<Duration.Duration>;
 }
 
 export interface ScreenClock extends WatchedClock {
@@ -21,7 +22,7 @@ export const watchedClock = TestClock.testClockWith((clock) =>
 		const sleep = clock.sleep;
 		const previous = {
 			advanceNext: Object.getOwnPropertyDescriptor(clock, "advanceNext"),
-			sleeps: Object.getOwnPropertyDescriptor(clock, "sleeps"),
+			sleepStarts: Object.getOwnPropertyDescriptor(clock, "sleepStarts"),
 		};
 		const watching = {
 			advanceNext: Effect.suspend(() => {
@@ -42,7 +43,7 @@ export const watchedClock = TestClock.testClockWith((clock) =>
 							deadlines.delete(token);
 						}),
 				),
-			sleeps: Stream.fromEffectRepeat(Queue.take(starts)),
+			sleepStarts: Stream.fromEffectRepeat(Queue.take(starts)),
 		};
 		// Native TestClock tracks its live clock by instance identity.
 		return yield* Effect.acquireRelease(
@@ -63,14 +64,14 @@ export const watchedClock = TestClock.testClockWith((clock) =>
 );
 
 function isWatchedClock(clock: Clock.Clock): clock is WatchedClock {
-	return "sleeps" in clock;
+	return "sleepStarts" in clock;
 }
 
 export function untilTimer(interval: Duration.Input, options?: Omit<UntilOptions, "name">) {
 	const duration = Duration.fromInputUnsafe(interval);
 	return Clock.clockWith((clock) =>
 		isWatchedClock(clock)
-			? until(clock.sleeps, Duration.equals(duration), { ...options, name: `sleep for ${Duration.toMillis(duration)}ms` })
+			? until(clock.sleepStarts, Duration.equals(duration), { ...options, name: `sleep for ${Duration.toMillis(duration)}ms` })
 			: Effect.die(new Error('untilTimer requires a watched TestClock.\nhelp: Use clock: "test" on storyKit or provide watchedClock as Clock.')),
 	);
 }

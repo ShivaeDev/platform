@@ -1,4 +1,4 @@
-import { Effect, Exit, Fiber, Layer, Redacted, Scope } from "effect";
+import { Effect, Exit, Layer, Redacted, Scope } from "effect";
 import { Migrator, SqlClient } from "effect/sql";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { disconnectProxy } from "@shivaedev/test-sql/server/disconnectProxy.ts";
@@ -33,35 +33,23 @@ export const poolTeardown = storyKit({
 	runIf: databaseUrl !== undefined,
 	stages: [],
 	verbs: ({ gate, name, scope }, story) => {
-		let closing: Fiber.Fiber<void> | undefined;
+		let closed = false;
 		return {
 			backendQueries: Effect.fn("PoolTeardown.backendQueries")(function* () {
 				const sql = yield* SqlClient.SqlClient;
 				const rows = yield* sql<{ readonly query: string }>`select query from pg_stat_activity where application_name = ${name} order by query`;
 				return rows.map((row) => row.query);
 			}),
-			closeProgress: () =>
-				Effect.sync(() => {
-					if (closing === undefined) {
-						return "open";
-					}
-					return closing.pollUnsafe() === undefined ? "waiting for disconnects" : "closed";
-				}),
+			closeProgress: () => Effect.sync(() => (closed ? "closed" : "open")),
 			openConnections: () => Effect.sync(gate.openClients),
-			peerAcknowledgesDisconnects: () => {
-				story.tell("PostgreSQL's disconnect acknowledgements reach the application database");
-				return Effect.gen(function* () {
-					gate.release();
-					if (closing !== undefined) {
-						yield* Fiber.join(closing);
-					}
-				});
+			postgresEndsEveryBackend: () => {
+				story.tell("PostgreSQL ends every backend of the application database while the gate still holds its disconnect acknowledgements");
+				return Effect.promise(() => gate.allHeld).pipe(Effect.timeout("20 seconds"));
 			},
 			theDatabaseCloses: () => {
 				story.tell("the application database closes while PostgreSQL holds its disconnect acknowledgements");
-				return Effect.gen(function* () {
-					closing = yield* Scope.close(scope, Exit.void).pipe(Effect.forkScoped);
-					yield* Effect.promise(() => gate.disconnecting);
+				return Effect.map(Scope.close(scope, Exit.void), () => {
+					closed = true;
 				});
 			},
 		};
