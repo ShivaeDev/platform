@@ -73,6 +73,51 @@ const delegated = accountSubject({
 
 Pass `subject: delegated` to the contract. A delegated call selects the account with the `x-platform-subject` header of its own RPC message, which a bound client sets from the `subject` option (see [contract's declared subjects](https://github.com/ShivaeDev/platform/tree/main/packages/contract#whose-account-a-request-acts-on)); without one, the guard falls back to that header on the transport, such as a Node client's WebSocket upgrade, and omitting both selects the session account. The subject is the only header the guard takes from the message: the session, Origin, cookies and authorization still come from the transport, so a message cannot forge them. Because each call carries its own subject, one socket, including a browser's or Capacitor app's first-frame bearer socket, serves the actor's own data and any number of subjects at once. Acting on another account requires the named permission's `any` grant. An `own` grant does not authorize another account. A refusal reaches the native client as the declared error instance before the handler runs. Every stream, including a live query's changes stream, rechecks at the session's `streamRevalidationInterval` (30 seconds by default) with its own subject: the recheck looks the session up again, shared by every stream on the same socket, and repeats the permission check for that stream's subject, so a stream whose grant was withdrawn ends with the declared refusal. Reruns after a change keep the stream's subject. `Identity` and `SessionUser` still describe the actor when `Subject` describes another account. The session provider must supply the `SessionUserSchema` profile fields, as for `AuthenticatedUser`.
 
+#### Module delegation
+
+When an application decides who may act for whom, such as "a coach may read an assigned client's data in these modules but change none of it", declare the delegation once with `delegatedSubject` and name it as the `subject` of each module it covers. The declaration is browser-safe; it names the service that answers for it and the typed refusal a client receives:
+
+```ts
+import { Schema } from "effect";
+import { delegatedSubject } from "@shivaedev/identity/subject.ts";
+
+export class NotYourClient extends Schema.TaggedError<NotYourClient>()("NotYourClient", { client: Schema.String }) {}
+export const actsAsCoach = delegatedSubject({
+	service: "app/CoachDelegation",
+	refusal: NotYourClient,
+	deny: (client) => new NotYourClient({ client }),
+});
+
+export const Training = defineModule({ name: "training", operations: [Plan, SavePlan], requires: [SqlClient.SqlClient], subject: actsAsCoach });
+```
+
+On the server the application answers one question with a service whose id is the declaration's `service`. Its `allows` operation receives a `DelegationRequest`, `{ subject, module, operation, kind }`, and returns whether the actor may make that call; it may fail with an identity failure, such as `AuthUnavailable`, or the declared refusal. It reads the actor from `CurrentViewer` in `@shivaedev/contract/readPolicy.ts`, which the guard sets to the actor for each question; `CurrentViewer` is a reference, so the service lists only its own dependencies in `requires` and is registered once in the host's `services`:
+
+```ts
+import { Effect, Option } from "effect";
+import { SqlClient } from "effect/sql";
+import { CurrentViewer } from "@shivaedev/contract/readPolicy.ts";
+import type { DelegationRequest } from "@shivaedev/identity/subject.ts";
+
+export const allows = Effect.fn("CoachDelegation.allows")(function* ({ kind, subject }: DelegationRequest) {
+	const coach = yield* CurrentViewer;
+	if (Option.isNone(coach) || kind === "write") {
+		return false;
+	}
+	const sql = yield* SqlClient.SqlClient;
+	const assigned = yield* sql`select 1 from coach_assignments where coach = ${coach.value.id} and client = ${subject}`.pipe(Effect.orDie);
+	return assigned.length > 0;
+});
+```
+
+The service module is an ordinary `defineService({ id: "app/CoachDelegation", requires: [SqlClient.SqlClient], initialize: Effect.void, methods: () => ({ allows }) })`. The declaration's service is a requirement of the host, so the compiler rejects a host that serves a module naming `actsAsCoach` without that service's Layer; a host built anyway fails to start with `DelegationRuleMissing`, whose message names the service id to add to the host's services.
+
+The guard never asks when the subject is the actor: the actor's own data on the same socket always works. Otherwise it derives `kind` from the RPC at run time: a query, a live query's changes stream and any other stream are `read`, a command is `write`, and an RPC no contract marked counts as `write`. `module` and `operation` name the call. When `allows` returns `false`, the call fails with the declared refusal before the handler runs. A check that only one operation needs stays in that operation's handler and applies on top of the module's rule.
+
+Reads need no extra read policy: a query's read policy still sees the actor as `CurrentViewer`, so the default `signedIn` policy serves an approved subject, and the handler reads the client's data through `Subject`. A query whose policy compares the payload or viewer with an owner refuses a delegated actor as it did before.
+
+Each stream asks the rule again at every recheck, with its own subject. A delegated live query's changes stream also asks before each update it sends with data, so once the rule says `false` the stream ends with the declared refusal instead of delivering the next change. Between the revocation and the next change or recheck, the stream delivers nothing new and its client keeps showing the last result it had; a change whose rerun had already passed the question when the revocation committed can still arrive. An application stream other than a live query's changes stream is asked only at the recheck, every `streamRevalidationInterval` (30 seconds by default), and keeps sending until then.
+
 `appHost` installs `subjectResolverLayer()` from `@shivaedev/identity/server/subjectResolverLayer.ts` for session hosts. Custom native RPC hosts provide that Layer with their `SessionPolicy` and install `subjectLayers(group)` from `@shivaedev/contract/subjectLayers.ts` when building the native RPC server. The subject declaration includes authentication failures in the client's error type; it needs no separate authentication middleware.
 
 ### Account preferences and logical days

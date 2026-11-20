@@ -93,12 +93,13 @@ export function adminPage(page: {
 			query.readPolicy,
 		),
 	}));
+	// The declaration carries the subject, which the rebuilt contract guards each operation with; middleware applied to the whole
+	// contract is on every RPC, while a subject's middleware is per operation and never shared.
 	let protectedContract: PageGroup = contract(declaration.name, { ...declaration, queries });
-	const original = page.contract.requests.values().next().value;
-	if (original !== undefined) {
-		for (const middleware of original.middlewares) {
-			protectedContract = protectedContract.middleware(middleware);
-		}
+	const [first, ...rest] = page.contract.requests.values();
+	const shared = rest.reduce((common, rpc) => common.intersection(rpc.middlewares), new Set(first?.middlewares));
+	for (const middleware of shared) {
+		protectedContract = protectedContract.middleware(middleware);
 	}
 	const { permission, ...definition } = page;
 	return {
