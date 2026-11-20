@@ -283,7 +283,7 @@ const register = (body: { email: string; name: string; password: string }) =>
 		const created = yield* Effect.tryPromise(() => auth.api.signUpEmail({ body }));
 		yield* sql`insert into registrations (email) values (${created.user.email})`;
 		return created.user;
-	}).pipe(transact({ onSqlError: (error) => error }), Effect.scoped);
+	}).pipe(transact(), Effect.scoped);
 ```
 
 With `SqlClient`, `Reactivity` and `Store` provided, the auth and application rows commit or roll back together. The mount's `before` and `after` hook SQL shares that outer boundary too.

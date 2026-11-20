@@ -54,7 +54,7 @@ export const openHost = Effect.fnUntraced(function* (testing: PgBossTesting) {
 						return yield* new RetryAt({ at: DateTime.makeUnsafe(notBefore), reason: "Waiting for publication" });
 					}
 					yield* SqlClient.SqlClient.use((sql) => sql`insert into notes (title, written_at) values (${title}, ${writtenAt})`);
-				}).pipe(Effect.andThen(invalidateOnCommit(invalidationKeys([notes.list]))), transact({ onSqlError: (error) => error })),
+				}).pipe(Effect.andThen(invalidateOnCommit(invalidationKeys([notes.list]))), transact()),
 			),
 		],
 	}).pipe(

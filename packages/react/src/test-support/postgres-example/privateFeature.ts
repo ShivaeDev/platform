@@ -51,7 +51,7 @@ export function privateHandlers(table: string, beforeCommit: Effect.Effect<void,
 					yield* invalidateOnCommit(invalidationKeys([preferences.item(0)]));
 					yield* beforeCommit;
 					return title;
-				}).pipe(transact({ onSqlError: (error) => error }), Effect.catchTag("SqlError", Effect.die));
+				}).pipe(transact(), Effect.catchTag("SqlError", Effect.die));
 			}),
 		"preferences.self": () => read,
 	});

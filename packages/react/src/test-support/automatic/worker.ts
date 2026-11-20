@@ -21,7 +21,7 @@ const runtime = ManagedRuntime.make(
 					const rows = yield* repository;
 					const result = yield* rows
 						.update({ id: work.id, title: work.title })
-						.pipe(Effect.andThen(work.rollback ? Effect.fail("rollback") : Effect.void), transact({ onSqlError: (error) => error }), Effect.result);
+						.pipe(Effect.andThen(work.rollback ? Effect.fail("rollback") : Effect.void), transact(), Effect.result);
 					process.send?.({ _tag: "Handled", result: result._tag });
 				}),
 			),

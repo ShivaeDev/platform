@@ -44,7 +44,7 @@ export const applicationAuthTransactions = storyKit({
 				}
 				return response.status;
 			}).pipe(
-				transact({ onSqlError: (error) => error }),
+				transact(),
 				Effect.catchTag("RegistrationCancelled", (error) => Effect.succeed(error.status)),
 			),
 		signUpAlice: () => {
