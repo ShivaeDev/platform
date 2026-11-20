@@ -81,7 +81,7 @@ export function nestedDefinitions(source: ts.SourceFile): readonly NestedDefinit
 	function renderedIn(name: string, scope: ts.Node): boolean {
 		return rendered.some((reference) => reference.text === name && reference.pos >= scope.pos && reference.end <= scope.end);
 	}
-	return candidates.flatMap(({ definition, key, name, scope }) => {
+	return candidates.flatMap(({ definition, key, name, scope }): readonly NestedDefinition[] => {
 		if (!key && HOOK_NAME.test(name.text) && !ts.isClassLike(definition)) {
 			return [{ hook: true, name }];
 		}
