@@ -84,13 +84,13 @@ To add an app page, follow notes: write its operations once in a module such as 
 
 `/admin/users` lists names, email addresses, roles and sign-up times for callers with `users.read`. Callers with `roles.assign` choose each user's single role from the code-defined role set; the server refuses to remove its final role assigner. The bootstrap command creates an `owner` with all admin domain permissions. Role changes emit actor and timestamp logs through Effect and invalidate the user list after commit. Identity's role management adds Better Auth's `/admin/set-role`, `/admin/update-user` and `/admin/create-user` browser endpoints to `disabledPaths`, so role writes use the guarded native contract; the server-side bootstrap API remains available.
 
-When the worker finds pending migrations, the host logs `Waiting for database migrations`, then `Still waiting for database migrations` every 30 seconds, with pending migration IDs and names and component names and details. It logs `Database migrations current` when the worker can proceed, or `Timed out waiting for database migrations` before failing. An already current schema emits none of these host lines. The worker logs `Worker ready to take jobs` after registering handlers. These lines use Effect’s logger.
+When the worker finds pending migrations, the host logs `Waiting for database migrations`, then `Still waiting for database migrations` every 30 seconds, with pending migration IDs and names and component names and details. It logs `Database migrations current` when the worker can proceed, or `Timed out waiting for database migrations` before failing. An already current schema emits none of these host lines. `workerHost` logs `Worker ready to take jobs` after registering handlers. These lines use Effect’s logger.
 
 The browser entry point creates `makeAuth({ baseUrl })` and supplies it to `App`. Session checking and auth actions use that instance. Stories read a session through an auth client for their own HTTP host with the application kit’s `authClientSession(name)` verb.
 
 The TypeScript configuration keeps strict application checking and sets `skipLibCheck: true` for dependencies that declare unused runtime types.
 
-To export Effect spans, follow the quickstart's [Deploy section](https://github.com/ShivaeDev/platform/blob/main/docs/framework/quickstart.md#deploy); the host and worker provide the same `otlpTracing` Layer.
+To export Effect spans, follow the quickstart's [Deploy section](https://github.com/ShivaeDev/platform/blob/main/docs/framework/quickstart.md#deploy); `appHost` and `workerHost` both export through the server package's redacting OTLP pipeline.
 
 Write new tests as stories following the [story-testing skill](https://github.com/ShivaeDev/platform/blob/main/packages/skills/skills/story-testing/SKILL.md). The kit in [`src/modules/notes/test-support/application.ts`](src/modules/notes/test-support/application.ts) owns a disposable PostgreSQL database and the real HTTP app host. Traits describe setup; verbs drive authenticated notes requests and start the word-count worker. Extend the kit when a feature needs another setup, action or readout.
 
