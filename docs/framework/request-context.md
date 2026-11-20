@@ -23,6 +23,7 @@ import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 
 const Account = RpcGroup.make(/* ... */).middleware(Authenticated).middleware(RequestTracing);
 
+// In a module under adapters/, because the lookup returns Better Auth's Promise.
 const policy = {
 	provider: betterAuthSessions((headers) => auth.api.getSession({ headers })),
 	origin: trustedOrigins({ allow: [appOrigin, "capacitor://localhost"], missing: "reject" }),

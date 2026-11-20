@@ -40,6 +40,38 @@ ruleStory.it(
 	CLI_TIMEOUT,
 );
 
+const SDK = [
+	{ content: '{"name":"sdk","types":"index.d.ts"}', path: "node_modules/sdk/package.json" },
+	{
+		content: [
+			"export declare class APIPromise<T> extends Promise<T> { withResponse(): Promise<{ data: T }> }",
+			"export declare const api: {",
+			"\tlist(): APIPromise<string[]>;",
+			"\tfind(id: string): { readonly id: string } & Promise<string>;",
+			"};",
+		].join("\n"),
+		path: "node_modules/sdk/index.d.ts",
+	},
+	{
+		content: 'import { api } from "sdk";\nexport const list = () => api.list();\nexport const find = (id: string) => api.find(id);',
+		path: "src/work.ts",
+	},
+];
+
+ruleStory.it(
+	"effect/boundary reports a library call that returns a Promise subclass or an intersection with a Promise in core code",
+	[repositoryHas(...SDK)],
+	function* ({ check }) {
+		yield* assertThat(yield* check(effectBoundary), (actual) =>
+			actual.toEqual([
+				usesAt("src/work.ts", 2, "api.list(...), a library call that returns a Promise"),
+				usesAt("src/work.ts", 3, "api.find(...), a library call that returns a Promise"),
+			]),
+		);
+	},
+	CLI_TIMEOUT,
+);
+
 ruleStory.it(
 	"effect/boundary gives one finding for a library Promise that a bridge or an await already shows",
 	[

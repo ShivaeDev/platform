@@ -8,7 +8,7 @@ import { boundaryGuidance } from "#rules/effect/boundaryFindings.ts";
 import { promiseCall } from "#rules/effect/promiseCall.ts";
 import { parses } from "#rules/parse.ts";
 
-// TypeScript 6 fails with a Debug Failure when it resolves a story kit's it call against installed declarations, so tests stay with the syntax half.
+// TypeScript 6 fails with a Debug Failure when it resolves a story kit's it call against installed declarations, so tests stay with the syntax half; a failure elsewhere names its file.
 const TEST = /\.(?:test|spec)\.[cm]?[jt]sx?$/u;
 
 export const boundaryCheck = Effect.fn("Boundary.boundaryCheck")(function* (inputs: RuleInputs) {
@@ -20,6 +20,7 @@ export const boundaryCheck = Effect.fn("Boundary.boundaryCheck")(function* (inpu
 			&& /\.[cm]?[jt]sx?$/u.test(file.path)
 			&& !isPackageRootConfig(packageOf(packages, file.path)?.directory ?? ".", file.path)
 			&& parses(file),
+		eachFile: true as const,
 		findings: (files: readonly SourceFile[], { program, sourceFile }: TypeScriptProgram): readonly Finding[] => {
 			const promised = promiseCall(program, workspace);
 			return files.flatMap((file) => {
