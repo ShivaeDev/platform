@@ -1,7 +1,8 @@
-import { Option } from "effect";
+import { type Layer, Option } from "effect";
 import type * as AsyncResult from "effect/reactivity/AsyncResult";
 import type * as Atom from "effect/reactivity/Atom";
 import { useEffect, useState } from "react";
+import type { QueryStorageProvider } from "@shivaedev/contract/QueryStorage.ts";
 import { useFirstSettled } from "#client/adapters/useFirstSettled.ts";
 import { useAction, useQuery } from "#client/resultState.ts";
 import { SessionBoundary } from "#client/sessionBoundary.ts";
@@ -9,7 +10,11 @@ import type { FirstSettledClient } from "#test/first-settled/client.ts";
 
 function Answer({ name, query }: { readonly name: string; readonly query: Atom.Atom<AsyncResult.AsyncResult<string, unknown>> }) {
 	const answer = useQuery(query);
-	return <output data-answer={name}>{Option.getOrElse(answer.data, () => "waiting")}</output>;
+	return (
+		<output data-answer={name} data-refreshing={answer.refreshing} data-stale={answer.stale}>
+			{Option.getOrElse(answer.data, () => "waiting")}
+		</output>
+	);
 }
 
 export type FirstReads = "title and author" | "no query" | "count after its first render";
@@ -50,11 +55,13 @@ function Notes({ notes, reads }: { readonly notes: FirstSettledClient; readonly 
 
 export function View({
 	connect,
+	persist,
 	reads,
 	session,
 	warmCount,
 }: {
 	readonly connect: (session: string) => FirstSettledClient;
+	readonly persist: Layer.Layer<QueryStorageProvider> | undefined;
 	readonly reads: FirstReads;
 	readonly session: string;
 	readonly warmCount: boolean;
@@ -63,6 +70,7 @@ export function View({
 		<SessionBoundary
 			connect={connect}
 			identify={(current) => current}
+			persist={persist}
 			recheck={() => undefined}
 			session={session}
 			warm={(notes) => (warmCount ? [notes.client.api.count.query()] : [])}

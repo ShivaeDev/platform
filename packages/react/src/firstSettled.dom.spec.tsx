@@ -1,6 +1,6 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { aliceOpens, aliceSeesFirstResults, firstSettledScreens } from "#test/first-settled/story.tsx";
+import { aliceOpens, aliceReloadsWithStoredResults, aliceSeesFirstResults, firstSettledScreens } from "#test/first-settled/story.tsx";
 
 const WAITING = "waiting for first results";
 const SETTLED = "first results settled";
@@ -112,6 +112,18 @@ firstSettledScreens.it(
 	function* ({ activity, signal }) {
 		yield* outcomes([
 			["client activity", () => activity(), { commands: 0, initialQueries: 1 }],
+			["signal", () => signal(), SETTLED],
+		]);
+	},
+);
+
+firstSettledScreens.it(
+	"a first screen whose queries show stored results turns useFirstSettled true while they are still stale and refreshing",
+	[aliceReloadsWithStoredResults],
+	function* ({ answer, signal }) {
+		yield* outcomes([
+			["title", () => answer("title"), "Groceries (stale, refreshing)"],
+			["author", () => answer("author"), "alice (stale, refreshing)"],
 			["signal", () => signal(), SETTLED],
 		]);
 	},

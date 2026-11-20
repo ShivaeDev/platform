@@ -1,8 +1,9 @@
-import { Deferred, Effect } from "effect";
+import { Deferred, Effect, type Layer } from "effect";
 import { clientActivity } from "@shivaedev/contract/clientActivity.ts";
+import type { QueryStorageProvider } from "@shivaedev/contract/QueryStorage.ts";
 import type { Rendered } from "@shivaedev/test-story/client/adapters/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { type FirstSettledClient, firstSettledClient } from "#test/first-settled/client.ts";
+import { type FirstSettledClient, firstSettledClient, storedResults } from "#test/first-settled/client.ts";
 import { type FirstReads, View } from "#test/first-settled/View.tsx";
 import type { Screen } from "#test/Screen.ts";
 import { screenKit } from "#test/screenKit.ts";
@@ -13,6 +14,7 @@ type Query = "author" | "count" | "title";
 
 interface State {
 	readonly clients: Map<string, FirstSettledClient>;
+	persist?: Layer.Layer<QueryStorageProvider>;
 	reads: FirstReads;
 	user?: User;
 	view?: Rendered;
@@ -34,7 +36,7 @@ function show(state: State, screen: Screen, user: User, line: string) {
 		state.clients.set(session, client);
 		return client;
 	}
-	const node = <View connect={connect} reads={state.reads} session={user} warmCount={state.warmCount} />;
+	const node = <View connect={connect} persist={state.persist} reads={state.reads} session={user} warmCount={state.warmCount} />;
 	return Effect.gen(function* () {
 		const view = state.view;
 		if (view === undefined) {
@@ -63,6 +65,12 @@ function verbs(state: State, screen: Screen) {
 			Effect.suspend(() => clientActivity(opened(state).client.client).current).pipe(
 				Effect.map(({ commands, initialQueries }) => ({ commands, initialQueries })),
 			),
+		answer: (query: Query) =>
+			Effect.sync(() => {
+				const shown = opened(state).container.querySelector(`[data-answer="${query}"]`);
+				const marks = ["stale", "refreshing"].filter((mark) => shown?.getAttribute(`data-${mark}`) === "true");
+				return marks.length === 0 ? (shown?.textContent ?? "not shown") : `${shown?.textContent} (${marks.join(", ")})`;
+			}),
 		answers,
 		command: () =>
 			Effect.sync(() =>
@@ -120,5 +128,14 @@ export const aliceSeesFirstResults = firstSettledScreens.trait(
 		const { answers } = verbs(state, screen);
 		yield* answers("title", "Groceries");
 		yield* answers("author", "alice");
+	},
+);
+
+export const aliceReloadsWithStoredResults = firstSettledScreens.trait(
+	"screen",
+	"alice reloads her screen that reads title and author while the device holds her stored title Groceries and author alice, and the server has answered neither",
+	({ screen, state }) => {
+		state.persist = storedResults("alice", { author: "alice", title: "Groceries" });
+		return show(state, screen, "alice", "alice opens the screen");
 	},
 );

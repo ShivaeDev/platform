@@ -3,14 +3,14 @@ import * as AsyncResult from "effect/reactivity/AsyncResult";
 import type * as Atom from "effect/reactivity/Atom";
 import { activityState } from "#adapters/activityState.ts";
 import { clientConnection } from "#adapters/clientConnection.ts";
-import { shareQuerySignals } from "#querySignals.ts";
+import { querySignals, shareQuerySignals } from "#querySignals.ts";
 import { wrapAtom } from "#wrapAtom.ts";
 
 type ActivityTracker = ReturnType<typeof makeActivity>;
 export const clientActivities = new WeakMap<object, ActivityTracker>();
 
 export function makeActivity(factory: Atom.RuntimeFactory) {
-	const { activity, change, hold, rendered, setConnection, warming } = activityState();
+	const { activity, change, excuse, hold, rendered, setConnection } = activityState();
 	const connection = clientConnection(factory, setConnection, activity);
 	function begin(key: "rpcCalls" | "commands" | "unreflectedCommands") {
 		change(key, 1);
@@ -45,7 +45,9 @@ export function makeActivity(factory: Atom.RuntimeFactory) {
 			get.mount(connection.status);
 			const refreshing = counter((delta) => change("refreshingAtoms", delta));
 			const initial = counter((delta) => change("initialQueries", delta));
-			const warmInitial = counter(warming);
+			// A warm query no screen reads, or one that shows a stored or retained result, does not hold back the first reveal.
+			const excused = counter(excuse);
+			const signals = querySignals(atom);
 			let received = false;
 			let active = true;
 			let published = false;
@@ -55,13 +57,18 @@ export function makeActivity(factory: Atom.RuntimeFactory) {
 				}
 				received ||= !AsyncResult.isInitial(result);
 				initial.set(!received);
-				warmInitial.set(!received && warm(get));
+				excused.set(!received && (warm(get) || get.once(signals).retained === true));
 				refreshing.set(result.waiting || AsyncResult.isInitial(result));
 			}
+			get.subscribe(signals, ({ retained }) => {
+				if (active) {
+					excused.set(!received && (warm(get) || retained === true));
+				}
+			});
 			get.addFinalizer(() => {
 				active = false;
 				refreshing.release();
-				warmInitial.release();
+				excused.release();
 				initial.release();
 			});
 			function publish(result: AsyncResult.AsyncResult<A, E>) {
