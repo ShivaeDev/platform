@@ -1,5 +1,6 @@
 import { Effect, Layer } from "effect";
 import { type AppDatabaseOptions, appDatabase, type DatabaseConfig } from "#appDatabase.ts";
+import { hostModels } from "#HostModels.ts";
 import { hostCrypto } from "#hostCrypto.ts";
 import { redactedHost } from "#redactedHost.ts";
 
@@ -22,5 +23,5 @@ export function workerHost<R, E, TRequirements, TServices, TServiceError, TServi
 			Layer.provideMerge(options.services),
 			Layer.provideMerge(appDatabase(options)),
 		),
-	).pipe(Layer.provide(hostCrypto));
+	).pipe(Layer.provide(hostCrypto), Layer.provide(hostModels()));
 }

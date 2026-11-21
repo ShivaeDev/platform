@@ -1,6 +1,7 @@
 import { Layer } from "effect";
 import type { Rpc } from "effect/rpc";
 import { appHostHttp } from "#appHostHttp.ts";
+import { hostModels } from "#HostModels.ts";
 import { hostCrypto } from "#hostCrypto.ts";
 import type { HostCoreOptions, HostPolicy, HostRouteRequirements, HostRoutes } from "#hostOptions.ts";
 import type { HostPreflight } from "#hostPreflight.ts";
@@ -69,7 +70,11 @@ function buildHttpHost<
 		TRequestRequirements
 	>,
 ) {
-	return appHostHttp(options).pipe(Layer.provideMerge(hostPreflight(options.preflight, hostSensitiveKeys(options))), Layer.provide(hostCrypto));
+	return appHostHttp(options).pipe(
+		Layer.provideMerge(hostPreflight(options.preflight, hostSensitiveKeys(options))),
+		Layer.provide(hostCrypto),
+		Layer.provide(hostModels()),
+	);
 }
 
 type HttpHostFactory = <

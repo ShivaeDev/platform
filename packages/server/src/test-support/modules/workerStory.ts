@@ -15,6 +15,7 @@ import { appModules } from "#appModules.ts";
 import { indexingModule, Published, Publisher, PublishingApi, publishingModule } from "#test/modules/jobs.ts";
 import { MemberCardsApi, memberCardsModule } from "#test/modules/memberCards.ts";
 import { databaseUrl, postgres } from "#test/postgres.ts";
+import { spanAttribute } from "#test/spanAttribute.ts";
 import { workerHost } from "#workerHost.ts";
 
 interface State {
@@ -29,12 +30,6 @@ interface State {
 	readonly testing: ReturnType<typeof makePgBossTesting>;
 	url: string;
 	readonly workerLogs: { readonly cause: Cause.Cause<unknown>; readonly message: readonly unknown[] }[];
-}
-
-function attributeValue(span: OtlpSpan, key: string): unknown {
-	const value = span.attributes.find((attribute) => attribute.key === key)?.value;
-	const entry = typeof value === "object" && value !== null ? Object.values(value)[0] : value;
-	return typeof entry === "string" && entry.startsWith("{") ? JSON.parse(entry) : entry;
 }
 
 export const moduleWorkers = storyKit({
@@ -140,7 +135,7 @@ export const moduleWorkers = storyKit({
 					if (state.collector === undefined) {
 						return yield* Effect.die("Give the worker a collector before reading its exported spans");
 					}
-					return attributeValue(yield* state.collector.untilSpan("members.card"), "member");
+					return spanAttribute(yield* state.collector.untilSpan("members.card"), "member");
 				}),
 			index: (title: string) => {
 				story.tell(`a visitor submits ${title} to indexing over HTTP`);
