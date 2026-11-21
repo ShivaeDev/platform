@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.8.0 - 2026-11-21
+
+### Added
+
+- `generate` maps a branded type `run` returns, including a branded template literal, to the one exported schema in the module's imports whose `Type` is that type, imported from its module, and a record keyed by a branded string to `Schema.Record` over that schema, checked with `Schema.isPropertyNames` so a key that fails the brand fails the encoding instead of being dropped. No fitting schema, or more than one, is refused with the brand's name, and a record keyed by a branded number is refused.
+- `generate` maps Effect's `Schema.Json` and `Schema.JsonObject` to the schemas of the same names and `Schema.JsonArray` to `Schema.Array(Schema.Json)`, and `string` or `number` with `boolean`, `true` or `false` to `Schema.Union`. `string | number` and `string | bigint` stay refused, because a NaN or infinite number and a bigint travel as strings, and so does a `Partial` record, whose values may be `undefined`.
+- The Vite plugin, `appViteConfig` and the Vitest global setup take the nearest folder at or above Vite's or Vitest's root that holds a `tsconfig.json` as the project, so an application whose root is a folder inside the package, such as `src/client`, gets generation, watching and the bundle check with no option. The bundle check names files and reads `oldFormFolders` entries from that project folder.
+
+### Fixed
+
+- `generate` refuses a `Record`, also behind `Partial`, `Readonly` or `Required`, whose keys include a branded literal such as `("a" | "b") & Brand<"Letter">`. TypeScript keeps no property for such a key, so the wire wrote an empty struct and dropped every value under it.
+
+### Breaking
+
+- The Vite plugin, the Vitest global setup and the `generate` command refuse a `tsconfig.json` that holds no files of its own, only references to other projects, instead of finding no module. A package with such a `tsconfig.json` that passed before, because it defines no module and uses the plugin only for the bundle check or runs `generate --check`, now fails. To migrate, run from the package that holds the modules, or give that package a `tsconfig.json` that includes them.
+
 ## 0.7.1 - 2026-11-21
 
 ### Changed
