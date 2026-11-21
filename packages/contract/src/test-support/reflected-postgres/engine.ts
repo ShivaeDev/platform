@@ -8,8 +8,8 @@ import { RpcClient, RpcSerialization } from "effect/rpc";
 import { appDatabase } from "@shivaedev/server/appDatabase.ts";
 import { appHost } from "@shivaedev/server/appHost.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
-import { makeClient } from "#bind.ts";
 import { clientActivity } from "#clientActivity.ts";
+import { makeClient } from "#makeClient.ts";
 import { Entries, handlers, migrations, type ReadGate } from "#test/reflected-postgres/fixture.ts";
 import { storyRuntime } from "#test/storyRuntime.ts";
 
@@ -42,8 +42,8 @@ export const engine = Effect.gen(function* () {
 		Effect.sync(() => AtomRegistry.make()),
 		(current) => Effect.sync(() => current.dispose()),
 	);
-	const tab = makeClient(Entries, { runtime, url, webSocketConstructor: layerWebSocketConstructor });
-	function run<A, E>(effect: Effect.Effect<A, E, Effect.Services<ReturnType<typeof tab.api.touch.run>>>) {
+	const tab = makeClient({ entries: Entries }, { runtime, url, webSocketConstructor: layerWebSocketConstructor });
+	function run<A, E>(effect: Effect.Effect<A, E, Effect.Services<ReturnType<typeof tab.api.entries.touch.run>>>) {
 		return AtomRegistry.getResult(registry, tab.runtime.atom(effect).pipe(Atom.setIdleTTL(0)));
 	}
 	const http = RpcClient.layerProtocolHttp({ url: otherUrl }).pipe(Layer.provide([FetchHttpClient.layer, RpcSerialization.layerNdjson]));
@@ -57,7 +57,7 @@ export const engine = Effect.gen(function* () {
 		run,
 		states: yield* SubscriptionRef.make<readonly string[]>([]),
 		tab,
-		view: tab.api.list.query(),
+		view: tab.api.entries.list.query(),
 		writer,
 	};
 });

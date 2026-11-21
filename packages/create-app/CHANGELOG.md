@@ -1,5 +1,37 @@
 # Changelog
 
+## 0.52.0 - 2026-11-21
+
+### Breaking
+
+- generated apps mount their routes with react's `SessionApp`. `src/client/SessionApp.tsx`, `src/client/appRouter.tsx`, `src/client/rootRoute.ts` and `src/client/adapters/navigateTo.ts` are gone. The sign-in and password reset routes move into `src/client/accountModule.tsx`, a client module whose sign-in screen calls `useSessionRecheck()`; `src/client/routing.tsx` names the home page, shell, refused screen and search codec; `src/client/modules.ts` registers the app's auth and session types and `SessionRouter<typeof clientModules>` for typed links; `App.tsx` renders `<SessionApp {...routing} app={app} auth={auth.actions} history={history} persist={persist} recheck={auth.session.refresh} session={current} />`; `Home` reads `auth` from the root route's context; and `Shell.tsx` mounts `Notices` instead of `PermissionBoundary`. Story kits that called `appRouter` call `sessionRouter({ ...routing, auth, connection, history, registry, session })`, and a kit's `clientApp` list includes `accountModule` when it routes to sign-in. `create-app update` replaces the starter's files the app never edited and leaves conflict markers where it did.
+
+## 0.51.0 - 2026-11-21
+
+### Added
+
+- `create-app resource <name>` also writes `client/module.tsx`, a client module that names the resource's generated contract and adds a signed-in `/<name>` route listing the account's items, with a screen story and its kit that open the route in the real app.
+
+### Changed
+
+- the starter's notes statistics and foundation admin registrations pass their modules to `registerAdmin`.
+
+### Breaking
+
+- generated apps list their client modules by folder. A module's client is one `client/module.tsx` that exports `clientModule(...)`; `src/client/modules.ts` is `export const clientModules = clientApp(modules)` over `#generated/client/modules.ts`, which includes the foundation's `src/client/admin/foundationModule.tsx`; `SessionApp` and `App` take that `app` in place of `connect`; `appRouter` is a plain function of `{ auth, connection, history, onAuthenticated, registry, session }`; and `src/client/Module.ts`, `src/client/AdminNavigation.ts`, `src/client/adapters/SessionConnectionBoundary.tsx`, `useAnonymousConnection.ts` and `useAppRouter.ts` are gone. To migrate a module, replace its `client/registration.tsx` with one `client/module.tsx` exporting `clientModule({ notes: Notes }, ({ notes }) => ({ routes: (root) => [...], warm }))`, and its admin registration with `client/admin/module.tsx` exporting `clientModule({ statistics: StatisticsPage.contract }, ({ statistics }) => ({ admin, routes: (root) => [...] }))`, so the admin fence keeps admin views out of member code: routes take `getParentRoute: () => root` and reach the clients by closure, and the registration's `api`, `bindings` and its Effect, registry and URL go. Then delete the module from the hand-written list in `src/client/modules.ts` and run `pnpm generate`. A client that one registration used to receive from another as a parameter becomes a contract named in each module's own record, such as `clientModule({ notes: Notes, tags: Tags }, ...)` in both modules; the app binds a contract that two modules name once, so both see the same live result. Declare the root route once, in `src/client/rootRoute.ts`, so every module's `routes(root)` gets it typed: `declare module "@shivaedev/react/client/module.ts" { interface Register { readonly root: ReturnType<typeof rootRoute> } }`. Import `AdminNavigation` from `@shivaedev/react/client/module.ts`, and move the `fullScreen` static-data declaration next to `Shell.tsx`. `create-app update` replaces the starter's files the app never edited and leaves conflict markers where it did.
+
+## 0.50.2 - 2026-11-21
+
+### Changed
+
+- `add-resource` no longer writes `client/make.ts`; the resource's story kit makes its clients with `makeClient({ bookmarks: Bookmarks }, options)`.
+
+## 0.50.1 - 2026-11-21
+
+### Changed
+
+- Generated apps use the latest released starter dependencies.
+
 ## 0.50.0 - 2026-11-21
 
 ### Changed

@@ -1,11 +1,12 @@
 import { Deferred, Effect, type Layer } from "effect";
 import { StrictMode } from "react";
-import { clientActivity } from "@shivaedev/contract/clientActivity.ts";
+import { activityScreenSignal, clientActivity } from "@shivaedev/contract/clientActivity.ts";
 import type { QueryStorageProvider } from "@shivaedev/contract/QueryStorage.ts";
 import type { Rendered } from "@shivaedev/test-story/client/adapters/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { type FirstSettledClient, firstSettledClient, storedResults } from "#test/first-settled/client.ts";
 import type { FirstRoute, Provider } from "#test/first-settled/routed.tsx";
+import { SignedOutRoutes } from "#test/first-settled/SignedOutRoutes.tsx";
 import { type FirstReads, View } from "#test/first-settled/View.tsx";
 import type { Screen } from "#test/Screen.ts";
 import { screenKit } from "#test/screenKit.ts";
@@ -75,9 +76,9 @@ function verbs(state: State, screen: Screen) {
 			Effect.suspend(() => clientActivity(opened(state).client.client).current).pipe(
 				Effect.map(({ commands, initialQueries }) => ({ commands, initialQueries })),
 			),
-		answer: (query: Query | "blank") =>
+		answer: (query: Query | "blank" | "sign-in") =>
 			Effect.sync(() => {
-				const shown = opened(state).container.querySelector(`[data-answer="${query}"]`);
+				const shown = state.view?.container.querySelector(`[data-answer="${query}"]`);
 				const marks = ["stale", "refreshing"].filter((mark) => shown?.getAttribute(`data-${mark}`) === "true");
 				return marks.length === 0 ? (shown?.textContent ?? "not shown") : `${shown?.textContent} (${marks.join(", ")})`;
 			}),
@@ -90,13 +91,13 @@ function verbs(state: State, screen: Screen) {
 		renameFinishes: () =>
 			Effect.suspend(() => {
 				const { client, container } = opened(state);
+				function unanswered() {
+					return container.querySelector("[data-command]")?.getAttribute("data-command") !== "Success";
+				}
+				const reflected = settleScreen(container, unanswered, screen.tell, activityScreenSignal(clientActivity(client.client)));
 				return screen
 					.act("the server finishes the rename", () => Effect.runPromise(Deferred.succeed(client.held.rename, undefined)))
-					.pipe(
-						Effect.andThen(
-							settleScreen(container, () => container.querySelector("[data-command]")?.getAttribute("data-command") !== "Success", screen.tell),
-						),
-					);
+					.pipe(Effect.andThen(reflected));
 			}),
 		showCount: () => click("Show count"),
 		signal: () => Effect.sync(() => opened(state).container.querySelector('[role="status"]')?.textContent ?? "no signal"),
@@ -171,3 +172,15 @@ export function aliceOpensRoute(route: FirstRoute, provider: Provider = "react's
 		},
 	);
 }
+
+export const visitorOpensSignedOutPage = firstSettledScreens.trait(
+	"screen",
+	"a signed-out visitor opens the sign-in page under react's RouterProvider, with no session, client or useFirstSettled above it",
+	({ screen, state }) =>
+		Effect.gen(function* () {
+			screen.tell("the visitor opens the sign-in page");
+			const view = yield* screen.open(<SignedOutRoutes />);
+			state.view = view;
+			yield* settleScreen(view.container, () => view.container.querySelector('[data-answer="sign-in"]') === null, screen.tell);
+		}),
+);

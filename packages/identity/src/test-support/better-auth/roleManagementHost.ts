@@ -6,12 +6,13 @@ import { RpcClient, RpcSerialization, RpcServer } from "effect/rpc";
 import { SqlClient } from "effect/sql";
 import { role as declareRole } from "@shivaedev/access/role.ts";
 import { roleSet } from "@shivaedev/access/roleSet.ts";
-import { ReadUsers, UsersPermission } from "@shivaedev/admin/permissions.ts";
+import { ReadUsers } from "@shivaedev/admin/permissions.ts";
+import { adminRegistry } from "@shivaedev/admin/registry.ts";
+import { registerAdmin } from "@shivaedev/admin/server/registerAdmin.ts";
 import { Users } from "@shivaedev/admin/Users.ts";
 import { UsersPage } from "@shivaedev/admin/users/Page.ts";
 import { liveServerLayer } from "@shivaedev/contract/live-server/layer.ts";
 import { LiveServer } from "@shivaedev/contract/live-server/service.ts";
-import { moduleHandlers } from "@shivaedev/contract/moduleHandlers.ts";
 import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
 import { hostChanges } from "@shivaedev/server/hostChanges.ts";
 import { signedInUser } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
@@ -21,7 +22,6 @@ import { assignRole } from "#server/better-auth/assignRole.ts";
 import { migrateBetterAuth } from "#server/better-auth/migrate.ts";
 import { betterAuthMount } from "#server/better-auth/mount.ts";
 import { betterAuthUserDirectory } from "#server/better-auth/userDirectory.ts";
-import { permissionLayer } from "#server/permissionLayer.ts";
 import { SessionPolicy } from "#server/SessionPolicy.ts";
 
 const Access = roleSet(declareRole("user", []), declareRole("admin", [ReadUsers, AssignRoles]), declareRole("delegate", [ReadUsers, AssignRoles]));
@@ -52,14 +52,15 @@ export const roleManagementHost = Effect.fnUntraced(function* () {
 	const accounts = { alice, bob };
 	const sql = yield* SqlClient.SqlClient;
 	const live = yield* LiveServer.pipe(Effect.provide(liveServerLayer));
-	const handlers = hostChanges(UsersPage.contract)
-		.pipe(Layer.provideMerge(moduleHandlers(Users)))
+	const registration = registerAdmin(adminRegistry(UsersPage), { users: Users });
+	const handlers = hostChanges(registration.group)
+		.pipe(Layer.provideMerge(registration.handlers))
 		.pipe(
 			Layer.provide(betterAuthUserDirectory({ roles: Access })),
 			Layer.provide([Layer.succeed(LiveServer, live), Layer.succeed(SqlClient.SqlClient, sql), Reactivity.layer]),
 		);
-	const rpcRoutes = RpcServer.layerHttp({ group: UsersPage.contract, path: "/rpc", protocol: "http" }).pipe(
-		Layer.provide([handlers, permissionLayer(UsersPermission), RpcSerialization.layerJson]),
+	const rpcRoutes = RpcServer.layerHttp({ group: registration.group, path: "/rpc", protocol: "http" }).pipe(
+		Layer.provide([handlers, RpcSerialization.layerJson]),
 		Layer.provide(Layer.succeed(SessionPolicy, { ...mounted.sessions, origin: () => true })),
 	);
 	const app = HttpRouter.toWebHandler(Layer.merge(mounted.routes, rpcRoutes), { disableLogger: true });

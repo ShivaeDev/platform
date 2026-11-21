@@ -1,11 +1,13 @@
 import { Context, type Duration } from "effect";
 import type { RoleSet } from "@shivaedev/access/roleSet.ts";
+import type { NativeOrigins } from "#server/NativeOrigins.ts";
 import type { OriginPolicy } from "#server/origin.ts";
 import type { SessionProvider, SessionShape } from "#server/session.ts";
 
 export class SessionPolicy extends Context.Service<
 	SessionPolicy,
 	{
+		readonly nativeOrigins?: NativeOrigins | undefined;
 		readonly origin: OriginPolicy;
 		readonly provider: SessionProvider<SessionShape>;
 		readonly roles?: RoleSet;

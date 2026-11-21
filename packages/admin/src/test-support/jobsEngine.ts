@@ -1,8 +1,6 @@
 import { Context, Data, Effect, Exit, Layer, Option, type Queue, Redacted, Schema, Scope } from "effect";
 import { TestClock } from "effect/testing";
 import { vi } from "vitest";
-import { moduleHandlers } from "@shivaedev/contract/moduleHandlers.ts";
-import { SessionUser } from "@shivaedev/identity/identity.ts";
 import { defineQueue } from "@shivaedev/jobs/server/definition.ts";
 import { JobsClientFactory } from "@shivaedev/jobs/server/JobsClientFactory.ts";
 import { makePgBoss, pgBossLayer } from "@shivaedev/jobs/server/service.ts";
@@ -15,9 +13,9 @@ import { JobsWithRetry } from "#JobsWithRetry.ts";
 import { pgBossQueues } from "#server/adapters/pgBossQueues.ts";
 import { registerAdmin } from "#server/registerAdmin.ts";
 import { adminRpc } from "#test/adminRpc.ts";
+import { FakeUsers } from "#test/FakeUsers.ts";
 import { jobsClient } from "#test/jobsClient.ts";
 import { Mail, Private, pages, queues, Sync } from "#test/jobsPages.ts";
-import { Users } from "#test/pages.ts";
 import { ScheduledWorker } from "#test/ScheduledWorker.ts";
 
 const { url, configured: postgresConfigured } = postgresTestUrl("PLATFORM_JOBS_TEST_DATABASE_URL");
@@ -87,8 +85,8 @@ export const jobsEngine = Effect.gen(function* () {
 	const registry = pages();
 	const page = registry.pages[0];
 	const registration = registerAdmin(registry, {
-		jobs: moduleHandlers(JobsWithRetry),
-		users: Users.contract.application.toLayer({ "admin.users.profile": () => Effect.map(SessionUser, (user) => user.email) }),
+		jobs: JobsWithRetry,
+		users: FakeUsers,
 	});
 	const host = yield* liveHost(
 		registration.group,
@@ -99,7 +97,7 @@ export const jobsEngine = Effect.gen(function* () {
 
 	return {
 		...rpc,
-		...(yield* jobsClient(page, registry.group, rpc.protocol)),
+		...(yield* jobsClient(page, rpc.protocol)),
 		deliveries,
 		failSync: (id: string, output: object) =>
 			Effect.promise(() => {

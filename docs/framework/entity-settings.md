@@ -80,12 +80,12 @@ The module lists both operations under identity's `Authenticated` middleware, wh
 
 ## Edit fields and keep typed failures
 
-The editor binds the generated contract's save command to the query:
+The editor binds the generated contract's save command to the query. `settings` is the module's binding, which its client module receives from `clientModule({ settings: Settings }, ({ settings }) => ...)`, as the [feature guide](./add-a-feature.md#6-write-the-client-module-and-its-route) shows:
 
 ```ts
 const Draft = Schema.Struct({ pageSize: Schema.NumberFromString, title: Schema.String });
 
-const editor = useEditor(client.api.save, { fields: Draft, fixed: { entityId }, query: client.api.get.query({ entityId }) });
+const editor = useEditor(settings.save, { fields: Draft, fixed: { entityId }, query: settings.get.query({ entityId }) });
 ```
 
 `Draft` holds the page size as text, and the editor encodes each queried row with it. Each control uses form's `useField`; submit calls `editor.save()`. A missing row needs no special form branch because the query already supplies defaults. The editor shows the queried value as well as its editable draft.

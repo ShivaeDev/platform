@@ -26,6 +26,19 @@ for (const delivery of ["a tampered body", "the wrong secret", "a missing signat
 	);
 }
 
+appGithub.it(
+	"a delivery signed with an empty secret and verified with that empty secret fails as signature rejected without decoding the body",
+	[],
+	function* ({ bodiesDecoded, receive, receiverAnswered }) {
+		yield* receive("an empty secret");
+
+		yield* outcomes([
+			["bodies decoded", () => bodiesDecoded(), 0],
+			["receiver answered", () => receiverAnswered(), "signature rejected"],
+		]);
+	},
+);
+
 appGithub.it("verifying only the signature accepts signed bytes that are not JSON", [], function* ({ receiveUndecoded }) {
 	expect(yield* receiveUndecoded(Buffer.from("not-json"))).toBe("verified");
 });

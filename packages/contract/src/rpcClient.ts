@@ -3,10 +3,10 @@ import * as Atom from "effect/reactivity/Atom";
 import * as AtomRpc from "effect/reactivity/AtomRpc";
 import { type Rpc, RpcClient, RpcGroup } from "effect/rpc";
 import type { RpcClientError } from "effect/rpc/RpcClientError";
+import type { ClientOptions } from "#ClientOptions.ts";
 import { catchUp } from "#catchUp.ts";
-import { clientActivities, makeActivity } from "#clientActivities.ts";
+import { makeActivity } from "#clientActivities.ts";
 import { Activity } from "#clientActivity.ts";
-import type { ClientOptions } from "#clientOptions.ts";
 import { ConnectionScope, connectionProtocol } from "#connectionProtocol.ts";
 import { commandConnections } from "#connectionReadiness.ts";
 import { type LiveSyncRpc, liveSyncRpc } from "#liveSyncRpc.ts";
@@ -17,6 +17,7 @@ import { socketProtocol } from "#socketProtocol.ts";
 import { withClientProtocol } from "#withClientProtocol.ts";
 
 declare const window: ResumeWindow | undefined;
+declare const location: { readonly href: string } | undefined;
 
 export interface RpcSource {
 	readonly annotations: Context.Context<never>;
@@ -36,7 +37,7 @@ export function rpcClient(name: string, source: RpcSource, options: ClientOption
 			identity,
 			resume: options.resume,
 			resumeWindow: options.resumeWindow ?? (typeof window === "undefined" ? undefined : window),
-			url: options.url.replace(/^http/u, "ws"),
+			url: (options.url ?? pageRpcUrl()).replace(/^http/u, "ws"),
 			webSocketConstructor: options.webSocketConstructor,
 		});
 	}
@@ -85,14 +86,17 @@ export function rpcClient(name: string, source: RpcSource, options: ClientOption
 		protocol: typeof options.protocol === "object" ? protocol : (get) => protocolFor(get(socketIdentity)),
 		runtime: options.runtime,
 	});
-	clientActivities.set(Client, activity);
 	const directClient = withClientProtocol(protocol, make).pipe(
 		Effect.map((flat) =>
 			Object.fromEntries([...group.requests.keys()].map((tag) => [tag, (payload: never, callOptions: never) => flat(tag, payload, callOptions)])),
 		),
 	);
 	const layer = Layer.effect(Client, make).pipe(Layer.provide(protocol));
-	return Object.assign(layer, { [Activity]: activity.activity, Client, client: directClient, runtime: Client.runtime });
+	return { activity, connection: Object.assign(layer, { [Activity]: activity.activity, Client, client: directClient, runtime: Client.runtime }) };
+}
+
+function pageRpcUrl() {
+	return new URL("/rpc", typeof location === "undefined" ? undefined : location.href).href;
 }
 
 export const socketIdentity = Atom.make<string | undefined>(undefined);

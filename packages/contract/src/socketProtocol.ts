@@ -3,7 +3,7 @@ import * as Atom from "effect/reactivity/Atom";
 import { RpcClient, RpcSerialization } from "effect/rpc";
 import * as Socket from "effect/socket/Socket";
 import { resumeSocket } from "#adapters/resumeSocket.ts";
-import type { ClientOptions } from "#clientOptions.ts";
+import type { ClientOptions } from "#ClientOptions.ts";
 import { connectionProtocol } from "#connectionProtocol.ts";
 import type { ResumeWindow } from "#resume.ts";
 import { SocketClock } from "#SocketClock.ts";
@@ -35,16 +35,11 @@ export function socketProtocol(options: SocketOptions) {
 
 const protocols = Atom.family(
 	(options: Omit<SocketOptions, "resumeWindow"> & { readonly resumeWindow: { readonly target: ResumeWindow } | undefined }) => {
-		let url = options.url;
-		if (options.bearerToken !== undefined) {
-			const address = new URL(url);
-			address.searchParams.set("auth", "frame");
-			url = address.toString();
-		}
-		const raw = Socket.layerWebSocket(url, { headers: options.headers });
-		const authenticated = (
-			options.bearerToken === undefined ? raw : Layer.effect(Socket.Socket, authenticateSocket(options.bearerToken)).pipe(Layer.provide(raw))
-		).pipe(Layer.provide(options.webSocketConstructor ?? Socket.layerWebSocketConstructorGlobal));
+		const opened =
+			options.bearerToken === undefined
+				? Socket.layerWebSocket(options.url, { headers: options.headers })
+				: Layer.effect(Socket.Socket, authenticateSocket(options.url, options.bearerToken, options.headers));
+		const authenticated = opened.pipe(Layer.provide(options.webSocketConstructor ?? Socket.layerWebSocketConstructorGlobal));
 		const socket = Layer.effect(
 			Socket.Socket,
 			resumeSocket({

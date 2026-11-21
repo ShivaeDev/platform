@@ -3,7 +3,7 @@ import type { Layer } from "effect";
 import type * as Atom from "effect/reactivity/Atom";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import type * as Socket from "effect/socket/Socket";
-import { makeClient as makeRpcClient } from "@shivaedev/contract/bind.ts";
+import { makeClient as makeRpcClient } from "@shivaedev/contract/makeClient.ts";
 import { Notes } from "#test/live-session/notes.ts";
 
 export function connect(
@@ -13,12 +13,17 @@ export function connect(
 	token?: string,
 	webSocketConstructor: Layer.Layer<Socket.WebSocketConstructor> = layerWebSocketConstructor,
 ) {
-	const { api } = makeRpcClient(Notes, {
-		...(token === undefined ? {} : { headers: { authorization: `Bearer ${token}` } }),
-		registry,
-		runtime,
-		url,
-		webSocketConstructor,
-	});
+	const {
+		api: { notes: api },
+	} = makeRpcClient(
+		{ notes: Notes },
+		{
+			...(token === undefined ? {} : { headers: { authorization: `Bearer ${token}` } }),
+			registry,
+			runtime,
+			url,
+			webSocketConstructor,
+		},
+	);
 	return api;
 }

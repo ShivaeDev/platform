@@ -2,8 +2,8 @@ import { layerWebSocket, layerWebSocketConstructor } from "@effect/platform-node
 import { Context, Effect, Fiber, Layer, Predicate, Stream, SubscriptionRef } from "effect";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { type Rpc, RpcClient, type RpcGroup, RpcSerialization } from "effect/rpc";
-import { makeClient } from "@shivaedev/contract/bind.ts";
 import { LiveServer } from "@shivaedev/contract/live-server/service.ts";
+import { makeClient } from "@shivaedev/contract/makeClient.ts";
 import { answered } from "@shivaedev/test-story/server/answers.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { until } from "@shivaedev/test-story/server/until.ts";
@@ -43,7 +43,10 @@ const create = Effect.gen(function* () {
 		Effect.sync(() => AtomRegistry.make()),
 		(current) => Effect.sync(() => current.dispose()),
 	);
-	const client = makeClient(Api, { headers: { authorization: "alice" }, url: `${state.url}/rpc`, webSocketConstructor: layerWebSocketConstructor });
+	const client = makeClient(
+		{ api: Api },
+		{ headers: { authorization: "alice" }, url: `${state.url}/rpc`, webSocketConstructor: layerWebSocketConstructor },
+	);
 	const mixed = yield* SubscriptionRef.make<readonly Update[]>([]);
 	const { updates, finished } = yield* listen(
 		rpc("rerun.$changes", {
@@ -84,12 +87,12 @@ export const rerunStory = storyKit({
 			}),
 		openSecondary: () =>
 			Effect.gen(function* () {
-				const atom = engine.client.api.secondary.query({ title: "One" });
+				const atom = engine.client.api.api.secondary.query({ title: "One" });
 				engine.registry.mount(atom);
 				yield* AtomRegistry.getResult(engine.registry, atom);
 			}),
 		pageEnd: () =>
-			AtomRegistry.toStreamResult(engine.registry, engine.client.api.compare.query({ title: "One" })).pipe(
+			AtomRegistry.toStreamResult(engine.registry, engine.client.api.api.compare.query({ title: "One" })).pipe(
 				Stream.runDrain,
 				Effect.match({
 					onFailure: (error) => (Predicate.isTagged(error, "QueryReadDenied") ? "read denied" : String(error)),
@@ -101,7 +104,7 @@ export const rerunStory = storyKit({
 			return engine.rpc("rerun.rename", { id, title });
 		},
 		resync: () => Effect.flatMap(context(engine.state), (services) => Context.getUnsafe(services, LiveServer).resync()),
-		shown: () => AtomRegistry.getResult(engine.registry, engine.client.api.compare.query({ title: "One" })),
+		shown: () => AtomRegistry.getResult(engine.registry, engine.client.api.api.compare.query({ title: "One" })),
 		subscriptionDenial: () =>
 			until(SubscriptionRef.changes(engine.updates), (all) => all.some((update) => update._tag === "QueryReadDenied"), {
 				name: "policy denial",
@@ -115,13 +118,13 @@ export const rerunStory = storyKit({
 			),
 		untilSecondary: (title: string) =>
 			until(
-				AtomRegistry.toStreamResult(engine.registry, engine.client.api.secondary.query({ title: "One" })),
+				AtomRegistry.toStreamResult(engine.registry, engine.client.api.api.secondary.query({ title: "One" })),
 				(rows) => rows.some((note) => note.title === title),
 				{ name: `note titled ${title}` },
 			),
 		untilShown: (title: string) =>
 			until(
-				AtomRegistry.toStreamResult(engine.registry, engine.client.api.compare.query({ title: "One" })),
+				AtomRegistry.toStreamResult(engine.registry, engine.client.api.api.compare.query({ title: "One" })),
 				(rows) => rows.some((note) => note.title === title),
 				{ name: `note titled ${title}` },
 			),
@@ -129,7 +132,7 @@ export const rerunStory = storyKit({
 });
 export const pageOpen = rerunStory.trait("page", "alice opens her notes filtered to One", (engine) =>
 	Effect.gen(function* () {
-		const atom = engine.client.api.compare.query({ title: "One" });
+		const atom = engine.client.api.api.compare.query({ title: "One" });
 		engine.registry.mount(atom);
 		yield* AtomRegistry.getResult(engine.registry, atom);
 	}),

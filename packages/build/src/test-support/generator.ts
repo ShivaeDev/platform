@@ -7,6 +7,7 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { untilTimer } from "@shivaedev/test-story/server/watchedClock.ts";
 import { generate } from "#generate.ts";
 import type { GenerateFailed, GenerateReport } from "#report.ts";
+import { type ClientModuleShape, clientModuleFile, clientModulePath } from "#test/clientModulesProject.ts";
 import { CREDENTIAL_MODEL } from "#test/credentialModel.ts";
 import { emptyProject, fromSource, generatedOncePerFile, projectIn, typeCheck, writeFiles } from "#test/fixtureProject.ts";
 import { NOTES_PROJECT } from "#test/notesProject.ts";
@@ -75,21 +76,6 @@ function run(engine: GeneratorEngine, check: boolean) {
 	);
 }
 
-const browserKeysOf = Effect.fn("BuildStory.browserKeysOf")(function* (engine: GeneratorEngine, operation: string) {
-	const generated = yield* importedFrom(engine, NOTES_WIRE);
-	const contract = Predicate.hasProperty(generated, "Notes") ? generated.Notes : undefined;
-	const declaration = Predicate.hasProperty(contract, "declaration") ? contract.declaration : undefined;
-	const queries: readonly unknown[] = Predicate.hasProperty(declaration, "queries") && Array.isArray(declaration.queries) ? declaration.queries : [];
-	const found = queries.find((entry) => Predicate.hasProperty(entry, "name") && entry.name === operation);
-	const reads = Predicate.hasProperty(found, "reads") ? found.reads : undefined;
-	if (!Predicate.isFunction(reads)) {
-		return yield* Effect.die(new Error(`the generated notes contract has no query ${operation} with reads`));
-	}
-	return yield* Effect.try(() => Reflect.apply(reads, found, [undefined, Option.none()])).pipe(
-		Effect.catch((failure) => Effect.succeed(`throws ${failure.cause instanceof Error ? failure.cause.message : String(failure.cause)}`)),
-	);
-});
-
 export const generator = storyKit({
 	*create() {
 		const root = yield* emptyProject();
@@ -102,15 +88,16 @@ export const generator = storyKit({
 	name: "generator",
 	stages: ["project", "generated", "lock"],
 	verbs: (engine, story) => ({
+		addsClientModule: Effect.fn("BuildStory.addsClientModule")(function* (module: string, shape: ClientModuleShape = "built by clientModule") {
+			const file = clientModulePath(module, shape);
+			story.tell(`the developer writes ${file}, exporting the ${module} client module ${shape}`);
+			yield* writeFiles(engine.root, { [file]: clientModuleFile(module, shape) });
+		}),
 		addsRegistration: Effect.fn("BuildStory.addsRegistration")(function* (module: string, shape: RegistrationShape = "written satisfies AppModule") {
 			const file = `src/modules/${module.toLowerCase()}/server/registration.ts`;
 			story.tell(`the developer writes ${file}, exporting the ${module} registration ${shape}`);
 			yield* writeFiles(engine.root, { [file]: registrationOf(`${module.toLowerCase()}Registration`, module, shape) });
 		}),
-		browserKeys: (operation: string) => {
-			story.tell(`the browser asks the generated contract's ${operation} query for its keys, as a bound query does`);
-			return browserKeysOf(engine, operation);
-		},
 		compiles: () => {
 			story.tell("tsc type-checks the project");
 			return typeCheck(engine.root, engine.lock);

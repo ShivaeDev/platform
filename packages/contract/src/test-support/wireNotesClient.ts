@@ -4,7 +4,7 @@ import { Unauthorized } from "@shivaedev/errors/taxonomy.ts";
 import { clientContract } from "#clientContract.ts";
 import type { ClientMatchesModule } from "#clientMatchesModule.ts";
 import type { WireNotes as WireNotesModule } from "#test/wireNotes.ts";
-import { NoteFields, TitleTaken, WireCaller, wireNotes } from "#test/wireNotesModel.ts";
+import { NoteFields, TitleTaken, WireCaller } from "#test/wireNotesModel.ts";
 
 const Note = Schema.Struct({ createdAt: Schema.Date, id: Schema.Number, title: Schema.String });
 
@@ -14,11 +14,11 @@ export const wireNotesWire = {
 } as const;
 
 export const WireNotes = clientContract({
-	commands: { create: { invalidates: () => [wireNotes.list] } },
+	commands: ["create"],
 	middleware: WireCaller,
 	name: "wireNotes",
 	payloads: { create: NoteFields },
-	queries: { list: { reads: () => [wireNotes.list] } },
+	queries: ["list"],
 	wire: wireNotesWire,
 });
 

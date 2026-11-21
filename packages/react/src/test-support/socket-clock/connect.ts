@@ -2,14 +2,14 @@ import { layerWebSocketConstructor } from "@effect/platform-node/NodeWS";
 import { Clock, Effect, Layer, Queue } from "effect";
 import * as Atom from "effect/reactivity/Atom";
 import { RpcClient } from "effect/rpc";
-import { makeClient } from "@shivaedev/contract/bind.ts";
+import { makeClient } from "@shivaedev/contract/makeClient.ts";
 import { SocketClock } from "@shivaedev/contract/SocketClock.ts";
 import { Notes } from "#test/socket-clock/feature.ts";
 import { storyRuntime } from "#test/storyRuntime.ts";
 
 export const connect = Effect.fnUntraced(function* (url: string, connections: Queue.Queue<string>, controlled = false) {
 	const configured = controlled ? { runtime: yield* storyRuntime } : {};
-	const client = makeClient(Notes, { ...configured, url, webSocketConstructor: layerWebSocketConstructor });
+	const client = makeClient({ notes: Notes }, { ...configured, url, webSocketConstructor: layerWebSocketConstructor });
 	const clock = yield* Clock.Clock;
 	const runtime = Atom.runtime(
 		client.pipe(
@@ -25,5 +25,5 @@ export const connect = Effect.fnUntraced(function* (url: string, connections: Qu
 			),
 		),
 	);
-	return { api: client.api, connection: client, runtime };
+	return { api: client.api.notes, connection: client, runtime };
 });

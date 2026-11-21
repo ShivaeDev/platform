@@ -10,14 +10,13 @@ for (const [caller, traits, refusal] of [
 	adminStory.it(
 		`${caller} is ${refusal} on every operation of both pages, including their generated subscriptions`,
 		traits,
-		function* ({ failedJobs, jobChanges, profile, retry, userChanges, watchFailedJobs }) {
+		function* ({ failedJobs, jobChanges, profile, retry, userChanges }) {
 			yield* outcomes([
 				["failed jobs", () => failedJobs(), refusal],
 				["job changes", () => jobChanges(), refusal],
 				["profile", () => profile(), refusal],
 				["retry of mail-42", () => retry("mail-42"), refusal],
 				["user changes", () => userChanges(), refusal],
-				["watching failed jobs", () => watchFailedJobs(), refusal],
 			]);
 		},
 	);
@@ -26,13 +25,12 @@ for (const [caller, traits, refusal] of [
 adminStory.it(
 	"an operator, who reads jobs only, is served every jobs read and is forbidden on the users page",
 	[signedInAs("operator")],
-	function* ({ failedJobs, jobChanges, profile, userChanges, watchFailedJobs }) {
+	function* ({ failedJobs, jobChanges, profile, userChanges }) {
 		yield* outcomes([
 			["failed jobs", () => failedJobs(), ["mail-42"]],
 			["job changes", () => jobChanges(), ["mail-42"]],
 			["profile", () => profile(), "forbidden"],
 			["user changes", () => userChanges(), "forbidden"],
-			["watching failed jobs", () => watchFailedJobs(), ["mail-42"]],
 		]);
 	},
 );
@@ -44,14 +42,13 @@ adminStory.it("an operator's retry of mail-42 is served", [signedInAs("operator"
 adminStory.it(
 	"an auditor, who reads users only, is served the users page and is forbidden on every jobs operation",
 	[signedInAs("auditor")],
-	function* ({ failedJobs, jobChanges, profile, retry, userChanges, watchFailedJobs }) {
+	function* ({ failedJobs, jobChanges, profile, retry, userChanges }) {
 		yield* outcomes([
 			["failed jobs", () => failedJobs(), "forbidden"],
 			["job changes", () => jobChanges(), "forbidden"],
 			["profile", () => profile(), "auditor@example.test"],
 			["retry of mail-42", () => retry("mail-42"), "forbidden"],
 			["user changes", () => userChanges(), "auditor@example.test"],
-			["watching failed jobs", () => watchFailedJobs(), "forbidden"],
 		]);
 	},
 );
@@ -73,17 +70,29 @@ for (const [present, missing] of [
 	["users", "jobs"],
 ] as const) {
 	registrationStory.it(
-		`starting handlers for the ${present} page alone is refused for the missing ${missing} handlers`,
+		`starting the registration with the ${present} page's module alone is refused for the missing ${missing} module`,
 		[],
-		function* ({ startHandlersFor }) {
-			expect(yield* startHandlersFor(present)).toBe(`Missing admin handlers: ${missing}`);
+		function* ({ startModulesFor }) {
+			expect(yield* startModulesFor(present)).toBe(`Missing admin module: ${missing}`);
 		},
 	);
 }
 
-registrationStory.it("starting handlers for a reports page the registry does not hold is refused", [], function* ({ startHandlersFor }) {
-	expect(yield* startHandlersFor("jobs", "users", "reports")).toBe("Unregistered admin handlers: reports");
-});
+registrationStory.it(
+	"starting the registration with a module for a reports page the registry does not hold is refused",
+	[],
+	function* ({ startModulesFor }) {
+		expect(yield* startModulesFor("jobs", "users", "reports")).toBe("Unregistered admin module: reports");
+	},
+);
+
+registrationStory.it(
+	"starting the registration with each page served by the other page's module is refused, naming the jobs page",
+	[],
+	function* ({ startWithSwappedModules }) {
+		expect(yield* startWithSwappedModules()).toBe("Admin page jobs is served by a module whose operations differ from the page's");
+	},
+);
 
 for (const [role, answer] of [
 	["user", "forbidden"],

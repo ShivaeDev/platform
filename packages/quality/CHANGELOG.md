@@ -1,5 +1,29 @@
 # Changelog
 
+## 0.83.3 - 2026-11-21
+
+### Changed
+
+- Update `@shivaedev/test-story` from 0.52.3 to 0.52.4.
+
+## 0.83.2 - 2026-11-21
+
+### Fixed
+
+- `files/named-after-export` now accepts a file whose one export is a `clientModule(...)` from `@shivaedev/react/client/module.ts`, such as `src/modules/notes/client/module.tsx` exporting `notesModule`, whose name repeats the `modules` folder, as it accepts an operation file.
+
+## 0.83.1 - 2026-11-21
+
+### Changed
+
+- Update `@shivaedev/test-story` from 0.52.1 to 0.52.2.
+
+## 0.83.0 - 2026-11-21
+
+### Added
+
+- `imports/runtime` reports a named import or re-export of `RouterProvider` from `@tanstack/react-router` in production code of a package that depends on `@shivaedev/react`, directly or through `@shivaedev/platform`. TanStack's provider does not tell `useFirstSettled` when the first route has rendered, so a first screen held for it is revealed onto loading states. On upgrade an application that still mounts TanStack's provider gets one finding per import; change it to `import { RouterProvider } from "@shivaedev/react/RouterProvider.ts"`, which takes the same props. Specs and `test-support/` are not checked.
+
 ## 0.82.1 - 2026-11-21
 
 ### Fixed

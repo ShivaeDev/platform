@@ -5,20 +5,24 @@ import type { RoleSet } from "@shivaedev/access/roleSet.ts";
 import type { SessionUserValue } from "#identity.ts";
 import { localTransport } from "#server/adapters/local.ts";
 import { machineTokens } from "#server/machineTokens.ts";
+import { declaredNativeOrigins } from "#server/NativeOrigins.ts";
 import type { SessionPolicy } from "#server/SessionPolicy.ts";
 
 export const localOwner = Effect.fn("Identity.localOwner")(function* (options: {
+	readonly nativeOrigins?: readonly string[] | undefined;
 	readonly owner: Pick<SessionUserValue, "id" | "name" | "email"> & { readonly role: string };
 	readonly roles: RoleSet;
 	readonly streamRevalidationInterval?: Duration.Input;
 }) {
 	const { owner, roles } = options;
+	const nativeOrigins = yield* declaredNativeOrigins(options.nativeOrigins);
 	const access = yield* roles.resolve(owner.role);
 	const random = yield* SecureRandom.SecureRandom;
 	const token = Redacted.make(Hex.encode(yield* random.randomBytes(32)));
 	const machines = yield* machineTokens({ owner, roles });
 	const allowed = localTransport();
 	const sessions: SessionPolicy["Service"] = {
+		nativeOrigins,
 		origin: (request) => allowed({ headers: request.headers, remoteAddress: request.remoteAddress ?? Option.none() }),
 		provider: {
 			get: (headers) => {

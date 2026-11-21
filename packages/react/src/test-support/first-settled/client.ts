@@ -1,7 +1,7 @@
 import { Deferred, Effect, Schema } from "effect";
 import { collection } from "@shivaedev/changes/keys.ts";
-import { makeClient } from "@shivaedev/contract/bind.ts";
 import { contract } from "@shivaedev/contract/contract.ts";
+import { makeClient } from "@shivaedev/contract/makeClient.ts";
 import { command, query } from "@shivaedev/contract/operation.ts";
 import { layerLiveMemoryProtocol } from "@shivaedev/test-kits/contract/liveMemoryProtocol.ts";
 import { memoryQueryStorage } from "@shivaedev/test-kits/contract/memoryQueryStorage.ts";
@@ -45,10 +45,13 @@ export function firstSettledClient() {
 			}),
 		),
 	);
-	const client = makeClient(Notes, {
-		protocol: layerLiveMemoryProtocol(Notes, handlers),
-		url: "memory://first-settled-notes",
-	});
-	return { client, held, rename: client.Client.runtime.fn(() => client.api.rename.run()), renameArrived };
+	const client = makeClient(
+		{ notes: Notes },
+		{
+			protocol: layerLiveMemoryProtocol(Notes, handlers),
+			url: "memory://first-settled-notes",
+		},
+	);
+	return { client, held, rename: client.Client.runtime.fn(() => client.api.notes.rename.run()), renameArrived };
 }
 export type FirstSettledClient = ReturnType<typeof firstSettledClient>;

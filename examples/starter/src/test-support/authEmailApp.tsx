@@ -1,8 +1,9 @@
 import { createMemoryHistory } from "@tanstack/react-router";
 import { ConfigProvider, DateTime, Effect, Layer, Schema } from "effect";
-import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { act } from "react";
 import { JobsClientFactory } from "@shivaedev/jobs/server/JobsClientFactory.ts";
+import { clientApp } from "@shivaedev/react/client/app.ts";
+import { sessionRouter } from "@shivaedev/react/client/sessionRouter.ts";
 import { RouterProvider } from "@shivaedev/react/RouterProvider.ts";
 import { emailLink, inbox } from "@shivaedev/test-kits/email/adapters/inbox.ts";
 import { signedInUser, storyAuth } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
@@ -11,8 +12,9 @@ import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { accountModule } from "#client/accountModule.tsx";
 import { makeAuth } from "#client/adapters/auth.ts";
-import { appRouter } from "#client/appRouter.tsx";
+import { routing } from "#client/routing.tsx";
 import { AppAuth } from "#server/AppAuth.ts";
 import { applicationWorker } from "#server/applicationWorker.ts";
 import { startHost } from "#test-support/host.ts";
@@ -120,11 +122,13 @@ export const authEmailApp = storyKit({
 					story.tell("alice opens the link in her password reset email");
 					const link = new URL(emailLink(yield* mail.nextEmail));
 					const view = yield* acquireScreen(surface);
-					const router = yield* appRouter(
-						{ modules: [] },
-						auth.actions,
-						createMemoryHistory({ initialEntries: [`${link.pathname}${link.search}`] }),
-					).pipe(Effect.provideService(AtomRegistry.AtomRegistry, view.registry));
+					const router = sessionRouter({
+						...routing,
+						auth: auth.actions,
+						connection: clientApp([accountModule]).connect(undefined, view.registry),
+						history: createMemoryHistory({ initialEntries: [`${link.pathname}${link.search}`] }),
+						registry: view.registry,
+					});
 					yield* Effect.promise(async () => {
 						await view.render(<RouterProvider router={router} />);
 						await act(() => router.load());

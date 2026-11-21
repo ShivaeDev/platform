@@ -1,9 +1,8 @@
 import { Deferred, Effect, Schema } from "effect";
-import * as AtomRpc from "effect/reactivity/AtomRpc";
 import { RpcClientError } from "effect/rpc/RpcClientError";
-import { SocketOpenError } from "effect/socket/Socket";
-import { bind } from "@shivaedev/contract/bind.ts";
+import { SocketCloseError, SocketOpenError } from "effect/socket/Socket";
 import { contract } from "@shivaedev/contract/contract.ts";
+import { makeClient } from "@shivaedev/contract/makeClient.ts";
 import { command, query } from "@shivaedev/contract/operation.ts";
 import { AuthUnavailable, Conflict, InternalServerError, NotFound, ServiceUnavailable, Unauthorized } from "@shivaedev/errors/taxonomy.ts";
 import { layerLiveMemoryProtocol } from "@shivaedev/test-kits/contract/liveMemoryProtocol.ts";
@@ -80,29 +79,33 @@ export function failureClient() {
 			}),
 		),
 	);
-	class Client extends AtomRpc.Service<Client>()("test/FailureDefaults", {
-		group: Drafts,
-		protocol: layerLiveMemoryProtocol(Drafts, handlers),
-	}) {}
-	const api = bind(Drafts, Client);
+	const connection = makeClient({ failureDefaults: Drafts }, { protocol: layerLiveMemoryProtocol(Drafts, handlers) });
+	const api = connection.api.failureDefaults;
 	return {
 		api,
-		// Custom operations stand in for a lost connection, a server outage, one that answers only when released, and a handler that dies.
-		dies: { run: (_input: { readonly title: string }) => Effect.die(new Error("Database password rejected for user app")), runtime: Client.runtime },
+		// Custom operations stand in for a lost connection, a socket the host closed for an oversized message, a server outage, one that answers only when released, and a handler that dies.
+		dies: {
+			run: (_input: { readonly title: string }) => Effect.die(new Error("Database password rejected for user app")),
+			runtime: connection.runtime,
+		},
 		heldOutage: {
 			run: (_input: { readonly title: string }) => Effect.andThen(Deferred.await(server.heldOutage), Effect.fail(outage("ServiceUnavailable"))),
-			runtime: Client.runtime,
+			runtime: connection.runtime,
 		},
 		note: api.note.query(),
 		offline: {
 			run: (_input: { readonly title: string }) =>
 				Effect.fail(new RpcClientError({ reason: new SocketOpenError({ cause: "connect ECONNREFUSED 10.0.0.4:5432", kind: "Timeout" }) })),
-			runtime: Client.runtime,
+			runtime: connection.runtime,
 		},
 		server,
+		tooLarge: {
+			run: (_input: { readonly title: string }) => Effect.fail(new RpcClientError({ reason: new SocketCloseError({ closeReason: "", code: 1009 }) })),
+			runtime: connection.runtime,
+		},
 		unavailable: {
 			run: (_input: { readonly title: string }) => (server.outage === "over" ? Effect.void : Effect.fail(outage(server.outage))),
-			runtime: Client.runtime,
+			runtime: connection.runtime,
 		},
 	};
 }

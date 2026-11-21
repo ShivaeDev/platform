@@ -210,7 +210,7 @@ const sessions = Layer.succeed(SessionPolicy, {
 const host = appHost({ group, handlers, routes: mounted.routes, sessions });
 ```
 
-Identity owns the browser origin declaration; there is no separate host CORS allow-list. When mounting Better Auth, reuse `browserOrigins` for its `trustedOrigins` option so provider CSRF checks use the same origins. Browser fetch calls must set `credentials: "include"`. Origins listed in the host's `nativeOrigins` continue to use bearer sessions with cookies removed and credentials off, even if identity lists them too.
+Identity owns the browser origin declaration; there is no separate host CORS allow-list. When mounting Better Auth, reuse `browserOrigins` for its `trustedOrigins` option so provider CSRF checks use the same origins. Browser fetch calls must set `credentials: "include"`. Origins the auth declaration names in `nativeOrigins` continue to use bearer sessions with cookies removed and credentials off, even if the browser policy lists them too.
 
 CORS does not change cookie attributes. HTTPS sibling subdomains on the same registrable domain are usually same-site and can keep the existing SameSite setting. A frontend on another registrable domain is cross-site: the app must configure Better Auth's `advanced.defaultCookieAttributes` with `{ sameSite: "none", secure: true }` and serve the API over HTTPS for its cookie to accompany cross-site requests. Browser third-party-cookie restrictions still apply.
 
@@ -240,7 +240,7 @@ const bearerToken = Redacted.value(local.token);
 const machine = yield* local.machines.issue({ name: "reader agent", scope: "reader" });
 ```
 
-Pass `sessions` to `appHost` and hand `bearerToken` directly from the launching process to its own client. Use the session host with contracts declaring `Authenticated`, `AuthenticatedUser` or permission middleware. The existing `makeClient` option `bearerToken` sends HTTP authorization and the WebSocket's first authentication frame. Native HTTP callers send `Authorization: Bearer <token>`. Credentials are required even on loopback; the policy also requires a loopback Host and peer and the existing same-origin check. Authenticated handlers, query read policies and audit code receive the configured owner's id.
+Pass `sessions` to `appHost` and hand `bearerToken` directly from the launching process to its own client. Use the session host with contracts declaring `Authenticated`, `AuthenticatedUser` or permission middleware. Pass it to `makeClient` as `bearerToken: Effect.succeed(bearerToken)`, which sends it as the WebSocket's first authentication frame. Native HTTP callers send `Authorization: Bearer <token>`. Credentials are required even on loopback; the policy also requires a loopback Host and peer and the existing same-origin check. A bundled native shell that talks to the local owner names its origins in `localOwner({ nativeOrigins })`; see [Bundled native clients](#bundled-native-clients). Authenticated handlers, query read policies and audit code receive the configured owner's id.
 
 The owner credential lasts for this provider instance. Machine credentials persist in PostgreSQL as SHA-256 digests, and `issue` returns a redacted credential once. A machine acts on behalf of the owner, with `SessionUser.role` and `permissions` resolved solely from its scope through the application's `roleSet`. Use permission middleware for owner-only commands; an owner id alone does not distinguish machine rights. An undeclared scope cannot be issued. `machineTokens` from `server/machineTokens.ts` also exposes this store independently, taking `{ owner, roles }` and returning `issue`, `resolve` and `revoke`; resolved machine sessions include `{ machine: { id, name, scope }, user }`.
 
@@ -263,11 +263,11 @@ export const AppAuth = defineAuth({
 });
 ```
 
-`defineAuth` refuses at compile time a `defaultRole` that `roles` does not declare. The options hold no `database`, `secret` or `baseURL`: the mount opens Better Auth on the application's SQL client and reads `BETTER_AUTH_SECRET` and `PUBLIC_URL` itself. An application without stored roles declares `defineAuth({ options })`. The declaration is plain data; a story that needs another option spreads it, as in `{ ...AppAuth, options: { ...AppAuth.options, socialProviders } }`.
+`defineAuth` refuses at compile time a `defaultRole` that `roles` does not declare. The options hold no `database`, `secret` or `baseURL`: the mount opens Better Auth on the application's SQL client and reads `BETTER_AUTH_SECRET` and `PUBLIC_URL` itself. An application without stored roles declares `defineAuth({ options })`. An application with a bundled native client also names its origins here, in `nativeOrigins` (see [Bundled native clients](#bundled-native-clients)). The declaration is plain data; a story that needs another option spreads it, as in `{ ...AppAuth, options: { ...AppAuth.options, socialProviders } }`.
 
 ### Mount Better Auth
 
-`betterAuthMount(AppAuth, host?)` returns the Better Auth instance and a native route Layer for `/api/auth/*`. Its second argument holds only what the host adds: `emails`, `databaseHooks`, `onPasswordReset`, `bearerSessions`, `roleSeed`, `hardening`, `signIn`, `clientIp`, `preset`, `enabledPaths` and `accountPreferences`. Its scoped acquisition waits for the auth context and the provider’s schema check before returning; a provider initialization or schema-check failure logs the redacted cause and fails with `AuthUnavailable`. Building a Layer from this acquisition therefore completes only when authentication is ready. Merge `routes` into the HTTP host and use `auth.api.getSession` with `betterAuthSessions` for the application's RPC session provider.
+`betterAuthMount(AppAuth, host?)` returns the Better Auth instance and a native route Layer for `/api/auth/*`. Its second argument holds only what the host adds: `emails`, `databaseHooks`, `onPasswordReset`, `roleSeed`, `hardening`, `signIn`, `clientIp`, `preset`, `enabledPaths` and `accountPreferences`. Its scoped acquisition waits for the auth context and the provider’s schema check before returning; a provider initialization or schema-check failure logs the redacted cause and fails with `AuthUnavailable`. Building a Layer from this acquisition therefore completes only when authentication is ready. Merge `routes` into the HTTP host and use `auth.api.getSession` with `betterAuthSessions` for the application's RPC session provider.
 
 ```ts
 import { betterAuthMount } from "@shivaedev/identity/server/better-auth/mount.ts";
@@ -492,7 +492,7 @@ The seed only grants: removing an account from config does not restore its previ
 
 ### Administer signed-in sessions
 
-`Sessions` from `@shivaedev/identity/Sessions.ts` is a defined module, which is server code: register it as `module: Sessions`, or serve it through admin's sessions page with `moduleHandlers(Sessions)` from `@shivaedev/contract/moduleHandlers.ts`. Install `permissionLayer(SessionsPermission)` using `SessionsPermission` from `@shivaedev/identity/sessionPermissions.ts` and the mounted session policy. Supply the application's Effect `SqlClient`; the operations use the default Better Auth PostgreSQL user and session tables. Browser code imports the client contract under the same name from `@shivaedev/identity/generated/Sessions.ts`, and the `SignedInSession`, `SessionCursor` and `SessionListInput` schemas and the `SessionList` type from `@shivaedev/identity/signedInSessions.ts`.
+`Sessions` from `@shivaedev/identity/Sessions.ts` is a defined module, which is server code: register it as `module: Sessions`, or serve it through admin's sessions page by registering `sessions: Sessions` with admin's `registerAdmin`. Install `permissionLayer(SessionsPermission)` using `SessionsPermission` from `@shivaedev/identity/sessionPermissions.ts` and the mounted session policy. Supply the application's Effect `SqlClient`; the operations use the default Better Auth PostgreSQL user and session tables. Browser code imports the client contract under the same name from `@shivaedev/identity/generated/Sessions.ts`, and the `SignedInSession`, `SessionCursor` and `SessionListInput` schemas and the `SessionList` type from `@shivaedev/identity/signedInSessions.ts`.
 
 Grant `ManageSessions` (`sessions.manage`) from `sessionPermissions.ts` to the roles that manage sessions. The starter grants it to admin and owner. Both operations use the same permission middleware and `Forbidden` refusal as the admin Users page. They require no Better Auth admin plugin.
 
@@ -502,34 +502,85 @@ Grant `ManageSessions` (`sessions.manage`) from `sessionPermissions.ts` to the r
 
 ### Bundled native clients
 
-For a Capacitor or similar WebView whose page is served from the app bundle, opt in with the auth host mount's `bearerSessions` option. It installs Better Auth's own `bearer({ requireSignature: true })` plugin from the existing dependency; do not add a second bearer plugin. The option is absent by default. List only bundled-client origins here, and include them in Better Auth's `trustedOrigins` as well.
+For a Capacitor or similar WebView whose page is served from the app bundle, name the bundle's exact origins once, in the auth declaration's `nativeOrigins`. List only bundled-client origins here, never browser origins. Every check reads that one list:
+
+- the mount installs Better Auth's own `bearer({ requireSignature: true })` plugin from the existing dependency and adds the origins to Better Auth's `trustedOrigins`, whether the options give a list, a function or nothing; do not add a second bearer plugin or list the origins there again;
+- only a sign-in answer to a request from one of these origins carries the signed credential in `set-auth-token`;
+- the mount's `sessions` carries the list into `SessionPolicy`, whose session origin check admits it beside the `origin` policy;
+- `appHost` reads the list from `SessionPolicy` to admit those origins through the RPC transport guard, the RPC socket upgrade and the auth routes.
+
+Wildcards, patterns, `null` and URLs with paths fail the mount at startup with a config error. Without `nativeOrigins` the mount stays cookie-only and the host admits no bundled origin.
 
 ```ts
 import { Layer } from "effect";
+import { defineAuth } from "@shivaedev/identity/server/better-auth/define.ts";
 import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
-const nativeOrigins = ["capacitor://localhost", "https://localhost"];
-const mounted = yield* betterAuthMount(
-  { ...AppAuth, options: { ...AppAuth.options, trustedOrigins: [publicOrigin, ...nativeOrigins] } },
-  { bearerSessions: { origins: nativeOrigins } },
-);
+
+export const AppAuth = defineAuth({ nativeOrigins: ["capacitor://localhost", "https://localhost"], options: { trustedOrigins: [publicOrigin] } });
+const mounted = yield* betterAuthMount(AppAuth);
 const sessions = Layer.succeed(SessionPolicy, {
-  origin: trustedOrigins({ allow: [publicOrigin, ...nativeOrigins], missing: "allow" }),
   ...mounted.sessions,
+  origin: trustedOrigins({ allow: [publicOrigin], missing: "allow" }),
 });
-const host = appHost({ group, handlers, routes: mounted.routes, sessions, nativeOrigins });
+const host = appHost({ group, handlers, routes: mounted.routes, sessions });
 ```
+
+Spread `mounted.sessions` into the policy even when you supply your own provider: `nativeOrigins` reaches the session origin check and the host only through it, and a policy without it admits no bundled origin.
+
+The list goes where the session policy is made:
+
+| Host                       | Where the list goes                                                                                                                                 |
+| -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Better Auth                | `defineAuth({ nativeOrigins, options })`, then spread `mounted.sessions` into `SessionPolicy`                                                       |
+| Local owner                | `localOwner({ nativeOrigins, owner, roles })`, then use its `sessions` as the policy                                                                |
+| Hand-built `SessionPolicy` | `nativeOrigins: yield* Schema.decodeUnknownEffect(NativeOrigins)(origins)`, with `NativeOrigins` from `@shivaedev/identity/server/NativeOrigins.ts` |
+
+`localOwner` refuses the same malformed origins at start with a config error, and `NativeOrigins` is a branded type, so a hand-built policy holds only a decoded list.
 
 Always take the provider from the mount's `sessions`, or wrap a custom lookup in `admittedSessions`, even without a sign-in policy: both apply the mount's credential selection to the same request-local identity, profile and role middleware used by cookies. A same-origin request or a request without an Origin carrying the session cookie uses only that cookie, even if invalid or revoked; its bearer header cannot switch accounts or rescue it. Otherwise the signed bearer is resolved by Better Auth. Missing, unsigned, tampered, expired and revoked bearer sessions produce `Unauthorized` at protected RPCs.
 
-A native client signs in through `/api/auth/sign-in/email` with `credentials: "omit"` and its bundled Origin, reads the signed credential from the `set-auth-token` response header, and sends that exact value as `Authorization: Bearer <credential>` with `credentials: "omit"` on later auth and RPC requests. Persist it only in OS-backed secure storage, such as iOS Keychain or Android Keystore-backed storage; never use localStorage, sessionStorage or IndexedDB. Browser responses keep HttpOnly cookies and omit the plugin's token header and JSON token fields. Clients without a bundled Origin receive cookie responses.
+A native client keeps its signed credential behind identity's credential port and hands its storage to one Layer. `SessionCredential` from `@shivaedev/identity/client/SessionCredential.ts` is shaped like `SessionMemory`: `read`, `write` and `clear` Effects that fail with `SessionCredentialUnavailable`. The application's Layer wraps the OS-backed secure storage of its shell's plugin, such as iOS Keychain or Android Keystore-backed storage, in its own `adapters/`; never use localStorage, sessionStorage or IndexedDB. For a Capacitor shell with a secure-storage plugin:
+
+```ts
+import { SecureStorage } from "@aparajita/capacitor-secure-storage";
+import { Effect, Layer } from "effect";
+import { SessionCredential, SessionCredentialUnavailable } from "@shivaedev/identity/client/SessionCredential.ts";
+
+const KEY = "session-credential";
+
+function secure<A>(call: () => Promise<A>) {
+	return Effect.tryPromise({ catch: (cause) => new SessionCredentialUnavailable({ cause }), try: call });
+}
+
+export const secureCredential = Layer.succeed(SessionCredential, {
+	clear: secure(() => SecureStorage.remove(KEY)).pipe(Effect.asVoid),
+	read: secure(() => SecureStorage.get(KEY)).pipe(Effect.map((value) => (typeof value === "string" ? value : null))),
+	write: (value) => secure(() => SecureStorage.set(KEY, value)).pipe(Effect.asVoid),
+});
+```
+
+Pass that Layer to the Better Auth client as a plugin, and to `makeClient` through `storedCredential`:
+
+```ts
+import { createAuthClient } from "better-auth/client";
+import { Effect } from "effect";
+import { makeClient } from "@shivaedev/contract/makeClient.ts";
+import { sessionCredentialPlugin } from "@shivaedev/identity/client/adapters/sessionCredentialPlugin.ts";
+import { storedCredential } from "@shivaedev/identity/client/SessionCredential.ts";
+
+export const authClient = createAuthClient({ baseURL: publicOrigin, plugins: [sessionCredentialPlugin(secureCredential)] });
+const client = makeClient(contracts, { bearerToken: Effect.provide(storedCredential, secureCredential), registry, url: `${publicOrigin}/rpc` });
+```
+
+The plugin sends every auth request with `credentials: "omit"` and the stored credential as `Authorization: Bearer <credential>`, stores the `set-auth-token` header of a sign-in answer, and clears the credential when sign-out succeeds or a `get-session` check answers signed out. An answer changes the stored credential only when its request carried the credential stored at the moment it answers, so a session check sent before sign-in that answers signed out after it leaves the new credential in place. The application never reads or writes the token itself. Browser responses keep HttpOnly cookies and omit the plugin's token header and JSON token fields. Clients without a bundled Origin receive cookie responses.
 
 Native sign-out revokes the stored session. Signing in again while sending the current bearer replaces it and revokes the old session after successful sign-in. Streams keep their original request headers, so the old session ends with `Unauthorized` on the next revalidation; it never adopts the replacement. Keep cookie caching disabled for database-backed revocation and choose `streamRevalidationInterval` for the required delivery window.
 
-`appHost`'s `nativeOrigins` option admits those exact origins through the RPC transport guard and the auth routes. Wildcards, patterns and URLs with paths are rejected at startup. Keep the list aligned with `bearerSessions.origins`, Better Auth's `trustedOrigins` and the RPC session origin policy. Use `nativeOrigins` for bundled clients so their transport remains credential-free; other declared origins follow the sibling browser policy above.
+Use `nativeOrigins` for bundled clients so their transport remains credential-free; other declared origins follow the sibling browser policy above.
 
 The host answers native preflights with POST for RPC, GET and POST for auth, and only `Authorization` and `Content-Type` headers. Native responses echo the allowed origin exactly with `Vary: Origin`; auth responses expose `set-auth-token`. Native responses never enable CORS credentials. It strips cookies from admitted native requests before auth or RPC session resolution, so only the signed bearer session can authenticate them. This prevents native access from opening a cookie CSRF path, even if a caller sends a cookie. Resource authorization remains app-owned.
 
-A WebView's live queries subscribe over the shared WebSocket client: pass the signed credential as `bearerToken` to contract's `makeClient`, which sends it as the socket's first frame, as the [contract guide](https://github.com/ShivaeDev/platform/blob/main/packages/contract/README.md#build-a-shared-websocket-client) describes. The host refuses a query's change stream over HTTP with `WebSocketRequired`. Over HTTP, use the WebView's own fetch with `credentials: "omit"` for commands, one-off reads and explicit NDJSON streams, and abort a stream's request to release server work; a buffering native HTTP bridge cannot deliver a stream incrementally. The host still validates trusted proxy peers and forwarded authority, enforces NDJSON and body limits, uses only transport credentials, redacts diagnostics and authorizes sessions. Native HTTP callers without an Origin can exercise bearer RPC with an origin policy that explicitly permits missing Origins.
+A WebView's live queries subscribe over the shared WebSocket client. `storedCredential` reads the port each time the socket connects: contract's `makeClient` sends the credential stored then as the socket's first frame, as the [contract guide](https://github.com/ShivaeDev/platform/blob/main/packages/contract/README.md#build-a-shared-websocket-client) describes, and connects without one when none is stored. A new client after each sign-in, sign-out or second sign-in, as React's `SessionBoundary` makes one per session, therefore carries the current credential. The host refuses a query's change stream over HTTP with `WebSocketRequired`. Over HTTP, use the WebView's own fetch with `credentials: "omit"` for commands, one-off reads and explicit NDJSON streams, and abort a stream's request to release server work; a buffering native HTTP bridge cannot deliver a stream incrementally. The host still validates trusted proxy peers and forwarded authority, enforces NDJSON and body limits, uses only transport credentials, redacts diagnostics and authorizes sessions. Native HTTP callers without an Origin can exercise bearer RPC with an origin policy that explicitly permits missing Origins.
 
 ### Decide who may sign in
 
@@ -1115,7 +1166,7 @@ With database-backed sessions and cookie caching disabled, revocation rejects th
 
 ### Deliver typed auth emails
 
-Give `betterAuthMount` one `emails` configuration instead of four Better Auth callbacks. The application supplies absolute route URLs and a delivery Effect; it owns the transport and message text.
+Give `betterAuthMount` one `emails` configuration instead of four Better Auth callbacks. The application supplies absolute route URLs and a delivery Effect; it owns the transport and message text. To send them through a durable job queue with default copy, declare them with `authEmailQueue` from `@shivaedev/email/server/authEmailQueue.ts`, which returns this configuration together with the queue's producer and worker Layers; see the email package's [auth email section](https://github.com/ShivaeDev/platform/blob/main/packages/email/README.md#send-better-auths-emails).
 
 ```ts
 const mounted = yield* betterAuthMount(AppAuth, {
@@ -1150,40 +1201,41 @@ Register the Effect with a worker schedule, as the starter does at midnight UTC.
 
 Import the module that defines the name; there is no package-root entry. Paths below follow `@shivaedev/identity/`.
 
-| Module                                            | Names and purpose                                                                                                                                                                                                                                                        |
-| ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `identity.ts`                                     | `RequestId`, `Identity`, `OptionalIdentity`, `SessionUser`, `SessionUserWithProviderAccounts`, `SessionUserSchema`: request-local services and the shared user schema.                                                                                                   |
-| `middleware.ts`                                   | `RequestTracing`, `Authenticated`, `AuthenticatedUser`, `AuthenticatedUserWithProviderAccounts`, `MaybeAuthenticated`, `IdentityFailures`: native RPC middleware declarations and their shared failure schema.                                                           |
-| `server/providerFailure.ts`                       | `providerFailure(cause)`: log a redacted provider failure and fail with `AuthUnavailable`.                                                                                                                                                                               |
-| `permission.ts`                                   | `permissionMiddleware`, `hasPermission`: native permission middleware declarations and predicates over resolved grants.                                                                                                                                                  |
-| `server/permissionLayer.ts`                       | `permissionLayer`: permission middleware Layers.                                                                                                                                                                                                                         |
-| `server/adapters/permissionRoute.ts`              | `permissionRoute`: HTTP route guards.                                                                                                                                                                                                                                    |
-| `server/session.ts`                               | `authenticatedLayer`, `maybeAuthenticatedLayer`, `authenticatedUserLayer`, `authenticatedUserWithProviderAccountsLayer`, `withSessionUser`, `resolveSession`: session middleware implementations and the identity boundary.                                              |
-| `server/adapters/betterAuthSessions.ts`           | `betterAuthSessions(getSession, getProviderAccounts?)`: a session provider from Better Auth lookups.                                                                                                                                                                     |
-| `server/trustedOrigins.ts`                        | `trustedOrigins({ allow, missing })`: an exact Origin allowlist.                                                                                                                                                                                                         |
-| `server/adapters/local.ts`                        | `localRpcGuard`, `loopbackOnly`, `sameOrigin`, `trustedProxyPeer`: loopback and proxy guards.                                                                                                                                                                            |
-| `server/trustedProxyRanges.ts`                    | `trustedProxyRanges(trustedProxy?)`: normalized proxy ranges.                                                                                                                                                                                                            |
-| `server/adapters/proxyRanges.ts`                  | `proxyRanges(value)`: parse configured proxy ranges.                                                                                                                                                                                                                     |
-| `server/transportHeaders.ts`                      | `transportHeaders(rpcHeaders)`: the headers used for a transport-level decision.                                                                                                                                                                                         |
-| `server/tracing.ts`                               | `requestTracingLayer({ header?, sensitive? })`: the `RequestTracing` implementation.                                                                                                                                                                                     |
-| `server/resolveChanges.ts`                        | `resolveChanges`: authorized change subscriptions for custom change handlers.                                                                                                                                                                                            |
-| `server/better-auth/define.ts`                    | `defineAuth({ options, roles?, defaultRole? })`, `AuthDeclaration`: the one declaration of an application's Better Auth options, roles and default role.                                                                                                                 |
-| `server/better-auth/mount.ts`                     | `betterAuthMount(declaration, { preset?, enabledPaths?, emails?, onPasswordReset?, signIn?, bearerSessions?, roleSeed? })`, returning `{ auth, profiles, routes, sessions, admittedSessions, admitsUser, revokeUnadmitted }`: native auth routes and the sign-in policy. |
-| `server/better-auth/provisionAdmin.ts`            | `provisionAdmin(declaration, role)`: find or create the configured administrator and assign the role.                                                                                                                                                                    |
-| `server/better-auth/adapters/database.ts`         | `betterAuthDatabase()`: Better Auth storage on the application PostgreSQL client.                                                                                                                                                                                        |
-| `server/better-auth/emails.ts`                    | `AuthEmail`, `BetterAuthEmails`: typed delivery messages, app routes and per-account delivery windows for the mount.                                                                                                                                                     |
-| `server/better-auth/allowedAccounts.ts`           | `ProviderAccounts`, `AllowedAccounts`, `allowedAccounts`: provider-account list Schemas and the non-empty `AUTH_ALLOWED_ACCOUNTS` Config.                                                                                                                                |
-| `server/better-auth/adapters/accountRoleSeed.ts`  | `accountRoleSeed(declaration, role, accounts)`: grant a configured role at boot and sign-in through `assignRole`.                                                                                                                                                        |
-| `server/better-auth/adapters/signInGate.ts`       | `SignInPolicy`: the `accounts`, `rule` and `recheckInterval` of a sign-in policy.                                                                                                                                                                                        |
-| `server/better-auth/adapters/revokeUnadmitted.ts` | `RevokedSessions`: the `{ users, sessions }` counts of a revocation.                                                                                                                                                                                                     |
-| `server/better-auth/userProfiles.ts`              | Public profile lookups for other users.                                                                                                                                                                                                                                  |
-| `server/better-auth/sweepExpiredSessions.ts`      | `sweepExpiredSessions`: delete expired sessions through the application's SQL client and return the number removed.                                                                                                                                                      |
-| `server/better-auth/accountData.ts`               | `accountData(declaration, reference?)`, returning `{ check, exportAccount, eraseOwnedRows }`: a person's account export, owned-row erasure and the coverage check, from the owned models the host reports.                                                               |
-| `server/account-data/UncoveredUserColumns.ts`     | `UncoveredUserColumns`: the coverage failure naming each column that refers to a person without an owned model to cover it.                                                                                                                                              |
-| `server/account-data/OwnedModelsUncollected.ts`   | `OwnedModelsUncollected`: the failure of export, erase and check when no collector records the owned models.                                                                                                                                                             |
-| `server/account-data/OwnedTableCycle.ts`          | `OwnedTableCycle`: the erase failure naming owned tables whose `RESTRICT` or `NO ACTION` keys form a cycle.                                                                                                                                                              |
-| `server/better-auth/userReference.ts`             | `userReference`: the default auth user table and id column for application foreign keys.                                                                                                                                                                                 |
-| `server/better-auth/testDatabase.ts`              | `authTestDatabase`: test-only identity/session readouts and faults for the default PostgreSQL auth schema.                                                                                                                                                               |
+| Module                                            | Names and purpose                                                                                                                                                                                                                                       |
+| ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `identity.ts`                                     | `RequestId`, `Identity`, `OptionalIdentity`, `SessionUser`, `SessionUserWithProviderAccounts`, `SessionUserSchema`: request-local services and the shared user schema.                                                                                  |
+| `middleware.ts`                                   | `RequestTracing`, `Authenticated`, `AuthenticatedUser`, `AuthenticatedUserWithProviderAccounts`, `MaybeAuthenticated`, `IdentityFailures`: native RPC middleware declarations and their shared failure schema.                                          |
+| `server/providerFailure.ts`                       | `providerFailure(cause)`: log a redacted provider failure and fail with `AuthUnavailable`.                                                                                                                                                              |
+| `permission.ts`                                   | `permissionMiddleware`, `hasPermission`: native permission middleware declarations and predicates over resolved grants.                                                                                                                                 |
+| `server/permissionLayer.ts`                       | `permissionLayer`: permission middleware Layers.                                                                                                                                                                                                        |
+| `server/adapters/permissionRoute.ts`              | `permissionRoute`: HTTP route guards.                                                                                                                                                                                                                   |
+| `server/session.ts`                               | `authenticatedLayer`, `maybeAuthenticatedLayer`, `authenticatedUserLayer`, `authenticatedUserWithProviderAccountsLayer`, `withSessionUser`, `resolveSession`: session middleware implementations and the identity boundary.                             |
+| `server/adapters/betterAuthSessions.ts`           | `betterAuthSessions(getSession, getProviderAccounts?)`: a session provider from Better Auth lookups.                                                                                                                                                    |
+| `server/trustedOrigins.ts`                        | `trustedOrigins({ allow, missing })`: an exact Origin allowlist.                                                                                                                                                                                        |
+| `server/NativeOrigins.ts`                         | `NativeOrigins`: the validated, branded list of exact bundled-client origins that the mount puts on `SessionPolicy`.                                                                                                                                    |
+| `server/adapters/local.ts`                        | `localRpcGuard`, `loopbackOnly`, `sameOrigin`, `trustedProxyPeer`: loopback and proxy guards.                                                                                                                                                           |
+| `server/trustedProxyRanges.ts`                    | `trustedProxyRanges(trustedProxy?)`: normalized proxy ranges.                                                                                                                                                                                           |
+| `server/adapters/proxyRanges.ts`                  | `proxyRanges(value)`: parse configured proxy ranges.                                                                                                                                                                                                    |
+| `server/transportHeaders.ts`                      | `transportHeaders(rpcHeaders)`: the headers used for a transport-level decision.                                                                                                                                                                        |
+| `server/tracing.ts`                               | `requestTracingLayer({ header?, sensitive? })`: the `RequestTracing` implementation.                                                                                                                                                                    |
+| `server/resolveChanges.ts`                        | `resolveChanges`: authorized change subscriptions for custom change handlers.                                                                                                                                                                           |
+| `server/better-auth/define.ts`                    | `defineAuth({ options, roles?, defaultRole?, nativeOrigins? })`, `AuthDeclaration`: the one declaration of an application's Better Auth options, roles, default role and bundled-client origins.                                                        |
+| `server/better-auth/mount.ts`                     | `betterAuthMount(declaration, { preset?, enabledPaths?, emails?, onPasswordReset?, signIn?, roleSeed? })`, returning `{ auth, profiles, routes, sessions, admittedSessions, admitsUser, revokeUnadmitted }`: native auth routes and the sign-in policy. |
+| `server/better-auth/provisionAdmin.ts`            | `provisionAdmin(declaration, role)`: find or create the configured administrator and assign the role.                                                                                                                                                   |
+| `server/better-auth/adapters/database.ts`         | `betterAuthDatabase()`: Better Auth storage on the application PostgreSQL client.                                                                                                                                                                       |
+| `server/better-auth/emails.ts`                    | `AuthEmail`, `BetterAuthEmails`: typed delivery messages, app routes and per-account delivery windows for the mount.                                                                                                                                    |
+| `server/better-auth/allowedAccounts.ts`           | `ProviderAccounts`, `AllowedAccounts`, `allowedAccounts`: provider-account list Schemas and the non-empty `AUTH_ALLOWED_ACCOUNTS` Config.                                                                                                               |
+| `server/better-auth/adapters/accountRoleSeed.ts`  | `accountRoleSeed(declaration, role, accounts)`: grant a configured role at boot and sign-in through `assignRole`.                                                                                                                                       |
+| `server/better-auth/adapters/signInGate.ts`       | `SignInPolicy`: the `accounts`, `rule` and `recheckInterval` of a sign-in policy.                                                                                                                                                                       |
+| `server/better-auth/adapters/revokeUnadmitted.ts` | `RevokedSessions`: the `{ users, sessions }` counts of a revocation.                                                                                                                                                                                    |
+| `server/better-auth/userProfiles.ts`              | Public profile lookups for other users.                                                                                                                                                                                                                 |
+| `server/better-auth/sweepExpiredSessions.ts`      | `sweepExpiredSessions`: delete expired sessions through the application's SQL client and return the number removed.                                                                                                                                     |
+| `server/better-auth/accountData.ts`               | `accountData(declaration, reference?)`, returning `{ check, exportAccount, eraseOwnedRows }`: a person's account export, owned-row erasure and the coverage check, from the owned models the host reports.                                              |
+| `server/account-data/UncoveredUserColumns.ts`     | `UncoveredUserColumns`: the coverage failure naming each column that refers to a person without an owned model to cover it.                                                                                                                             |
+| `server/account-data/OwnedModelsUncollected.ts`   | `OwnedModelsUncollected`: the failure of export, erase and check when no collector records the owned models.                                                                                                                                            |
+| `server/account-data/OwnedTableCycle.ts`          | `OwnedTableCycle`: the erase failure naming owned tables whose `RESTRICT` or `NO ACTION` keys form a cycle.                                                                                                                                             |
+| `server/better-auth/userReference.ts`             | `userReference`: the default auth user table and id column for application foreign keys.                                                                                                                                                                |
+| `server/better-auth/testDatabase.ts`              | `authTestDatabase`: test-only identity/session readouts and faults for the default PostgreSQL auth schema.                                                                                                                                              |
 
 ### Install, setup and limits
 

@@ -91,6 +91,16 @@ failures.it(
 	},
 );
 
+failures.it(
+	"a command whose socket the host closed for an oversized message tells the person it was too large, not that the server was unreachable",
+	[failureScreen()],
+	function* ({ notices, press }) {
+		yield* press("Rename with too much text");
+
+		expect(yield* notices()).toEqual(["What you sent is too large for the server. Try again with something smaller."]);
+	},
+);
+
 failures.it("a command whose server dies reaches the failure host once without its cause", [failureScreen()], function* ({ notices, press }) {
 	yield* press("Rename with a dying server");
 
@@ -104,6 +114,17 @@ failures.it(
 		yield* press("Rename offline");
 
 		expect(yield* notices()).toEqual(["Offline (connection)"]);
+	},
+);
+
+failures.it(
+	"the application's failure wording tells an oversized message apart from a lost connection",
+	[failureScreen({ hostWording: (failure) => ({ message: `Not sent (${failure.kind})` }) }, "whose failure host words failures by kind")],
+	function* ({ notices, press }) {
+		yield* press("Rename offline");
+		yield* press("Rename with too much text");
+
+		expect(yield* notices()).toEqual(["Not sent (connection)", "Not sent (tooLarge)"]);
 	},
 );
 

@@ -6,8 +6,8 @@ import { useConnectionStatus } from "#client/useConnectionStatus.ts";
 import type { connect } from "#test/connection/connect.ts";
 
 type Client = Effect.Success<ReturnType<typeof connect>>;
-function Note({ client }: Pick<Client, "client">) {
-	const note = useQuery(client.api.get.query());
+function Note({ notes }: Pick<Client, "notes">) {
+	const note = useQuery(notes.get.query());
 	return (
 		<>
 			<button onClick={note.refresh} type="button">
@@ -22,11 +22,11 @@ function Note({ client }: Pick<Client, "client">) {
 		</>
 	);
 }
-export function View({ client, summary }: Client) {
+export function View({ client, notes, summary }: Client) {
 	const count = useQuery(summary.get.query());
 	const connection = useConnectionStatus(client);
 	const [showNote, setShowNote] = useState(true);
-	const note = showNote ? <Note client={client} /> : null;
+	const note = showNote ? <Note notes={notes} /> : null;
 	return (
 		<article>
 			<button onClick={() => setShowNote(false)} type="button">

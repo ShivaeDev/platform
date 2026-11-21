@@ -6,9 +6,9 @@ import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { collection } from "@shivaedev/changes/keys.ts";
 import { appHost } from "@shivaedev/server/appHost.ts";
-import { makeClient } from "#bind.ts";
 import { contract } from "#contract.ts";
 import { liveServerLayer } from "#live-server/layer.ts";
+import { makeClient } from "#makeClient.ts";
 import { query } from "#operation.ts";
 import { storyRuntime } from "#test/storyRuntime.ts";
 
@@ -54,10 +54,13 @@ export const completionEngine = Effect.gen(function* () {
 		Effect.sync(() => AtomRegistry.make()),
 		(current) => Effect.sync(() => current.dispose()),
 	);
-	const connection = makeClient(Records, {
-		runtime,
-		url: `http://127.0.0.1:${server.address.port}/rpc`,
-		webSocketConstructor: layerWebSocketConstructor,
-	});
-	return { answer, api: connection.api, reactivity, received, registry, state, view: connection.api.pushed.query() };
+	const connection = makeClient(
+		{ records: Records },
+		{
+			runtime,
+			url: `http://127.0.0.1:${server.address.port}/rpc`,
+			webSocketConstructor: layerWebSocketConstructor,
+		},
+	);
+	return { answer, api: connection.api.records, reactivity, received, registry, state, view: connection.api.records.pushed.query() };
 });

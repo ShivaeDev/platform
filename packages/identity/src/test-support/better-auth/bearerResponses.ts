@@ -6,7 +6,7 @@ import { emptyMount, startMountHost } from "#test/better-auth/mountHost.ts";
 export const bearerResponses = storyKit({
 	after: { configured: (engine) => startMountHost(engine).pipe(Effect.provide(memoryStore)) },
 	clock: "test",
-	create: () => ({ ...emptyMount(), bearerSessions: { origins: ["capacitor://localhost"] } }),
+	create: () => ({ ...emptyMount(), nativeOrigins: ["capacitor://localhost"] }),
 	name: "browser responses behind bearer sessions",
 	stages: ["configured"],
 	verbs: (engine, story) => ({

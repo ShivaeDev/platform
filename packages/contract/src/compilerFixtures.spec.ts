@@ -12,9 +12,6 @@ const invalidFixtures = {
 	duplicateQuery: "Operation names must be unique; duplicated: get",
 	fieldRejection: `Type '"body"' is not assignable to type '"title"'`,
 	handlerMismatch: "missing the following properties from type 'Note': body, title",
-	incompatibleClient: "is not assignable",
-	incompatibleErrors: "is not assignable",
-	incompleteClient: "is not assignable",
 	inlineReject: "Property 'Anything' does not exist",
 	inlineSuccess: "Type 'number' is not assignable to type 'void",
 	invalidatesResult: "Property 'missing' does not exist on type 'Note'",
@@ -190,15 +187,30 @@ for (const [fixture, [module, problem]] of Object.entries(moduleFixtures)) {
 	);
 }
 
-compilerStory.it(
-	"tsc rejects a generated client that differs from its server module on the client's assertion, naming the operation and pnpm generate",
-	[],
-	function* ({ compileInvalid }) {
-		const diagnostics = yield* compileInvalid("staleNotes");
+const STALE = '"the generated file is stale; run pnpm generate">';
 
-		expect(diagnostics.split("\n")[0]).toContain(
-			`is not assignable to type 'ClientDiffersFromModule<"create", "the generated file is stale; run pnpm generate">'`,
-		);
-	},
-	COMPILER_TIMEOUT,
-);
+// TypeScript names the differing operation when it can resolve the difference, and prints the comparison otherwise.
+const staleClients = {
+	"declares create's payload with a field the module's create does not take, naming create and pnpm generate": [
+		"staleNotes",
+		`ClientDiffersFromModule<"create", ${STALE}`,
+	],
+	"declares the module's create command as a query, naming pnpm generate": ["queriedNotes", STALE],
+	"leaves out the module's create command, naming create and pnpm generate": ["listOnlyNotes", `ClientDiffersFromModule<"create", ${STALE}`],
+} as const;
+
+for (const [difference, [fixture, problem]] of Object.entries(staleClients)) {
+	compilerStory.it(
+		`tsc rejects a browser contract that ${difference} on the contract's ClientDiffersFromModule assertion`,
+		[],
+		function* ({ compileInvalid }) {
+			const first = (yield* compileInvalid(fixture)).split("\n")[0];
+
+			yield* outcomes([
+				["the assertion's type", () => Effect.succeed(first), expect.stringContaining("is not assignable to type 'ClientDiffersFromModule<")],
+				["the named problem", () => Effect.succeed(first), expect.stringContaining(problem)],
+			]);
+		},
+		COMPILER_TIMEOUT,
+	);
+}

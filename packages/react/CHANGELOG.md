@@ -1,5 +1,46 @@
 # Changelog
 
+## 0.57.0 - 2026-11-21
+
+### Added
+
+- `SessionApp` from `@shivaedev/react/client/SessionApp.ts` mounts an application's session and routes in one element. It takes the `clientApp` value, the auth actions, the current session, `recheck`, `persist`, an optional `history`, and the app's own `home`, `shell`, `forbidden` screen, `notFound` page, `parseSearch` and `stringifySearch`, plus `onCatch`, the router's `defaultOnCatch`, and `hidden`, which shows a refused route as not found instead of `forbidden`. It renders `SessionBoundary` with the app's `connect` and `warm`, identifies a generation by `session.user.id`, signs out through `auth.signOut`, builds one router per session generation with the current session readable as `session()` in route context, routes a signed-out visitor through the app connected with no session, and continues a fresh sign-in at `/sign-in` to its `returnTo`. Every route comes from the client modules; `home` renders at `/` while no module route claims it.
+- `sessionRouter(options)` from `@shivaedev/react/client/sessionRouter.ts` builds that router for one connection, for kits and hosts without a session boundary, and `SessionRouter<typeof app>` types it for TanStack's `Register`. Its root route, `sessionRoot()` from `@shivaedev/react/client/sessionRoot.ts`, checks every matched route with `permissionGuard`, adds the permission of the module admin page whose path or detail path matches the location segment by segment (a `$id`, `{$id}` or `{-$id}` segment matches any one segment, so a literal route such as `/admin/reports/new` under a detail path is guarded too, and the bare `/admin` needs the first page's permission), takes the app's `notFound` as its `notFoundComponent`, and sends signed-out visitors to `/sign-in` with the requested location in `returnTo`. The router sets `defaultPendingMs: Infinity`, `disableGlobalCatchBoundary` and `defaultErrorComponent: PermissionBoundaryError`, wraps the app's shell in `PermissionBoundary` with the `forbidden` screen, and renders through react's `RouterProvider`.
+- `SessionBoundary` gives its signed-out tree its `recheck` and retry policy. `useSessionRecheck()` works there, so a sign-in screen asks for the session it created.
+
+### Changed
+
+- a `useQuery` or `useAction` result that fails with `Unauthorized` in `SessionBoundary`'s signed-out tree now asks for one session check, as it does signed in; a check that answers signed out asks no second time.
+
+### Breaking
+
+- the `Register` interface of `@shivaedev/react/client/module.ts` takes the app's `auth` and `session` types in place of `root`, and `RootRoute` is the root route `SessionApp` builds. Replace `interface Register { readonly root: ReturnType<typeof rootRoute> }` with `interface Register { readonly auth: AuthActions; readonly session: AppSession }`, delete the app's own root route, and read `adminPages`, `auth`, `modules`, `navigate`, `redirects`, `registry` and `session()` from the root route's context as before.
+
+## 0.56.0 - 2026-11-21
+
+### Added
+
+- `clientModule(contracts, (clients) => parts)` from `@shivaedev/react/client/module.ts` names the contracts a module's screens call, once, under the module's own names, and hands the callback a typed bound client for each; its parts are `routes: (root) => [...]`, `warm`, `admin`, `menu`, `overlays` and `footer`. Module routes get a typed root through the `Register` interface, which the application augments once with `{ readonly root: ReturnType<typeof rootRoute> }`. `AdminNavigation` describes an admin page for navigation by its shape.
+- `clientApp(modules, options?)` from `@shivaedev/react/client/app.ts` makes one client over every module's contracts with `makeClient`, binding a contract that two modules name once, and returns `connect` and `warm` that spread into `SessionBoundary`. The connection carries `routes(root)`, `adminPages`, `modules` and the client's activity, `runtime` and `sync`; `options` takes `url`, `protocol`, `headers` and the other client options for story kits and native shells.
+
+## 0.55.1 - 2026-11-21
+
+### Changed
+
+- Update `@shivaedev/contract` from 0.55.0 to 0.56.0.
+- Update `@shivaedev/identity` from 0.38.1 to 0.38.2.
+
+## 0.55.0 - 2026-11-21
+
+### Added
+
+- `NoticeHost`'s default wording for a command whose socket the host closed with code 1009, because the message was over its body limit, is `What you sent is too large for the server. Try again with something smaller.` instead of the lost-connection message.
+
+### Breaking
+
+- `usePendingCommand` no longer takes `queries`. Delete the option: the hold already lasts until the command is reflected, which every query the command changed now shows.
+- `UnexpectedFailure["kind"]` has the new member `"tooLarge"` for that failure, so an application's own `failure` wording can tell it apart from `"connection"`. To migrate, add a `"tooLarge"` case to a `switch` over `kind` that lists every kind, or let its default branch show `failure.message`.
+
 ## 0.54.1 - 2026-11-21
 
 ### Fixed

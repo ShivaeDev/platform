@@ -1,12 +1,10 @@
-import { Effect, Layer, Schema, Stream } from "effect";
-import { FetchHttpClient } from "effect/http";
-import * as AtomRpc from "effect/reactivity/AtomRpc";
-import { Rpc, RpcClient, RpcGroup, type RpcSchema, RpcSerialization } from "effect/rpc";
+import { Effect, Schema, Stream } from "effect";
+import type { Rpc, RpcGroup, RpcSchema } from "effect/rpc";
 import type { RpcClientError } from "effect/rpc/RpcClientError";
 import { expectTypeOf } from "vitest";
 import { collection } from "@shivaedev/changes/keys.ts";
-import { bind } from "#bind.ts";
 import { contract } from "#contract.ts";
+import { type ContractsClient, makeClient } from "#makeClient.ts";
 import { command, query, stream } from "#operation.ts";
 import { type Denied, Guard, NoteMissing } from "#test/notes.ts";
 
@@ -20,13 +18,9 @@ const Subscribe = stream("subscribe", {
 	success: Schema.String,
 });
 const Notes = contract("notes", { streams: [Subscribe] }).middleware(Guard);
-class Client extends AtomRpc.Service<Client>()("test/Streaming", {
-	group: Notes,
-	protocol: RpcClient.layerProtocolHttp({ url: "http://127.0.0.1/rpc" }).pipe(Layer.provide([FetchHttpClient.layer, RpcSerialization.layerNdjson])),
-}) {}
-const api = bind(Notes, Client);
+const api = makeClient({ notes: Notes }, { url: "http://127.0.0.1/rpc" }).api.notes;
 expectTypeOf(api.subscribe.run).parameter(0).toEqualTypeOf<{ readonly id: number }>();
-expectTypeOf(api.subscribe.run).returns.toEqualTypeOf<Stream.Stream<string, NoteMissing | Denied | RpcClientError, Client>>();
+expectTypeOf(api.subscribe.run).returns.toEqualTypeOf<Stream.Stream<string, NoteMissing | Denied | RpcClientError, ContractsClient>>();
 expectTypeOf(Subscribe.reject.NoteMissing({ id: 1 })).toEqualTypeOf<Effect.Effect<never, NoteMissing>>();
 expectTypeOf(Subscribe.reads).parameter(0).toEqualTypeOf<{ readonly id: number }>();
 expectTypeOf<Rpc.SuccessSchema<Rpc.ExtractTag<RpcGroup.Rpcs<typeof Notes>, "notes.subscribe">>>().toEqualTypeOf<
@@ -45,13 +39,3 @@ contract("duplicate", { streams: [Subscribe, Subscribe] });
 stream("missing", { reads: () => [] });
 // @ts-expect-error A stream handler cannot return an undeclared rejection.
 Notes.of({ "notes.$changes": () => Stream.never, "notes.subscribe": () => Stream.fail(new Undeclared()) });
-
-const Unary = RpcGroup.make(
-	Rpc.make("notes.subscribe", { error: Subscribe.error, payload: Subscribe.payload, success: Subscribe.success }),
-).middleware(Guard);
-class UnaryClient extends AtomRpc.Service<UnaryClient>()("test/Unary", {
-	group: Unary,
-	protocol: RpcClient.layerProtocolHttp({ url: "http://127.0.0.1/rpc" }).pipe(Layer.provide([FetchHttpClient.layer, RpcSerialization.layerNdjson])),
-}) {}
-// @ts-expect-error A unary client cannot implement a streaming operation.
-bind(Notes, UnaryClient);

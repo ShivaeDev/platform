@@ -15,27 +15,27 @@ for (const role of ["admin", "owner"] as const) {
 foundationAdmin.it("an admin sees the auth-email and session-sweep queues", [foundationAccount("operator", "admin")], function* ({ jobQueues }) {
 	const queues = yield* jobQueues("operator");
 
-	expect(queues).toEqual(expect.arrayContaining(["identity.auth-emails", "sweep-expired-auth-sessions"]));
+	expect(queues).toEqual(expect.arrayContaining(["email.auth-emails", "sweep-expired-auth-sessions"]));
 });
 
 foundationAdmin.it(
-	"an admin inspects a failed password-reset email through Jobs administration",
+	"an admin inspects a failed password-reset email through Jobs administration with its link masked",
 	[foundationAccount("operator", "admin"), failedEmailDelivery],
-	function* ({ failedJobs, jobDetail, requestsPasswordReset, workersFinish }) {
-		expect(yield* failedJobs("operator", "identity.auth-emails")).toEqual([]);
+	function* ({ failedJobs, jobDetail, requestsPasswordReset, workerGivesUpOnTheEmail }) {
+		expect(yield* failedJobs("operator", "email.auth-emails")).toEqual([]);
 
 		yield* requestsPasswordReset("operator");
-		yield* workersFinish();
+		yield* workerGivesUpOnTheEmail();
 
-		const jobs = yield* failedJobs("operator", "identity.auth-emails");
-		expect(jobs).toMatchObject([{ data: { kind: "ResetPassword", to: "operator@app.test" }, state: "failed" }]);
+		const jobs = yield* failedJobs("operator", "email.auth-emails");
+		expect(jobs).toMatchObject([{ data: { kind: "ResetPassword", to: "operator@app.test", url: "<redacted>" }, state: "failed" }]);
 		if (typeof jobs === "string" || jobs[0] === undefined) {
 			return yield* Effect.die("The failed email did not reach Jobs administration");
 		}
-		expect(yield* jobDetail("operator", "identity.auth-emails", jobs[0].id)).toMatchObject({
-			data: { kind: "ResetPassword", to: "operator@app.test" },
+		expect(yield* jobDetail("operator", "email.auth-emails", jobs[0].id)).toMatchObject({
+			data: { kind: "ResetPassword", to: "operator@app.test", url: "<redacted>" },
 			output: { message: "Resend could not deliver the email" },
-			queue: "identity.auth-emails",
+			queue: "email.auth-emails",
 			state: "failed",
 		});
 	},
@@ -67,9 +67,9 @@ for (const [name, refused] of [
 			yield* outcomes([
 				["users", () => Effect.succeed(listed), refused],
 				["job health", () => jobHealth(name), refused],
-				["auth-email failures", () => failedJobs(name, "identity.auth-emails"), refused],
+				["auth-email failures", () => failedJobs(name, "email.auth-emails"), refused],
 				["session-sweep failures", () => failedJobs(name, "sweep-expired-auth-sessions"), refused],
-				["auth-email detail", () => jobDetail(name, "identity.auth-emails", "00000000-0000-4000-8000-000000000000"), refused],
+				["auth-email detail", () => jobDetail(name, "email.auth-emails", "00000000-0000-4000-8000-000000000000"), refused],
 				["session-sweep detail", () => jobDetail(name, "sweep-expired-auth-sessions", "00000000-0000-4000-8000-000000000000"), refused],
 			]);
 		},

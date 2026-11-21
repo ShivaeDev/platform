@@ -1,5 +1,37 @@
 # Changelog
 
+## 0.42.0 - 2026-11-21
+
+### Added
+
+- `appHost` admits the origins in `SessionPolicy.nativeOrigins` through the RPC transport guard, the RPC socket upgrade and the auth routes, so an application no longer lists them for the host.
+
+### Breaking
+
+- `appHost`'s `nativeOrigins` option is removed; the host reads the list from `SessionPolicy.nativeOrigins`. Move the list to where the policy is made: with Better Auth, into `defineAuth({ nativeOrigins })` and spread `mounted.sessions` into the policy; for a local-owner host, into `localOwner({ nativeOrigins })` and use its `sessions`; for a hand-built `SessionPolicy`, set `nativeOrigins: yield* Schema.decodeUnknownEffect(NativeOrigins)(origins)` with `NativeOrigins` from `@shivaedev/identity/server/NativeOrigins.ts`. A host with `policy: "loopback"` has no session policy and admits no native origin.
+- The transport value that `hostRpcRoutes` takes (the `hostTransport` result) no longer has `nativeOrigins`, and `socketRpc(handler, policy, trustedProxy)` lost its origin list parameter. Callers drop them.
+- `NativeOrigins` from `@shivaedev/server/nativeClientOrigins.ts` moved to `@shivaedev/identity/server/NativeOrigins.ts`, and `nativeClientOrigins(trustedProxy, route, rpcPath?)` takes `"auth"` or `"rpc"` instead of an origin list and a mode.
+
+## 0.41.2 - 2026-11-21
+
+### Changed
+
+- an `admin` field on an application module is the result of `registerAdmin` or `mergeAdminRegistrations`, which carries the `group` the host serves.
+
+## 0.41.1 - 2026-11-21
+
+### Changed
+
+- Update `@shivaedev/admin` from 0.28.2 to 0.28.3.
+- Update `@shivaedev/contract` from 0.55.0 to 0.56.0.
+- Update `@shivaedev/identity` from 0.38.1 to 0.38.2.
+
+## 0.41.0 - 2026-11-21
+
+### Added
+
+- when the host closes an RPC socket because a message exceeds `maxBodySize` or `MAX_BODY_SIZE`, it logs one warning with the limit, the message size and the RPC path, annotated as `rpc.maxBodySize`, `rpc.messageSize` and `url.path`, and none of the message's content. The size is `unknown` when the Node listener's WebSocket server refuses the message before the host reads it.
+
 ## 0.40.0 - 2026-11-21
 
 ### Added

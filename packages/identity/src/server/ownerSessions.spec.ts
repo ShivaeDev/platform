@@ -1,6 +1,6 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { ownerStory } from "#test/local-owner/story.ts";
+import { ownerStory, shellOrigins } from "#test/local-owner/story.ts";
 
 ownerStory.it("the launching client reads as the owner and its command audits the owner", [], function* ({ audit, manage, profile }) {
 	yield* outcomes([
@@ -73,3 +73,34 @@ ownerStory.it(
 		expect(yield* profile("machine")).toBe("failed with unauthorized");
 	},
 );
+
+const SHELL = "capacitor://localhost";
+const shell = [shellOrigins([SHELL])];
+
+ownerStory.it("the local owner's declared native origin reads the owner profile over HTTP RPC", shell, function* ({ profileFrom }) {
+	expect(yield* profileFrom(SHELL)).toBe("the owner's profile");
+});
+
+ownerStory.it("the local owner's declared native origin reads the owner profile over the RPC socket", shell, function* ({ profileOverSocketFrom }) {
+	expect(yield* profileOverSocketFrom(SHELL)).toEqual({ actor: "local-owner", role: "owner" });
+});
+
+for (const origin of ["capacitor://other", "https://attacker.example", "null"]) {
+	ownerStory.it(`${origin} is refused over HTTP RPC by a local owner that names only ${SHELL}`, shell, function* ({ profileFrom }) {
+		expect(yield* profileFrom(origin)).toBe("forbidden: Local same-origin requests only");
+	});
+
+	ownerStory.it(`${origin} is refused at the RPC socket upgrade by a local owner that names only ${SHELL}`, shell, function* ({ socketUpgradeFrom }) {
+		expect(yield* socketUpgradeFrom(origin)).toBe("refused with HTTP 403");
+	});
+}
+
+ownerStory.it("without declared native origins the local owner refuses the shell's HTTP RPC", [], function* ({ profileFrom }) {
+	expect(yield* profileFrom(SHELL)).toBe("forbidden: Local same-origin requests only");
+});
+
+for (const origin of ["*", "https://*.example", "capacitor://localhost/path", "https://localhost?query", "null"]) {
+	ownerStory.it(`a local owner naming ${origin} as a native origin fails at start with a config error`, [], function* ({ ownerStartsDeclaring }) {
+		expect(yield* ownerStartsDeclaring([origin])).toBe("failed with config error");
+	});
+}

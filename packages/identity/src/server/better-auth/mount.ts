@@ -7,7 +7,7 @@ import { accountPreferenceOptions } from "#server/better-auth/adapters/accountPr
 import type { AccountRoleSeed } from "#server/better-auth/adapters/accountRoleSeed.ts";
 import { acquireAuth } from "#server/better-auth/adapters/acquire.ts";
 import { admittedSessions } from "#server/better-auth/adapters/admittedSessions.ts";
-import { type BearerSessionsOptions, withBearerSessions } from "#server/better-auth/adapters/bearerSessions.ts";
+import { nativeTrustedOrigins, withBearerSessions } from "#server/better-auth/adapters/bearerSessions.ts";
 import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
 import { effectHookOptions } from "#server/better-auth/adapters/effectHookOptions.ts";
 import { emailOptions } from "#server/better-auth/adapters/emailOptions.ts";
@@ -32,11 +32,11 @@ import type { BetterAuthPasswordReset } from "#server/better-auth/PasswordReset.
 import { authRouteHandler } from "#server/better-auth/routeHandler.ts";
 import { storedRoleOptions } from "#server/better-auth/storedRoleOptions.ts";
 import { UndeclaredDefaultRole } from "#server/better-auth/UndeclaredDefaultRole.ts";
+import { declaredNativeOrigins } from "#server/NativeOrigins.ts";
 import { providerFailure } from "#server/providerFailure.ts";
 
 export interface BetterAuthMountOptions<E = never, R = never> {
 	readonly accountPreferences?: boolean;
-	readonly bearerSessions?: BearerSessionsOptions | undefined;
 	readonly clientIp?: "railway";
 	readonly databaseHooks?: BetterAuthDatabaseHooks<R> | undefined;
 	readonly emails?: BetterAuthEmails<R> | undefined;
@@ -58,6 +58,7 @@ const mountAuth = Effect.fn("Identity.mountAuth")(function* <const TOptions exte
 		const { defaultRole } = declaration;
 		yield* declaration.roles.resolve(defaultRole).pipe(Effect.mapError(() => new UndeclaredDefaultRole({ role: defaultRole })));
 	}
+	const nativeOrigins = yield* declaredNativeOrigins(declaration.nativeOrigins);
 	const options =
 		declaration.options.database === undefined ? { ...declaration.options, database: yield* betterAuthDatabase() } : declaration.options;
 	const { authOptions, clientIpHeader, rateLimitEnabled, trustedProxy } = yield* mountSettings(options, mount.clientIp);
@@ -83,13 +84,14 @@ const mountAuth = Effect.fn("Identity.mountAuth")(function* <const TOptions exte
 	const basePath = prefix === "/" ? "" : prefix;
 	const customStorage = yield* rateLimitStorage;
 	const { auth, profiles } = yield* acquireAuth({
-		...withHardening(withBearerSessions(preset, mount.bearerSessions !== undefined), mount.hardening),
+		...withHardening(withBearerSessions(preset, nativeOrigins !== undefined), mount.hardening),
 		...authOptions,
 		rateLimit: {
 			...rateLimit,
 			customStorage,
 			enabled: rateLimitEnabled,
 		},
+		trustedOrigins: nativeTrustedOrigins(authOptions.trustedOrigins, nativeOrigins),
 		user: gate.active ? gated.user : configured.user,
 	});
 	const authRoutes = mountRoutes.pipe(
@@ -98,9 +100,9 @@ const mountAuth = Effect.fn("Identity.mountAuth")(function* <const TOptions exte
 				basePath,
 				handle: authRouteHandler(auth, {
 					basePath,
-					bearerSessions: mount.bearerSessions,
 					clientIpHeader,
 					ipv6Subnet: options.advanced?.ipAddress?.ipv6Subnet,
+					nativeOrigins,
 					roles: declaration.roles,
 					runRequest: runtime.runRequest,
 					trustedProxy,
@@ -108,7 +110,7 @@ const mountAuth = Effect.fn("Identity.mountAuth")(function* <const TOptions exte
 			}),
 		),
 	);
-	const admit = admittedSessions(gate, () => auth.$context, mount.bearerSessions);
+	const admit = admittedSessions(gate, () => auth.$context, nativeOrigins !== undefined);
 	const admission = yield* signInGate({ ...policy, recheckInterval: 0 });
 	const admitsUser = Effect.fn("Identity.admitsUser")(function* (userId: string) {
 		if (!admission.active) {
@@ -119,7 +121,7 @@ const mountAuth = Effect.fn("Identity.mountAuth")(function* <const TOptions exte
 	});
 	const revoke = revokeUnadmitted(gate, () => auth.$context);
 	const lookupSession: unknown = Reflect.get(auth.api, "getSession");
-	const sessions = mountedSessions(lookupSession, admit, declaration.roles);
+	const sessions = { ...mountedSessions(lookupSession, admit, declaration.roles), nativeOrigins };
 	return { admitsUser, admittedSessions: admit, auth, profiles, revokeUnadmitted: revoke, routes: authRoutes, sessions };
 });
 

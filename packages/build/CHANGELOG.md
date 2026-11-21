@@ -1,5 +1,33 @@
 # Changelog
 
+## 0.7.0 - 2026-11-21
+
+### Added
+
+- a key may be declared in the operation's own file, beside the operation that reads or invalidates it. The generator refused such a value before, because it copied keys into the generated file.
+
+### Breaking
+
+- the generated browser contract no longer copies a query's `reads` or `readsCollections` or a command's `invalidates`, `OperationFacts` in `facts.ts` drops its `reads`, `readsCollections` and `invalidates` fields, and `PlannedOperation` in `emit.ts` drops its `members` field. A changed `reads` or `invalidates` leaves the generated file as it is, and `generate` reports it `current`.
+
+## 0.6.0 - 2026-11-21
+
+### Added
+
+- `shivaedev-build generate` also writes the client's module list to `src/generated/client/modules.ts`: every exported `clientModule(...)` call, with `clientModule` imported from `@shivaedev/react/client/module.ts` by name or through a namespace, one import each, in the order of their files' paths. Test files and `test-support` folders are left out, and an exported `clientModule(...)` under a `server` folder, or a module's `client/module.tsx` or `client/admin/module.tsx` that exports no client module, stops `generate` with the file and the fix. The dev server's plugin writes the list again when a client module file appears or changes.
+
+## 0.5.2 - 2026-11-21
+
+### Changed
+
+- Update `@shivaedev/quality` from 0.83.0 to 0.83.1.
+
+## 0.5.1 - 2026-11-21
+
+### Changed
+
+- Update `@shivaedev/quality` from 0.82.1 to 0.83.0.
+
 ## 0.5.0 - 2026-11-21
 
 ### Added

@@ -3,7 +3,7 @@ import type { Effect, Layer } from "effect";
 import type * as AsyncResult from "effect/reactivity/AsyncResult";
 import type * as Atom from "effect/reactivity/Atom";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
-import { createElement, Fragment, type ReactNode, useContext } from "react";
+import { createElement, type ReactNode, useContext } from "react";
 import type { QueryStorageProvider } from "@shivaedev/contract/QueryStorage.ts";
 import type { QueryRetentionOptions } from "@shivaedev/contract/queryRetention.ts";
 import { DraftSessionContext } from "@shivaedev/form/react.ts";
@@ -30,6 +30,8 @@ export interface SessionBoundaryProps<TSession, TClient> {
 	readonly signOut?: Atom.Atom<AsyncResult.AsyncResult<unknown, unknown>> | undefined;
 	readonly warm?: ((client: TClient) => readonly Atom.Atom<unknown>[]) | undefined;
 }
+// Signed out, a recheck still runs, so a sign-in screen can ask for the session it just created.
+const SIGNED_OUT = "signed out";
 export function useSessionRecheck(): () => void {
 	return useContext(RecheckContext);
 }
@@ -51,11 +53,11 @@ export function SessionBoundary<TSession, TClient>({
 	const registry = useContext(RegistryContext);
 	const id = session === undefined ? undefined : identify(session);
 	const current = useDraftOwner(id);
-	const retry = useSessionRetry(recheck, id, runtime);
+	const retry = useSessionRetry(recheck, id ?? SIGNED_OUT, runtime);
 	useStoredQueryWipes(persist, id);
 	const wipe = useDeviceWipe(persist);
 	if (session === undefined) {
-		return createElement(Fragment, null, signedOut);
+		return createElement(RecheckContext.Provider, { value: retry }, signedOut);
 	}
 	const generation = createElement(SessionGeneration<TSession, TClient>, {
 		children,

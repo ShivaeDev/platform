@@ -351,7 +351,7 @@ Stories about reconnects, resumes and live updates need a real WebSocket RPC ser
 import { rpcSocketHost } from "@shivaedev/test-story/server/rpcSocketHost.ts";
 
 const host = yield* rpcSocketHost(Counter, Counter.toLayer(handlers));
-const client = makeClient(Counter, { url: host.url });
+const client = makeClient({ counter: Counter }, { url: host.url });
 ```
 
 The host serves the group over WebSocket with NDJSON serialization at `host.url`, an allocated IPv4 loopback port with the `/rpc` path. State the handlers read, such as a stored title, stays in the kit. Its controls are Effects for verbs:
@@ -1132,7 +1132,7 @@ Acquire `browserReads` from `server/browserReads.ts` in the browser story kit's 
 
 ```ts
 const observed = yield* browserReads({ contracts: [Notes], url });
-const client = makeClient(Notes, { protocol: observed.protocol, url });
+const client = makeClient({ notes: Notes }, { protocol: observed.protocol, url });
 ```
 
 Expose `observed.readCount`, `observed.reads`, `observed.hints` and `observed.watchHints` through the kit's verbs. `readCount()` counts query requests and `$changes` subscription openings; `readCount("notes.list")` selects one tag. `reads()` returns their `tag`, encoded `payload` and `kind` (`"query"` or `"subscription"`), in send order. Commands and protocol acknowledgements do not count. `hints()` returns pushed `Result`, `Unchanged` and `QueryReadDenied` updates. Server reconciliation sends current query values without client read requests. Assert those values or the rendered screen.

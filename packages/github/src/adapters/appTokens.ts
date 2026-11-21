@@ -1,4 +1,5 @@
 import { Cache, Clock, Context, Effect, Exit, Layer, Option, type Redacted, Schema } from "effect";
+import { Signature } from "effect/crypto";
 import { type HttpClient, HttpClientRequest } from "effect/http";
 import { readBoundedJson } from "@shivaedev/http/body.ts";
 import { appJwt } from "#appJwt.ts";
@@ -19,15 +20,16 @@ const AccessToken = Schema.Struct({ expiresAt: Schema.DateFromString, token: Sch
 export function appTokens(options: GitHubAppOptions) {
 	return Layer.effectContext(
 		Effect.gen(function* () {
+			const signed = appJwt(options).pipe(Effect.provideService(Signature.Signature, yield* Signature.Signature));
 			if (!("installationId" in options || "owner" in options)) {
-				return Context.make(GitHubToken, Effect.map(appJwt(options), Option.some)).pipe(Context.add(TokenRefresh, undefined));
+				return Context.make(GitHubToken, Effect.map(signed, Option.some)).pipe(Context.add(TokenRefresh, undefined));
 			}
 			const context = yield* Effect.context<HttpClient.HttpClient>();
 			const { apiUrl } = yield* GitHubConfig;
 			let installationId = "installationId" in options ? options.installationId : undefined;
 			const request = appRequests(apiUrl);
 			const exchange = Effect.gen(function* () {
-				const jwt = yield* appJwt(options);
+				const jwt = yield* signed;
 				if (installationId === undefined && "owner" in options && options.owner !== undefined) {
 					const path = `/repos/${encodeURIComponent(options.owner)}/${encodeURIComponent(options.repository)}/installation`;
 					installationId = (yield* request("GET", path, jwt, Installation)).id;

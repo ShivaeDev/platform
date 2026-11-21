@@ -3,7 +3,7 @@ import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { act } from "react";
 import { querySignals } from "@shivaedev/contract/querySignals.ts";
 import { until } from "@shivaedev/test-story/server/until.ts";
-import type { Screen } from "#modules/notes/test-support/screenState.ts";
+import { connected, type Screen } from "#modules/notes/test-support/screenState.ts";
 import { screenView } from "#test-support/screenState.ts";
 
 export function notesRefreshVerbs(engine: Screen, tell: (line: string) => void) {
@@ -25,7 +25,7 @@ export function notesRefreshVerbs(engine: Screen, tell: (line: string) => void) 
 			Effect.promise(async () => {
 				tell("release the held notes list request");
 				const { registry } = screenView(engine);
-				const signals = querySignals(engine.client.api.list.query());
+				const signals = querySignals(connected(engine).notes.list.query());
 				const before = registry.get(signals).completed;
 				await act(async () => {
 					engine.client.releaseList();

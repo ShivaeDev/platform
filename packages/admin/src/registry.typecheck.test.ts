@@ -1,100 +1,55 @@
-import { Context, Effect, Layer, Schema, Stream } from "effect";
+import { Layer } from "effect";
 import type { Rpc, RpcGroup } from "effect/rpc";
 import { expectTypeOf } from "vitest";
-import { contract } from "@shivaedev/contract/contract.ts";
-import { query } from "@shivaedev/contract/operation.ts";
 import type { MissingReadPolicy, QueryReadDenied } from "@shivaedev/contract/readPolicyErrors.ts";
 import type { WebSocketRequired } from "@shivaedev/contract/WebSocketRequired.ts";
-import type { AuthUnavailable, Forbidden, Unauthorized } from "@shivaedev/errors/taxonomy.ts";
-import { SessionUser } from "@shivaedev/identity/identity.ts";
+import type { AuthUnavailable, Forbidden, InternalServerError, ServiceUnavailable, Unauthorized } from "@shivaedev/errors/taxonomy.ts";
 import type { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
-import { adminPage } from "#page.ts";
-import { JobsPermission } from "#permissions.ts";
 import { adminRegistry, mergeAdminRegistries } from "#registry.ts";
 import { mergeAdminRegistrations } from "#server/mergeAdminRegistrations.ts";
 import { registerAdmin } from "#server/registerAdmin.ts";
-import { Failed, Jobs, JobsContract, Registry, Users } from "#test/pages.ts";
+import { type FailedJobs, FakeJobs } from "#test/FakeJobs.ts";
+import { FakeUsers } from "#test/FakeUsers.ts";
+import { Jobs, Registry, Users } from "#test/pages.ts";
 
-class JobStore extends Context.Service<JobStore, { readonly failed: readonly string[] }>()("@shivaedev/admin/test/JobStore") {}
-class Configuration extends Context.Service<Configuration, string>()("@shivaedev/admin/test/Configuration") {}
-class SetupFailed extends Schema.TaggedError<SetupFailed>()("SetupFailed", {}) {}
+const registration = registerAdmin(Registry, { jobs: FakeJobs, users: FakeUsers });
+expectTypeOf<Layer.Services<typeof registration.handlers>>().toEqualTypeOf<FailedJobs | SessionPolicy>();
+expectTypeOf<Layer.Error<typeof registration.handlers>>().toEqualTypeOf<never>();
+expectTypeOf<RpcGroup.Rpcs<typeof registration.group>["_tag"]>().toEqualTypeOf<
+	"admin.jobs.failed" | "admin.jobs.retry" | "admin.jobs.$changes" | "admin.users.profile" | "admin.users.$changes"
+>();
 
-const jobs = Jobs.contract.application.toLayer(
-	Effect.gen(function* () {
-		const configuration = yield* Configuration;
-		if (configuration === "") {
-			return yield* new SetupFailed();
-		}
-		return Jobs.contract.application.of({
-			"admin.jobs.failed": () => Effect.map(JobStore, (store) => store.failed),
-			"admin.jobs.retry": ({ id }) => Effect.asVoid(Effect.succeed(id)),
-			"admin.jobs.watch": () => Stream.fromEffect(Effect.map(JobStore, (store) => store.failed)),
-		});
-	}),
-);
-const users = Users.contract.application.toLayer({ "admin.users.profile": () => Effect.map(SessionUser, (user) => user.email) });
-const registration = registerAdmin(Registry, { jobs, users });
-expectTypeOf<Layer.Services<typeof registration.handlers>>().toEqualTypeOf<JobStore | Configuration | SessionPolicy>();
-expectTypeOf<Layer.Error<typeof registration.handlers>>().toEqualTypeOf<SetupFailed>();
-expectTypeOf(Jobs.contract.declaration.commands).toEqualTypeOf(JobsContract.declaration.commands);
-expectTypeOf(Jobs.contract.declaration.queries[0].payload).toEqualTypeOf(Failed.payload);
-expectTypeOf(Users.contract.declaration.commands).toEqualTypeOf<readonly []>();
-expectTypeOf<RpcGroup.Rpcs<typeof Users.contract>["_tag"]>().toEqualTypeOf<"admin.users.profile" | "admin.users.$changes">();
-
-// @ts-expect-error Every registered page must have a handler Layer.
-registerAdmin(Registry, { jobs });
-// @ts-expect-error A Layer with no handlers cannot implement the registered page.
-registerAdmin(Registry, { jobs: Layer.empty, users });
-// @ts-expect-error Handlers for a different page cannot implement jobs.
-registerAdmin(Registry, { jobs: users, users });
-const extra = { jobs, other: users, users };
-// @ts-expect-error Handler keys must match exactly, including previously assigned objects.
+// @ts-expect-error Every registered page must have a module.
+registerAdmin(Registry, { jobs: FakeJobs });
+// @ts-expect-error A module that serves other operations cannot serve the page.
+registerAdmin(Registry, { jobs: FakeUsers, users: FakeUsers });
+// @ts-expect-error A handler Layer is not a module.
+registerAdmin(Registry, { jobs: Layer.empty, users: FakeUsers });
+const extra = { jobs: FakeJobs, other: FakeUsers, users: FakeUsers };
+// @ts-expect-error Module keys must match the page ids exactly, including previously assigned objects.
 registerAdmin(Registry, extra);
-// @ts-expect-error A registered Layer still requires the handler's application services.
-const missingServices: Layer.Layer<Layer.Success<typeof registration.handlers>, SetupFailed> = registration.handlers;
+// @ts-expect-error A registration still requires the module's application services.
+const missingServices: Layer.Layer<Layer.Success<typeof registration.handlers>, never, SessionPolicy> = registration.handlers;
 void missingServices;
 // @ts-expect-error Pages must pass through adminPage before entering the registry.
-adminRegistry({ contract: JobsContract, id: "unprotected", route: Jobs.route });
-
-Jobs.contract.application.toLayer({
-	// @ts-expect-error Query success types remain those of the native contract.
-	"admin.jobs.failed": () => Effect.succeed(42),
-	"admin.jobs.retry": () => Effect.void,
-	"admin.jobs.watch": () => Stream.empty,
-});
+adminRegistry({ contract: FakeJobs, id: "unprotected", route: Jobs.route });
 
 type ProfileRpc = Extract<RpcGroup.Rpcs<typeof Users.contract>, { readonly _tag: "admin.users.profile" }>;
 expectTypeOf<Rpc.Error<ProfileRpc>>().toEqualTypeOf<
-	AuthUnavailable | Forbidden | Unauthorized | MissingReadPolicy | QueryReadDenied | WebSocketRequired
+	AuthUnavailable | Forbidden | InternalServerError | MissingReadPolicy | QueryReadDenied | ServiceUnavailable | Unauthorized | WebSocketRequired
 >();
 
-const jobsModule = registerAdmin(adminRegistry(Jobs), { jobs });
-const usersModule = registerAdmin(adminRegistry(Users), { users });
+const jobsModule = registerAdmin(adminRegistry(Jobs), { jobs: FakeJobs });
+const usersModule = registerAdmin(adminRegistry(Users), { users: FakeUsers });
 const combined = mergeAdminRegistrations(jobsModule, usersModule);
 expectTypeOf(combined.handlers).toEqualTypeOf(registration.handlers);
 expectTypeOf(combined.pages).toEqualTypeOf<readonly [typeof Jobs, typeof Users]>();
-expectTypeOf(combined.group).toEqualTypeOf(Registry.group);
+expectTypeOf(combined.group).toEqualTypeOf(registration.group);
 // @ts-expect-error Modules cannot contribute the same page id.
 mergeAdminRegistrations(jobsModule, jobsModule);
 // @ts-expect-error Browser registries reject page ids shared by modules.
 mergeAdminRegistries(jobsModule, jobsModule);
 // @ts-expect-error A registry cannot contain duplicate page ids.
 adminRegistry(Jobs, Jobs);
-// @ts-expect-error A module must register its page handlers before composition.
+// @ts-expect-error A module must register its page before composition.
 mergeAdminRegistrations(adminRegistry(Jobs), usersModule);
-
-// @ts-expect-error A module cannot bypass handler registration with an empty Layer.
-mergeAdminRegistrations({ ...adminRegistry(Jobs), handlers: Layer.empty });
-
-class PolicyStore extends Context.Service<PolicyStore, boolean>()("@shivaedev/admin/test/PolicyStore") {}
-const PolicyPage = adminPage({
-	contract: contract("admin.policy", { queries: [query("read", { readPolicy: () => PolicyStore, reads: () => [] })] }),
-	id: "policy",
-	permission: JobsPermission,
-	route: { path: "/admin/policy", title: "Policy" },
-});
-const policyHandlers = PolicyPage.contract.application.toLayer({ "admin.policy.read": () => Effect.void });
-expectTypeOf<Layer.Services<typeof policyHandlers>>().toEqualTypeOf<PolicyStore>();
-// @ts-expect-error The page middleware does not provide the query policy's application service.
-const missingPolicyStore: Layer.Layer<Layer.Success<typeof policyHandlers>> = policyHandlers;
-void missingPolicyStore;

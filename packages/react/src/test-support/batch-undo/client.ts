@@ -1,7 +1,7 @@
 import { Effect, Layer } from "effect";
 import { SqlClient } from "effect/sql";
-import { makeClient as makeRpcClient } from "@shivaedev/contract/bind.ts";
 import { clientActivity } from "@shivaedev/contract/clientActivity.ts";
+import { makeClient as makeRpcClient } from "@shivaedev/contract/makeClient.ts";
 import { layerLiveMemoryProtocol } from "@shivaedev/test-kits/contract/liveMemoryProtocol.ts";
 import { BatchRows, Change, List, Rows } from "#test/batch-undo/contract.ts";
 import { makeStore } from "#test/batch-undo/makeStore.ts";
@@ -17,11 +17,14 @@ export const makeClient = Effect.gen(function* () {
 			"batchUndo.list": List.run,
 		})
 		.pipe(Layer.provide(store));
-	const connection = makeRpcClient(Rows, {
-		protocol: layerLiveMemoryProtocol(Rows, handlers),
-		runtime: yield* storyRuntime,
-		url: "memory://batch-undo",
-	});
-	return { activity: clientActivity(connection), api: connection.api, runtime: connection.runtime };
+	const connection = makeRpcClient(
+		{ rows: Rows },
+		{
+			protocol: layerLiveMemoryProtocol(Rows, handlers),
+			runtime: yield* storyRuntime,
+			url: "memory://batch-undo",
+		},
+	);
+	return { activity: clientActivity(connection), api: connection.api.rows, runtime: connection.runtime };
 });
 export type Client = Effect.Success<typeof makeClient>;

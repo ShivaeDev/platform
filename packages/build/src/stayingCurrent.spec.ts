@@ -76,7 +76,7 @@ generator.it(
 		yield* edits("src/modules/notes/stats.ts", "count: rows.length,", "count: String(rows.length),");
 
 		expect(yield* compiles()).toContain(
-			`src/modules/notes/notes.ts(15,2): error TS2322: Type '"notes"' is not assignable to type '"notes" & NoInfer<WireSuccessStale<"stats", "the generated file is stale; run pnpm generate"`,
+			`src/modules/notes/notes.ts(16,2): error TS2322: Type '"notes"' is not assignable to type '"notes" & NoInfer<WireSuccessStale<"stats", "the generated file is stale; run pnpm generate"`,
 		);
 		yield* generates();
 		expect(yield* compiles()).toBe("compiles cleanly");
@@ -84,10 +84,20 @@ generator.it(
 );
 
 generator.it(
-	"after create's invalidates changes, generate --check fails naming the stale file and pnpm generate, and the next generate writes the new invalidates",
+	"after create's invalidates changes, generate builds a program and finds the file it wrote current, since the browser's contract carries no keys",
+	[notesProject(), generatedOnce()],
+	function* ({ edits, generates }) {
+		yield* edits("src/modules/notes/create.ts", "invalidates: () => [notes.list],", "invalidates: () => [notes.list, notes.item(1)],");
+
+		expect(yield* generates()).toEqual({ files: { [NOTES]: "current" }, problems: [], programBuilt: true, result: "succeeded" });
+	},
+);
+
+generator.it(
+	"after rename's payload gains a field, generate --check fails naming the stale file and pnpm generate, and the next generate writes the new payload",
 	[notesProject(), generatedOnce()],
 	function* ({ edits, generatedFile, generates, generatesWithCheck }) {
-		yield* edits("src/modules/notes/create.ts", "invalidates: () => [notes.list],", "invalidates: () => [notes.list, notes.item(1)],");
+		yield* edits("src/modules/notes/rename.ts", "version: Schema.Number },", "version: Schema.Number, pinned: Schema.Boolean },");
 
 		yield* outcomes([
 			[
@@ -97,15 +107,15 @@ generator.it(
 			],
 			["generate", () => generates(), { files: { [NOTES]: "written" }, result: "succeeded" }],
 			[
-				"create's invalidates",
+				"rename's payload",
 				() =>
 					Effect.map(generatedFile(NOTES), (text) =>
 						text
 							.split("\n")
-							.find((line) => line.includes("create: { invalidates"))
+							.find((line) => line.includes("rename: { id"))
 							?.trim(),
 					),
-				"create: { invalidates: () => [notes.list, notes.item(1)] },",
+				"rename: { id: Schema.Number, title: Schema.String, version: Schema.Number, pinned: Schema.Boolean },",
 			],
 		]);
 	},

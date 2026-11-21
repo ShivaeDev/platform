@@ -3,6 +3,7 @@ import { dirname } from "node:path";
 import { Effect } from "effect";
 import ts from "typescript";
 import { BuildFailure } from "#BuildFailure.ts";
+import { clientModulesIn, isClientModuleFile } from "#clientModules.ts";
 import { moduleCalls } from "#moduleCalls.ts";
 import { moduleFacts } from "#moduleFacts.ts";
 import { isModuleRegistrationFile, registrationsIn } from "#registrations.ts";
@@ -50,6 +51,12 @@ export function definesModule(file: string, text: string): boolean {
 export function registrationsOf(relative: string, text: string) {
 	return text.includes("AppModule") || /\b(?:module|group)\s*:/u.test(text) || isModuleRegistrationFile(relative)
 		? registrationsIn(ts.createSourceFile(relative, text, ts.ScriptTarget.Latest, true))
+		: { refusals: [], registrations: [] };
+}
+
+export function clientModulesOf(relative: string, text: string) {
+	return text.includes("clientModule") || isClientModuleFile(relative)
+		? clientModulesIn(ts.createSourceFile(relative, text, ts.ScriptTarget.Latest, true))
 		: { refusals: [], registrations: [] };
 }
 

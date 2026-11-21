@@ -1,6 +1,6 @@
 import { DateTime, Effect, Predicate } from "effect";
 import { act } from "react";
-import { activityScreenSignal } from "@shivaedev/contract/clientActivity.ts";
+import { activityScreenSignal, clientActivity } from "@shivaedev/contract/clientActivity.ts";
 import { mintUser } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { expectNoReactWarnings } from "@shivaedev/test-story/client/adapters/react.ts";
@@ -79,7 +79,7 @@ export const adminSessionsOpen = adminSessions.trait(
 		Object.assign(engine, screen);
 		engine.driver = screenDriver({
 			act,
-			activity: activityScreenSignal(screen.foundationClient.activity),
+			activity: activityScreenSignal(clientActivity(screen.connection)),
 			pending: screen.pending,
 			root: screen.view.container,
 			tell: () => undefined,

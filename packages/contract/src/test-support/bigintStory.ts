@@ -1,14 +1,13 @@
 import { Effect, Layer, Option, Schema, Stream, SubscriptionRef } from "effect";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
-import * as AtomRpc from "effect/reactivity/AtomRpc";
 import * as Reactivity from "effect/reactivity/Reactivity";
-import { RpcTest } from "effect/rpc";
 import { collection, invalidationKeys } from "@shivaedev/changes/keys.ts";
 import { rerunQuery } from "@shivaedev/server/rerunQuery.ts";
+import { layerMemoryProtocol } from "@shivaedev/test-kits/contract/testing.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { bind } from "#bind.ts";
 import { changesHandlerLayer } from "#changesHandlerLayer.ts";
 import { contract } from "#contract.ts";
+import { makeClient } from "#makeClient.ts";
 import { makeLiveServer } from "#makeLiveServer.ts";
 import { query } from "#operation.ts";
 import { querySubscription } from "#querySubscription.ts";
@@ -59,17 +58,11 @@ const bigintEngine = Effect.gen(function* () {
 	);
 	const handlers = Layer.merge(application, changes.pipe(Layer.provide(application)));
 	const runtime = yield* storyRuntime;
-	class Client extends AtomRpc.Service<Client>()("test/BigintRecords", {
-		group: Records,
-		makeEffect: RpcTest.makeClient(Records, { flatten: true }),
-		protocol: handlers,
-		runtime,
-	}) {}
 	const registry = yield* Effect.acquireRelease(
 		Effect.sync(() => AtomRegistry.make()),
 		(current) => Effect.sync(() => current.dispose()),
 	);
-	const api = bind(Records, Client);
+	const api = makeClient({ records: Records }, { protocol: layerMemoryProtocol(Records).pipe(Layer.provide(handlers)), runtime }).api.records;
 	return { api, marked: new Map<bigint, Mark>(), reactivity, reads, registry, stored, subscriptions, watched: new Set<bigint>() };
 });
 type BigintEngine = Effect.Success<typeof bigintEngine>;

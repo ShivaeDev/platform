@@ -1,9 +1,8 @@
-import { type Code, code, type ImportRef, joined } from "#code.ts";
+import { type Code, code, type ImportRef } from "#code.ts";
 import { importNames } from "#importNames.ts";
 
 export interface PlannedOperation {
 	readonly kind: "command" | "query";
-	readonly members: readonly Code[];
 	readonly name: string;
 	readonly payload: Code | undefined;
 	readonly rejections: readonly (readonly [string, ImportRef])[];
@@ -71,15 +70,7 @@ export function emit(planned: PlannedModule): string {
 	const moduleType = { ...planned.module, preferred: `${planned.exportName}Module` };
 	function client(kind: PlannedOperation["kind"]) {
 		const chosen = operations.filter((operation) => operation.kind === kind);
-		return chosen.length === 0
-			? undefined
-			: entries(
-					chosen.map((operation) =>
-						operation.members.length === 0
-							? code(`${keyOf(operation.name)}: {}`)
-							: code(`${keyOf(operation.name)}: { `, joined(operation.members, ", "), " }"),
-					),
-				);
+		return chosen.length === 0 ? undefined : code(`[${chosen.map((operation) => JSON.stringify(operation.name)).join(", ")}]`);
 	}
 	const payloads = operations.flatMap((operation) =>
 		operation.payload === undefined ? [] : [code(`${keyOf(operation.name)}: `, operation.payload)],

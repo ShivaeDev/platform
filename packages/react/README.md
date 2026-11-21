@@ -24,7 +24,7 @@ State belongs to an **atom in a registry**. A query hook reads that atom's nativ
 
 An **editor** joins a query atom, a form field schema and a save Effect. The query provides the row; `values(row)` converts it to input values; the schema decodes those values before the save runs. form owns the draft and the per-field merge. A **create form** uses the same submission rules without a query and starts a fresh form after success.
 
-Use `useConnectionStatus(client)` from `@shivaedev/react/client/useConnectionStatus.ts` with the client returned by contract's `makeClient`. It returns one `"live" | "reconnecting" | "waiting-for-connection"` value across mounted queries from every binding on that client's `Client` service. Live subscription status changes debounce for 300 ms on the client runtime's Clock. A bound command held for reconnection reports `"waiting-for-connection"` immediately, so the application can show Reconnecting while keeping the action pending. Contract holds unsent commands for up to 10 seconds and returns a typed `RpcClientError` on timeout; commands already sent are never replayed. The default socket probes Ping/Pong on browser or native resume and reconnects after 2.5 seconds without a Pong. A query refusal is separate from connectivity. Visible browser `online` and `visibilitychange` signals interrupt the live retry delay and reconnect immediately with a fresh backoff schedule.
+Use `useConnectionStatus(client)` from `@shivaedev/react/client/useConnectionStatus.ts` with the client returned by contract's `makeClient`. It returns one `"live" | "reconnecting" | "waiting-for-connection"` value across mounted queries from every binding of that client. Live subscription status changes debounce for 300 ms on the client runtime's Clock. A bound command held for reconnection reports `"waiting-for-connection"` immediately, so the application can show Reconnecting while keeping the action pending. Contract holds unsent commands for up to 10 seconds and returns a typed `RpcClientError` on timeout; commands already sent are never replayed. The default socket probes Ping/Pong on browser or native resume and reconnects after 2.5 seconds without a Pong. A query refusal is separate from connectivity. Visible browser `online` and `visibilitychange` signals interrupt the live retry delay and reconnect immediately with a fresh backoff schedule.
 
 Use `useFirstSettled(client)` from `@shivaedev/react/client/adapters/useFirstSettled.ts` with the same client to reveal a session's first screen in one step instead of one loading state per query. It returns `false` until the screen that calls it has rendered once and, with that, no query mounted on the client awaits a first result and no command is in flight, so a first screen that reads no query, such as a blank form, turns it `true` as soon as it has rendered. From then on it returns `true` for that client: a later command or a newly mounted query does not turn it back. A query the screen mounts only after its first render, from an effect or a state change, is not waited for: the reveal shows that query's own loading state. Render TanStack routes with `RouterProvider` from `@shivaedev/react/RouterProvider.ts`, which takes TanStack's props and renders TanStack's provider: it holds `useFirstSettled` until the first route has rendered, so the hook gives the right answer above the router too. Above TanStack's own `RouterProvider` the hook turns `true` before the first route exists. The signal belongs to the client, so a new session generation whose `connect` makes a new client starts at `false` again. A query that only the session's [warm list](#keep-queries-warm-for-the-session) mounts does not hold it back while it awaits its first result, and a query that shows a [stored](#keep-query-results-across-a-reload) or retained result does not hold it back while it revalidates, so a reload with stored results is revealed at once.
 
@@ -38,7 +38,7 @@ Bound contract queries keep their last successful result for five minutes after 
 
 ### 1. Once per application
 
-Set up the registry or session boundary at the application root, bind each session's contract APIs there and mount the notice host inside it.
+Set up the registry or session boundary at the application root, make each session's client there and mount the notice host inside it.
 
 #### Own the registry and the session
 
@@ -86,7 +86,7 @@ export function App({ session, recheck }: { readonly session: Session | undefine
 
 Pass the signed-out router as `signedOut` and the requested continuation address as `redirectTo` (for example, the sign-in route's `returnTo` search value). On successful sign-in, the auth owner supplies the new `session`; the boundary unmounts the signed-out tree before replacing the URL, then mounts the signed-in tree at that address. The sign-in screen requests a session recheck after success; it leaves navigation to the boundary. Off-site, non-HTTP and malformed targets fall back to `/`. A same-origin destination keeps its path, query and fragment. The default replacement uses browser history. Supply `navigate={(href) => history.replace(href)}` for a router history such as TanStack's memory history; the callback receives only the checked local path. Navigation happens once when entering a generation, so a same-user session rotation does not navigate again.
 
-A query that fails with an `Unauthorized` from `@shivaedev/errors/taxonomy.ts` asks `recheck` to run and keeps its retained data. An action does the same once per failed result, retaining its last successful `data` and the typed failure in `cause`; rerendering that result does not repeat the recheck. A live reconnect requests a check only for a typed `Unauthorized` authentication refusal; dropped sockets and unreachable servers leave the session alone. Pass the auth owner’s session-refresh Effect as `recheck` (for example, `recheck={auth.session.refresh}`). The boundary shares an in-flight check, retries failures after 1, 2, 4 seconds and so on up to 30 seconds, and retries immediately on visible `online` or `visibilitychange` events while a check is pending, restarting an in-flight check too. Session replacement and unmount cancel retries. Supply `runtime` on `SessionBoundary` to run these retries on a native atom runtime, including one carrying a story’s controlled Clock. Existing void callbacks remain supported; they keep their own check and retry policy. Keep retained session data on screen when a refresh exposes a failure, and pass `session={undefined}` only after a definite signed-out answer. The auth owner decides whether the session ends. The boundary also handles React StrictMode's effect replay and preserves component state across hiding and revealing an `<Activity>` subtree, supplying a live registry when revealed.
+A query that fails with an `Unauthorized` from `@shivaedev/errors/taxonomy.ts` asks `recheck` to run and keeps its retained data, in the `signedOut` tree too, where `useSessionRecheck()` also returns the boundary's recheck. A check that answers signed out leaves the failed result as it is, so the query asks no second time. An action does the same once per failed result, retaining its last successful `data` and the typed failure in `cause`; rerendering that result does not repeat the recheck. A live reconnect requests a check only for a typed `Unauthorized` authentication refusal; dropped sockets and unreachable servers leave the session alone. Pass the auth owner’s session-refresh Effect as `recheck` (for example, `recheck={auth.session.refresh}`). The boundary shares an in-flight check, retries failures after 1, 2, 4 seconds and so on up to 30 seconds, and retries immediately on visible `online` or `visibilitychange` events while a check is pending, restarting an in-flight check too. Session replacement and unmount cancel retries. Supply `runtime` on `SessionBoundary` to run these retries on a native atom runtime, including one carrying a story’s controlled Clock. Existing void callbacks remain supported; they keep their own check and retry policy. Keep retained session data on screen when a refresh exposes a failure, and pass `session={undefined}` only after a definite signed-out answer. The auth owner decides whether the session ends. The boundary also handles React StrictMode's effect replay and preserves component state across hiding and revealing an `<Activity>` subtree, supplying a live registry when revealed.
 
 #### Keep queries warm for the session
 
@@ -145,13 +145,13 @@ What this means for the person using the application: their data rests on the de
 A contract declared with `keyScope: "session"` binds to the registry that owns the session's queries. Its queries, commands and streams run in that registry. The server's subscriptions and committed writes use plain keys, and each query's read policy decides what a viewer receives. The [contract guide](https://github.com/ShivaeDev/platform/blob/main/packages/contract/README.md#session-owned-keys) describes the declaration and its handlers. `SessionBoundary` passes that registry to `connect` as its second argument:
 
 ```tsx
-import { bind } from "@shivaedev/contract/bind.ts";
+import { makeClient } from "@shivaedev/contract/makeClient.ts";
 import { SessionBoundary } from "@shivaedev/react/client/sessionBoundary.ts";
 
 <SessionBoundary
 	session={session}
 	identify={(current) => current.user.id}
-	connect={(_, registry) => bind(Preferences, makePreferencesClient(), { registry })}
+	connect={(_, registry) => makeClient({ preferences: Preferences }, { registry }).api.preferences}
 	recheck={recheck}
 	signedOut={<p>Signed out</p>}
 >
@@ -159,32 +159,92 @@ import { SessionBoundary } from "@shivaedev/react/client/sessionBoundary.ts";
 </SessionBoundary>;
 ```
 
-`Preferences` is the application's session-scoped contract, and `makePreferencesClient()` creates its native AtomRpc service using the current session cookie. A one-argument `connect` callback also works. The boundary allocates the registry before calling `connect`; an unchanged generation keeps its binding and state. Account replacement, sign-out and same-account re-entry dispose the old registry, private query tracking, live registrations and pending refreshes. Use the user id for cookie-based clients so session rotation keeps state. A sign-out followed by sign-in creates a new registry even for the same user.
+`Preferences` is the application's session-scoped contract; the browser's client connects to `/rpc` beside the page and sends the current session cookie. A one-argument `connect` callback also works. The boundary allocates the registry before calling `connect`; an unchanged generation keeps its binding and state. Account replacement, sign-out and same-account re-entry dispose the old registry, private query tracking, live registrations and pending refreshes. Use the user id for cookie-based clients so session rotation keeps state. A sign-out followed by sign-in creates a new registry even for the same user.
 
-#### Connections with several modules
+#### An application's client modules
 
-The session boundary finds bound APIs through nested objects and arrays at any depth, including `client.api.notes`. Shared objects and cycles do not mount a binding twice. Use contract's `composeBindings` to select an explicit list instead of discovering the bindings in that object. The client can keep its application modules nested:
+A client module is a feature's contracts and screens. `clientModule(contracts, (clients) => parts)` from `@shivaedev/react/client/module.ts` names the contracts its screens call, once, under the module's own short names, and receives a typed bound client for each, `ContractClient<typeof Notes>` from `@shivaedev/contract/makeClient.ts`. The parts it returns are what the application shell reads: `routes`, a function of the application's root route returning TanStack routes; `warm`, the bound queries the session keeps subscribed; `admin`, its admin pages for navigation; `menu` and `overlays`, arrays of React nodes; and `footer`, one React node. The module holds no Effect, registry, URL or socket:
+
+```tsx
+import { createRoute } from "@tanstack/react-router";
+import { clientModule } from "@shivaedev/react/client/module.ts";
+
+export const notesModule = clientModule({ notes: Notes }, ({ notes }) => ({
+	routes: (root) => [createRoute({ component: () => <NotesScreen client={notes} />, getParentRoute: () => root, path: "/notes" })],
+	warm: [notes.list.query()],
+}));
+```
+
+`Notes` is the module's generated browser contract and `NotesScreen` its screen. Routes reach the client by closure, so no parent route carries it in route context. Every module's `root` is the root route that [`SessionApp`](#mount-a-sessions-routes) builds, and its context carries the app's `auth` and current `session`. The application declares their types once, the way TanStack Router's own `Register` works:
 
 ```ts
-import { composeBindings } from "@shivaedev/contract/composeBindings.ts";
-
-function connect(session: Session, registry: AtomRegistry.AtomRegistry) {
-	const modules = [notesModule(registry), tasksModule(registry)];
-	return composeBindings(
-		{ modules },
-		modules.map((module) => module.api),
-	);
+declare module "@shivaedev/react/client/module.ts" {
+	interface Register {
+		readonly auth: AuthActions;
+		readonly session: AppSession;
+	}
 }
 ```
 
-`Session`, `notesModule` and `tasksModule` belong to the application; each module binds its contract with the supplied registry. Import `AtomRegistry` from `effect/reactivity/AtomRegistry`. Return the resulting connection from `SessionBoundary`'s `connect` callback and render `client.modules` in its child.
+`AuthActions` and `AppSession` are the application's types: the auth actions need a `signOut` atom, and the session is a `PermissionSession` whose user has an `id`. Without the declaration, `auth` is `{ signOut }` and `session` that minimal session.
+
+`clientApp(modules, options?)` from `@shivaedev/react/client/app.ts` turns the list into the session's connection. It makes one client over every module's contracts with `makeClient`, so the tab keeps one socket, one runtime and one client activity, and binds a contract that two modules name once: both modules hold the same binding and read the same live queries. It returns `connect` and `warm`, which [`SessionApp`](#mount-a-sessions-routes) passes to `SessionBoundary`:
+
+```tsx
+import { clientApp } from "@shivaedev/react/client/app.ts";
+
+export const app = clientApp([notesModule, tasksModule]);
+```
+
+`connect` passes the session's registry to every session-scoped contract. The connection it returns carries `routes(root)`, every module's routes in list order; `adminPages`; `modules`, each module's parts in list order, for the shell's menu, overlays and footer; and the client's activity for `clientActivity` from `@shivaedev/contract/clientActivity.ts`, with its `runtime` and `sync` for `screenSync`. `warm` collects every module's `warm` list. The client connects to `/rpc` beside the page; `options` takes `url`, `protocol`, `headers` and the other client options of `makeClient` for story kits and native shells. Signed out, `SessionApp` calls `app.connect(undefined, registry)` with the registry it renders in. An application built with `@shivaedev/build` writes no list: the generator lists every exported `clientModule(...)` call in `src/generated/client/modules.ts`, as its [build guide](https://github.com/ShivaeDev/platform/blob/main/packages/build/README.md) describes.
+
+A connection built by hand works too. The session boundary finds bound APIs through nested objects and arrays at any depth, and shared objects and cycles do not mount a binding twice; contract's `composeBindings` selects an explicit list instead of discovering the bindings in that object.
+
+#### Mount a session's routes
+
+`SessionApp` from `@shivaedev/react/client/SessionApp.ts` is the application's session and router in one element. The application hands it its client app, its auth actions, the current session and its own screens; react builds the root route, one router per session generation and the signed-out router:
+
+```tsx
+import { SessionApp } from "@shivaedev/react/client/SessionApp.ts";
+
+<SessionApp
+	app={app}
+	auth={auth.actions}
+	forbidden={<Forbidden to="/" />}
+	home={Home}
+	parseSearch={parseSearch}
+	persist={deviceStorage}
+	recheck={auth.session.refresh}
+	session={session}
+	shell={Shell}
+	stringifySearch={stringifySearch}
+/>;
+```
+
+`auth`, `Home`, `Shell`, `parseSearch`, `stringifySearch` and `deviceStorage` belong to the application; `session` is the auth owner's current session, `null` or `undefined` when signed out. The routes all come from the modules, the application's own sign-in and password reset screens included, written as one more `clientModule`. `home` renders at `/` while no module route claims it. `shell` wraps every route (TanStack's `InnerWrap`) and reads the modules' parts from `useRouter().options.context.modules`; `forbidden` is the screen a refused route shows inside it, `<Forbidden to="/" />` by default; `parseSearch` and `stringifySearch` go to `createRouter` unchanged. `notFound` is the root route's `notFoundComponent`: an unknown path renders it inside the shell. `onCatch` is the router's `defaultOnCatch`: it receives each error a route's error boundary catches, once. `hidden: true` turns the root guard's refusal of a signed-in viewer into TanStack's not-found result, so a refused route renders `notFound` at its URL instead of `forbidden`, or TanStack's default not-found screen when the app names no `notFound`; signed-out visitors still go to sign-in. `history` replaces the browser history for a story or a native shell.
+
+`SessionApp` renders a [`SessionBoundary`](#own-the-registry-and-the-session) with the app's `connect` and `warm`, identifies each generation by `session.user.id`, signs out through `auth.signOut`, and passes `recheck` and `persist` through. A signed-out visitor gets the app connected with no session and the same routes, so public routes read their contracts; a route that declares `staticData: { signedIn: true }` or a `permission` sends them to sign-in with the requested location in `returnTo`. The sign-in route is `/sign-in`. Its screen calls `useSessionRecheck()` from `@shivaedev/react/client/sessionBoundary.ts` once the auth owner has signed in; when the session arrives at the sign-in path, the boundary continues to `returnTo`, or `/`. A signed-in session that lacks a route's permission sees `forbidden` at the requested URL, and so does one that lacks the permission of a module's admin page at a location that matches the page's path or detail path, whatever route renders it there; the bare `/admin` needs the first admin page's permission. The root route's context, typed through `Register`, carries `adminPages`, `auth`, `modules`, `navigate(path)`, `redirects.signedOut`, the session's `registry` and `session()`, which reads the current session. The router keeps the current route on screen while the next one loads (`defaultPendingMs: Infinity`), sends route failures to the refused screen's boundary (`defaultErrorComponent: PermissionBoundaryError`) and lets other errors reach the application (`disableGlobalCatchBoundary`). It renders through react's [`RouterProvider`](#route-loaders-with-tanstack-router).
+
+Register the router's type once for typed links, beside the app:
+
+```ts
+import type { SessionRouter } from "@shivaedev/react/client/sessionRouter.ts";
+
+declare module "@tanstack/react-router" {
+	interface Register {
+		router: SessionRouter<typeof app>;
+	}
+}
+```
+
+A story kit or host that holds a connection without a session boundary builds the same router with `sessionRouter({ ...routing, auth, connection, history, registry, session })` from `@shivaedev/react/client/sessionRouter.ts` and renders it with `RouterProvider`; `routing` is the object of `forbidden`, `home`, `shell` and the search codec, typed `SessionRouting`.
 
 #### Resume from a native shell
 
-For a native shell, pass its resume source when binding the API returned by `connect`:
+For a native shell, pass its resume source when making the client whose bindings `connect` returns:
 
 ```ts
-import { bind } from "@shivaedev/contract/bind.ts";
+import { makeClient } from "@shivaedev/contract/makeClient.ts";
 import type { ResumeSource } from "@shivaedev/contract/resume.ts";
 import { onAppResume, onNetworkReturn } from "./native-lifecycle.ts";
 
@@ -196,10 +256,10 @@ const resume: ResumeSource = (notify) => {
 		stopNetwork();
 	};
 };
-const connect = () => bind(Notes, Client, { resume });
+const connect = () => makeClient({ notes: Notes }, { resume }).api.notes;
 ```
 
-`Notes` and `Client` are the application's contract and native AtomRpc client. The application implements `onAppResume` and `onNetworkReturn`, each returning its unsubscribe function. `SessionBoundary` mounts the bound connection, and native notifications reopen the subscription and reconcile its tracked queries alongside the browser visibility and online defaults. Disposing the session's registry releases the native listeners. Omitting `resume` keeps the browser defaults.
+`Notes` is the application's contract. The application implements `onAppResume` and `onNetworkReturn`, each returning its unsubscribe function. `SessionBoundary` mounts the bound connection, and native notifications reopen the subscription and reconcile its tracked queries alongside the browser visibility and online defaults. Disposing the session's registry releases the native listeners. Omitting `resume` keeps the browser defaults.
 
 #### Detect a deployment and activate a staged update
 
@@ -270,7 +330,7 @@ function SessionScreens({ client }: { readonly client: AppClient }) {
 
 `AppClient` and `OrderScreens` belong to the application; return `SessionScreens` from the session boundary's child function. The renderer receives `id`, `kind` (`"success"`, `"rejection"` for a rejection the server sent, `"failure"` for a failure the host worded), `message`, `dismiss` and an optional action with `label`, `run`, `pending` and `result`.
 
-`failure(unexpected)` is the application's one place for the failures that belong to the framework rather than to a screen: a lost connection (`RpcClientError` or `WebSocketRequired`), a server outage (`ServiceUnavailable` or `AuthUnavailable`), an `InternalServerError`, a defect and any untagged failure. It receives `{ kind, message, cause }` with `kind` `"connection"`, `"unavailable"` or `"unexpected"`, and returns a descriptor without an action, or `"silent"`. The default shows `message`: `Could not reach the server. Check your connection and try again.` for a lost connection, the server's own message for an outage or an `InternalServerError`, which the server's handler edge has already redacted, and `Something went wrong. Try again.` for a defect or an untagged failure. It never shows a cause or a stack trace; `cause` is there for the application's diagnostics. One failed invocation publishes one notice, however many hooks hold the same operation. Without a mounted host nothing is published, and the failure stays in the hook's `cause`. Action results retain the native success value or failure cause as `unknown`; narrow domain errors in your renderer to choose their wording.
+`failure(unexpected)` is the application's one place for the failures that belong to the framework rather than to a screen: a lost connection (`RpcClientError` or `WebSocketRequired`), a message the host refused as too large (an `RpcClientError` whose socket closed with code 1009), a server outage (`ServiceUnavailable` or `AuthUnavailable`), an `InternalServerError`, a defect and any untagged failure. It receives `{ kind, message, cause }` with `kind` `"connection"`, `"tooLarge"`, `"unavailable"` or `"unexpected"`, and returns a descriptor without an action, or `"silent"`. The default shows `message`: `Could not reach the server. Check your connection and try again.` for a lost connection, `What you sent is too large for the server. Try again with something smaller.` for a message over the host's body limit (every command in flight on that socket fails with it), the server's own message for an outage or an `InternalServerError`, which the server's handler edge has already redacted, and `Something went wrong. Try again.` for a defect or an untagged failure. It never shows a cause or a stack trace; `cause` is there for the application's diagnostics. One failed invocation publishes one notice, however many hooks hold the same operation. Without a mounted host nothing is published, and the failure stays in the hook's `cause`. Action results retain the native success value or failure cause as `unknown`; narrow domain errors in your renderer to choose their wording.
 
 ### 2. Once per feature
 
@@ -334,7 +394,7 @@ const add = useAction(api.add);
 add.dispatch({ title: "Morning walk" });
 ```
 
-`api` comes from `makeClient` over the module's generated contract, as the [contract guide](https://github.com/ShivaeDev/platform/blob/main/packages/contract/README.md#the-wire-and-the-browsers-contract) describes, with a `list` query and an `add` command that takes `{ title }`. The server reruns the queries that read the command's keys and pushes their new results.
+`api` is the module's binding from `makeClient({ notes: Notes }).api.notes` over the module's generated contract, as the [contract guide](https://github.com/ShivaeDev/platform/blob/main/packages/contract/README.md#the-wire-and-the-browsers-contract) describes, with a `list` query and an `add` command that takes `{ title }`. The server reruns the queries that read the command's keys and pushes their new results.
 
 An action's `dispatch(input)` returns `void`. Read the atom's latest result from `data`, `cause` or `result`. With the default `Atom.fn` action, a later dispatch interrupts the earlier work and the shared state reports the later result.
 
@@ -582,7 +642,7 @@ const rename = useAction(api.rename, {
 
 The command's identity is the native action atom, or the operation's `run` function and `runtime`. A bound command such as `api.rename` keeps both; memoize a custom `run` in `{ run, runtime }` with `useCallback` or `useMemo`. A `run` written inline in the component is a new function on every render: its next render fails with an error that names `useAction`, says `run` must stay the same function and gives this fix, where React alone reports only `Too many re-renders`. Changing the command on a mounted control keeps `pending` true until its outgoing request settles. Its result, data and cause stay with the outgoing command: a refusal or success from Launch never appears on a replacement Resume control. Resume dispatches its own function and input. Completion callbacks for the outgoing runtime command stop when it is replaced; callbacks for the same command still use the latest committed props.
 
-The hook calls the supplied Effect once. A bound contract command still owns invalidation, and completion does not wait for server query reruns and their pushed results. Undo payloads, expected versions and presentation text stay in the application.
+The hook calls the supplied Effect once. Completion comes with the command's reply and does not wait for the live queries it changed to show the server's state; [`usePendingCommand`](#commands-with-a-pending-display-value) holds its value until they do. Undo payloads, expected versions and presentation text stay in the application.
 
 A newer dispatch interrupts the earlier command by default. Interrupted work produces no completion feedback. Pass `{ concurrent: true, onSuccess, onFailure }` to let invocations overlap and report their own outcomes. `result`, `data`, `cause` and `pending` remain the native action atom's aggregate state, including its native result selection during concurrent execution; they do not identify an invocation. Use notice descriptors for per-invocation messages and completion callbacks for application work. Keep the runtime and concurrency policy stable for the same owner.
 
@@ -688,7 +748,7 @@ With native `RpcClient.layerProtocolHttp` and `FetchHttpClient.layer` as the bro
 
 #### Route loaders with TanStack Router
 
-TanStack Router owns routes, navigation, search validation, loader data and screen components. Mount the router with `RouterProvider` from `@shivaedev/react/RouterProvider.ts` in place of TanStack's: it renders TanStack's provider unchanged and tells the session's `useFirstSettled` when the first route has rendered. Declare a route's query once with `queryRoute(buildQuery)` from `@shivaedev/react/client/adapters/queryRoute.ts`, spread the result into `createRoute`, and call its `useQuery()` in the route's component. The spread derives loader dependencies from validated search and loads the contract query atom in the router context’s registry; `useQuery()` reads the same atom, so the component names neither the operation nor its arguments. A `NotFound` instance from `@shivaedev/errors/taxonomy.ts` or a `QueryReadDenied` refusal enters TanStack's not-found handling with the original rejection in the not-found component's `data` prop, preserving its message. One root `notFoundComponent` can show that message for all query routes; a route's own `notFoundComponent` takes precedence. Other typed failures reach `errorComponent` unchanged. The atom runs through its native RPC runtime and shares its execution with React. The factory receives `{ context, params, search }`: `context` is the loader’s router context, including parent `beforeLoad` contributions. Annotate it with `typeof root.types.allContext` (or the parent route’s `types.allContext`) to keep client and viewer access checked against the route’s declaration.
+TanStack Router owns routes, navigation, search validation, loader data and screen components. [`SessionApp`](#mount-a-sessions-routes) builds the application's router and mounts it; the examples in this section build a router by hand to show each piece alone. Mount a router with `RouterProvider` from `@shivaedev/react/RouterProvider.ts` in place of TanStack's: it renders TanStack's provider unchanged and tells the session's `useFirstSettled` when the first route has rendered. Declare a route's query once with `queryRoute(buildQuery)` from `@shivaedev/react/client/adapters/queryRoute.ts`, spread the result into `createRoute`, and call its `useQuery()` in the route's component. The spread derives loader dependencies from validated search and loads the contract query atom in the router context’s registry; `useQuery()` reads the same atom, so the component names neither the operation nor its arguments. A `NotFound` instance from `@shivaedev/errors/taxonomy.ts` or a `QueryReadDenied` refusal enters TanStack's not-found handling with the original rejection in the not-found component's `data` prop, preserving its message. One root `notFoundComponent` can show that message for all query routes; a route's own `notFoundComponent` takes precedence. Other typed failures reach `errorComponent` unchanged. The atom runs through its native RPC runtime and shares its execution with React. The factory receives `{ context, params, search }`: `context` is the loader’s router context, including parent `beforeLoad` contributions. Annotate it with `typeof root.types.allContext` (or the parent route’s `types.allContext`) to keep client and viewer access checked against the route’s declaration.
 
 This example assumes an application-owned `api.get.query({ id, page })` returning `{ id, title }`, with declared `NotFound` and `NoteMissing` rejections:
 
@@ -781,7 +841,7 @@ export function App() {
 
 Keep the result of `queryRoute` to call its `useRetry()` hook inside that route's error component. The returned callback refreshes the query using the current match's params, decoded search dependencies and context, then invalidates that match. A successful retry renders the route again without replacing the surrounding shell or its draft inputs.
 
-State where a signed-out visitor goes once, as `redirects.signedOut` in the router's context. A query route whose query fails with the shared `Unauthorized` rejection redirects there, and `permissionGuard` takes the same callback. `signInRedirect(path)` from `@shivaedev/react/signInRedirect.ts` builds it: a TanStack redirect to `path` that carries the requested path, search and fragment in sign-in's `returnTo` search field. `redirects.refused` handles `Forbidden` and `QueryReadDenied` the same way, with a callback that returns TanStack's `redirect`. A route overrides either target for its own query with `queryRoute(buildQuery, { redirects })`, as `memberNote` does here:
+State where a signed-out visitor goes once, as `redirects.signedOut` in the router's context; `SessionApp` sets it to `/sign-in`. A query route whose query fails with the shared `Unauthorized` rejection redirects there, and `permissionGuard` takes the same callback. `signInRedirect(path)` from `@shivaedev/react/signInRedirect.ts` builds it: a TanStack redirect to `path` that carries the requested path, search and fragment in sign-in's `returnTo` search field. `redirects.refused` handles `Forbidden` and `QueryReadDenied` the same way, with a callback that returns TanStack's `redirect`. A route overrides either target for its own query with `queryRoute(buildQuery, { redirects })`, as `memberNote` does here:
 
 ```ts
 import { createRootRouteWithContext, createRoute, createRouter } from "@tanstack/react-router";
@@ -824,128 +884,44 @@ For a loader that coordinates more work, use `loadQuery(registry, atom, loaderCo
 
 Permissions come from the session payload's `user.permissions`, populated by `@shivaedev/access` through the server's role policy. `can(session, permission)` uses access's grant evaluator without making a request: names match exactly, and an `any` grant covers an `own` check for that name. An `own` grant does not cover an `any` check. `useCan()` supplies the same check from the nearest `PermissionBoundary` for component controls. A signed-out session has no grants. These checks control visibility; the server still authorizes every request.
 
-Declare a route's requirement in TanStack's native `staticData`: `signedIn: true` admits any signed-in viewer, and `permission` requires a specific grant. Routes that declare neither stay public. Install `permissionGuard` once as the root route's `beforeLoad`; it checks all matched routes before their loaders run, including requirements on parents. Signed-out visitors go to the guard's `signedOut` redirect; pass it the router's `redirects.signedOut` so the guard and query routes share one target. A signed-in session without a required grant throws the shared `Forbidden` failure. A signed-in-only parent does not bypass a child's permission requirement.
-
-Set `permissionGuard({ session, signedOut, hidden: true })` to hide refused routes from signed-in members. The guard throws TanStack's native not-found result, renders the app's `notFoundComponent` at the requested URL and prevents the route's loader from running. Signed-out visitors still go to sign-in with their return location; sessions with the required grant still enter the route.
+Declare a route's requirement in TanStack's native `staticData`: `signedIn: true` admits any signed-in viewer, and `permission` requires a specific grant. Routes that declare neither stay public. [`SessionApp`](#mount-a-sessions-routes)'s root route checks all matched routes with `permissionGuard` from `@shivaedev/react/adapters/permissionGuard.ts` before their loaders run, including requirements on parents, and adds the permission of the module admin page whose path or detail path matches the location. The location is matched segment by segment, the way admin's document guard matches it (react keeps its own copy of the rules, `matchAdminPage` from `@shivaedev/react/client/matchAdminPage.ts`, and a test in admin runs both over one table to keep them in step): a parameter segment of the page's path (`$id`, `{$id}` or `{-$id}`) matches any one segment, so a literal route such as `/admin/reports/new` beside a detail path `/admin/reports/$id` needs the page's permission, and so does a route of its own that dispatches on a parameter. The bare `/admin` needs the first admin page's permission, whether its route redirects to a page or renders a component of its own. Signed-out visitors go to the router's `redirects.signedOut`, the target query routes share. A signed-in session without a required grant throws the shared `Forbidden` failure, and the route shows `SessionApp`'s `forbidden` screen at its URL. A signed-in-only parent does not bypass a child's permission requirement.
 
 ```tsx
-import { RegistryContext } from "@effect/atom-react";
-import { createRootRouteWithContext, createRoute, createRouter, Link, useRouter } from "@tanstack/react-router";
-import { RouterProvider } from "@shivaedev/react/RouterProvider.ts";
-import type { ReactNode } from "react";
-import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
+import { createRoute } from "@tanstack/react-router";
 import { permission } from "@shivaedev/access/permission.ts";
-import { Forbidden } from "@shivaedev/react/Forbidden.ts";
-import { PermissionBoundary, PermissionBoundaryError, useCan } from "@shivaedev/react/adapters/permissionBoundary.ts";
-import { permissionGuard } from "@shivaedev/react/adapters/permissionGuard.ts";
-import type { QueryRouteRedirects } from "@shivaedev/react/queryRouteFailure.ts";
-import { signInRedirect } from "@shivaedev/react/signInRedirect.ts";
-import type { PermissionSession } from "@shivaedev/identity/PermissionSession.ts";
-import { can } from "@shivaedev/react/can.ts";
+import { useCan } from "@shivaedev/react/adapters/permissionBoundary.ts";
 import { queryRoute } from "@shivaedev/react/client/adapters/queryRoute.ts";
-import { api, registry } from "./notes-client.ts";
-import { auth, SignIn } from "./auth.tsx";
-import { navigateTo } from "./adapters/navigateTo.ts";
+import { clientModule } from "@shivaedev/react/client/module.ts";
 
 const ReadNotes = permission("notes.read");
-const root = createRootRouteWithContext<{
-	registry: AtomRegistry.AtomRegistry;
-	api: typeof api;
-	redirects: Required<Pick<QueryRouteRedirects, "signedOut">>;
-	session: PermissionSession | undefined;
-}>()({
-	beforeLoad: ({ context, ...route }) => permissionGuard({ session: () => context.session, signedOut: context.redirects.signedOut })(route),
-});
-const profile = createRoute({
-	getParentRoute: () => root,
-	path: "/profile",
-	staticData: { signedIn: true },
-	component: () => <h1>Profile</h1>,
-});
-const noteQuery = queryRoute(
-	({ context, params }: { context: typeof root.types.allContext; params: { id: string }; search: Record<string, never> }) =>
-		context.api.get.query({ id: params.id, page: 1 }),
-);
-const note = createRoute({
-	getParentRoute: () => root,
-	path: "/notes/$id",
-	staticData: { permission: ReadNotes },
-	...noteQuery,
-	component: () => {
-		const query = noteQuery.useQuery();
-		return <h1>{query.data.title}</h1>;
+
+export const notesModule = clientModule({ notes: Notes }, ({ notes }) => ({
+	menu: [<Controls key="controls" />],
+	routes: (root) => {
+		const profile = createRoute({ component: () => <h1>Profile</h1>, getParentRoute: () => root, path: "/profile", staticData: { signedIn: true } });
+		const noteQuery = queryRoute(({ params }: { params: { id: string } }) => notes.get.query({ id: params.id, page: 1 }));
+		const note = createRoute({
+			getParentRoute: () => root,
+			path: "/notes/$id",
+			staticData: { permission: ReadNotes },
+			...noteQuery,
+			component: () => <h1>{noteQuery.useQuery().data.title}</h1>,
+		});
+		return [profile, note];
 	},
-});
-const login = createRoute({
-	getParentRoute: () => root,
-	path: "/login",
-	validateSearch: (search: Record<string, unknown>) => ({
-		returnTo: typeof search.returnTo === "string" ? search.returnTo : "/",
-	}),
-	component: () => {
-		const { returnTo } = login.useSearch();
-		return <SignIn onSignedIn={() => navigateTo(router, returnTo)} />;
-	},
-});
-const router = createRouter({
-	context: { registry, api, redirects: { signedOut: signInRedirect("/login") }, session: auth.session },
-	InnerWrap: PermissionShell,
-	defaultErrorComponent: PermissionBoundaryError,
-	routeTree: root.addChildren([profile, note, login]),
-	disableGlobalCatchBoundary: true,
-});
+}));
 
 function Controls() {
 	const can = useCan();
 	return can(ReadNotes) ? <button type="button">Read notes</button> : null;
 }
-
-function PermissionShell({ children }: { readonly children: ReactNode }) {
-	const session = useRouter<typeof router>().options.context?.session;
-	return (
-		<PermissionBoundary session={session} fallback={<NoAccess />}>
-			<Controls />
-			{children}
-		</PermissionBoundary>
-	);
-}
-
-function NoAccess(): ReactNode {
-	return (
-		<>
-			<Forbidden to="/profile" backLabel="Back to profile" />
-			<Link to="/login">Use another account</Link>
-		</>
-	);
-}
-
-export function App({ session }: { readonly session: PermissionSession | undefined }) {
-	return (
-		<RegistryContext.Provider value={registry}>
-			<RouterProvider router={router} context={{ session }} />
-		</RegistryContext.Provider>
-	);
-}
-
-const showNotes = can(auth.session, ReadNotes);
 ```
 
-TanStack's `navigate` answers with a Promise, so the sign-in callback starts the navigation through a module in `adapters/`:
+`Notes` is the application's contract. Importing `permissionGuard` augments TanStack's `StaticDataRouteOption`; route options and their inference remain native.
 
-```ts
-// adapters/navigateTo.ts
-import type { AnyRouter } from "@tanstack/react-router";
+`SessionApp` wraps the shell in `PermissionBoundary`, so `useCan()` anywhere inside it reads the current session's grants and the `forbidden` screen can render `Link` and read route context. `PermissionBoundary` runs the guards again when the grants of the session change without a navigation, such as a remembered session whose check answers with fewer grants, so a screen that needs a removed grant is replaced by the refusal. The router sends route and loader failures to that boundary (`defaultErrorComponent: PermissionBoundaryError`) while TanStack keeps its navigation controller mounted, so a refused viewer can follow the refusal's link without reloading the page; other errors propagate to an enclosing application boundary. A route-specific `errorComponent` owns any failures it consumes.
 
-export function navigateTo(router: AnyRouter, href: string): void {
-	void router.navigate({ href });
-}
-```
-
-`auth` owns the current session and passes it to `App`; `SignIn` updates that session before invoking `onSignedIn`. Use the session's registry for router context and React, as with other query routes. Importing `permissionGuard` augments TanStack's `StaticDataRouteOption`; route options and their inference remain native. The guard returns `void` explicitly, so `beforeLoad` needs no return annotation, including when it reads the session from route context.
-
-`PermissionBoundary` runs the guards again when the grants of its `session` change without a navigation, such as a remembered session whose check answers with fewer grants, so a screen that needs a removed grant is replaced by the refusal. The application writes nothing for it; the boundary invalidates the router it renders inside.
-
-`InnerWrap` puts `PermissionBoundary` inside the router, and the boundary's fallback can render `Link` and read route context. TanStack types `InnerWrap` as a component that returns an element, so `PermissionShell` leaves its return type to inference; annotated as returning `ReactNode`, it does not compile. Set `defaultErrorComponent: PermissionBoundaryError` so route and loader failures reach the boundary's fallback while TanStack keeps its navigation controller mounted. This lets a refused viewer follow the fallback link without reloading the page. Keep `disableGlobalCatchBoundary: true`; other errors propagate to an enclosing application boundary. A route-specific `errorComponent` owns any failures it consumes.
+A root route built without `SessionApp` installs the guard as its `beforeLoad`, `({ context, ...route }) => permissionGuard({ session: context.session, signedOut: context.redirects.signedOut })(route)`, and renders `PermissionBoundary` with its `fallback` and `session` itself. There, as with `SessionApp`'s `hidden`, `permissionGuard({ session, signedOut, hidden: true })` hides refused routes from signed-in members: the guard throws TanStack's native not-found result, renders the app's `notFoundComponent` at the requested URL and prevents the route's loader from running. Signed-out visitors still go to sign-in with their return location; sessions with the required grant still enter the route.
 
 `Forbidden` from `@shivaedev/react/Forbidden.ts` supplies the no-access heading, explanation and a router link. Set `to` to a route the viewer may open. Optional `title`, `children`, `backLabel` and `className` let the application choose wording and layout. The default heading is “Permission denied” and the link says “Go back”.
 
@@ -1166,7 +1142,7 @@ export const Notes = defineModule({ middleware: Authenticated, name: "notes", op
 ```tsx
 import { Effect, Layer, Option, Ref } from "effect";
 import { act, createElement } from "react";
-import { makeClient } from "@shivaedev/contract/bind.ts";
+import { makeClient } from "@shivaedev/contract/makeClient.ts";
 import { activityScreenSignal, clientActivity } from "@shivaedev/contract/clientActivity.ts";
 import { moduleHandlers } from "@shivaedev/contract/moduleHandlers.ts";
 import { CurrentViewer } from "@shivaedev/contract/readPolicy.ts";
@@ -1194,11 +1170,11 @@ export const notesScreen = storyKit({
 			effect.pipe(Effect.provideService(CurrentViewer, Option.some({ id: "alice" })), Effect.provideService(Identity, { id: "alice" })),
 		);
 		const handlers = moduleHandlers(NotesModule).pipe(Layer.provide(titles));
-		const connection = makeClient(Notes, {
-			protocol: layerLiveMemoryProtocol(NotesModule, Layer.merge(handlers, signedIn)),
-			url: "memory://notes",
-		});
-		const { api } = connection;
+		const connection = makeClient(
+			{ notes: Notes },
+			{ protocol: layerLiveMemoryProtocol(NotesModule, Layer.merge(handlers, signedIn)), url: "memory://notes" },
+		);
+		const api = connection.api.notes;
 		function NotesView() {
 			const list = useQuery(api.list.query());
 			const add = useAction(api.add);
@@ -1330,7 +1306,7 @@ pnpm add @tanstack/react-router
 
 The package needs Node 24 or newer.
 
-- Query identity, TTL, invalidation and action concurrency remain native atom policies. Put the registry at the lifetime boundary those policies need.
+- Query identity and action concurrency remain native atom policies. Put the registry at the lifetime boundary those policies need.
 - The package has no SSR registry/hydration adapter, offline write queue or optimistic reconciliation policy.
 
 ## Browser errors

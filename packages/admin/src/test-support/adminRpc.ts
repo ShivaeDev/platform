@@ -7,7 +7,7 @@ import { rpcSocketHost } from "@shivaedev/test-story/server/rpcSocketHost.ts";
 import { Access } from "#test/Access.ts";
 import type { pages } from "#test/jobsPages.ts";
 
-type Group = ReturnType<typeof pages>["group"];
+type Group = RpcGroup.RpcGroup<RpcGroup.Rpcs<ReturnType<typeof pages>["pages"][number]["contract"]>>;
 
 const isExit = Schema.decodeUnknownOption(Schema.Struct({ _tag: Schema.Literal("Exit"), requestId: Schema.Unknown }));
 const isRequest = Schema.decodeUnknownOption(Schema.Struct({ _tag: Schema.Literal("Request"), id: Schema.Unknown, tag: Schema.String }));

@@ -4,8 +4,8 @@ import * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as Atom from "effect/reactivity/Atom";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { act, createElement } from "react";
-import { makeClient } from "@shivaedev/contract/bind.ts";
 import { activityScreenSignal, clientActivity, isClientIdle } from "@shivaedev/contract/clientActivity.ts";
+import { makeClient } from "@shivaedev/contract/makeClient.ts";
 import { render } from "@shivaedev/test-story/client/adapters/react.ts";
 import { browserReads } from "#server/browserReads.ts";
 import { domFetch } from "#server/domFetch.ts";
@@ -26,7 +26,7 @@ export const readPage = storyKit({
 		const client = makePageClient(url, observed.protocol);
 		const fetch = domFetch(url);
 		const sessionPending = Atom.make(false);
-		const writer = yield* makeClient(ReadPage, { url, webSocketConstructor: layerWebSocketConstructor }).client;
+		const writer = yield* makeClient({ read: ReadPage }, { url, webSocketConstructor: layerWebSocketConstructor }).client;
 		const view = yield* Effect.acquireRelease(
 			Effect.promise(() => render(createElement(ReadPageView, { client, fetch, sessionPending }))),
 			(rendered) => Effect.promise(rendered.unmount),
@@ -43,7 +43,7 @@ export const readPage = storyKit({
 		const updates = yield* Queue.unbounded<string>();
 		yield* Effect.acquireRelease(
 			Effect.sync(() =>
-				view.registry.subscribe(client.api.get.query({ id: 1 }), (result) => {
+				view.registry.subscribe(client.api.read.get.query({ id: 1 }), (result) => {
 					if (AsyncResult.isSuccess(result) && !result.waiting) {
 						Queue.offerUnsafe(updates, result.value);
 					}

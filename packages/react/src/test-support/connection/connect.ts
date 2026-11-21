@@ -1,8 +1,8 @@
 import { layerWebSocketConstructor } from "@effect/platform-node/NodeWS";
 import { Effect, Layer, Queue } from "effect";
 import { RpcClient } from "effect/rpc";
-import { bind, makeClient } from "@shivaedev/contract/bind.ts";
-import { Api, Notes, Summary } from "#test/connection/feature.ts";
+import { makeClient } from "@shivaedev/contract/makeClient.ts";
+import { Notes, Summary } from "#test/connection/feature.ts";
 import { storyRuntime } from "#test/storyRuntime.ts";
 
 export const connect = Effect.fnUntraced(function* (url: string) {
@@ -14,6 +14,6 @@ export const connect = Effect.fnUntraced(function* (url: string) {
 			onDisconnect: Queue.offer(events, "disconnected").pipe(Effect.asVoid),
 		}),
 	);
-	const client = makeClient(Notes, { group: Api, runtime, url, webSocketConstructor: layerWebSocketConstructor });
-	return { client, events, summary: bind(Summary, client.Client) };
+	const client = makeClient({ notes: Notes, summary: Summary }, { runtime, url, webSocketConstructor: layerWebSocketConstructor });
+	return { client, events, notes: client.api.notes, summary: client.api.summary };
 });

@@ -2,9 +2,9 @@ import { Effect, Option, Ref, Schema } from "effect";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { act, createElement } from "react";
 import { collection } from "@shivaedev/changes/keys.ts";
-import { makeClient } from "@shivaedev/contract/bind.ts";
 import { activityScreenSignal, clientActivity } from "@shivaedev/contract/clientActivity.ts";
 import { contract } from "@shivaedev/contract/contract.ts";
+import { makeClient } from "@shivaedev/contract/makeClient.ts";
 import { command, query } from "@shivaedev/contract/operation.ts";
 import { layerLiveMemoryProtocol } from "@shivaedev/test-kits/contract/liveMemoryProtocol.ts";
 import { render } from "@shivaedev/test-story/client/adapters/react.ts";
@@ -30,11 +30,17 @@ export const notesScreen = storyKit({
 				});
 			}),
 		);
-		const connection = makeClient(Notes, {
-			protocol: layerLiveMemoryProtocol(Notes, handlers),
-			url: "memory://notes",
-		});
-		const { api, Client } = connection;
+		const connection = makeClient(
+			{ notes: Notes },
+			{
+				protocol: layerLiveMemoryProtocol(Notes, handlers),
+				url: "memory://notes",
+			},
+		);
+		const {
+			api: { notes: api },
+			Client,
+		} = connection;
 		const add = Client.runtime.fn(api.add.run);
 		function NotesView() {
 			const list = useQuery(api.list.query());

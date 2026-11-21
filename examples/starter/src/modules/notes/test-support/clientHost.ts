@@ -6,9 +6,7 @@ import { HttpRouter, HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import type * as Reactivity from "effect/reactivity/Reactivity";
 import { type Rpc, type RpcGroup, RpcSerialization, RpcServer } from "effect/rpc";
-import { makeClient } from "@shivaedev/contract/bind.ts";
 import { commandGuardLayer, guardCommands } from "@shivaedev/contract/CommandGuard.ts";
-import { Activity, clientActivity } from "@shivaedev/contract/clientActivity.ts";
 import { LiveSync } from "@shivaedev/contract/LiveSync.ts";
 import { liveServerLayer } from "@shivaedev/contract/live-server/layer.ts";
 import type { AuthenticatedUser } from "@shivaedev/identity/middleware.ts";
@@ -42,6 +40,5 @@ export const notesClientHost = Effect.fnUntraced(function* (
 	}
 	const url = `http://127.0.0.1:${server.address.port}/rpc`;
 	const observed = yield* browserReads({ contracts: [Notes], url, webSocketConstructor: layerWebSocketConstructor });
-	const client = makeClient(Notes, { protocol: observed.protocol, url });
-	return { api: client.api, observed, runtime: client.runtime, sync: client.sync, [Activity]: clientActivity(client) };
+	return { observed, options: { protocol: observed.protocol, url } };
 });

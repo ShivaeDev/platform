@@ -9,7 +9,6 @@ import { adminRegistry } from "@shivaedev/admin/registry.ts";
 import { pgBossQueues } from "@shivaedev/admin/server/adapters/pgBossQueues.ts";
 import { Detail } from "@shivaedev/admin/server/jobsReads.ts";
 import { registerAdmin } from "@shivaedev/admin/server/registerAdmin.ts";
-import { moduleHandlers } from "@shivaedev/contract/moduleHandlers.ts";
 import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import { defineQueue } from "@shivaedev/jobs/server/definition.ts";
 import { JobsClientFactory } from "@shivaedev/jobs/server/JobsClientFactory.ts";
@@ -28,7 +27,7 @@ const { url } = postgresTestUrl("PLATFORM_JOBS_TEST_DATABASE_URL");
 const Jobs = makePgBoss("test/JobsRedaction");
 const Mail = defineQueue({ name: "mail", schema: Schema.Struct({ recipient: Schema.String }) });
 const JobDetails = RpcGroup.make(Rpc.make("jobFailure", { error: JobsRow, success: Schema.Void }));
-const registration = registerAdmin(adminRegistry(JobsPage), { jobs: moduleHandlers(JobsModule) });
+const registration = registerAdmin(adminRegistry(JobsPage), { jobs: JobsModule });
 
 export const jobsRedaction = storyKit({
 	...hostOptions(),

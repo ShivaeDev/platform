@@ -5,8 +5,8 @@ import * as Atom from "effect/reactivity/Atom";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { RpcClient, RpcSerialization } from "effect/rpc";
 import { appHost } from "@shivaedev/server/appHost.ts";
-import { bind, makeClient } from "#bind.ts";
 import { contract } from "#contract.ts";
+import { type ContractsClient, makeClient } from "#makeClient.ts";
 import { stream } from "#operation.ts";
 import { socketIdentity } from "#rpcClient.ts";
 import { storyRuntime } from "#test/storyRuntime.ts";
@@ -65,23 +65,25 @@ export const sessionStreamsEngine = Effect.gen(function* () {
 		);
 	}
 	const registries = { alice: yield* registry("alice"), bob: yield* registry("bob") };
-	const connection = makeClient(Owned, {
-		protocol: (identity) =>
-			RpcClient.layerProtocolHttp({
-				transformClient: HttpClient.mapRequest(HttpClientRequest.setHeader("x-session", identity ?? "anonymous")),
-				url: urls[identity === "alice" ? "alice" : "bob"],
-			}).pipe(Layer.provide([FetchHttpClient.layer, RpcSerialization.layerNdjson])),
-		registry: registries.alice,
-		runtime,
-		url: urls.alice,
-	});
-	const apis = {
-		alice: connection.api,
-		bob: bind(Owned, connection.Client, { registry: registries.bob }),
-		ordinary: bind(Ordinary, connection.Client),
-	};
-	function consume<A, E>(effect: Effect.Effect<A, E, Context.Service.Identifier<typeof connection.Client>>, person: StreamPerson) {
-		return AtomRegistry.getResult(registries[person], connection.runtime.atom(effect).pipe(Atom.setIdleTTL(0)));
+	function connect(person: StreamPerson) {
+		return makeClient(
+			{ ordinary: Ordinary, owned: Owned },
+			{
+				protocol: (identity) =>
+					RpcClient.layerProtocolHttp({
+						transformClient: HttpClient.mapRequest(HttpClientRequest.setHeader("x-session", identity ?? "anonymous")),
+						url: urls[identity === "alice" ? "alice" : "bob"],
+					}).pipe(Layer.provide([FetchHttpClient.layer, RpcSerialization.layerNdjson])),
+				registry: registries[person],
+				runtime,
+				url: urls[person],
+			},
+		);
+	}
+	const clients = { alice: connect("alice"), bob: connect("bob") };
+	const apis = { alice: clients.alice.api.owned, bob: clients.bob.api.owned, ordinary: clients.alice.api.ordinary };
+	function consume<A, E>(effect: Effect.Effect<A, E, ContractsClient>, person: StreamPerson) {
+		return AtomRegistry.getResult(registries[person], clients[person].runtime.atom(effect).pipe(Atom.setIdleTTL(0)));
 	}
 	return { apis, consume, open, registries };
 });

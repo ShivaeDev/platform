@@ -4,18 +4,18 @@ import * as AsyncResult from "effect/reactivity/AsyncResult";
 import type * as Atom from "effect/reactivity/Atom";
 import { createElement, useContext, useState } from "react";
 import { LiveConnection } from "@shivaedev/contract/automaticLive.ts";
-import { makeClient } from "@shivaedev/contract/bind.ts";
+import { makeClient } from "@shivaedev/contract/makeClient.ts";
 import type { browserReads } from "#server/browserReads.ts";
 import { ReadPage } from "#test/readPageHost.ts";
 
 export function makePageClient(url: string, protocol: EffectReads["protocol"]) {
-	return makeClient(ReadPage, { protocol, url });
+	return makeClient({ read: ReadPage }, { protocol, url });
 }
 type EffectReads = Effect.Success<ReturnType<typeof browserReads>>;
 type PageClient = ReturnType<typeof makePageClient>;
 
 function PageTitle({ client, pageId }: { readonly client: PageClient; readonly pageId: number }) {
-	const result = useAtomValue((pageId === 2 ? client.api.second : client.api.get).query({ id: pageId }));
+	const result = useAtomValue((pageId === 2 ? client.api.read.second : client.api.read.get).query({ id: pageId }));
 	return createElement(
 		"output",
 		null,
@@ -36,7 +36,7 @@ export function ReadPageView({
 	const [extra, setExtra] = useState<number>();
 	const [signedIn, setSignedIn] = useState(false);
 	const busy = useAtomValue(sessionPending);
-	useAtomValue(client.api[LiveConnection].connection);
+	useAtomValue(client.api.read[LiveConnection].connection);
 	return createElement(
 		"main",
 		{ "aria-busy": busy },
@@ -51,7 +51,7 @@ export function ReadPageView({
 					registry.set(sessionPending, true);
 					const response = await fetch(signedIn ? "/sign-out" : "/sign-in", { method: "POST" });
 					const session = await response.text();
-					const identity = client.api[LiveConnection].identity;
+					const identity = client.api.read[LiveConnection].identity;
 					if (identity === undefined) {
 						throw new Error("The page client has no session identity");
 					}
