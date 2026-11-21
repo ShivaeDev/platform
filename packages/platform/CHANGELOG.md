@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.40.37 - 2026-11-21
+
+### Changed
+
+- Update `@shivaedev/server` from 0.44.0 to 0.44.1.
+
 ## 0.40.36 - 2026-11-21
 
 ### Changed
