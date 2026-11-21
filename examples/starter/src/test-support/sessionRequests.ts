@@ -25,7 +25,7 @@ export function sessionRequests(transport: typeof globalThis.fetch) {
 		fetch,
 		pending: (registry: AtomRegistry.AtomRegistry, session: Atom.Atom<SessionResult>) => {
 			read = () => registry.get(session);
-			const result = read();
+			const result = registry.get(session);
 			const failure = failureOf(result);
 			open = open.filter((shown) => result.waiting && (failure === undefined || failure === shown));
 			return open.length > 0 || (result.waiting && failure === undefined);
