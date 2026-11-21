@@ -3,6 +3,7 @@ import {
 	type AnyRouter,
 	createRoute,
 	createRouter,
+	type RouteComponent,
 	type RouterHistory,
 	type SearchParser,
 	type SearchSerializer,
@@ -20,7 +21,7 @@ import { signInRedirect } from "#signInRedirect.ts";
 
 export interface SessionRouting {
 	readonly forbidden?: ReactNode;
-	readonly home?: ComponentType;
+	readonly home?: RouteComponent;
 	readonly parseSearch?: SearchParser;
 	readonly shell?: ComponentType<{ readonly children: ReactNode }>;
 	readonly stringifySearch?: SearchSerializer;
@@ -58,10 +59,11 @@ interface Shell {
 const shells = new WeakMap<AnyRouter, Shell>();
 
 // The router renders its InnerWrap again whenever the provider above it renders, so the boundary reads the session as it is now.
-function SessionShell({ children }: { readonly children: ReactNode }) {
+function SessionShell(props: { readonly children: ReactNode }) {
 	const router = useRouter<AnyRouter>();
 	const { forbidden, session, shell } = shells.get(router) ?? { forbidden: null, session: () => undefined, shell: PassThrough };
-	return createElement(PermissionBoundary, { fallback: forbidden, session: session() }, createElement(shell, null, children));
+	const children = createElement(shell, null, props.children);
+	return createElement(PermissionBoundary, { children, fallback: forbidden, session: session() });
 }
 
 export function sessionRouter<TRoute extends AnyRoute>({
@@ -78,7 +80,6 @@ export function sessionRouter<TRoute extends AnyRoute>({
 }: SessionRouterOptions<TRoute>) {
 	const root = sessionRoot();
 	const routes = connection.routes(root);
-	const homeRoute = createRoute({ component: home, getParentRoute: () => root, path: "/" });
 	const router = createRouter({
 		context: {
 			adminPages: connection.adminPages,
@@ -96,7 +97,10 @@ export function sessionRouter<TRoute extends AnyRoute>({
 		...(history === undefined ? {} : { history }),
 		...(parseSearch === undefined ? {} : { parseSearch }),
 		...(stringifySearch === undefined ? {} : { stringifySearch }),
-		routeTree: root.addChildren([...routes, ...(home === undefined || claimsHome(routes) ? [] : [homeRoute])]),
+		routeTree: root.addChildren([
+			...routes,
+			...(home === undefined || claimsHome(routes) ? [] : [createRoute({ component: home, getParentRoute: () => root, path: "/" })]),
+		]),
 	});
 	shells.set(router, { forbidden, session, shell });
 	return router;
