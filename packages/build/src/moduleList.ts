@@ -4,6 +4,7 @@ import { byText } from "#byText.ts";
 import { emitList } from "#emitList.ts";
 import type { Project } from "#inputs.ts";
 import { sourceFiles } from "#project.ts";
+import type { RegistrationParts } from "#registrationParts.ts";
 import { type FileRegistrations, mayRegister } from "#registrations.ts";
 import type { ListOutcome } from "#report.ts";
 import { settle } from "#settle.ts";
