@@ -1,8 +1,10 @@
-import { Cause, Effect, Layer, Logger, Option } from "effect";
+import { Cause, ConfigProvider, Effect, Layer, Logger, Option } from "effect";
+import * as Base64 from "effect/encoding/Base64";
 import { FetchHttpClient, HttpClient, HttpClientRequest, HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import { RpcClient, RpcSerialization } from "effect/rpc";
 import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
+import { COLUMN_KEY_CONFIG } from "@shivaedev/sql/ColumnKey.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { answered } from "@shivaedev/test-story/server/answers.ts";
@@ -13,6 +15,7 @@ import { Api, draftsModule, handWrittenNotesModule, notesModule, replacedNotesMo
 import { Greetings, greetingsModule } from "#test/defined-modules/greetings.ts";
 import { Members, membersModule, privateJoinMembersModule } from "#test/defined-modules/members.ts";
 import { OwnedData, ownedDataModule } from "#test/defined-modules/ownedData.ts";
+import { ProviderTokensModule, providerTokensModule } from "#test/defined-modules/providerTokens.ts";
 import { TestRoles } from "#test/permissions.ts";
 import { databaseUrl, postgres } from "#test/postgres.ts";
 
@@ -21,6 +24,7 @@ type Caller = "alice" | "a visitor";
 const draftsQueue = { name: "drafts.publish" };
 
 interface State {
+	columnKey: string | undefined;
 	drafts: typeof draftsModule | (typeof draftsModule & { readonly queues: readonly (typeof draftsQueue)[] });
 	greetings: typeof greetingsModule | (typeof greetingsModule & { readonly queues: readonly (typeof draftsQueue)[] });
 	logs: { readonly cause: Cause.Cause<unknown>; readonly message: readonly unknown[] }[];
@@ -47,7 +51,7 @@ export const definedModulesHost = storyKit({
 	after: {
 		configured: Effect.fnUntraced(function* (state: State) {
 			const database = yield* PostgresTestDatabase;
-			const composed = yield* appModules([state.drafts, state.notes, state.members, state.greetings, ownedDataModule]).pipe(
+			const composed = yield* appModules([state.drafts, state.notes, state.members, state.greetings, ownedDataModule, providerTokensModule]).pipe(
 				Effect.map(Option.some),
 				Effect.catchTag("DuplicateModuleQueue", (refusal) =>
 					Effect.sync(() => {
@@ -64,7 +68,11 @@ export const definedModulesHost = storyKit({
 			const recorded = Logger.make(({ cause, message }) => {
 				state.logs.push({ cause, message: Array.isArray(message) ? message : [message] });
 			});
-			const started = yield* Layer.build(host.pipe(Layer.provide(Logger.layer([recorded])))).pipe(
+			const configured =
+				state.columnKey === undefined
+					? Layer.empty
+					: ConfigProvider.layerAdd(ConfigProvider.fromUnknown({ [COLUMN_KEY_CONFIG]: state.columnKey }), { asPrimary: true });
+			const started = yield* Layer.build(host.pipe(Layer.provide(Logger.layer([recorded])), Layer.provide(configured))).pipe(
 				Effect.map(Option.some),
 				Effect.catchTags({
 					HandWrittenModuleHandlers: (refusal) =>
@@ -93,6 +101,7 @@ export const definedModulesHost = storyKit({
 	around: withIsolatedDatabase,
 	clock: "test",
 	create: (): State => ({
+		columnKey: undefined,
 		drafts: draftsModule,
 		greetings: greetingsModule,
 		logs: [],
@@ -131,6 +140,11 @@ export const definedModulesHost = storyKit({
 				Effect.provide(RpcClient.layerProtocolHttp({ url: state.url }).pipe(Layer.provide([FetchHttpClient.layer, RpcSerialization.layerNdjson]))),
 			);
 		}
+		function providerTokensClient() {
+			return RpcClient.make(ProviderTokensModule, { flatten: true }).pipe(
+				Effect.provide(RpcClient.layerProtocolHttp({ url: state.url }).pipe(Layer.provide([FetchHttpClient.layer, RpcSerialization.layerNdjson]))),
+			);
+		}
 		function ownedDataClient() {
 			return RpcClient.make(OwnedData, { flatten: true }).pipe(
 				Effect.provide(RpcClient.layerProtocolHttp({ url: state.url }).pipe(Layer.provide([FetchHttpClient.layer, RpcSerialization.layerNdjson]))),
@@ -159,6 +173,12 @@ export const definedModulesHost = storyKit({
 						state.logs.flatMap(({ cause, message }) => (message[0] === "RPC defect" ? cause.reasons.filter(Cause.isDieReason) : []))[0]?.defect
 						?? "no RPC defect was logged",
 				),
+			loggedDefectMessage: () =>
+				Effect.sync(() => {
+					const defect = state.logs.flatMap(({ cause, message }) => (message[0] === "RPC defect" ? cause.reasons.filter(Cause.isDieReason) : []))[0]
+						?.defect;
+					return defect instanceof Error ? defect.message : "no RPC defect was logged";
+				}),
 			loggedMember: () =>
 				Effect.sync(() => state.logs.find(({ message }) => message[0] === "member shown")?.message[1] ?? "no log mentions a shown member"),
 			ownedModels: () => {
@@ -177,11 +197,19 @@ export const definedModulesHost = storyKit({
 				story.tell(`${caller} reads note ${id} through notes.get`);
 				return answered(Effect.flatMap(client(caller), (call) => call("notes.get", { id })));
 			},
+			readProviderToken: (id: number) => {
+				story.tell(`a visitor reads provider token ${id} back through providerTokens.reveal`);
+				return answered(Effect.flatMap(providerTokensClient(), (call) => call("providerTokens.reveal", { id })));
+			},
 			showMember: (id: number) => {
 				story.tell(`alice reads member ${id} through members.show, whose handler logs the member's row`);
 				return answered(Effect.flatMap(membersClient(), (call) => call("members.show", { id })));
 			},
 			startup: () => Effect.sync(() => state.startup),
+			storeProviderToken: (token: string) => {
+				story.tell(`a visitor stores the provider token ${token} through providerTokens.store`);
+				return answered(Effect.flatMap(providerTokensClient(), (call) => call("providerTokens.store", { token })));
+			},
 		};
 	},
 });
@@ -218,3 +246,7 @@ export const queueSharedWithGreetings = definedModulesHost.trait(
 		state.greetings = { ...greetingsModule, queues: [draftsQueue] };
 	},
 );
+
+export const columnKeyConfigured = definedModulesHost.trait("configured", "COLUMN_ENCRYPTION_KEY holds 32 random bytes in base64", (state) => {
+	state.columnKey = Base64.encode(globalThis.crypto.getRandomValues(new Uint8Array(32)));
+});

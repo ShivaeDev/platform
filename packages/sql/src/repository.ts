@@ -5,13 +5,13 @@ import { makeBatchedDelete } from "#batchedDelete.ts";
 import { type BatchWrites, makeInsertMany } from "#batchWrites.ts";
 import { makeCompositeCrud, type PrimaryKey, type Repository } from "#compositeRepository.ts";
 import { type ConflictColumns, type ConflictWrites, makeConflictWrites } from "#conflictWrites.ts";
+import { refuseKeyFields } from "#encryptedKeys.ts";
 import { makeInsertFromSelect, type SelectWrites } from "#insertFromSelect.ts";
 import { makeRecordRead } from "#recordRepositoryRead.ts";
 import { repositoryChanges } from "#repositoryChanges.ts";
 import { type RepositoryBuildError, type RepositoryOptions, resolveRepositoryOptions, validateRepositoryCollection } from "#repositoryCollection.ts";
 import type { FindManyFilter, RepositoryFilter } from "#repositoryFilter.ts";
 import { makeQueries, type Queries } from "#repositoryQueries.ts";
-import { refuseServerOnlyKeys } from "#serverOnly.ts";
 import type { VersionedRepositoryShape } from "#VersionedRepositoryShape.ts";
 import { type IdColumn, makeVersionedWrites, type VersionColumn } from "#versionedRepository.ts";
 
@@ -118,7 +118,7 @@ export function makeRepository<TModel extends Model.Any, TId extends IdColumn<TM
 		const resolved = resolveRepositoryOptions(options);
 		const { idColumn, tableName } = resolved;
 		const idColumns = (typeof idColumn === "object" ? idColumn : [idColumn]).map(String);
-		yield* refuseServerOnlyKeys(tableName, idColumns, model.fields, options.collection?.tuples);
+		yield* refuseKeyFields(tableName, model.fields, { conflictColumns: options.conflictColumns, idColumns, tuples: options.collection?.tuples });
 		yield* validateRepositoryCollection(model.fields, resolved);
 		const changes = yield* repositoryChanges(model, tableName, idColumns, options.collection?.tuples);
 		const recordRead = makeRecordRead(model, { idColumns, tableName, tuples: options.collection?.tuples });
