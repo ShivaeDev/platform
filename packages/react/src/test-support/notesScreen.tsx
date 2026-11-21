@@ -3,6 +3,7 @@ import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { act, createElement } from "react";
 import { collection } from "@shivaedev/changes/keys.ts";
 import { makeClient } from "@shivaedev/contract/bind.ts";
+import { activityScreenSignal, clientActivity } from "@shivaedev/contract/clientActivity.ts";
 import { contract } from "@shivaedev/contract/contract.ts";
 import { command, query } from "@shivaedev/contract/operation.ts";
 import { layerLiveMemoryProtocol } from "@shivaedev/test-kits/contract/liveMemoryProtocol.ts";
@@ -29,10 +30,11 @@ export const notesScreen = storyKit({
 				});
 			}),
 		);
-		const { api, Client } = makeClient(Notes, {
+		const connection = makeClient(Notes, {
 			protocol: layerLiveMemoryProtocol(Notes, handlers),
 			url: "memory://notes",
 		});
+		const { api, Client } = connection;
 		const add = Client.runtime.fn(api.add.run);
 		function NotesView() {
 			const list = useQuery(api.list.query());
@@ -57,16 +59,17 @@ export const notesScreen = storyKit({
 			(mounted) => Effect.promise(mounted.unmount),
 		);
 		const pending = yield* screenPending().pipe(Effect.provideService(AtomRegistry.AtomRegistry, view.registry));
-		return { pending, view };
+		return { activity: clientActivity(connection), pending, view };
 	},
 	inspect: ({ view }) => ({ screen: view.container.textContent }),
 	name: "notes screen",
 	stages: ["screen"],
-	verbs: ({ pending, view }, story) =>
+	verbs: ({ activity, pending, view }, story) =>
 		screenDriver({
 			act: async (action) => {
 				await act(action);
 			},
+			activity: activityScreenSignal(activity),
 			pending,
 			root: view.container,
 			tell: story.tell,
