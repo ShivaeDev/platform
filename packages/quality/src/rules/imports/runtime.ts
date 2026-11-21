@@ -5,7 +5,7 @@ import type { Endpoint } from "#imports/Endpoint.ts";
 import { outgoing, walkFrom } from "#imports/fences/reach.ts";
 import { followedEdges, generatedFolders } from "#imports/generatedFolders.ts";
 import { type ImportEdge, type ImportGraph, importGraph } from "#imports/graph.ts";
-import { nodePlatformBarrels } from "#imports/nodePlatformBarrels.ts";
+import { replacementImports } from "#imports/replacement.ts";
 import { type Runtime, runtimeDeclarationProblems, runtimeOf } from "#imports/runtime.ts";
 import { isTestCode } from "#naming/testName.ts";
 import { defineRule } from "#rule.ts";
@@ -101,7 +101,7 @@ export const importsRuntime = defineRule({
 			const definedModules = new Set(inputs.sources.filter(callsDefineModule).map((file) => file.path));
 			const runtime = yield* runtimeOf(inputs, graph.packages, definedModules);
 			const classified = { definedModules, runtime };
-			const imports = [...runtimeFindings(graph, classified), ...inputs.sources.flatMap(nodePlatformBarrels)];
+			const imports = [...runtimeFindings(graph, classified), ...(yield* replacementImports(inputs, graph.packages))];
 			const declarations = (yield* runtimeDeclarationProblems(inputs, graph.packages)).map(({ directory, message }) => ({
 				file: directory === "." ? "package.json" : `${directory}/package.json`,
 				line: 1,
@@ -116,6 +116,6 @@ export const importsRuntime = defineRule({
 			return [...imports, ...declarations, ...(yield* browserGlobals(shared))];
 		}),
 	description:
-		"Runtime folders define client, server and shared code. A manifest's quality.runtime declares a single-runtime package whole; executable packages without runtime folders and package-root tooling are server code. Production imports use @effect/platform-node module subpaths so its barrel does not load optional integrations.",
+		"Runtime folders define client, server and shared code. A manifest's quality.runtime declares a single-runtime package whole; executable packages without runtime folders and package-root tooling are server code. Production code takes the module Quality names in place of a listed import: @effect/platform-node subpaths instead of its barrel, which loads optional integrations, and the react package's RouterProvider instead of TanStack Router's where the package depends on @shivaedev/react.",
 	id: "imports/runtime",
 });

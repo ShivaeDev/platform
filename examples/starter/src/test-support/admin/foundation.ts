@@ -1,8 +1,8 @@
 import { layerWebSocketConstructor } from "@effect/platform-node/NodeWS";
-import { DateTime, Effect, Option } from "effect";
+import { DateTime, Effect, Option, type Scope } from "effect";
 import { makeClient } from "@shivaedev/contract/makeClient.ts";
 import { mintUser } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
-import { makePgBossTesting, testRetryPolicy } from "@shivaedev/test-kits/jobs/testing.ts";
+import { makePgBossTesting, type PgBossTesting, testRetryPolicy } from "@shivaedev/test-kits/jobs/testing.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import type { AppAccess } from "#AppAccess.ts";
@@ -18,7 +18,18 @@ export const foundationAdmin = storyKit({
 	clock: Effect.runSync(DateTime.now),
 	*create() {
 		const host = yield* startHost({ jobsTesting: makePgBossTesting({ retryPolicy: testRetryPolicy }) });
-		return { cookies: new Map<string, string>(), host, workerTesting: makePgBossTesting({ retryPolicy: testRetryPolicy }) };
+		const engine: {
+			readonly cookies: Map<string, string>;
+			readonly host: typeof host;
+			worker: Effect.Effect<void, unknown, Scope.Scope>;
+			readonly workerTesting: PgBossTesting;
+		} = {
+			cookies: new Map(),
+			host,
+			worker: Effect.die("Give the story a worker trait before the worker runs"),
+			workerTesting: makePgBossTesting({ retryPolicy: testRetryPolicy }),
+		};
+		return engine;
 	},
 	inspect: ({ host }) => ({ baseUrl: host.baseUrl }),
 	layer: postgres,
@@ -79,7 +90,12 @@ export const foundationAdmin = storyKit({
 				const admin = yield* adminOf(name);
 				return yield* answer(Effect.map(admin["admin.users.list"]({ limit: 20 }), ({ users }) => users.map(({ email }) => email)));
 			}),
-			workersFinish: () => engine.workerTesting.waitForIdle,
+			workerGivesUpOnTheEmail: () =>
+				Effect.gen(function* () {
+					story.tell("the worker starts and retries the queued email until it gives up");
+					yield* engine.worker;
+					yield* engine.workerTesting.waitForIdle;
+				}),
 		};
 	},
 });

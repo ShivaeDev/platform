@@ -62,7 +62,7 @@ pnpm migrate
 pnpm start
 ```
 
-`pnpm build` writes `src/generated` before it bundles the client. A production install (`pnpm install --prod --frozen-lockfile`) leaves out `@shivaedev/build`, and pnpm skips `prepare` there, so the install succeeds without the generator and leaves `src/generated` as the build wrote it. The built server serves the UI, authentication and RPC on port 3000 by default. Run `pnpm worker` as a separate process for background jobs and queued auth email delivery. Set `DATABASE_URL` on both processes; `pnpm migrate` needs only this variable. On web, also set a random `BETTER_AUTH_SECRET` of at least 32 characters. Set `PUBLIC_URL` to your public app URL on both web and worker. For web in a container, use `HOST=0.0.0.0` and the host's `PORT`.
+`pnpm build` writes `src/generated` before it bundles the client. A production install (`pnpm install --prod --frozen-lockfile`) leaves out `@shivaedev/build`, and pnpm skips `prepare` there, so the install succeeds without the generator and leaves `src/generated` as the build wrote it. The built server serves the UI, authentication and RPC on port 3000 by default. Run `pnpm worker` as a separate process for background jobs and queued auth email delivery. Set `DATABASE_URL` on both processes; `pnpm migrate` needs only this variable. On web, also set a random `BETTER_AUTH_SECRET` of at least 32 characters. Set `PUBLIC_URL` to your public app URL on both web and worker; in production (`NODE_ENV=production`) web refuses to start without it, because it builds the links in auth emails. For web in a container, use `HOST=0.0.0.0` and the host's `PORT`.
 
 In production (`NODE_ENV=production`), the worker sends auth emails through Resend. Configure these worker variables before deploying:
 

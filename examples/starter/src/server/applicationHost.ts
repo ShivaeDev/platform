@@ -12,9 +12,8 @@ import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
 import { appHost } from "@shivaedev/server/appDatabase.ts";
 import { hostAssets } from "@shivaedev/server/hostAssets.ts";
 import { Owner } from "#roles/Owner.ts";
-import { AppAuth } from "#server/AppAuth.ts";
+import { AppAuth, AuthEmails } from "#server/AppAuth.ts";
 import { authEmailRoutes } from "#server/authEmailRoutes.ts";
-import { authEmails } from "#server/authEmails.ts";
 import { databaseOptions } from "#server/databaseOptions.ts";
 import { jobsLayer } from "#server/jobsLayer.ts";
 import { serverModules } from "#server/modules.ts";
@@ -54,7 +53,7 @@ export function applicationHost<R = never, E = never, TRequirements = never>(con
 				application: Effect.gen(function* () {
 					const serviceContext = yield* Layer.build(services);
 					const { routes, sessions: authSessions } = yield* betterAuthMount(AppAuth, {
-						emails: yield* authEmails().pipe(Effect.provideContext(serviceContext)),
+						emails: yield* AuthEmails.emails.pipe(Effect.provideContext(serviceContext)),
 						roleSeed: ownerSeed,
 					});
 					const sessions = {

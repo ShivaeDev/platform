@@ -104,7 +104,7 @@ function buildRpcRoutes<TRpcs extends Rpc.Any, THandlers, TError, TRequirements,
 				}),
 			);
 			yield* router.add("GET", options.rpcPath ?? "/rpc", () =>
-				boundedRpcSocket(bodySize).pipe(
+				boundedRpcSocket(bodySize, options.rpcPath ?? "/rpc").pipe(
 					Effect.flatMap((request) =>
 						socketRpc(websocket, options, trustedProxy, nativeOrigins).pipe(
 							Effect.provideService(HttpServerRequest.HttpServerRequest, request),

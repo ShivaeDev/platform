@@ -40,6 +40,7 @@ function Commands({ client }: { readonly client: FailureClient }) {
 	const offline = useAction(client.offline);
 	const alsoOffline = useAction(client.offline);
 	const dies = useAction(client.dies);
+	const tooLarge = useAction(client.tooLarge);
 	const draft = { title: "Draft" };
 	return (
 		<>
@@ -48,6 +49,7 @@ function Commands({ client }: { readonly client: FailureClient }) {
 			<ActionButton label="Rename with its own wording" onClick={() => worded.dispatch(draft)} pending={worded.pending} />
 			<ActionButton label="Rename offline" onClick={() => offline.dispatch(draft)} pending={offline.pending || alsoOffline.pending} />
 			<ActionButton label="Rename with a dying server" onClick={() => dies.dispatch(draft)} pending={dies.pending} />
+			<ActionButton label="Rename with too much text" onClick={() => tooLarge.dispatch(draft)} pending={tooLarge.pending} />
 		</>
 	);
 }
