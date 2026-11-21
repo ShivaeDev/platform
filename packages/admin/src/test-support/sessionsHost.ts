@@ -6,18 +6,18 @@ import { role } from "@shivaedev/access/role.ts";
 import { roleSet } from "@shivaedev/access/roleSet.ts";
 import { clientActivity } from "@shivaedev/contract/clientActivity.ts";
 import { makeClient } from "@shivaedev/contract/makeClient.ts";
-import { moduleHandlers } from "@shivaedev/contract/moduleHandlers.ts";
 import { AuthUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import { Sessions } from "@shivaedev/identity/Sessions.ts";
 import { betterAuthDatabase } from "@shivaedev/identity/server/better-auth/adapters/database.ts";
 import { migrateBetterAuth } from "@shivaedev/identity/server/better-auth/migrate.ts";
 import { betterAuthMount } from "@shivaedev/identity/server/better-auth/mount.ts";
-import { permissionLayer } from "@shivaedev/identity/server/permissionLayer.ts";
 import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
-import { ManageSessions, SessionsPermission } from "@shivaedev/identity/sessionPermissions.ts";
+import { ManageSessions } from "@shivaedev/identity/sessionPermissions.ts";
 import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
 import { liveHost } from "@shivaedev/test-kits/contract/liveMemoryProtocol.ts";
 import { rpcSocketHost } from "@shivaedev/test-story/server/rpcSocketHost.ts";
+import { adminRegistry } from "#registry.ts";
+import { registerAdmin } from "#server/registerAdmin.ts";
 import { SessionsPage } from "#sessions/Page.ts";
 import { clientRuntime } from "#test/clientRuntime.ts";
 
@@ -66,13 +66,11 @@ export const sessionsHost = Effect.fnUntraced(function* () {
 		roles: Access,
 	};
 	const sql = yield* SqlClient.SqlClient;
-	const host = yield* liveHost(SessionsPage.contract, moduleHandlers(Sessions).pipe(Layer.provide(Layer.succeed(SqlClient.SqlClient, sql))), {
+	const registration = registerAdmin(adminRegistry(SessionsPage), { sessions: Sessions });
+	const host = yield* liveHost(registration.group, registration.handlers.pipe(Layer.provide(Layer.succeed(SqlClient.SqlClient, sql))), {
 		protocol: "websocket",
 	});
-	const served = yield* rpcSocketHost(
-		host.group,
-		Layer.mergeAll(host.handlers, permissionLayer(SessionsPermission)).pipe(Layer.provide(Layer.succeed(SessionPolicy, policy))),
-	);
+	const served = yield* rpcSocketHost(host.group, host.handlers.pipe(Layer.provide(Layer.succeed(SessionPolicy, policy))));
 	const url = served.url.replace(/^http/u, "ws");
 	const protocol = RpcClient.layerProtocolSocket().pipe(
 		Layer.provide([Socket.layerWebSocket(url).pipe(Layer.provide(Socket.layerWebSocketConstructorGlobal)), RpcSerialization.layerNdjson]),

@@ -4,7 +4,7 @@ import { Migrator, SqlClient } from "effect/sql";
 import { adminPage } from "@shivaedev/admin/page.ts";
 import { adminRegistry } from "@shivaedev/admin/registry.ts";
 import { registerAdmin } from "@shivaedev/admin/server/registerAdmin.ts";
-import { contract } from "@shivaedev/contract/contract.ts";
+import { defineModule } from "@shivaedev/contract/defineModule.ts";
 import { query } from "@shivaedev/contract/operation.ts";
 import type { AppModule } from "#AppModule.ts";
 import { ToolsPermission } from "#test/permissions.ts";
@@ -18,15 +18,33 @@ class Tasks extends Context.Service<Tasks, string>()("@shivaedev/server/test/mod
 export const NotesApi = RpcGroup.make(Rpc.make("notes.read", { success: Schema.String }));
 export const TasksApi = RpcGroup.make(Rpc.make("tasks.read", { success: Schema.String }));
 
-const read = query("read", { readPolicy: () => Effect.succeed(true), reads: () => [], success: Schema.String });
+const adminWire = { read: { rejections: {}, success: Schema.String } } as const;
+const readNotes = query("read", {
+	readPolicy: () => Effect.succeed(true),
+	reads: () => [],
+	*run() {
+		return yield* Notes;
+	},
+});
+const readTasks = query("read", {
+	readPolicy: () => Effect.succeed(true),
+	reads: () => [],
+	*run() {
+		return yield* Tasks;
+	},
+});
+const NotesAdmin = defineModule({ name: "admin.notes", operations: [readNotes], wire: adminWire });
+const TasksAdmin = defineModule({ name: "admin.tasks", operations: [readTasks], wire: adminWire });
+
+// Without a generator, each page's browser contract is its module, which a browser would import as the generated contract.
 export const NotesPage = adminPage({
-	contract: contract("admin.notes", { queries: [read] }),
+	contract: NotesAdmin,
 	id: "notes",
 	permission: ToolsPermission,
 	route: { path: "/admin/notes", title: "Notes" },
 });
 export const TasksPage = adminPage({
-	contract: contract("admin.tasks", { queries: [read] }),
+	contract: TasksAdmin,
 	id: "tasks",
 	permission: ToolsPermission,
 	route: { path: "/admin/tasks", title: "Tasks" },
@@ -50,7 +68,7 @@ function seedTitle(table: string, title: string) {
 }
 
 export const notesModule = {
-	admin: registerAdmin(adminRegistry(NotesPage), { notes: NotesPage.contract.application.toLayer({ "admin.notes.read": () => Notes }) }),
+	admin: registerAdmin(adminRegistry(NotesPage), { notes: NotesAdmin }),
 	group: NotesApi,
 	handlers: NotesApi.toLayer({ "notes.read": () => Notes }),
 	migrations: {
@@ -65,7 +83,7 @@ export const notesModule = {
 } satisfies AppModule;
 
 export const tasksModule = {
-	admin: registerAdmin(adminRegistry(TasksPage), { tasks: TasksPage.contract.application.toLayer({ "admin.tasks.read": () => Tasks }) }),
+	admin: registerAdmin(adminRegistry(TasksPage), { tasks: TasksAdmin }),
 	group: TasksApi,
 	handlers: TasksApi.toLayer({ "tasks.read": () => Tasks }),
 	migrations: {

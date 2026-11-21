@@ -16,7 +16,9 @@ import { adminRegistry } from "#registry.ts";
 import { registerAdmin } from "#server/registerAdmin.ts";
 import { Access } from "#test/Access.ts";
 import { clientRuntime } from "#test/clientRuntime.ts";
-import { collectionPage, Workspace, workspaces } from "#test/collectionPage.ts";
+import { collectionPage } from "#test/collectionPage.ts";
+import { WorkspaceCollection, WorkspaceRows } from "#test/WorkspaceCollection.ts";
+import { Workspace, WorkspaceRow, workspaces } from "#test/workspaceModel.ts";
 
 const migrations = {
 	loader: Migrator.fromRecord({
@@ -40,19 +42,15 @@ export const collectionEngine = Effect.gen(function* () {
 		collection: workspaces,
 	}).pipe(Effect.provideContext(services));
 	const session = yield* Ref.make<Option.Option<UserSessionShape>>(Option.none());
-	const registration = registerAdmin(adminRegistry(page), {
-		workspaces: page.contract.application.toLayer({
-			"admin.workspaces.all": () =>
-				repository.findMany({ orderBy: { direction: "asc", field: "id" } }).pipe(
-					Effect.map((rows) => rows.map((row) => new Workspace(row))),
-					Effect.orDie,
-				),
-		}),
-	});
+	const registration = registerAdmin(adminRegistry(page), { workspaces: WorkspaceCollection });
+	const rows = repository.findMany({ orderBy: { direction: "asc", field: "id" } }).pipe(
+		Effect.map((found) => found.map(({ id, tenant, title }) => new WorkspaceRow({ id, tenant, title }))),
+		Effect.orDie,
+	);
 	const policy = { origin: () => true, provider: { get: () => Ref.get(session) }, roles: Access };
 	const protocol = hostChanges(registration.group)
 		.pipe(Layer.provideMerge(registration.handlers))
-		.pipe(Layer.provide(Layer.succeed(SessionPolicy, policy)), Layer.provide(Layer.succeedContext(services)));
+		.pipe(Layer.provide([Layer.succeed(SessionPolicy, policy), Layer.succeed(WorkspaceRows, rows)]), Layer.provide(Layer.succeedContext(services)));
 	const runtime = yield* clientRuntime;
 	class Client extends AtomRpc.Service<Client>()("test/AdminCollectionClient", {
 		group: registration.group,
