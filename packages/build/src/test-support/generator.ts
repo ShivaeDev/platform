@@ -11,6 +11,7 @@ import { CATALOG_PROJECT } from "#test/catalogProject.ts";
 import { type ClientModuleShape, clientModuleFile, clientModulePath } from "#test/clientModulesProject.ts";
 import { CREDENTIAL_MODEL } from "#test/credentialModel.ts";
 import { emptyProject, fromSource, generatedOncePerFile, projectIn, typeCheck, writeFiles } from "#test/fixtureProject.ts";
+import { MISPLACED_MODULES } from "#test/misplacedModules.ts";
 import { NOTES_PROJECT } from "#test/notesProject.ts";
 import { PUBLIC_SHAPE_PROJECT } from "#test/publicShapeProject.ts";
 import { REFUSING_PROJECT } from "#test/refusingProject.ts";
@@ -227,7 +228,7 @@ export function importsTheServerList() {
 
 export function refusingProject() {
 	return generator.trait("project", "the project has the refused module, whose operations the wire cannot carry exactly", (engine) =>
-		writeFiles(engine.root, REFUSING_PROJECT),
+		writeFiles(engine.root, { ...MISPLACED_MODULES, ...REFUSING_PROJECT }),
 	);
 }
 

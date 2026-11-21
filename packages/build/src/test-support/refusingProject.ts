@@ -1,8 +1,5 @@
-import { MISPLACED_MODULES } from "#test/misplacedModules.ts";
-
 // A module whose every operation needs something the wire cannot carry exactly, each written the way an application might.
 export const REFUSING_PROJECT: Readonly<Record<string, string>> = {
-	...MISPLACED_MODULES,
 	"src/modules/refused/operations.ts": `import { Effect, Schema } from "effect";
 import { query } from "@shivaedev/contract/operation.ts";
 import { RefusedDraft } from "./payloads.ts";
