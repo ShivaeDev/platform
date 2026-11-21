@@ -24,7 +24,9 @@ export const ownedData = storyKit({
 	stages: [],
 	verbs: (engine, story) => ({
 		coverage: () => {
-			story.tell("the application's module services are built, as the host builds them, and identity checks the migrated database's personal columns");
+			story.tell(
+				"the application's module services are built, as the host builds them, and identity checks the migrated database's personal columns",
+			);
 			return Effect.gen(function* () {
 				const modules = yield* serverModules(Layer.empty);
 				const jobs = jobsLayer(engine.database.url, testPoolSizes.jobs).pipe(
