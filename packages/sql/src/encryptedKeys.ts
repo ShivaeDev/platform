@@ -42,7 +42,6 @@ const refuseEncryptedKeys = Effect.fnUntraced(function* (
 	}
 });
 
-// The fields a repository keys, buckets or upserts by must hold values that compare equal as stored.
 export const refuseKeyFields = Effect.fnUntraced(function* (
 	table: string,
 	fields: Schema.Struct.Fields,
