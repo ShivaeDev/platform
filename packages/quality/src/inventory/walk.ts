@@ -3,7 +3,7 @@ import { Effect, FileSystem } from "effect";
 import type { SetupFailure } from "#failure.ts";
 import { type FilesystemFailure, orWhenAbsent, readOptionalText } from "#inventory/filesystem.ts";
 import { emptyScope, type IgnoreScope, insideKept, verdictFor, withIgnoreFile } from "#inventory/ignoreScope.ts";
-import { gitIgnoredAmong, ignoredPaths, trackedPaths } from "#inventory/trackedPaths.ts";
+import { ignoredPaths, trackedPaths } from "#inventory/trackedPaths.ts";
 import type { RuleServices } from "#rule.ts";
 
 const SKIPPED = new Set([".git", ".worktrees", "node_modules"]);
@@ -92,32 +92,4 @@ const walkEntry = Effect.fnUntraced(function* (
 		return [path];
 	}
 	return yield* walkDirectory(path, verdict === "kept" ? insideKept(scope, path) : scope, tracked);
-});
-
-const ignoredByIgnoreFiles = Effect.fnUntraced(function* (root: string, path: string) {
-	let scope = emptyScope;
-	let current = root;
-	for (const part of relative(root, path).split(sep)) {
-		scope = yield* ignoreScopeAt(current, scope);
-		current = join(current, part);
-		if (verdictFor(scope, current, current !== path) === "ignored") {
-			return true;
-		}
-	}
-	return false;
-});
-
-// Without Git, the .gitignore files from the root down decide, as they decide which files the walk lists.
-export const ignoredAmong = Effect.fnUntraced(function* (root: string, paths: readonly string[]) {
-	if (paths.length === 0) {
-		return [];
-	}
-	const byGit = yield* gitIgnoredAmong(root, paths);
-	if (byGit !== undefined) {
-		return byGit;
-	}
-	return yield* Effect.filter(
-		paths.map((path) => join(root, path)),
-		(path) => ignoredByIgnoreFiles(root, path),
-	);
 });
