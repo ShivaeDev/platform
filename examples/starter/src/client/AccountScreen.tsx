@@ -15,7 +15,7 @@ export function AccountScreen({ client, onDeleted }: { readonly client: Contract
 			<header className="space-y-2">
 				<h1 className="text-3xl font-semibold tracking-tight">Your account</h1>
 				<a className="inline-block text-sm underline" href="/">
-					Back to notes
+					Back to the app
 				</a>
 			</header>
 			<section aria-label="Delete account">

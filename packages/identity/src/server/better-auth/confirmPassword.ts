@@ -16,10 +16,10 @@ export const confirmPassword = Effect.fn("Identity.confirmPassword")(function* (
 	const { account } = getAuthTables(options);
 	const sql = (yield* SqlClient.SqlClient).withoutTransforms();
 	function column(field: "password" | "providerId" | "userId") {
-		return sql(account.fields[field]?.fieldName ?? field);
+		return sql(account?.fields[field]?.fieldName ?? field);
 	}
 	const credential = yield* SqlSchema.findOneOption({
-		execute: (id) => sql`select ${column("password")} as password from ${sql(account.modelName)}
+		execute: (id) => sql`select ${column("password")} as password from ${sql(account?.modelName ?? "account")}
 			where ${column("userId")} = ${id} and ${column("providerId")} = 'credential' and ${column("password")} is not null`,
 		Request: Schema.String,
 		Result: Credential,

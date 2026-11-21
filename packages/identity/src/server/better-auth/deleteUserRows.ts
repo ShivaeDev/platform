@@ -10,9 +10,9 @@ export const deleteUserRows = Effect.fn("Identity.deleteUserRows")(function* (op
 	const { email, id } = yield* SessionUser;
 	const { user, verification } = getAuthTables(options);
 	const sql = (yield* SqlClient.SqlClient).withoutTransforms();
-	const identifier = sql(verification.fields.identifier?.fieldName ?? "identifier");
-	const value = sql(verification.fields.value?.fieldName ?? "value");
-	yield* sql`delete from ${sql(verification.modelName)} where ${value} = ${id} or ${identifier} = ${email}
+	const identifier = sql(verification?.fields.identifier?.fieldName ?? "identifier");
+	const value = sql(verification?.fields.value?.fieldName ?? "value");
+	yield* sql`delete from ${sql(verification?.modelName ?? "verification")} where ${value} = ${id} or ${identifier} = ${email}
 		or right(${identifier}, char_length(${email}) + 1) in (${`-${email}`}, ${`:${email}`})`;
-	yield* sql`delete from ${sql(user.modelName)} where id = ${id}`;
+	yield* sql`delete from ${sql(user?.modelName ?? "user")} where id = ${id}`;
 });
