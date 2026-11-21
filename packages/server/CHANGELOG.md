@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.41.2 - 2026-11-21
+
+### Changed
+
+- an `admin` field on an application module is the result of `registerAdmin` or `mergeAdminRegistrations`, which carries the `group` the host serves.
+
 ## 0.41.1 - 2026-11-21
 
 ### Changed

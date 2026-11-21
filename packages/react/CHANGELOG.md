@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.56.0 - 2026-11-21
+
+### Added
+
+- `clientModule(contracts, (clients) => parts)` from `@shivaedev/react/client/module.ts` names the contracts a module's screens call, once, under the module's own names, and hands the callback a typed bound client for each; its parts are `routes: (root) => [...]`, `warm`, `admin`, `menu`, `overlays` and `footer`. Module routes get a typed root through the `Register` interface, which the application augments once with `{ readonly root: ReturnType<typeof rootRoute> }`. `AdminNavigation` describes an admin page for navigation by its shape.
+- `clientApp(modules, options?)` from `@shivaedev/react/client/app.ts` makes one client over every module's contracts with `makeClient`, binding a contract that two modules name once, and returns `connect` and `warm` that spread into `SessionBoundary`. The connection carries `routes(root)`, `adminPages`, `modules` and the client's activity, `runtime` and `sync`; `options` takes `url`, `protocol`, `headers` and the other client options for story kits and native shells.
+
 ## 0.55.1 - 2026-11-21
 
 ### Changed
