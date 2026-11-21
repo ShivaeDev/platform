@@ -1,6 +1,7 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { builtInApplicationEffect, collector, definedModulesHost } from "#test/defined-modules/story.ts";
+import { builtInApplicationEffect, collector } from "#test/defined-modules/applicationForm.ts";
+import { definedModulesHost } from "#test/defined-modules/story.ts";
 
 definedModulesHost.it(
 	"an operation served by a host whose application Effect builds the repositories reads their owned models, with their tables and owner columns, and not the unowned one",

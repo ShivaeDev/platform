@@ -7,15 +7,16 @@ import { COLUMN_KEY_CONFIG } from "@shivaedev/sql/ColumnKey.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { answered } from "@shivaedev/test-story/server/answers.ts";
-import { type OtlpSpan, otlpReceiver } from "@shivaedev/test-story/server/otlpReceiver.ts";
+import type { OtlpSpan } from "@shivaedev/test-story/server/otlpReceiver.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { appHost } from "#appDatabase.ts";
 import { appModules } from "#appModules.ts";
 import { Api, draftsModule, handWrittenNotesModule, notesModule, replacedNotesModule } from "#test/defined-modules/features.ts";
 import { Greetings, greetingsModule } from "#test/defined-modules/greetings.ts";
 import { Members, membersModule, privateJoinMembersModule } from "#test/defined-modules/members.ts";
 import { OwnedData, ownedDataModule } from "#test/defined-modules/ownedData.ts";
 import { ProviderTokensModule, providerTokensModule } from "#test/defined-modules/providerTokens.ts";
-import { startAppHost } from "#test/defined-modules/startAppHost.ts";
+import { sessions } from "#test/defined-modules/sessions.ts";
 import { databaseUrl, postgres } from "#test/postgres.ts";
 import { spanAttribute } from "#test/spanAttribute.ts";
 import { workerHost } from "#workerHost.ts";
@@ -73,7 +74,26 @@ export const definedModulesHost = storyKit({
 				);
 				return;
 			}
-			const started = yield* startAppHost(state.host, modules, configured, database.url).pipe(
+			const config = { databaseUrl: database.url, port: 0 };
+			// The application form, as the starter writes it: the application Effect builds the module services and hands the host the built context.
+			function application() {
+				const { group, handlers, requestServices } = modules;
+				return Effect.map(Layer.build(modules.services), (built) => ({
+					config,
+					group,
+					handlers,
+					requestServices,
+					services: Layer.succeedContext(built),
+					sessions,
+				}));
+			}
+			const host =
+				state.host === "application"
+					? Layer.build(
+							appHost({ application: application(), config, migrations: modules.migrations, postgresSettings: {} }).pipe(Layer.provide(configured)),
+						)
+					: Layer.build(appHost({ postgresSettings: {}, ...modules, config, sessions }).pipe(Layer.provide(configured)));
+			const started = yield* Effect.suspend(() => host).pipe(
 				Effect.map(Option.some),
 				Effect.catchTags({
 					ColumnKeyError: (refusal) =>
@@ -270,21 +290,3 @@ export function columnKey(configured: "missing" | "16 random bytes in base64") {
 export const servedByWorkerHost = definedModulesHost.trait("configured", "the modules are served by workerHost in place of appHost", (state) => {
 	state.host = "worker";
 });
-
-export const builtInApplicationEffect = definedModulesHost.trait(
-	"configured",
-	"the host is built in the application form, whose application Effect builds the modules' services with Layer.build and returns them already built",
-	(state) => {
-		state.host = "application";
-	},
-);
-
-export const collector = definedModulesHost.trait("configured", "the host exports each span to a loopback OTLP collector as it ends", (state) =>
-	Effect.gen(function* () {
-		const receiver = yield* otlpReceiver();
-		state.collector = {
-			untilSpan: (name) => receiver.untilSpan((span) => span.name === name, { name: `${name} span reaches the collector` }),
-		};
-		Object.assign(state.env, { "OTEL_BSP_MAX_EXPORT_BATCH_SIZE": "1", "OTEL_EXPORTER_OTLP_ENDPOINT": receiver.url });
-	}),
-);
