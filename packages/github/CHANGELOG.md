@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.18.0 - 2026-11-21
+
+### Breaking
+
+- import from `@shivaedev/github/githubClientsLayer.ts` instead of `@shivaedev/github/adapters/githubClientsLayer.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/github/manualRedirects.ts` instead of `@shivaedev/github/adapters/manualRedirects.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/github/mergeResponseHeaders.ts` instead of `@shivaedev/github/adapters/mergeResponseHeaders.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/github/pagination.ts` instead of `@shivaedev/github/adapters/pagination.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/github/resolveApiUrl.ts` instead of `@shivaedev/github/adapters/resolveApiUrl.ts`, which moved out of `adapters/`.
+
 ## 0.17.8 - 2026-11-20
 
 ### Changed

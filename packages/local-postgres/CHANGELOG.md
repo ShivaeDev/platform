@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.17.0 - 2026-11-21
+
+### Breaking
+
+- import from `@shivaedev/local-postgres/server/clientConnection.ts` instead of `@shivaedev/local-postgres/server/adapters/clientConnection.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/local-postgres/server/docker.ts` instead of `@shivaedev/local-postgres/server/adapters/docker.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/local-postgres/server/ensureConnections.ts` instead of `@shivaedev/local-postgres/server/adapters/ensureConnections.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/local-postgres/server/hostPostgresBinaries.ts` instead of `@shivaedev/local-postgres/server/adapters/hostPostgresBinaries.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/local-postgres/server/localSql.ts` instead of `@shivaedev/local-postgres/server/adapters/localSql.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/local-postgres/server/runCommand.ts` instead of `@shivaedev/local-postgres/server/adapters/runCommand.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/local-postgres/server/localContainer.ts` instead of `@shivaedev/local-postgres/server/adapters/localContainer.ts`, which moved out of `adapters/`.
+
 ## 0.16.2 - 2026-11-20
 
 ### Changed

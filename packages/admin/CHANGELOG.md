@@ -1,5 +1,32 @@
 # Changelog
 
+## 0.28.0 - 2026-11-21
+
+### Breaking
+
+- import from `@shivaedev/admin/matchAdminRoute.ts` instead of `@shivaedev/admin/adapters/matchAdminRoute.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/admin/validateAdminRoutes.ts` instead of `@shivaedev/admin/adapters/validateAdminRoutes.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/admin/client/JobButton.tsx` instead of `@shivaedev/admin/client/adapters/JobButton.tsx`, which moved out of `adapters/`.
+- import from `@shivaedev/admin/client/JobDetail.tsx` instead of `@shivaedev/admin/client/adapters/JobDetail.tsx`, which moved out of `adapters/`.
+- import from `@shivaedev/admin/client/JobList.tsx` instead of `@shivaedev/admin/client/adapters/JobList.tsx`, which moved out of `adapters/`.
+- import from `@shivaedev/admin/client/JobPagination.tsx` instead of `@shivaedev/admin/client/adapters/JobPagination.tsx`, which moved out of `adapters/`.
+- import from `@shivaedev/admin/client/JobTable.tsx` instead of `@shivaedev/admin/client/adapters/JobTable.tsx`, which moved out of `adapters/`.
+- import from `@shivaedev/admin/client/JobsMetrics.tsx` instead of `@shivaedev/admin/client/adapters/JobsMetrics.tsx`, which moved out of `adapters/`.
+- import from `@shivaedev/admin/client/JobsQueryPanel.tsx` instead of `@shivaedev/admin/client/adapters/JobsQueryPanel.tsx`, which moved out of `adapters/`.
+- import from `@shivaedev/admin/client/JobsQueueView.tsx` instead of `@shivaedev/admin/client/adapters/JobsQueueView.tsx`, which moved out of `adapters/`.
+- import from `@shivaedev/admin/client/JobsView.ts` instead of `@shivaedev/admin/client/adapters/JobsView.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/admin/client/RunScheduleControl.tsx` instead of `@shivaedev/admin/client/adapters/RunScheduleControl.tsx`, which moved out of `adapters/`.
+- import from `@shivaedev/admin/client/SessionConfirmation.tsx` instead of `@shivaedev/admin/client/adapters/SessionConfirmation.tsx`, which moved out of `adapters/`.
+- import from `@shivaedev/admin/client/SessionListView.tsx` instead of `@shivaedev/admin/client/adapters/SessionListView.tsx`, which moved out of `adapters/`.
+- import from `@shivaedev/admin/client/SessionPagination.tsx` instead of `@shivaedev/admin/client/adapters/SessionPagination.tsx`, which moved out of `adapters/`.
+- import from `@shivaedev/admin/client/SessionsView.ts` instead of `@shivaedev/admin/client/adapters/SessionsView.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/admin/client/Timestamp.tsx` instead of `@shivaedev/admin/client/adapters/Timestamp.tsx`, which moved out of `adapters/`.
+- import from `@shivaedev/admin/client/UsersTable.tsx` instead of `@shivaedev/admin/client/adapters/UsersTable.tsx`, which moved out of `adapters/`.
+- import from `@shivaedev/admin/client/UsersView.ts` instead of `@shivaedev/admin/client/adapters/UsersView.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/admin/client/adminPermissionGuard.ts` instead of `@shivaedev/admin/client/adapters/adminPermissionGuard.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/admin/client/jobsTypes.ts` instead of `@shivaedev/admin/client/adapters/jobsTypes.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/admin/client/timestampText.ts` instead of `@shivaedev/admin/client/adapters/timestampText.ts`, which moved out of `adapters/`.
+
 ## 0.27.3 - 2026-11-20
 
 ### Changed

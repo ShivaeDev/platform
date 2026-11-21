@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.21.0 - 2026-11-21
+
+### Breaking
+
+- import from `@shivaedev/form/numberInput.ts` instead of `@shivaedev/form/adapters/numberInput.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/form/react.ts` instead of `@shivaedev/form/adapters/react.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/form/useFieldAt.ts` instead of `@shivaedev/form/adapters/useFieldAt.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/form/useList.ts` instead of `@shivaedev/form/adapters/useList.ts`, which moved out of `adapters/`.
+
 ## 0.20.1 - 2026-11-20
 
 ### Changed
