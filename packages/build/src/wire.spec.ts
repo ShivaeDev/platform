@@ -208,11 +208,23 @@ const REFUSALS = {
 	failsUntagged: "refused.failsUntagged: run fails with string, which has no _tag; fail with an exported tagged error class instead",
 	localPayload: `refused.localPayload payload uses Draft, which is declared in ${OPERATIONS}; move it to a module the operation imports it from, such as the module's model file`,
 	relativePayload: `refused.relativePayload payload imports RefusedDraft by the relative path "./payloads.ts" in ${OPERATIONS}; import it through a package import, such as a # specifier, so the generated file can import it too`,
+	returnsAliasedEmptyRecord:
+		"refused.returnsAliasedEmptyRecord: run returns NoKeys at success, which has no exact wire form; return a record keyed by string or a string brand, or an array of entries, since a mapped type whose keys come through a type parameter and that ends with no properties may have dropped branded literal keys, and write {} for an object meant to be empty",
+	returnsAliasedLiteralBrandRecord:
+		"refused.returnsAliasedLiteralBrandRecord: run returns LetterRecord at success, which has no exact wire form; return a record keyed by string or a string brand, or an array of entries, since a mapped type whose keys come through a type parameter and that ends with no properties may have dropped branded literal keys, and write {} for an object meant to be empty",
 	returnsAny: "refused.returnsAny: run returns any at success, which has no exact wire form; decode the value with a schema, or give it a type",
 	returnsBrand:
 		'refused.returnsBrand: run returns NoteId at success, which has no exact wire form; export one schema for the brand NoteId, built with Schema.brand("NoteId"), from a module the operation imports',
+	returnsEmptyOmit:
+		'refused.returnsEmptyOmit: run returns Omit<{ readonly a: number; }, "a"> at success, which has no exact wire form; return a record keyed by string or a string brand, or an array of entries, since a mapped type whose keys come through a type parameter and that ends with no properties may have dropped branded literal keys, and write {} for an object meant to be empty',
+	returnsEmptyReadonlyRecord:
+		"refused.returnsEmptyReadonlyRecord: run returns ReadonlyRecord<never, number> at success, which has no exact wire form; return a record keyed by string or a string brand, or an array of entries, since a mapped type whose keys come through a type parameter and that ends with no properties may have dropped branded literal keys, and write {} for an object meant to be empty",
 	returnsEnum:
 		"refused.returnsEnum: run returns Level at success.level, which has no exact wire form; return string or number literals instead of an enum",
+	returnsGenericMappedLiteralBrandKeys:
+		"refused.returnsGenericMappedLiteralBrandKeys: run returns Counts<Letter> at success, which has no exact wire form; return a record keyed by string or a string brand, or an array of entries, since a mapped type whose keys come through a type parameter and that ends with no properties may have dropped branded literal keys, and write {} for an object meant to be empty",
+	returnsGenericMappedNever:
+		"refused.returnsGenericMappedNever: run returns Counts<never> at success, which has no exact wire form; return a record keyed by string or a string brand, or an array of entries, since a mapped type whose keys come through a type parameter and that ends with no properties may have dropped branded literal keys, and write {} for an object meant to be empty",
 	returnsHandBranded:
 		"refused.returnsHandBranded: run returns UserId at success, which has no exact wire form; return the unbranded type, or build the brand with Schema.brand and export its schema from a module the operation imports",
 	returnsLiteralBrandKeys:
@@ -223,6 +235,8 @@ const REFUSALS = {
 		"refused.returnsMap: run returns Map<string, number> at success, which has no exact wire form; return a plain object, an array or a string-keyed record",
 	returnsMappedLiteralBrandKeys:
 		"refused.returnsMappedLiteralBrandKeys: run returns {} at success, which has no exact wire form; key the record by string or a string brand, or return an array of entries, since TypeScript keeps no property for a branded literal key and the wire would drop it",
+	returnsMemberMappedLiteralBrandKeys:
+		"refused.returnsMemberMappedLiteralBrandKeys: run returns {} at success, which has no exact wire form; return a record keyed by string or a string brand, or an array of entries, since a mapped type whose keys come through a type parameter and that ends with no properties may have dropped branded literal keys, and write {} for an object meant to be empty",
 	returnsNullOrUndefined:
 		"refused.returnsNullOrUndefined: run returns null | undefined at success, which has no exact wire form; return either null or undefined, since the wire carries both as one",
 	returnsNumberBrandKeys:
