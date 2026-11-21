@@ -8,7 +8,7 @@ import { authEmailHost } from "#test/authEmailHost.ts";
 import { configured, postgres } from "#test/fixture.ts";
 
 interface AuthEmailEngine {
-	approvalToken?: string;
+	approvalToken?: string | undefined;
 	copy?: AuthEmailQueueOptions["copy"];
 	headers: Headers;
 	host?: Effect.Success<ReturnType<typeof authEmailHost>>;

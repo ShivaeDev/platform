@@ -4,8 +4,8 @@ import type { JobsEntry } from "@shivaedev/admin/jobs/entry.ts";
 import { pgBossSchema } from "@shivaedev/jobs/server/schema.ts";
 import type { AppModule } from "@shivaedev/server/AppModule.ts";
 import { migrationsIn } from "@shivaedev/server/migrationsIn.ts";
-import { foundationRegistration } from "#server/admin/foundationRegistration.ts";
 import { AuthEmails } from "#server/AppAuth.ts";
+import { foundationRegistration } from "#server/admin/foundationRegistration.ts";
 import { foundationWorker } from "#server/foundationWorker.ts";
 
 export function serverRegistration<const TModules extends readonly AppModule[]>(modules: TModules) {
