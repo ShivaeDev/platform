@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.52.2 - 2026-11-21
+
+### Changed
+
+- generated apps check the session again by themselves after a failed check at launch; the session failure screen keeps its Retry button.
+
 ## 0.52.1 - 2026-11-21
 
 ### Changed
