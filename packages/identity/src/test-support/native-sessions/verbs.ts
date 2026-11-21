@@ -5,7 +5,7 @@ import { authTestDatabase } from "#server/better-auth/testDatabase.ts";
 import type { Caller } from "#test/native-sessions/callers.ts";
 import { callers } from "#test/native-sessions/callers.ts";
 import type { Host } from "#test/native-sessions/host.ts";
-import { NATIVE_ORIGIN, REVALIDATION_INTERVAL } from "#test/native-sessions/host.ts";
+import { REVALIDATION_INTERVAL } from "#test/native-sessions/host.ts";
 import { type Account, authRequest, client, login } from "#test/native-sessions/requests.ts";
 
 export function sessionVerbs(host: Host, accounts: Map<string, Account>, tell: (line: string) => void) {
@@ -64,7 +64,7 @@ export function sessionVerbs(host: Host, accounts: Map<string, Account>, tell: (
 		signsOut: (caller: Caller) =>
 			Effect.gen(function* () {
 				tell(`a client with ${callerWords(caller)} signs out through the mounted auth route`);
-				const response = yield* authRequest(host, "sign-out", { origin: NATIVE_ORIGIN, ...headersOf(caller) }, {});
+				const response = yield* authRequest(host, "sign-out", headersOf(caller), {});
 				yield* Effect.promise(() => response.text());
 				if (!response.ok) {
 					return yield* Effect.die(`Sign-out answered ${response.status}`);

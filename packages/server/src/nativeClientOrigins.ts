@@ -1,28 +1,11 @@
-import { Effect, Option, Schema } from "effect";
+import { Effect, Option } from "effect";
 import { Headers, HttpMiddleware, HttpRouter, HttpServerRequest, HttpServerResponse } from "effect/http";
 import * as HttpStatus from "effect/http/HttpStatus";
 import { localTransport } from "@shivaedev/identity/server/adapters/local.ts";
 import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 
-export const NativeOrigins = Schema.Array(
-	Schema.String.check(
-		Schema.makeFilter((origin) => {
-			if (!URL.canParse(origin)) {
-				return false;
-			}
-			const url = new URL(origin);
-			const authority = url.origin === "null" ? `${url.protocol}//${url.host}` : url.origin;
-			return url.host !== "" && !origin.includes("*") && authority === origin;
-		}),
-	),
-);
-
-export function nativeClientOrigins(
-	origins: readonly string[],
-	trustedProxy: string | undefined,
-	auth: boolean | "preflight" = false,
-	rpcPath: HttpRouter.PathInput = "/rpc",
-) {
+export function nativeClientOrigins(trustedProxy: string | undefined, route: "auth" | "rpc", rpcPath: HttpRouter.PathInput = "/rpc") {
+	const auth = route === "auth";
 	const matchesPath = auth ? (path: string) => path === "/api/auth" || path.startsWith("/api/auth/") : (path: string) => path === rpcPath;
 	return HttpRouter.middleware((effect) =>
 		Effect.gen(function* () {
@@ -30,15 +13,17 @@ export function nativeClientOrigins(
 			if (!matchesPath(request.url.split("?")[0] ?? "")) {
 				return yield* effect;
 			}
-			const policy = yield* Effect.serviceOption(SessionPolicy);
-			const declared = Option.getOrUndefined(policy)?.origin.trustedOrigins ?? [];
-			const allowed = localTransport(trustedProxy, [...origins, ...declared]);
-			if ((auth === true || request.method === "OPTIONS") && !allowed(request)) {
+			const policy = Option.getOrUndefined(yield* Effect.serviceOption(SessionPolicy));
+			const native = policy?.nativeOrigins ?? [];
+			const declared = policy?.origin.trustedOrigins ?? [];
+			const allowed = localTransport(trustedProxy, [...native, ...declared]);
+			const guarded = request.method === "OPTIONS" || (auth && policy?.nativeOrigins !== undefined);
+			if (guarded && !allowed(request)) {
 				return HttpServerResponse.text("Local same-origin requests only", {
 					status: HttpStatus.fromLiteral("Forbidden"),
 				});
 			}
-			return yield* withClientCors(effect, origins, declared, auth !== false);
+			return yield* withClientCors(effect, native, declared, auth);
 		}),
 	).layer;
 }

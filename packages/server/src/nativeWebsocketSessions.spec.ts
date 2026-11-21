@@ -1,12 +1,12 @@
 import { expect } from "vitest";
-import { nativeSessions, nativeTransport, passwordAccount, signedIn } from "@shivaedev/identity/test-support/native-sessions/story.ts";
+import { nativeSessions, passwordAccount, signedIn } from "@shivaedev/identity/test-support/native-sessions/story.ts";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 
-const alice = nativeSessions.traits(nativeTransport, signedIn("alice"));
+const alice = signedIn("alice");
 
 nativeSessions.it(
 	"alice signs in with a bearer and receives live profile values through the shared headerless socket",
-	[nativeTransport, passwordAccount("alice")],
+	[passwordAccount("alice")],
 	function* ({ announceProfiles, changeProfile, openNativeProfile, profileShown, signIn, socketUrls }) {
 		yield* signIn("alice");
 		yield* openNativeProfile("alice");
@@ -64,7 +64,7 @@ nativeSessions.it(
 
 nativeSessions.it(
 	"alice's first-frame bearer cannot subscribe to bob's owner-only profile",
-	[nativeTransport, signedIn("alice", "bob")],
+	[signedIn("alice", "bob")],
 	function* ({ openRestrictedProfile, profileShown }) {
 		yield* openRestrictedProfile("alice", "alice");
 		expect(yield* profileShown("alice")).toMatchObject({ name: "alice" });

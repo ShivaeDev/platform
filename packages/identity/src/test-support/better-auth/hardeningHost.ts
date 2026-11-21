@@ -35,7 +35,7 @@ export const startHardeningHost = Effect.fnUntraced(function* (hardening: Better
 		user: { changeEmail: { enabled: true, updateEmailWithoutVerification: true } },
 	};
 	yield* Effect.promise(async () => (await getMigrations(options)).runMigrations());
-	const mounted = yield* betterAuthMount({ options }, { bearerSessions: { origins: ["capacitor://localhost"] }, hardening })
+	const mounted = yield* betterAuthMount({ nativeOrigins: ["capacitor://localhost"], options }, { hardening })
 		.pipe(Effect.provide(memoryStore))
 		.pipe(Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env: { "AUTH_RATE_LIMIT_ENABLED": "false" } }))));
 	const context = yield* Layer.build(

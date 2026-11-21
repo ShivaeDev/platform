@@ -5,7 +5,6 @@ import { memoryAdapter } from "better-auth/adapters/memory";
 import { ConfigProvider, Context, Effect, Layer, Logger, type LogLevel, Tracer } from "effect";
 import { HttpMiddleware, HttpRouter, HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
-import type { BearerSessionsOptions } from "#server/better-auth/adapters/bearerSessions.ts";
 import { PEER_IP_HEADER } from "#server/better-auth/clientIpHeaders.ts";
 import { betterAuthMount } from "#server/better-auth/mount.ts";
 
@@ -21,9 +20,9 @@ export interface ProviderView {
 export interface MountEngine {
 	authDown: boolean;
 	readonly authOptions: Pick<BetterAuthOptions, "baseURL" | "trustedOrigins">;
-	bearerSessions?: BearerSessionsOptions;
 	readonly env: Record<string, string>;
 	readonly logs: Array<{ readonly level: LogLevel.LogLevel; readonly message: unknown; readonly traceId: string | undefined }>;
+	nativeOrigins?: readonly string[];
 	readonly providerLogs: Array<{ level: string; message: string }>;
 	providerView?: ProviderView;
 	readonly rateLimit: BetterAuthRateLimitOptions;
@@ -68,23 +67,21 @@ export const startMountHost = Effect.fn("AuthMountStory.startMountHost")(functio
 	const logger = Logger.make(({ fiber, logLevel, message }) => {
 		engine.logs.push({ level: logLevel, message, traceId: Context.getOrUndefined(fiber.context, Tracer.ParentSpan)?.traceId });
 	});
-	const auth = yield* betterAuthMount(
-		{
-			options: {
-				...engine.authOptions,
-				advanced: { disableOriginCheck: false },
-				// Mount routing, logging and rate limits need no PostgreSQL, so these stories stay fast.
-				database: memoryAdapter({ account: [], session: [], user: [], verification: [] }),
-				emailAndPassword: { autoSignIn: false, enabled: true },
-				logger: { log: (level, message) => engine.providerLogs.push({ level, message }) },
-				"onAPIError": { throw: true },
-				plugins: [applicationProvider(engine)],
-				rateLimit: engine.rateLimit,
-				secret: "mount-story-secret-with-at-least-32-characters",
-			},
+	const auth = yield* betterAuthMount({
+		nativeOrigins: engine.nativeOrigins,
+		options: {
+			...engine.authOptions,
+			advanced: { disableOriginCheck: false },
+			// Mount routing, logging and rate limits need no PostgreSQL, so these stories stay fast.
+			database: memoryAdapter({ account: [], session: [], user: [], verification: [] }),
+			emailAndPassword: { autoSignIn: false, enabled: true },
+			logger: { log: (level, message) => engine.providerLogs.push({ level, message }) },
+			"onAPIError": { throw: true },
+			plugins: [applicationProvider(engine)],
+			rateLimit: engine.rateLimit,
+			secret: "mount-story-secret-with-at-least-32-characters",
 		},
-		{ bearerSessions: engine.bearerSessions },
-	).pipe(Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env: engine.env }))));
+	}).pipe(Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env: engine.env }))));
 	const context = yield* Layer.build(
 		HttpRouter.serve(auth.routes, { disableLogger: true, middleware: HttpMiddleware.tracer }).pipe(
 			Layer.provideMerge(NodeHttpServer.layer(createServer, { host: "127.0.0.1", port: 0 })),

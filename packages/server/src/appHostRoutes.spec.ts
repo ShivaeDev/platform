@@ -16,12 +16,12 @@ host.it("an application route answers a foreign-origin preflight with its own CO
 });
 
 for (const [nativeOrigins, listed] of [
-	[undefined, "no native origins"],
-	[["capacitor://localhost"], "native origins"],
+	[undefined, "no native origins listed"],
+	[["capacitor://localhost"], "identity declaring native origins"],
 ] as const) {
 	for (const path of ["/rpc", "/api/auth", "/api/auth/get-session"]) {
 		host.it(
-			`a foreign-origin preflight to ${path} is forbidden without CORS headers with ${listed} listed`,
+			`a foreign-origin preflight to ${path} is forbidden without CORS headers with ${listed}`,
 			[applicationRoutes(nativeOrigins === undefined ? {} : { nativeOrigins })],
 			function* ({ preflight }) {
 				expect(yield* preflight(path, "POST")).toEqual({ allowedMethods: null, allowedOrigin: null, status: HttpStatus.fromLiteral("Forbidden") });
