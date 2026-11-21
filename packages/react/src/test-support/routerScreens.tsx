@@ -22,10 +22,14 @@ export function RouterShell() {
 	);
 }
 
+function missingNotice(error: NoteMissing) {
+	return { message: `${error._tag}:${error.id}` };
+}
+
 export function RouterNote() {
 	const row = noteRoute.useLoaderData<Router>();
 	const { frames } = noteRoute.useRouteContext<Router>();
-	const query = noteQuery.useQuery();
+	const query = noteQuery.useQuery({ failures: { NoteMissing: missingNotice } });
 	useLayoutEffect(() => {
 		frames.push(query.data.title);
 	}, [frames, query.data.title]);

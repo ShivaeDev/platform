@@ -24,7 +24,13 @@ const Note = query("note", {
 	rejections: { NotFound },
 	success: Schema.String,
 });
-const Drafts = contract("failureDefaults", { commands: [Rename], queries: [Note] });
+const Outline = query("outline", {
+	readPolicy: () => Effect.succeed(true),
+	reads: () => [],
+	rejections: { ServiceUnavailable },
+	success: Schema.String,
+});
+const Drafts = contract("failureDefaults", { commands: [Rename], queries: [Note, Outline] });
 
 function rejection(answer: Exclude<Answer, "Renamed">) {
 	switch (answer) {
@@ -75,6 +81,7 @@ export function failureClient() {
 						? Effect.fail(new NotFound({ message: "Draft 7 is gone" }))
 						: Effect.as(Deferred.await(server.reread), "Quarterly report");
 				},
+				"failureDefaults.outline": () => Effect.fail(new ServiceUnavailable({ message: "Outlines are down for maintenance" })),
 				"failureDefaults.rename": () => (server.answer === "Renamed" ? Effect.succeed("Renamed") : Effect.fail(rejection(server.answer))),
 			}),
 		),
@@ -98,6 +105,7 @@ export function failureClient() {
 				Effect.fail(new RpcClientError({ reason: new SocketOpenError({ cause: "connect ECONNREFUSED 10.0.0.4:5432", kind: "Timeout" }) })),
 			runtime: connection.runtime,
 		},
+		outline: api.outline.query(),
 		server,
 		tooLarge: {
 			run: (_input: { readonly title: string }) => Effect.fail(new RpcClientError({ reason: new SocketCloseError({ closeReason: "", code: 1009 }) })),
