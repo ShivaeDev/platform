@@ -83,7 +83,13 @@ export function betterAuthOauthGrants(options: {
 			const grant = yield* Schema.decodeUnknownEffect(OauthGrant)(subject.consent).pipe(Effect.mapError(unavailable));
 			return Option.some({
 				scopes: grant.scopes,
-				user: { email: subject.user.email, id: subject.user.id, name: subject.user.name, ...(typeof role === "string" ? { role } : {}) },
+				user: {
+					email: subject.user.email,
+					emailVerified: subject.user.emailVerified,
+					id: subject.user.id,
+					name: subject.user.name,
+					...(typeof role === "string" ? { role } : {}),
+				},
 			});
 		}),
 		revokeAllClients: (userId) => revoke(userId),

@@ -22,7 +22,7 @@ const tools = McpServer.toolkit(Tools).pipe(Layer.provide(Tools.toLayer({
 const sessions = Layer.succeed(SessionPolicy, {
   origin: () => true,
   provider: { get: (headers) => Effect.succeed(headers["x-app-key"] === "app-secret"
-    ? Option.some({ user: { id: "alice", email: "alice@app.test", name: "Alice", role: "user" } })
+    ? Option.some({ user: { id: "alice", email: "alice@app.test", emailVerified: true, name: "Alice", role: "user" } })
     : Option.none()) },
 });
 const app = HttpRouter.toWebHandler(mcpRoutes({

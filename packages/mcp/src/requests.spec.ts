@@ -12,7 +12,7 @@ requestsStory.it(
 		yield* resumeCallers();
 
 		for (const name of ["alice", "bob"] as const) {
-			const caller = { identity: name, user: { email: `${name}@mcp.test`, id: name, name, role: "user" } };
+			const caller = { identity: name, user: { email: `${name}@mcp.test`, emailVerified: true, id: name, name, role: "user" } };
 			expect(yield* callerAnswer(name)).toEqual({ after: caller, before: caller });
 		}
 	},

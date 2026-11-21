@@ -12,7 +12,9 @@ const sessions = Layer.succeed(SessionPolicy, {
 		// Signed-in callers are preconditions; OAuth is exercised by the OAuth stories.
 		get: (headers) => {
 			const name = headers["x-story-caller"];
-			return Effect.succeed(name === undefined ? Option.none() : Option.some({ user: { email: `${name}@mcp.test`, id: name, name, role: "user" } }));
+			return Effect.succeed(
+				name === undefined ? Option.none() : Option.some({ user: { email: `${name}@mcp.test`, emailVerified: true, id: name, name, role: "user" } }),
+			);
 		},
 	},
 });
