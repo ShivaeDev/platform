@@ -21,7 +21,6 @@ const ListUsers = query("list", {
 });
 
 const ChangeRole = command("changeRole", {
-	invalidates: () => [userKeys.list],
 	payload: { role: Schema.String, userId: Schema.String },
 	*run(input) {
 		yield* changeUserRole(input);

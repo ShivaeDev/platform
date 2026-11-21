@@ -83,7 +83,6 @@ type MatchingClient<TRpcs extends Rpc.Any, TClientRpcs extends Rpc.Any> = [TRpcs
 	: "Client must implement the contract RPCs";
 
 interface BindOptions {
-	readonly live?: boolean;
 	readonly registry?: AtomRegistry.AtomRegistry;
 	readonly resume?: ResumeSource;
 	readonly resumeWindow?: ResumeWindow;
@@ -111,7 +110,7 @@ export function bind(
 ): unknown {
 	const { name, keyScope } = contract.declaration;
 	const owner = bindingOwner(keyScope, options?.registry);
-	const automatic = automaticLive(service, name, owner, options?.resume, options?.live, options?.resumeWindow);
+	const automatic = automaticLive(service, name, owner, options?.resume, options?.resumeWindow);
 	return bindOperations(contract.declaration, clientOperations(service, automatic, owner), automatic.subscription);
 }
 
@@ -141,8 +140,8 @@ export function makeClient(
 	const connection = rpcClient(contract.declaration.name, options.group ?? contract, options);
 	const bindingOptions: BindOptions = options;
 	const owner = bindingOwner(contract.declaration.keyScope, bindingOptions.registry);
-	const { live, resume, resumeWindow } = bindingOptions;
-	const automatic = automaticLive(connection.Client, contract.declaration.name, owner, resume, live, resumeWindow);
+	const { resume, resumeWindow } = bindingOptions;
+	const automatic = automaticLive(connection.Client, contract.declaration.name, owner, resume, resumeWindow);
 	const operations = clientOperations(connection.Client, automatic, owner);
 	const api = bindOperations(contract.declaration, operations, automatic.subscription);
 	return Object.assign(connection, { api, sync: operations.sync });

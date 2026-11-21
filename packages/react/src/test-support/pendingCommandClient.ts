@@ -61,10 +61,10 @@ export function pendingCommandClient(ids: readonly number[] = [1]) {
 	return {
 		command: api.toggle,
 		commands: commandFor,
+		count: counted,
 		countHeld: count,
 		list: listed,
 		listHeld: list,
-		queries: [listed, counted],
 	};
 }
 export type PendingClient = ReturnType<typeof pendingCommandClient>;
