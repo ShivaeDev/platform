@@ -31,7 +31,7 @@ class Memo extends Model.Class<Memo>("OwnedDataMemo")({ id: Schema.Number, text:
 
 class Entry extends Model.Class<Entry>("OwnedDataEntry")({
 	createdAt: Model.DateTimeInsertFromDate,
-	id: Model.GeneratedByDb(Schema.Number),
+	id: Model.Field({ json: Schema.Number, select: Schema.Number, update: Schema.Number }),
 	listId: bucket(Schema.String),
 	note: Schema.NullOr(Schema.String),
 	userId: owner(Schema.String),

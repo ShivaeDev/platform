@@ -13,7 +13,6 @@ function quotedName(name: string) {
 		.join(".");
 }
 
-// Each owned model with the catalog's schema and table, keyed as "schema.table.column" for its owner column.
 export const ownedTables = Effect.fn("Identity.ownedTables")(function* () {
 	const models = yield* RepositoryModels;
 	// Without a collector the Reference holds its default, which records nothing, so an empty list would read as "nothing owned".
