@@ -3,6 +3,7 @@ import { definesModule } from "#adapters/typeScript.ts";
 import { readIfPresent } from "#files.ts";
 import { generate } from "#generate.ts";
 import { listsSomething } from "#moduleList.ts";
+import { projectFolder } from "#project.ts";
 import type { GenerateReport } from "#report.ts";
 
 export interface GenerateRound {
@@ -26,8 +27,7 @@ const roundOf = Effect.fn("Build.roundOf")(function* (root: string, report: Gene
 });
 
 export const generateRound = Effect.fn("Build.generateRound")(function* (directory: string) {
-	const fs = yield* FileSystem.FileSystem;
-	const root = yield* fs.realPath(directory);
+	const root = yield* projectFolder(directory);
 	return yield* generate(root, { check: false }).pipe(
 		Effect.flatMap((report) => roundOf(root, report, Option.none())),
 		Effect.catchTag("GenerateFailed", (failed) => roundOf(root, failed.report, Option.some(failed.problems.join("\n")))),
@@ -35,11 +35,12 @@ export const generateRound = Effect.fn("Build.generateRound")(function* (directo
 });
 
 // A dev server's generator: one run at a time, and a changed file starts a run only when the last run read it or it is a module
-// file, a registration or a client module under src that no run has seen yet.
+// file, a registration or a client module under src that no run has seen yet. The watcher needs src, which a bundler root
+// inside the project does not cover.
 export const watchedGeneration = Effect.fn("Build.watchedGeneration")(function* (directory: string) {
 	const fs = yield* FileSystem.FileSystem;
 	const path = yield* Path.Path;
-	const root = yield* fs.realPath(directory);
+	const root = yield* projectFolder(directory);
 	const sources = `${path.join(root, "src")}${path.sep}`;
 	const generated = `${path.join(sources, "generated")}${path.sep}`;
 	const inputs = yield* Ref.make<ReadonlySet<string>>(new Set());
@@ -56,7 +57,7 @@ export const watchedGeneration = Effect.fn("Build.watchedGeneration")(function* 
 		const known = (yield* Ref.get(inputs)).has(real);
 		return known || (yield* newModule(real)) ? Option.some(yield* run) : Option.none<GenerateRound>();
 	});
-	return { changed, run };
+	return { changed, run, sources: path.join(root, "src") };
 });
 
 export type WatchedGeneration = Effect.Success<ReturnType<typeof watchedGeneration>>;

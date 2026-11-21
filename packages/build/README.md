@@ -289,7 +289,7 @@ A run that builds a program takes the machine-wide [heavy lock](https://github.c
 
 ### Limits
 
-- The plugin and the global setup take Vite's and Vitest's root as the project folder, the one that holds `tsconfig.json`.
+- The plugin and the global setup take the nearest folder at or above Vite's and Vitest's root that holds a `tsconfig.json` as the project folder, so a root inside the project, such as `src/client`, generates, watches and checks the bundle as one at the project does. A `tsconfig.json` that holds no files of its own, only references to other projects, is refused: the package that holds the modules needs a `tsconfig.json` that includes them.
 - It reads types through TypeScript 6's API, while this repository type-checks with TypeScript 7; a disagreement between the two shows as a compile error on the module.
 - An invalid `Date` cannot be encoded, so the caller gets `InternalServerError`.
 - A module file must lie under `src`, define exactly one module and export it as a const.
