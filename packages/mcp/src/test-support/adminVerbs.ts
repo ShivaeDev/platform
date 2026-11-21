@@ -26,8 +26,9 @@ export function adminVerbs(engine: Engine, tell: (line: string) => void) {
 			}),
 		removesAccount: (admin: string, name: string) =>
 			Effect.suspend(() => {
-				tell(`${admin} removes ${name}'s account`);
-				return adminRequest(engine, "remove-user", admin, { userId: person(engine, name).id });
+				tell(`${admin} removes ${name}'s account through Better Auth's server API, as identity's mount closes its HTTP route`);
+				const headers = new Headers({ cookie: person(engine, admin).cookie });
+				return Effect.promise(() => engine.auth.api.removeUser({ body: { userId: person(engine, name).id }, headers }));
 			}),
 		stepsDown: (name: string) =>
 			Effect.suspend(() => {

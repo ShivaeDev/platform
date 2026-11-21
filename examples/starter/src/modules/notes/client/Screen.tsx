@@ -30,9 +30,14 @@ export function NotesScreen({
 				<p className="text-muted-foreground text-sm font-medium">Your first app</p>
 				<h1 className="text-3xl font-semibold tracking-tight">Notes</h1>
 				<p className="text-muted-foreground">A small place for things worth keeping.</p>
-				<a className="inline-block text-sm underline" href="/admin/jobs">
-					Administration
-				</a>
+				<div className="flex gap-4 text-sm">
+					<a className="underline" href="/admin/jobs">
+						Administration
+					</a>
+					<a className="underline" href="/account">
+						Your account
+					</a>
+				</div>
 				{signOutControl}
 			</header>
 			<section aria-label="Add a note">
