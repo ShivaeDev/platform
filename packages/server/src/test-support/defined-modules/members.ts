@@ -48,6 +48,7 @@ const Show = query("show", {
 	payload: { id: Schema.Number },
 	*run({ id }) {
 		const stored = yield* storedMember(id);
+		yield* Effect.annotateCurrentSpan("member", toMember(stored));
 		yield* Effect.logInfo("member shown", { ...toMember(stored), passcode: Redacted.value(stored.passcode) });
 		return toMember(stored);
 	},

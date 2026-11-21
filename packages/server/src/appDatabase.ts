@@ -15,6 +15,7 @@ import type { AppHostFactory } from "#AppHostFactory.ts";
 import type { AppHostInput } from "#AppHostInput.ts";
 import { deferredHost, migratedHost } from "#appDatabaseHttp.ts";
 import { appHostHttp } from "#appHostHttp.ts";
+import { hostModels } from "#HostModels.ts";
 import { hostCrypto } from "#hostCrypto.ts";
 import type { HostRouteRequirements } from "#hostOptions.ts";
 import { hostPreflight } from "#hostPreflight.ts";
@@ -139,12 +140,17 @@ export const appHost: AppHostFactory = <
 ) => {
 	const preflight = hostPreflight(options.preflight, "application" in options ? Effect.succeed(isSensitiveKey) : hostSensitiveKeys(options));
 	if ("application" in options) {
-		return deferredHost(options.application, appDatabase(options)).pipe(Layer.provideMerge(preflight), Layer.provide(hostCrypto));
+		return deferredHost(options.application, appDatabase(options)).pipe(
+			Layer.provideMerge(preflight),
+			Layer.provide(hostCrypto),
+			Layer.provide(hostModels()),
+		);
 	}
 	return options.migrations === undefined
-		? appHostHttp(options).pipe(Layer.provideMerge(preflight), Layer.provide(hostCrypto))
+		? appHostHttp(options).pipe(Layer.provideMerge(preflight), Layer.provide(hostCrypto), Layer.provide(hostModels()))
 		: migratedHost({ ...options, migrations: options.migrations }, appDatabase({ ...options, migrations: options.migrations })).pipe(
 				Layer.provideMerge(preflight),
 				Layer.provide(hostCrypto),
+				Layer.provide(hostModels()),
 			);
 };

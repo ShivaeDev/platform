@@ -8,6 +8,7 @@ import { COLUMN_KEY_CONFIG } from "@shivaedev/sql/ColumnKey.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { answered } from "@shivaedev/test-story/server/answers.ts";
+import { type OtlpSpan, otlpReceiver } from "@shivaedev/test-story/server/otlpReceiver.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { appHost } from "#appDatabase.ts";
 import { appModules } from "#appModules.ts";
@@ -25,10 +26,12 @@ type Caller = "alice" | "a visitor";
 const draftsQueue = { name: "drafts.publish" };
 
 interface State {
+	collector?: { readonly untilSpan: (name: string) => Effect.Effect<OtlpSpan, unknown> };
 	columnKey: string | undefined;
 	drafts: typeof draftsModule | (typeof draftsModule & { readonly queues: readonly (typeof draftsQueue)[] });
+	readonly env: Record<string, string>;
 	greetings: typeof greetingsModule | (typeof greetingsModule & { readonly queues: readonly (typeof draftsQueue)[] });
-	host: "app" | "worker";
+	host: "app" | "application" | "worker";
 	logs: { readonly cause: Cause.Cause<unknown>; readonly message: readonly unknown[] }[];
 	members: typeof membersModule | typeof privateJoinMembersModule;
 	notes: typeof notesModule | typeof handWrittenNotesModule | typeof replacedNotesModule;
@@ -71,9 +74,10 @@ export const definedModulesHost = storyKit({
 			});
 			const configured = Layer.mergeAll(
 				Logger.layer([recorded]),
-				state.columnKey === undefined
-					? Layer.empty
-					: ConfigProvider.layerAdd(ConfigProvider.fromUnknown({ [COLUMN_KEY_CONFIG]: state.columnKey }), { asPrimary: true }),
+				ConfigProvider.layerAdd(
+					ConfigProvider.fromUnknown({ ...state.env, ...(state.columnKey === undefined ? {} : { [COLUMN_KEY_CONFIG]: state.columnKey }) }),
+					{ asPrimary: true },
+				),
 			);
 			if (state.host === "worker") {
 				const worker = workerHost({ postgresSettings: {}, ...modules, config: { databaseUrl: database.url }, services: modules.services });
@@ -83,7 +87,23 @@ export const definedModulesHost = storyKit({
 				);
 				return;
 			}
-			const host = appHost({ postgresSettings: {}, ...modules, config: { databaseUrl: database.url, port: 0 }, sessions });
+			const config = { databaseUrl: database.url, port: 0 };
+			const host =
+				state.host === "application"
+					? appHost({
+							application: Effect.map(Layer.build(modules.services), (built) => ({
+								config,
+								group: modules.group,
+								handlers: modules.handlers,
+								requestServices: modules.requestServices,
+								services: Layer.succeedContext(built),
+								sessions,
+							})),
+							config,
+							migrations: modules.migrations,
+							postgresSettings: {},
+						})
+					: appHost({ postgresSettings: {}, ...modules, config, sessions });
 			const started = yield* Layer.build(host.pipe(Layer.provide(configured))).pipe(
 				Effect.map(Option.some),
 				Effect.catchTags({
@@ -121,6 +141,7 @@ export const definedModulesHost = storyKit({
 	create: (): State => ({
 		columnKey: Base64.encode(globalThis.crypto.getRandomValues(new Uint8Array(32))),
 		drafts: draftsModule,
+		env: {},
 		greetings: greetingsModule,
 		host: "app",
 		logs: [],
@@ -178,6 +199,16 @@ export const definedModulesHost = storyKit({
 				story.tell(`${caller} creates the note ${title} through notes.create`);
 				return answered(Effect.flatMap(client(caller), (call) => call("notes.create", { title })));
 			},
+			exportedMemberSpan: () =>
+				Effect.gen(function* () {
+					if (state.collector === undefined) {
+						return yield* Effect.die("Give the host a collector before reading its exported spans");
+					}
+					const span = yield* state.collector.untilSpan("Members.show");
+					const value = span.attributes.find((attribute) => attribute.key === "member")?.value;
+					const entry = typeof value === "object" && value !== null ? Object.values(value)[0] : value;
+					return typeof entry === "string" ? JSON.parse(entry) : entry;
+				}),
 			greet: (name: string) => {
 				story.tell(`alice greets ${name} through greetings.greet`);
 				return answered(Effect.flatMap(greetingsClient(), (call) => call("greetings.greet", { name })));
@@ -273,3 +304,21 @@ export function columnKey(configured: "missing" | "16 random bytes in base64") {
 export const servedByWorkerHost = definedModulesHost.trait("configured", "the modules are served by workerHost in place of appHost", (state) => {
 	state.host = "worker";
 });
+
+export const builtInApplicationEffect = definedModulesHost.trait(
+	"configured",
+	"the host is built in the application form, whose application Effect builds the modules' services with Layer.build and returns them already built",
+	(state) => {
+		state.host = "application";
+	},
+);
+
+export const collector = definedModulesHost.trait("configured", "the host exports each span to a loopback OTLP collector as it ends", (state) =>
+	Effect.gen(function* () {
+		const receiver = yield* otlpReceiver();
+		state.collector = {
+			untilSpan: (name) => receiver.untilSpan((span) => span.name === name, { name: `${name} span reaches the collector` }),
+		};
+		Object.assign(state.env, { "OTEL_BSP_MAX_EXPORT_BATCH_SIZE": "1", "OTEL_EXPORTER_OTLP_ENDPOINT": receiver.url });
+	}),
+);
