@@ -67,19 +67,25 @@ for (const origin of ["https://attacker.example", "capacitor://localhost.evil", 
 	});
 }
 
-for (const [path, methods, exposed] of [
-	["/rpc", "POST", "none"],
-	["/api/auth/sign-in/email", "GET, POST", "set-auth-token"],
+for (const [path, methods, headers, allowHeaders, exposed] of [
+	["/rpc", "POST", "authorization and content type", "Authorization,Content-Type", "none"],
+	[
+		"/api/auth/sign-in/email",
+		"GET, POST",
+		"authorization, content type and the account preference headers",
+		"Authorization,Content-Type,x-platform-account-locale,x-platform-account-timezone",
+		"set-auth-token",
+	],
 ] as const) {
 	for (const origin of [NATIVE_ORIGIN, ANDROID_ORIGIN]) {
 		origins.it(
-			`${origin} gets a credential-free preflight for ${path} allowing ${methods} with authorization and content type and exposing ${exposed}`,
+			`${origin} gets a credential-free preflight for ${path} allowing ${methods} with ${headers} and exposing ${exposed}`,
 			[],
 			function* ({ preflight }) {
 				const answer = yield* preflight(path, origin);
 
 				expect(answer).toEqual({
-					allowHeaders: "Authorization,Content-Type",
+					allowHeaders,
 					allowMethods: methods,
 					allowOrigin: origin,
 					credentials: "not allowed",
@@ -98,6 +104,15 @@ for (const [path, methods, exposed] of [
 			["preflight", () => Effect.succeed(answer), expect.objectContaining({ allowOrigin: "none", status: 403 })],
 			["session lookups", () => sessionLookups(), 0],
 		]);
+	});
+}
+
+for (const [path, answer] of [
+	["/api/auth/sign-in/email", "granted"],
+	["/rpc", "refused"],
+] as const) {
+	origins.it(`a native preflight asking for the account preference headers is ${answer} at ${path}`, [], function* ({ preflightFor }) {
+		expect(yield* preflightFor(path, NATIVE_ORIGIN, ["x-platform-account-locale", "x-platform-account-timezone"])).toBe(answer);
 	});
 }
 

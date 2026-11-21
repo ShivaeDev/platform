@@ -1,6 +1,7 @@
 import type { BetterAuthOptions, BetterAuthPlugin } from "better-auth";
 import { createAuthMiddleware } from "better-auth/api";
 import { Effect, Option, Schema } from "effect";
+import { accountPreferenceHeaders } from "#accountPreferenceHeaders.ts";
 import { AccountPreferenceValues } from "#accountPreferenceValues.ts";
 import { AccountPreferencesStore } from "#server/account-preferences/service.ts";
 
@@ -10,8 +11,8 @@ export const accountPreferenceOptions = Effect.fnUntraced(function* <TOptions ex
 	const capture = createAuthMiddleware(async (context) => {
 		const session = context.context.newSession ?? context.context.session;
 		const values = Schema.decodeUnknownOption(AccountPreferenceValues)({
-			locale: context.headers?.get("x-platform-account-locale"),
-			timezone: context.headers?.get("x-platform-account-timezone"),
+			locale: context.headers?.get(accountPreferenceHeaders.locale),
+			timezone: context.headers?.get(accountPreferenceHeaders.timezone),
 			units: "metric",
 		});
 		if (session !== null && session !== undefined && Option.isSome(values)) {
