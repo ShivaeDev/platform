@@ -7,7 +7,7 @@ import { useFailureWording } from "#client/useFailureWording.ts";
 
 export interface FailureLayout {
 	readonly message: ReactNode;
-	readonly retry: () => void;
+	readonly retry?: () => void;
 	readonly retrying: boolean;
 }
 
@@ -17,6 +17,9 @@ export interface QueryViewRenderers {
 }
 
 export function FailureMessage({ message, retry, retrying }: FailureLayout): ReactNode {
+	if (retry === undefined) {
+		return createElement("p", { role: "alert" }, message);
+	}
 	return createElement(
 		"p",
 		{ role: "alert" },

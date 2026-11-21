@@ -52,6 +52,7 @@ export const reportApps = storyKit(
 			pressRefresh: () => settled(state, screen, () => driver(state, screen).click({ name: "Refresh", role: "button" })),
 			pressRetry: () => settled(state, screen, () => driver(state, screen).click({ name: "Retry", role: "button" })),
 			reads: () => Effect.sync(() => timesWords(state.backend.reads)),
+			retryOffered: () => Effect.sync(() => texts(state, "button").includes("Retry")),
 			screenFailure: () => Effect.sync(() => texts(state, "[role='alert']:not([data-notice])")),
 			serverAnswers: (...answers: readonly Answer[]) =>
 				Effect.sync(() => {
