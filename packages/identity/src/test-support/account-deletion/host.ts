@@ -1,3 +1,4 @@
+import type { SecondaryStorage } from "better-auth";
 import { testUtils } from "better-auth/plugins";
 import { admin } from "better-auth/plugins/admin";
 import { Effect, Layer, Schema } from "effect";
@@ -38,14 +39,24 @@ const Profile = contract("profile", {
 export type SessionStorage = "database" | "cookie cache" | "secondary storage";
 
 // Better Auth keeps sessions only here when secondary storage is configured, so the map stands in for a shared cache such as Redis.
-function memorySecondaryStorage() {
+function memorySecondaryStorage(): SecondaryStorage {
 	const entries = new Map<string, string>();
 	return {
-		delete: (key: string) => {
+		delete: (key) => {
 			entries.delete(key);
 		},
-		get: (key: string) => entries.get(key) ?? null,
-		set: (key: string, value: string) => {
+		get: (key) => entries.get(key) ?? null,
+		getAndDelete: (key) => {
+			const value = entries.get(key) ?? null;
+			entries.delete(key);
+			return value;
+		},
+		increment: (key) => {
+			const count = Number(entries.get(key) ?? 0) + 1;
+			entries.set(key, String(count));
+			return count;
+		},
+		set: (key, value) => {
 			entries.set(key, value);
 		},
 	};
