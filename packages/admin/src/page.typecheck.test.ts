@@ -1,9 +1,7 @@
-import type { Effect } from "effect";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { expectTypeOf } from "vitest";
 import { makeClient } from "@shivaedev/contract/makeClient.ts";
 import type { ResumeSource } from "@shivaedev/contract/resume.ts";
-import type { SessionUser } from "@shivaedev/identity/identity.ts";
 import { JobsPermission } from "#permissions.ts";
 import { collectionPage } from "#test/collectionPage.ts";
 import { Jobs } from "#test/pages.ts";
@@ -12,8 +10,6 @@ const page = collectionPage();
 expectTypeOf(page.contract.declaration.keyScope).toEqualTypeOf<"session">();
 expectTypeOf(page.contract.middleware(JobsPermission).declaration.keyScope).toEqualTypeOf<"session">();
 expectTypeOf(Jobs.contract.declaration.keyScope).toEqualTypeOf<undefined>();
-type ReadPolicy = (typeof page.contract.declaration.queries)[0]["readPolicy"];
-expectTypeOf<Effect.Services<ReturnType<ReadPolicy>>>().toEqualTypeOf<SessionUser>();
 
 declare const registry: AtomRegistry.AtomRegistry;
 declare const resume: ResumeSource;

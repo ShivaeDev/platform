@@ -2,7 +2,6 @@ import { Context, Effect, type Layer, type Option, Schema, SchemaGetter } from "
 import type { RpcGroup } from "effect/rpc";
 import { expectTypeOf } from "vitest";
 import type { Bound } from "@shivaedev/contract/Bound.ts";
-import { moduleHandlers } from "@shivaedev/contract/moduleHandlers.ts";
 import type { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import type { JobFailure } from "@shivaedev/jobs/JobFailure.ts";
 import type { JobState } from "@shivaedev/jobs/server/job.ts";
@@ -39,7 +38,7 @@ expectTypeOf<
 	Layer.Services<ReturnType<typeof pgBossQueues<readonly [{ readonly name: "scheduled" }], "test/AdminJobs">>>
 >().toEqualTypeOf<"test/AdminJobs">();
 
-const registration = registerAdmin(adminRegistry(JobsPage), { jobs: moduleHandlers(Jobs) });
+const registration = registerAdmin(adminRegistry(JobsPage), { jobs: Jobs });
 expectTypeOf<Layer.Services<typeof registration.handlers>>().toEqualTypeOf<RegisteredQueues | SessionPolicy>();
 expectTypeOf<Layer.Error<typeof registration.handlers>>().toEqualTypeOf<never>();
 type JobRpc = Extract<RpcGroup.Rpcs<typeof JobsPage.contract>, { readonly _tag: "admin.jobs.job" }>;
@@ -60,9 +59,11 @@ expectTypeOf<CountsQuery["success"]["Type"]>().toEqualTypeOf<{
 	readonly totalCount: number;
 }>();
 
-const retryRegistration = registerAdmin(adminRegistry(JobsPageWithRetry), { jobs: moduleHandlers(JobsWithRetry) });
+const retryRegistration = registerAdmin(adminRegistry(JobsPageWithRetry), { jobs: JobsWithRetry });
 expectTypeOf<Layer.Services<typeof retryRegistration.handlers>>().toEqualTypeOf<RegisteredQueues | SessionPolicy>();
 type RetryRpc = Extract<RpcGroup.Rpcs<typeof JobsPageWithRetry.contract>, { readonly _tag: "admin.jobs.retry" }>;
 expectTypeOf<RetryRpc["payloadSchema"]["Type"]>().toEqualTypeOf<{ readonly id: string; readonly queue: string }>();
 // @ts-expect-error The read-only module cannot serve the retry page, whose commands it lacks.
-registerAdmin(adminRegistry(JobsPageWithRetry), { jobs: moduleHandlers(Jobs) });
+registerAdmin(adminRegistry(JobsPageWithRetry), { jobs: Jobs });
+// @ts-expect-error The retry module cannot serve the read-only page: the page's permission would then cover commands it does not declare.
+registerAdmin(adminRegistry(JobsPage), { jobs: JobsWithRetry });

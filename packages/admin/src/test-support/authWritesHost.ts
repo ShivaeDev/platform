@@ -6,7 +6,6 @@ import { Migrator } from "effect/sql";
 import { role } from "@shivaedev/access/role.ts";
 import { roleSet } from "@shivaedev/access/roleSet.ts";
 import { makeClient } from "@shivaedev/contract/makeClient.ts";
-import { moduleHandlers } from "@shivaedev/contract/moduleHandlers.ts";
 import { Sessions } from "@shivaedev/identity/Sessions.ts";
 import { defineAuth } from "@shivaedev/identity/server/better-auth/define.ts";
 import { migrateBetterAuth } from "@shivaedev/identity/server/better-auth/migrate.ts";
@@ -44,7 +43,7 @@ const application = Effect.gen(function* () {
 		Effect.provide(memoryStore),
 		Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env: { "AUTH_RATE_LIMIT_ENABLED": "false" } }))),
 	);
-	const registration = registerAdmin(adminRegistry(UsersPage, SessionsPage), { sessions: moduleHandlers(Sessions), users: moduleHandlers(Users) });
+	const registration = registerAdmin(adminRegistry(UsersPage, SessionsPage), { sessions: Sessions, users: Users });
 	return {
 		group: registration.group,
 		handlers: registration.handlers,

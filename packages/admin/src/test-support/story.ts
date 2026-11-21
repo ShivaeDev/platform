@@ -1,27 +1,15 @@
-import { Cause, Effect, Layer, Option, Ref, Stream } from "effect";
-import type { QueryUpdate } from "@shivaedev/contract/queryUpdate.ts";
-import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
+import { Cause, Effect, Layer, Option, Ref } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { adminRegistry, mergeAdminRegistries } from "#registry.ts";
+import { adminRegistry, mergeAdminRegistries, validateAdminRegistry } from "#registry.ts";
 import { registerAdmin } from "#server/registerAdmin.ts";
 import type { Access } from "#test/Access.ts";
-import { Access as AccessRoles } from "#test/Access.ts";
 import { adminEngine } from "#test/adminEngine.ts";
 import { answered } from "#test/answers.ts";
+import { FakeJobs } from "#test/FakeJobs.ts";
+import { FakeUsers } from "#test/FakeUsers.ts";
+import { firstChange } from "#test/firstChange.ts";
 import { Jobs, pagesBesideJobs, Registry } from "#test/pages.ts";
 import { type RoutePaths, routePages } from "#test/routePages.ts";
-
-function firstChange<E, R>(changes: Stream.Stream<QueryUpdate, E, R>) {
-	return changes.pipe(
-		Stream.runHead,
-		Effect.map(
-			Option.match({
-				onNone: () => "ended without a result",
-				onSome: (update: QueryUpdate) => (update._tag === "Result" ? update.value : `unexpected ${update._tag}`),
-			}),
-		),
-	);
-}
 
 export const adminStory = storyKit({
 	create: () => adminEngine,
@@ -56,10 +44,6 @@ export const adminStory = storyKit({
 			story.tell("the caller subscribes to user changes");
 			return answered(firstChange(client["admin.users.$changes"]({ queries: [{ payload: undefined, query: "profile" }] })));
 		},
-		watchFailedJobs: () => {
-			story.tell("the caller watches the failed jobs");
-			return answered(client["admin.jobs.watch"]().pipe(Stream.runHead, Effect.map(Option.getOrUndefined)));
-		},
 	}),
 });
 
@@ -78,7 +62,7 @@ function adminOutcome<A, E>(effect: Effect.Effect<A, E>, success: string) {
 			const error = Cause.squash(cause);
 			if (
 				error instanceof Error
-				&& /^(?:Duplicate admin (?:page id|RPC tag|path): |Overlapping admin paths: |Admin detail path .* must be under page path |Missing admin handlers: |Unregistered admin handlers: )/u.test(
+				&& /^(?:Duplicate admin (?:page id|RPC tag|path): |Overlapping admin paths: |Admin detail path .* must be under page path |Missing admin module: |Unregistered admin module: |Admin page .* is served by a module )/u.test(
 					error.message,
 				)
 			) {
@@ -89,12 +73,11 @@ function adminOutcome<A, E>(effect: Effect.Effect<A, E>, success: string) {
 	);
 }
 
-function outcome(registry: ReturnType<typeof adminRegistry>, pages: readonly { readonly id: string }[], success: string) {
-	const handlers = Object.fromEntries(pages.map(({ id }) => [id, Layer.empty]));
-	const registration: { readonly handlers: Layer.Layer<never, unknown> } = Reflect.apply(registerAdmin, undefined, [registry, handlers]);
-	const policy = { origin: () => true, provider: { get: () => Effect.succeed(Option.none()) }, roles: AccessRoles };
-	return adminOutcome(Layer.build(registration.handlers.pipe(Layer.provide(Layer.succeed(SessionPolicy, policy)))).pipe(Effect.scoped), success);
+function outcome(registry: ReturnType<typeof adminRegistry>, success: string) {
+	return adminOutcome(validateAdminRegistry(registry.pages), success);
 }
+
+const MODULES = { jobs: FakeJobs, reports: FakeUsers, users: FakeUsers };
 
 type HandlerPage = "jobs" | "reports" | "users";
 
@@ -107,19 +90,27 @@ export const registrationStory = storyKit({
 			story.tell(`compose ${routes.map((route) => route.detail ?? route.path).join(" and ")} ${composition}`);
 			const pages = routePages(routes);
 			const combined = composition === "together" ? adminRegistry(...pages) : mergeAdminRegistries(...pages.map((page) => adminRegistry(page)));
-			return outcome(combined, pages, "composed");
+			return outcome(combined, "composed");
 		},
 		composeWithJobs: (page: keyof typeof pagesBesideJobs) => {
 			story.tell(`compose a registry of the jobs page and ${page}`);
 			const pages = [Jobs, pagesBesideJobs[page]];
 			const combined = mergeAdminRegistries(...pages.map((value) => adminRegistry(value)));
-			return outcome(combined, pages, "composed");
+			return outcome(combined, "composed");
 		},
-		startHandlersFor: (...pages: readonly HandlerPage[]) => {
-			story.tell(`start the jobs and users handlers with handlers for ${pages.join(" and ")}`);
-			const handlers = Object.fromEntries(pages.map((page) => [page, Layer.empty]));
-			// The handler map's type already rejects missing and extra pages; the story checks the runtime guard behind it.
-			const registration: { readonly handlers: Layer.Layer<never, unknown> } = Reflect.apply(registerAdmin, undefined, [registry, handlers]);
+		startModulesFor: (...pages: readonly HandlerPage[]) => {
+			story.tell(`start the jobs and users pages with the modules for ${pages.join(" and ")}`);
+			const modules = Object.fromEntries(pages.map((page) => [page, MODULES[page]]));
+			// The module map's type already rejects missing and extra pages; the story checks the runtime guard behind it.
+			const registration: { readonly handlers: Layer.Layer<never, unknown> } = Reflect.apply(registerAdmin, undefined, [registry, modules]);
+			return adminOutcome(Layer.build(registration.handlers).pipe(Effect.scoped), "started");
+		},
+		startWithSwappedModules: () => {
+			story.tell("start the jobs page with the users page's module and the users page with the jobs page's module");
+			const registration: { readonly handlers: Layer.Layer<never, unknown> } = Reflect.apply(registerAdmin, undefined, [
+				registry,
+				{ jobs: FakeUsers, users: FakeJobs },
+			]);
 			return adminOutcome(Layer.build(registration.handlers).pipe(Effect.scoped), "started");
 		},
 	}),

@@ -60,3 +60,37 @@ for (const path of ["/admin", "/admin/"]) {
 		expect(destination).toBe("/sign-in");
 	});
 }
+
+// The workspace module declares no middleware, so these prove the permission registration adds to every one of its operations.
+for (const [role, answer] of [
+	["workspace-reader", "Workspace studio"],
+	["viewer", "forbidden"],
+	[undefined, "unauthorized"],
+] as const) {
+	pageHost.it(`${role ?? "a visitor"} receives ${answer} reading through the merged page contracts`, [], function* ({ readFromBrowser }) {
+		expect(yield* readFromBrowser(role)).toBe(answer);
+	});
+}
+
+// Over HTTP the host answers a subscription that passed its permission with WebSocketRequired, so the granted reader shows the permission let it through.
+for (const [role, answer] of [
+	["workspace-reader", "websocket required"],
+	["viewer", "forbidden"],
+	["auditor", "forbidden"],
+	[undefined, "unauthorized"],
+] as const) {
+	pageHost.it(`${role ?? "a visitor"} receives ${answer} from the workspace page's live subscription`, [], function* ({ changesFromBrowser }) {
+		expect(yield* changesFromBrowser(role)).toBe(answer);
+	});
+}
+
+for (const [role, answer] of [
+	["workspace-reader", "Archived studio"],
+	["viewer", "forbidden"],
+	["auditor", "forbidden"],
+	[undefined, "unauthorized"],
+] as const) {
+	pageHost.it(`${role ?? "a visitor"} receives ${answer} from the workspace page's command`, [], function* ({ archiveFromBrowser }) {
+		expect(yield* archiveFromBrowser(role)).toBe(answer);
+	});
+}

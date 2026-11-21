@@ -1,11 +1,11 @@
-import { Effect, Layer, type Schema } from "effect";
+import { Effect, Layer, type Option, type Schema } from "effect";
 import { Rpc, RpcGroup, RpcSchema } from "effect/rpc";
 import { ReadRecorder } from "@shivaedev/changes/readRecorder.ts";
 import { rpcBoundary } from "@shivaedev/errors/boundary.ts";
 import { InternalServerError } from "@shivaedev/errors/taxonomy.ts";
 import type { Declared } from "#contract.ts";
 import type { CommandShape, QueryShape, StreamShape } from "#operation.ts";
-import { CurrentViewer, checkPolicy, type QueryReadPolicy } from "#readPolicy.ts";
+import { CurrentViewer, checkPolicy, type QueryReadPolicy, type Viewer } from "#readPolicy.ts";
 import { ServedReadPolicy } from "#servedReadPolicy.ts";
 
 type Runnable = (payload: unknown) => Effect.Effect<unknown, unknown, unknown>;
@@ -36,10 +36,11 @@ function served(rpc: Rpc.AnyWithProps, operation: QueryShape | CommandShape, run
 		}).pipe(Effect.withSpan(span), boundary);
 }
 
-// Live subscriptions check the policy outside the handler, so the policy carries the handler's failure mapping.
+// Live subscriptions check the policy outside the handler, so the policy carries the handler's failure mapping. It keeps the
+// policy's own properties, such as the mark of a permission policy that collection reads require.
 function servedPolicy(rpc: Rpc.AnyWithProps, policy: QueryReadPolicy<unknown, unknown, unknown>): QueryReadPolicy<unknown, unknown, unknown> {
 	const boundary = guarded(rpc);
-	return (payload, viewer) => boundary(Effect.suspend(() => policy(payload, viewer)));
+	return Object.assign((payload: unknown, viewer: Option.Option<Viewer>) => boundary(Effect.suspend(() => policy(payload, viewer))), policy);
 }
 
 type EffectRpc = Rpc.Rpc<string, Schema.Top, Schema.Top, Schema.Top>;
