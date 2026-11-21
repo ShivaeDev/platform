@@ -10,10 +10,10 @@ import { configured, postgres } from "#test/fixture.ts";
 
 interface AuthEmailEngine {
 	approvalToken?: string | undefined;
-	copy?: AuthEmailQueueOptions["copy"];
 	env: Record<string, string>;
 	headers: Headers;
 	host?: Effect.Success<ReturnType<typeof authEmailHost>>;
+	options: Pick<AuthEmailQueueOptions, "copy" | "layout">;
 	startup: string;
 }
 
@@ -66,7 +66,7 @@ function answer(response: Response) {
 export const authEmails = storyKit({
 	after: {
 		configured: Effect.fnUntraced(function* (engine: AuthEmailEngine) {
-			yield* authEmailHost(engine.copy, engine.env).pipe(
+			yield* authEmailHost(engine.options, engine.env).pipe(
 				Effect.tap((host) =>
 					Effect.sync(() => {
 						engine.host = host;
@@ -84,7 +84,7 @@ export const authEmails = storyKit({
 	},
 	around: withIsolatedDatabase,
 	clock: "test",
-	create: (): AuthEmailEngine => ({ env: { "PUBLIC_URL": APP_ORIGIN }, headers: new Headers(), startup: "ready" }),
+	create: (): AuthEmailEngine => ({ env: { "PUBLIC_URL": APP_ORIGIN }, headers: new Headers(), options: {}, startup: "ready" }),
 	inspect: () => ({}),
 	layer: postgres,
 	name: "auth emails queued through the email worker",
@@ -134,10 +134,39 @@ export const approvalRequested = authEmails.trait(
 );
 
 export const resetCopy = authEmails.trait("configured", "the app writes its own password reset copy", (engine) => {
-	engine.copy = {
-		ResetPassword: () => ({ action: "Choose a password", lines: ["Pick a new Example password."], subject: "Reset your Example password" }),
+	engine.options = {
+		...engine.options,
+		copy: {
+			ResetPassword: () => ({ action: "Choose a password", lines: ["Pick a new Example password."], subject: "Reset your Example password" }),
+		},
 	};
 });
+
+export const brandedLayout = authEmails.trait(
+	"configured",
+	'the app wraps its emails in an Example header and button layout, and its confirmation copy greets "<b>Alice</b>" with a quoted "Confirm" label',
+	(engine) => {
+		engine.options = {
+			...engine.options,
+			copy: {
+				ConfirmAccount: () => ({
+					action: 'Say "Confirm"',
+					lines: ["Welcome, <b>Alice</b> & Bob's friends."],
+					subject: "Confirm <your> Example account",
+				}),
+			},
+			layout: ({ action, body, footer, subject }) =>
+				[
+					`<html><head><title>${subject}</title></head><body>`,
+					'<header style="color: #b45309">Example</header>',
+					body,
+					`<a class="button" style="background: #b45309" href="${action.href}">${action.label}</a>`,
+					footer === undefined ? "<footer>No footer</footer>" : `<footer>${footer}</footer>`,
+					"</body></html>",
+				].join(""),
+		};
+	},
+);
 
 export const queueUnavailable = authEmails.trait("queue", "the auth email queue refuses the next job", (engine) =>
 	started(engine).jobs.failNextSend(authEmailJobs),

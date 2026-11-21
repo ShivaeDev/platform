@@ -32,7 +32,7 @@ export const appPaths = {
 
 const config = ConfigProvider.layer(ConfigProvider.fromEnv({ env: { "AUTH_RATE_LIMIT_ENABLED": "false" } }));
 
-export const authEmailHost = Effect.fnUntraced(function* (copy: AuthEmailQueueOptions["copy"], env: Record<string, string>) {
+export const authEmailHost = Effect.fnUntraced(function* (options: Pick<AuthEmailQueueOptions, "copy" | "layout">, env: Record<string, string>) {
 	const server = yield* Layer.build(NodeHttpServer.layer(createServer, { host: "127.0.0.1", port: 0 }));
 	const { address } = yield* HttpServer.HttpServer.pipe(Effect.provideContext(server));
 	if (!NetAddress.isInetAddress(address)) {
@@ -53,7 +53,7 @@ export const authEmailHost = Effect.fnUntraced(function* (copy: AuthEmailQueueOp
 	const sql = yield* Layer.build(postgresLayer(database.url, clientOptions({ maxConnections: 2 })));
 	yield* postgresMigration.pipe(Effect.provideContext(sql));
 	yield* migrateBetterAuth(Auth).pipe(Effect.provideContext(sql));
-	const AuthEmails = authEmailQueue({ paths: appPaths, ...(copy === undefined ? {} : { copy }) });
+	const AuthEmails = authEmailQueue({ paths: appPaths, ...options });
 	const mail = yield* inbox();
 	const jobs = makePgBossTesting({ clock: yield* TestClock.testClockWith(Effect.succeed) });
 	const worker = yield* Layer.build(
