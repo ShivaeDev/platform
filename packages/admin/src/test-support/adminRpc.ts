@@ -1,21 +1,47 @@
-import { Clock, Effect, Layer, Option, Ref } from "effect";
-import { FetchHttpClient, HttpRouter, HttpServer } from "effect/http";
-import * as NetAddress from "effect/net/NetAddress";
-import { type Rpc, RpcClient, type RpcGroup, RpcSerialization, RpcServer } from "effect/rpc";
+import { Effect, Layer, Option, Ref, Schema } from "effect";
+import { type Rpc, RpcClient, type RpcGroup, RpcSerialization } from "effect/rpc";
+import * as Socket from "effect/socket/Socket";
 import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import type { UserSessionShape } from "@shivaedev/identity/server/session.ts";
-import { nodeHttpServer } from "@shivaedev/server/adapters/nodeHttpServer.ts";
+import { rpcSocketHost } from "@shivaedev/test-story/server/rpcSocketHost.ts";
 import { Access } from "#test/Access.ts";
 import type { pages } from "#test/jobsPages.ts";
 
 type Group = ReturnType<typeof pages>["group"];
 
-// A live subscription's answer streams until the client leaves, so the wire readout keeps only answers that end.
-function subscribes(init: RequestInit | undefined) {
-	const body = init?.body;
-	const text = body instanceof Uint8Array ? new TextDecoder().decode(body) : String(body ?? "");
-	return text.includes('.$changes"');
+const isExit = Schema.decodeUnknownOption(Schema.Struct({ _tag: Schema.Literal("Exit"), requestId: Schema.Unknown }));
+const isRequest = Schema.decodeUnknownOption(Schema.Struct({ _tag: Schema.Literal("Request"), id: Schema.Unknown, tag: Schema.String }));
+
+// A live subscription's answer streams until the client leaves, so the wire readout keeps only the answers of requests that end.
+function answersOnTheWire(answers: string[]): Layer.Layer<RpcSerialization.RpcSerialization> {
+	const subscriptions = new Set<string>();
+	return Layer.succeed(RpcSerialization.RpcSerialization, {
+		...RpcSerialization.ndjson,
+		makeUnsafe: () => {
+			const parser = RpcSerialization.ndjson.makeUnsafe();
+			return {
+				decode: (data) => {
+					const messages = parser.decode(data);
+					for (const message of messages) {
+						const exit = Option.getOrUndefined(isExit(message));
+						if (exit !== undefined && !subscriptions.has(String(exit.requestId))) {
+							answers.push(JSON.stringify(message));
+						}
+					}
+					return messages;
+				},
+				encode: (message) => {
+					const request = Option.getOrUndefined(isRequest(message));
+					if (request?.tag.endsWith(".$changes")) {
+						subscriptions.add(String(request.id));
+					}
+					return parser.encode(message);
+				},
+			};
+		},
+	});
 }
+
 export const adminRpc = Effect.fnUntraced(function* <R extends Rpc.Any, E>(
 	group: Group,
 	served: {
@@ -23,44 +49,21 @@ export const adminRpc = Effect.fnUntraced(function* <R extends Rpc.Any, E>(
 		readonly handlers: Layer.Layer<Rpc.ToHandler<R> | Rpc.Middleware<R>, E, SessionPolicy>;
 	},
 ) {
-	const clock = yield* Clock.Clock;
 	const session = yield* Ref.make<Option.Option<UserSessionShape>>(Option.none());
 	const policy = {
 		origin: () => true,
 		provider: { get: () => Ref.get(session) },
 		roles: Access,
 	};
-	const registered = served.handlers.pipe(Layer.provide(Layer.succeed(SessionPolicy, policy)));
-	const routes = RpcServer.layerHttp({ group: served.group, path: "/rpc", protocol: "http" }).pipe(
-		Layer.provide([registered, RpcSerialization.layerNdjson]),
-	);
-	const handler = yield* HttpRouter.toHttpEffect(routes);
-	const context = yield* Layer.build(
-		HttpServer.serve(handler).pipe(
-			Layer.provideMerge(nodeHttpServer("127.0.0.1", { port: 0 })),
-			Layer.provideMerge(Layer.succeed(Clock.Clock, clock)),
-		),
-	);
-	const { address } = yield* HttpServer.HttpServer.pipe(Effect.provideContext(context));
-	if (!NetAddress.isInetAddress(address)) {
-		throw new Error("The admin host must listen on TCP");
-	}
-	const baseUrl = `http://127.0.0.1:${address.port}`;
+	const host = yield* rpcSocketHost(served.group, served.handlers.pipe(Layer.provide(Layer.succeed(SessionPolicy, policy))));
 	const responses: string[] = [];
-	const protocol = RpcClient.layerProtocolHttp({
-		url: `${baseUrl}/rpc`,
-	}).pipe(
-		Layer.provide([FetchHttpClient.layer, RpcSerialization.layerNdjson]),
-		Layer.provide(
-			Layer.succeed(FetchHttpClient.Fetch, async (input, init) => {
-				const response = await fetch(input, init);
-				if (!subscribes(init)) {
-					responses.push(await response.clone().text());
-				}
-				return response;
-			}),
-		),
+	const protocol = RpcClient.layerProtocolSocket().pipe(
+		Layer.provide([
+			Socket.layerWebSocket(host.url.replace(/^http/u, "ws")).pipe(Layer.provide(Socket.layerWebSocketConstructorGlobal)),
+			answersOnTheWire(responses),
+		]),
 	);
-	const client = yield* RpcClient.make(group).pipe(Effect.provide(protocol));
-	return { baseUrl, client, protocol, responses, session };
+	// A socket stays open for the engine's scope, so the client's protocol is built there rather than for one call.
+	const client = yield* RpcClient.make(group).pipe(Effect.provideContext(yield* Layer.build(protocol)));
+	return { client, host, protocol, responses, session };
 });

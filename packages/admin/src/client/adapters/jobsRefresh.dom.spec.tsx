@@ -10,7 +10,7 @@ expectNoReactWarnings();
 jobsScreen.it(
 	"after a lost connection, refresh keeps the last jobs while the view reconnects, then shows newly failed mail from PostgreSQL",
 	[signedInAs("operator"), mailFails(42), jobsViewOpen],
-	function* ({ alerts, shownJobs, sendMail, workersFinish, loseNextConnection, reconnectDelayPasses, refreshWhileReconnecting, pagination }) {
+	function* ({ alerts, shownJobs, sendMail, workersFinish, loseNextConnection, reconnects, refreshWhileReconnecting, pagination }) {
 		expect((yield* shownJobs()).map(({ job }) => job)).toEqual(["mail 42"]);
 		yield* sendMail(7);
 		yield* workersFinish();
@@ -23,7 +23,7 @@ jobsScreen.it(
 			["last successful list", () => Effect.map(shownJobs(), (jobs) => jobs.map(({ job }) => job)), ["mail 42"]],
 		]);
 
-		yield* reconnectDelayPasses();
+		yield* reconnects();
 
 		yield* outcomes([
 			["alerts", () => alerts(), []],

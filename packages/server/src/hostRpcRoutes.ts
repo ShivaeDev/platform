@@ -10,15 +10,13 @@ import { authenticatedLayer, maybeAuthenticatedLayer } from "@shivaedev/identity
 import { subjectResolverLayer } from "@shivaedev/identity/server/subjectResolverLayer.ts";
 import { boundedRpcRequest } from "#boundedRpcRequest.ts";
 import { boundedRpcSocket } from "#boundedRpcSocket.ts";
-import { hostChanges } from "#hostChanges.ts";
 import type { HostPolicy } from "#hostOptions.ts";
 import { hostRpc, rpcCacheControl } from "#hostRpc.ts";
 import type { hostTransport } from "#hostTransport.ts";
-import { hostVersionLayer } from "#hostVersionLayer.ts";
-import { liveSyncLayer } from "#liveSyncLayer.ts";
 import { redactingRpcSerialization } from "#redactingRpcSerialization.ts";
 import type { RequestRequirements } from "#requestServices.ts";
 import { rpcRequestTracing } from "#rpcRequestTracing.ts";
+import { servedHandlers } from "#servedHandlers.ts";
 import { servedModules } from "#servedModules.ts";
 import { socketRpc } from "#socketRpc.ts";
 import { UnixSocketRequest } from "#UnixSocketRequest.ts";
@@ -129,9 +127,7 @@ function buildRpcRoutes<TRpcs extends Rpc.Any, THandlers, TError, TRequirements,
 			);
 		}),
 	).pipe(
-		Layer.provide(Layer.merge(middleware, hostChanges(options.group).pipe(Layer.provideMerge(options.handlers)))),
-		Layer.provide(hostVersionLayer(options.config?.buildVersion)),
-		Layer.provide(liveSyncLayer),
+		Layer.provide(Layer.merge(middleware, servedHandlers(options.group, options.handlers, options.config?.buildVersion))),
 		Layer.provide(RpcSerialization.layerNdjson),
 	);
 }

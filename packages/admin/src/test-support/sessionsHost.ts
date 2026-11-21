@@ -1,7 +1,6 @@
-import { Clock, Effect, Layer, Option } from "effect";
-import { FetchHttpClient, HttpRouter, HttpServer } from "effect/http";
-import * as NetAddress from "effect/net/NetAddress";
-import { RpcClient, RpcSerialization, RpcServer } from "effect/rpc";
+import { Effect, Layer, Option } from "effect";
+import { RpcClient, RpcSerialization } from "effect/rpc";
+import * as Socket from "effect/socket/Socket";
 import { SqlClient } from "effect/sql";
 import { role } from "@shivaedev/access/role.ts";
 import { roleSet } from "@shivaedev/access/roleSet.ts";
@@ -17,15 +16,14 @@ import { permissionLayer } from "@shivaedev/identity/server/permissionLayer.ts";
 import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import { ManageSessions, SessionsPermission } from "@shivaedev/identity/sessionPermissions.ts";
 import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
-import { nodeHttpServer } from "@shivaedev/server/adapters/nodeHttpServer.ts";
 import { liveHost } from "@shivaedev/test-kits/contract/liveMemoryProtocol.ts";
+import { rpcSocketHost } from "@shivaedev/test-story/server/rpcSocketHost.ts";
 import { SessionsPage } from "#sessions/Page.ts";
 import { clientRuntime } from "#test/clientRuntime.ts";
 
 const Access = roleSet(role("admin", [ManageSessions]), role("user", []));
 
 export const sessionsHost = Effect.fnUntraced(function* () {
-	const clock = yield* Clock.Clock;
 	const options = {
 		"baseURL": "http://localhost",
 		database: yield* betterAuthDatabase(),
@@ -68,26 +66,19 @@ export const sessionsHost = Effect.fnUntraced(function* () {
 		roles: Access,
 	};
 	const sql = yield* SqlClient.SqlClient;
-	const host = yield* liveHost(SessionsPage.contract, moduleHandlers(Sessions).pipe(Layer.provide(Layer.succeed(SqlClient.SqlClient, sql))));
-	const routes = RpcServer.layerHttp({ group: host.group, path: "/rpc", protocol: "http" }).pipe(
-		Layer.provide([host.handlers, permissionLayer(SessionsPermission), RpcSerialization.layerNdjson]),
-		Layer.provide(Layer.succeed(SessionPolicy, policy)),
+	const host = yield* liveHost(SessionsPage.contract, moduleHandlers(Sessions).pipe(Layer.provide(Layer.succeed(SqlClient.SqlClient, sql))), {
+		protocol: "websocket",
+	});
+	const served = yield* rpcSocketHost(
+		host.group,
+		Layer.mergeAll(host.handlers, permissionLayer(SessionsPermission)).pipe(Layer.provide(Layer.succeed(SessionPolicy, policy))),
 	);
-	const handler = yield* HttpRouter.toHttpEffect(routes);
-	const server = yield* Layer.build(
-		HttpServer.serve(handler).pipe(
-			Layer.provideMerge(nodeHttpServer("127.0.0.1", { port: 0 })),
-			Layer.provideMerge(Layer.succeed(Clock.Clock, clock)),
-		),
+	const url = served.url.replace(/^http/u, "ws");
+	const protocol = RpcClient.layerProtocolSocket().pipe(
+		Layer.provide([Socket.layerWebSocket(url).pipe(Layer.provide(Socket.layerWebSocketConstructorGlobal)), RpcSerialization.layerNdjson]),
 	);
-	const { address } = yield* HttpServer.HttpServer.pipe(Effect.provideContext(server));
-	if (!NetAddress.isInetAddress(address)) {
-		throw new Error("The sessions host must listen on TCP");
-	}
-	const baseUrl = `http://127.0.0.1:${address.port}`;
-	const protocol = RpcClient.layerProtocolHttp({ url: `${baseUrl}/rpc` }).pipe(Layer.provide([FetchHttpClient.layer, RpcSerialization.layerNdjson]));
 	const runtime = yield* clientRuntime;
-	const transport = makeClient(SessionsPage.contract, { protocol, runtime, url: `${baseUrl}/rpc` });
+	const transport = makeClient(SessionsPage.contract, { protocol, runtime, url });
 	const client = yield* transport.client;
 	return {
 		accounts,

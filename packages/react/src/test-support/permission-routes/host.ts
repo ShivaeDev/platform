@@ -33,7 +33,7 @@ export const openHost = Effect.fnUntraced(function* (initial: Role | undefined) 
 		"permissionNotes.get": ({ id }) =>
 			id === "offline" ? Effect.fail(new ServiceUnavailable({ message: "Query service unavailable" })) : Effect.succeed(`Note ${id}`),
 	});
-	const host = yield* liveHost(Notes, handlers);
+	const host = yield* liveHost(Notes, handlers, { protocol: "websocket" });
 	const routes = RpcServer.layerHttp({ group: host.group, path: "/rpc", protocol: "websocket" }).pipe(
 		Layer.provide([host.handlers, permissionLayer(ReadPermission), RpcSerialization.layerNdjson]),
 		Layer.provide(Layer.succeed(SessionPolicy, sessions)),

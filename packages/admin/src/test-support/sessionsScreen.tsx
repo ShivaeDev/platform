@@ -79,14 +79,14 @@ const openView = Effect.fnUntraced(function* (engine: Engine, dates: DateDisplay
 
 export const sessionsViewOpen = sessionsScreen.trait(
 	"screen",
-	"the Sessions view opens against the admin HTTP host, set to British English and Berlin time",
+	"the Sessions view opens against the admin socket host, set to British English and Berlin time",
 	(engine) => openView(engine, { locale: "en-GB", timeZone: "Europe/Berlin" }),
 );
 
 export function sessionsViewOpenInBrowserZone(timeZone: string) {
 	return sessionsScreen.trait(
 		"screen",
-		`the Sessions view opens against the admin HTTP host in British English with no time zone of its own, in a browser whose time zone is ${timeZone}`,
+		`the Sessions view opens against the admin socket host in British English with no time zone of its own, in a browser whose time zone is ${timeZone}`,
 		function* (engine) {
 			yield* browserZone(timeZone);
 			yield* openView(engine, { locale: "en-GB" });

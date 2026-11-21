@@ -1,7 +1,6 @@
-import { Deferred, Effect, Option } from "effect";
+import { Effect, Option } from "effect";
 import { TestClock } from "effect/testing";
 import { act } from "react";
-import { vi } from "vitest";
 import { activityScreenSignal, isClientIdle } from "@shivaedev/contract/clientActivity.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { render } from "@shivaedev/test-story/client/adapters/react.ts";
@@ -36,25 +35,22 @@ export const jobsScreen = storyKit({
 	stages: ["session", "jobs", "statistics", "views", "screen"],
 	verbs: (engine, story) => {
 		const driver = driverFor(engine, story.tell);
-		const lost = Deferred.makeUnsafe<void>();
 		return {
 			...jobsReadouts(engine, driver),
 			chooseQueue: (name: string) => Effect.andThen(driver.select("select", name), driver.settle()),
-			loseNextConnection: () =>
-				Effect.gen(function* () {
-					story.tell("the next HTTP connection is lost");
-					const fetch = vi.spyOn(globalThis, "fetch").mockImplementationOnce(() => {
-						Deferred.doneUnsafe(lost, Effect.void);
-						return Promise.reject(new TypeError("The connection closed"));
-					});
-					yield* Effect.addFinalizer(() => Effect.sync(() => fetch.mockRestore()));
-				}),
+			loseNextConnection: () => {
+				story.tell("the live connection is lost and the host holds its reconnection");
+				return Effect.andThen(engine.host.hold, engine.host.drop);
+			},
 			nextPage: () => Effect.andThen(driver.click({ name: "Next", role: "button" }), driver.settle()),
 			openJob: (name: string) => Effect.andThen(driver.click({ name: engine.ids.get(name) ?? name, role: "button" }), driver.settle()),
 			previousPage: () => Effect.andThen(driver.click({ name: "Previous", role: "button" }), driver.settle()),
-			reconnectDelayPasses: () => {
-				story.tell("the live connection's reconnect delay passes");
-				return Effect.andThen(TestClock.adjust("2 seconds"), driverFor(engine, story.tell, isClientIdle).settle());
+			reconnects: () => {
+				story.tell("the host accepts the held reconnection");
+				return Effect.andThen(
+					Effect.andThen(engine.host.accept, TestClock.adjust("2 seconds")),
+					driverFor(engine, story.tell, isClientIdle).settle(),
+				);
 			},
 			refresh: (section: "Jobs health" | "Queue counts" | "Job detail" | "Job list") => {
 				const target = section === "Job list" ? '[role="tabpanel"]' : `section[aria-label="${section}"]`;
@@ -62,7 +58,10 @@ export const jobsScreen = storyKit({
 			},
 			refreshWhileReconnecting: (section: "Job list") => {
 				story.tell(`refresh the ${section} while its connection is lost`);
-				return Effect.andThen(driver.within('[role="tabpanel"]').click({ name: "Refresh", role: "button" }), Deferred.await(lost));
+				return Effect.andThen(
+					driver.within('[role="tabpanel"]').click({ name: "Refresh", role: "button" }),
+					Effect.andThen(TestClock.adjust("1 second"), engine.host.held),
+				);
 			},
 			retrySelected: () => Effect.andThen(driver.click({ name: "Retry job", role: "button" }), driver.settle()),
 			runSelectedSchedule: () => Effect.andThen(driver.click({ name: "Run now", role: "button" }), driver.settle()),
@@ -105,7 +104,7 @@ const openView = Effect.fnUntraced(function* (engine: JobsScreenEngine, namesOnl
 function openJobsView(namesOnly: boolean) {
 	return jobsScreen.trait(
 		"screen",
-		`the Jobs view opens against the admin HTTP host with queue ${namesOnly ? "names" : "declarations"}, set to British English and Tokyo time`,
+		`the Jobs view opens against the admin socket host with queue ${namesOnly ? "names" : "declarations"}, set to British English and Tokyo time`,
 		(engine) => openView(engine, namesOnly, { locale: "en-GB", timeZone: "Asia/Tokyo" }),
 	);
 }
@@ -116,7 +115,7 @@ export const jobsViewOpenWithNames = openJobsView(true);
 export function jobsViewOpenInBrowserZone(timeZone: string) {
 	return jobsScreen.trait(
 		"screen",
-		`the Jobs view opens against the admin HTTP host in British English with no time zone of its own, in a browser whose time zone is ${timeZone}`,
+		`the Jobs view opens against the admin socket host in British English with no time zone of its own, in a browser whose time zone is ${timeZone}`,
 		function* (engine) {
 			yield* browserZone(timeZone);
 			yield* openView(engine, false, { locale: "en-GB" });
