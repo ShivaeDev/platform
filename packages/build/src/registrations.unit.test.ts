@@ -1,9 +1,18 @@
 import ts from "typescript";
 import { expect, it } from "vitest";
-import { inPathOrder, mayRegister, registrationsIn } from "#registrations.ts";
+import { inPathOrder } from "#moduleList.ts";
+import { registrationParts } from "#registrationParts.ts";
+import { mayRegister, registrationsIn } from "#registrations.ts";
+
+// The parts as the generator reads them from AppModule; registrationParts reads them in the story kit's projects.
+const PARTS = ["admin", "migrations", "queues", "services", "workers"];
+
+function parsed(text: string, file: string) {
+	return ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true);
+}
 
 function found(text: string, file = "src/shared.ts") {
-	return registrationsIn(ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true));
+	return registrationsIn(parsed(text, file), PARTS);
 }
 
 const MODULE_REGISTRATION = "src/modules/tags/server/registration.ts";
@@ -84,6 +93,29 @@ it("refuses a group and handlers registration without satisfies AppModule", () =
 		refusals: [notSatisfied("drafts")],
 		registrations: [],
 	});
+});
+
+it("refuses an exported object in server code that carries only a registration part without satisfies AppModule, naming the part", () => {
+	expect(found("export const usage = { admin: Usage.admin };\nexport const reminders = { queues, workers };\n", "src/server/usage.ts")).toEqual({
+		refusals: [
+			"usage carries admin, a part of a registration, but is not written `satisfies AppModule`, so the server's module list leaves it out; write `satisfies AppModule` after its object, with AppModule imported from @shivaedev/server/AppModule.ts, or, when it is no registration, rename its admin key or stop exporting it",
+			"reminders carries queues, a part of a registration, but is not written `satisfies AppModule`, so the server's module list leaves it out; write `satisfies AppModule` after its object, with AppModule imported from @shivaedev/server/AppModule.ts, or, when it is no registration, rename its queues key or stop exporting it",
+		],
+		registrations: [],
+	});
+});
+
+it("reads the parts every form of AppModule may carry from its declaration, through local interfaces, intersections and parentheses", () => {
+	const declaration = [
+		"interface ModuleParts {\n\treadonly admin?: ModuleAdmin;\n\treadonly schedules?: Schedule[];\n\tdescribe(): string;\n}",
+		'type Named = { readonly "name"?: string };',
+		"export type AppModule =",
+		"\t| (ModuleParts & Named & { readonly group: Group; readonly handlers: ModuleLayer; readonly module?: never })",
+		"\t| (ModuleParts & { readonly group?: never; readonly handlers?: never; readonly module: RegisteredModule; readonly name?: never })",
+		"\t| (ModuleParts & Named & { readonly group?: never; readonly module?: never; readonly workers?: ModuleLayer });",
+	].join("\n");
+
+	expect(registrationParts(parsed(declaration, "AppModule.d.ts"))).toEqual(["admin", "schedules"]);
 });
 
 const UNFOUND =

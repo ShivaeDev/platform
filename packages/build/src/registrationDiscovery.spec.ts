@@ -136,3 +136,63 @@ for (const [shape, refusal] of REFUSALS) {
 		},
 	);
 }
+
+const CARRIES =
+	"a part of a registration, but is not written `satisfies AppModule`, so the server's module list leaves it out; write `satisfies AppModule` after its object, with AppModule imported from @shivaedev/server/AppModule.ts, or, when it is no registration, rename its";
+
+for (const [file, name, parts] of [
+	["src/server/usage.ts", "usage", ["admin"]],
+	["src/modules/reminders/server/queues.ts", "reminders", ["queues", "workers"]],
+	["src/server/requests.ts", "requests", ["requestServices"]],
+] as const) {
+	generator.it(
+		`an exported object in ${file} with only ${parts.join(" and ")} and no satisfies AppModule stops generate with a message naming its file, its export and satisfies AppModule, and the list stays as it was`,
+		[registrationsProject(), generatedOnce()],
+		function* ({ addsPartsOnly, generatedFile, generates }) {
+			const before = yield* generatedFile(LIST);
+
+			yield* addsPartsOnly(file, name, parts, "no mark");
+
+			yield* outcomes([
+				[
+					"generate",
+					() => generates(),
+					{
+						files: { [LIST]: "refused" },
+						problems: [`${file}: ${name} carries ${parts[0]}, ${CARRIES} ${parts[0]} key or stop exporting it`],
+						result: "failed",
+					},
+				],
+				["the list", () => generatedFile(LIST), before],
+			]);
+		},
+	);
+}
+
+generator.it(
+	"an exported object in a server folder that only happens to have a key named like a registration part is refused, naming the key to rename",
+	[registrationsProject(), generatedOnce()],
+	function* ({ addsPartsOnly, generates }) {
+		yield* addsPartsOnly("src/server/listening.ts", "listening", ["ports"], "no mark");
+
+		expect(yield* generates()).toEqual({
+			files: { [LIST]: "refused" },
+			problems: [`src/server/listening.ts: listening carries ports, ${CARRIES} ports key or stop exporting it`],
+			programBuilt: false,
+			result: "failed",
+		});
+	},
+);
+
+generator.it(
+	"an exported object in a server folder with only admin pages, written satisfies AppModule, is listed under its exported name",
+	[registrationsProject(), generatedOnce()],
+	function* ({ addsPartsOnly, generatedFile, generates }) {
+		yield* addsPartsOnly("src/server/usage.ts", "usage", ["admin"], "satisfies AppModule");
+
+		yield* outcomes([
+			["generate", () => generates(), { files: { [LIST]: "written" }, problems: [], result: "succeeded" }],
+			["the list", () => generatedFile(LIST), expect.stringContaining('import { usage } from "#server/usage.ts";')],
+		]);
+	},
+);
