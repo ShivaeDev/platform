@@ -1,9 +1,9 @@
 import { Effect, Schema } from "effect";
 import type * as Atom from "effect/reactivity/Atom";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
-import * as AtomRpc from "effect/reactivity/AtomRpc";
 import { collection } from "@shivaedev/changes/keys.ts";
-import { bind } from "@shivaedev/contract/bind.ts";
+import { makeClient } from "@shivaedev/contract/bind.ts";
+import { type ClientActivity, clientActivity } from "@shivaedev/contract/clientActivity.ts";
 import { contract } from "@shivaedev/contract/contract.ts";
 import { command, query } from "@shivaedev/contract/operation.ts";
 import { layerLiveMemoryProtocol } from "@shivaedev/test-kits/contract/liveMemoryProtocol.ts";
@@ -15,6 +15,8 @@ export interface Backend {
 	readonly titles: Map<Person, string>;
 }
 
+export type Activities = Map<Person, ClientActivity>;
+
 const preferences = collection("preferences", Schema.Number);
 const Preferences = contract("preferences", {
 	commands: [command("save", { invalidates: () => [preferences.item(0)], payload: { title: Schema.String }, success: Schema.Void })],
@@ -22,7 +24,13 @@ const Preferences = contract("preferences", {
 	queries: [query("self", { readPolicy: () => Effect.succeed(true), reads: () => [preferences.item(0)], success: Schema.String })],
 });
 
-export function bindPreferences(person: Person, backend: Backend, runtime: Atom.RuntimeFactory, registry: AtomRegistry.AtomRegistry) {
+export function bindPreferences(
+	person: Person,
+	backend: Backend,
+	activities: Activities,
+	runtime: Atom.RuntimeFactory,
+	registry: AtomRegistry.AtomRegistry,
+) {
 	const application = Preferences.application.toLayer({
 		"preferences.save": ({ title }) =>
 			Effect.sync(() => {
@@ -34,10 +42,12 @@ export function bindPreferences(person: Person, backend: Backend, runtime: Atom.
 				return backend.titles.get(person) ?? "";
 			}),
 	});
-	class Client extends AtomRpc.Service<Client>()(`test/SessionKeys/${person}`, {
-		group: Preferences,
+	const connection = makeClient(Preferences, {
 		protocol: layerLiveMemoryProtocol(Preferences, application),
+		registry,
 		runtime,
-	}) {}
-	return { api: bind(Preferences, Client, { registry }), runtime: Client.runtime };
+		url: `memory://preferences/${person}`,
+	});
+	activities.set(person, clientActivity(connection));
+	return { api: connection.api };
 }

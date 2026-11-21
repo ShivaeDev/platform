@@ -1,12 +1,8 @@
 import { Deferred, Effect } from "effect";
-import { until } from "@shivaedev/test-story/server/until.ts";
 import type { HeldKind } from "#test/notices/client.ts";
 import { type State, settle, view } from "#test/notices/state.ts";
 import { type NoticeScreen, NoticeView } from "#test/notices/view.tsx";
 import type { Screen } from "#test/Screen.ts";
-
-// A command sent from a session that has since been replaced has no screen left for its push to reach.
-const sentIn = new WeakMap<object, string>();
 
 export const interruptsUndo = Effect.fn("Notices.interruptsUndo")(function* (state: State, screen: Screen, change: Effect.Effect<void>) {
 	const { arrivals, hold } = state.current.client;
@@ -22,9 +18,7 @@ export function noticeVerbs(state: State, screen: Screen) {
 		return screen.driver(view(state).container).click({ name: label, role: "button" });
 	}
 	function arrives(kind: HeldKind, title: string, label: string, line: string) {
-		const held = state.current.client.hold(kind, title);
-		const { arrived, finished } = held;
-		sentIn.set(held, state.current.session);
+		const { arrived, finished } = state.current.client.hold(kind, title);
 		return screen
 			.act(line, async () => {
 				await Effect.runPromise(screen.driver(view(state).container).click({ name: label, role: "button" }));
@@ -33,18 +27,11 @@ export function noticeVerbs(state: State, screen: Screen) {
 			.pipe(Effect.andThen(settle(state, screen)));
 	}
 	function complete(kind: HeldKind, title: string, line: string) {
-		const { activity, hold } = state.current.client;
-		const held = hold(kind, title);
-		const { finished, gate } = held;
-		const reaches = sentIn.get(held) === state.current.session;
+		const { finished, gate } = state.current.client.hold(kind, title);
 		return screen
 			.act(line, async () => {
-				const before = (await Effect.runPromise(activity.current)).unreflectedCommands;
 				Deferred.doneUnsafe(gate, Effect.void);
 				await Effect.runPromise(Deferred.await(finished));
-				if (reaches) {
-					await Effect.runPromise(until(activity, (current) => current.unreflectedCommands < before, { name: "the released command's push" }));
-				}
 			})
 			.pipe(Effect.andThen(settle(state, screen)));
 	}

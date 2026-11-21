@@ -1,6 +1,6 @@
 import { Deferred, Effect } from "effect";
 import { makeClient } from "@shivaedev/contract/bind.ts";
-import { clientActivity } from "@shivaedev/contract/clientActivity.ts";
+import { type ClientActivityState, clientActivity } from "@shivaedev/contract/clientActivity.ts";
 import { Conflict } from "@shivaedev/errors/taxonomy.ts";
 import { layerLiveMemoryProtocol } from "@shivaedev/test-kits/contract/liveMemoryProtocol.ts";
 import { Api, Rejected, type Removed, TitleRejected } from "#test/notices/Api.ts";
@@ -128,6 +128,13 @@ export function noticeClient(options: { readonly holdReads?: boolean } = {}) {
 		),
 	);
 	const connection = makeClient(Api, { protocol: layerLiveMemoryProtocol(Api, handlers), url: "memory://notices" });
+	// A command the server holds stays sent and unreflected, and while the server holds a read, accepted commands wait for its push too.
+	function settled(state: ClientActivityState) {
+		const parked = [...held.values()].filter(({ arrived, finished }) => Deferred.isDoneUnsafe(arrived) && !Deferred.isDoneUnsafe(finished)).length;
+		const rereading = reads.some((read) => !Deferred.isDoneUnsafe(read));
+		const reflected = rereading ? state.unreflectedCommands >= parked : state.unreflectedCommands === parked;
+		return state.initialQueries === 0 && state.commands === parked && reflected;
+	}
 	return {
 		activity: clientActivity(connection),
 		api: connection.api,
@@ -138,6 +145,7 @@ export function noticeClient(options: { readonly holdReads?: boolean } = {}) {
 		reads,
 		released,
 		runtime: connection.Client.runtime,
+		settled,
 	};
 }
 export type NoticeClient = ReturnType<typeof noticeClient>;

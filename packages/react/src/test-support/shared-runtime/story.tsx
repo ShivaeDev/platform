@@ -1,13 +1,15 @@
 import { Clock, Effect, Layer } from "effect";
 import * as Atom from "effect/reactivity/Atom";
+import { activityScreenSignal } from "@shivaedev/contract/clientActivity.ts";
 import type { Rendered } from "@shivaedev/test-story/client/adapters/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { Screen } from "#test/Screen.ts";
 import { settleScreen } from "#test/settleScreen.ts";
-import type { Backend, Person } from "#test/shared-runtime/preferences.ts";
+import type { Activities, Backend, Person } from "#test/shared-runtime/preferences.ts";
 import { TwoSessions } from "#test/shared-runtime/TwoSessions.tsx";
 
 interface SessionKeysEngine {
+	readonly activities: Activities;
 	readonly backend: Backend;
 	readonly runtime: Atom.RuntimeFactory;
 	readonly screen: Screen;
@@ -21,9 +23,15 @@ function opened(engine: SessionKeysEngine) {
 	return engine.view;
 }
 
-function settle(engine: SessionKeysEngine) {
+function settle(engine: SessionKeysEngine, person?: Person) {
 	const { container } = opened(engine);
-	return settleScreen(container, () => container.querySelector('output[data-pending="true"]') !== null, engine.screen.tell);
+	const activity = person === undefined ? undefined : engine.activities.get(person);
+	return settleScreen(
+		container,
+		() => container.querySelector('output[data-pending="true"]') !== null,
+		engine.screen.tell,
+		activity === undefined ? undefined : activityScreenSignal(activity),
+	);
 }
 
 function section(engine: SessionKeysEngine, person: Person) {
@@ -37,6 +45,7 @@ export const sessionKeys = storyKit({
 		const runtime = Atom.context({ memoMap: Layer.makeMemoMapUnsafe() });
 		runtime.addGlobalLayer(Layer.succeed(Clock.Clock, clock));
 		const engine: SessionKeysEngine = {
+			activities: new Map(),
 			backend: {
 				reads: [],
 				titles: new Map([
@@ -60,7 +69,7 @@ export const sessionKeys = storyKit({
 				const driver = section(engine, person);
 				return driver
 					.enter({ name: "Title", role: "textbox" }, title)
-					.pipe(Effect.andThen(driver.click({ name: "Save", role: "button" })), Effect.andThen(settle(engine)));
+					.pipe(Effect.andThen(driver.click({ name: "Save", role: "button" })), Effect.andThen(Effect.suspend(() => settle(engine, person))));
 			},
 			shown: (person: Person) =>
 				Effect.sync(() => opened(engine).container.querySelector(`section[aria-label="${person}"] output`)?.textContent ?? "no preferences"),
@@ -73,7 +82,7 @@ export function sessionsSharingOneRuntime() {
 		"screen",
 		"alice and bob each show their preferences through their own session registry, and both registries share one page runtime and its Reactivity",
 		function* (engine) {
-			engine.view = yield* engine.screen.open(<TwoSessions backend={engine.backend} runtime={engine.runtime} />);
+			engine.view = yield* engine.screen.open(<TwoSessions activities={engine.activities} backend={engine.backend} runtime={engine.runtime} />);
 			yield* settle(engine);
 		},
 	);

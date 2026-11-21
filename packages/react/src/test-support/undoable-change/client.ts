@@ -1,7 +1,7 @@
 import { Deferred, Effect, Schema } from "effect";
-import * as AtomRpc from "effect/reactivity/AtomRpc";
 import { collection } from "@shivaedev/changes/keys.ts";
-import { bind } from "@shivaedev/contract/bind.ts";
+import { makeClient } from "@shivaedev/contract/bind.ts";
+import { type ClientActivityState, clientActivity } from "@shivaedev/contract/clientActivity.ts";
 import { contract } from "@shivaedev/contract/contract.ts";
 import { command, query } from "@shivaedev/contract/operation.ts";
 import { Conflict } from "@shivaedev/errors/taxonomy.ts";
@@ -34,28 +34,38 @@ export function changeClient() {
 		"undoableRows.change": (input) => {
 			const pending = hold(input.id, input.removed);
 			return Effect.gen(function* () {
-				Deferred.doneUnsafe(pending.arrived, Effect.void);
 				const row = rows.get(input.id);
 				if (row === undefined || row.version !== input.expectedVersion) {
 					return yield* Change.reject.Conflict({ message: "The row has a later edit" });
 				}
 				const changed = { id: input.id, removed: input.removed, version: row.version + 1 };
 				rows.set(input.id, changed);
+				Deferred.doneUnsafe(pending.arrived, Effect.void);
 				yield* Deferred.await(pending.gate);
 				return changed;
-			}).pipe(Effect.ensuring(Effect.sync(() => Deferred.doneUnsafe(pending.finished, Effect.void))));
+			}).pipe(
+				Effect.ensuring(
+					Effect.sync(() => {
+						Deferred.doneUnsafe(pending.arrived, Effect.void);
+						Deferred.doneUnsafe(pending.finished, Effect.void);
+					}),
+				),
+			);
 		},
 		"undoableRows.list": () => Effect.sync(() => [...rows.values()]),
 	});
-	class Client extends AtomRpc.Service<Client>()("@shivaedev/react/test/UndoableChange", {
-		group: Rows,
-		protocol: layerLiveMemoryProtocol(Rows, handlers),
-	}) {}
+	const connection = makeClient(Rows, { protocol: layerLiveMemoryProtocol(Rows, handlers), url: "memory://undoable-rows" });
+	// A change the server holds stays sent and unreflected; every other change has its reply and its push on the screen.
+	function settled(state: ClientActivityState) {
+		const holding = [...held.values()].filter(({ arrived, finished }) => Deferred.isDoneUnsafe(arrived) && !Deferred.isDoneUnsafe(finished)).length;
+		return state.initialQueries === 0 && state.commands === holding && state.unreflectedCommands === holding;
+	}
 	return {
-		api: bind(Rows, Client),
+		activity: clientActivity(connection),
+		api: connection.api,
 		forget: (id: string, removed: boolean) => held.delete(`${id}:${removed}`),
 		hold,
-		runtime: Client.runtime,
+		settled,
 	};
 }
 export type ChangeClient = ReturnType<typeof changeClient>;
