@@ -29,45 +29,60 @@ function nameOf(name: ExportName): string {
 	return name.type === "Literal" ? name.value : name.name;
 }
 
-function takenBy(statement: Statement, everything: readonly string[]): readonly string[] {
+const QUERY_AND_COMMAND: readonly string[] = ["query", "command"];
+
+function takenBy(statement: Statement): readonly string[] {
 	switch (statement.type) {
 		case "ImportDeclaration":
 			return statement.specifiers.flatMap((specifier) => {
 				if (specifier.type === "ImportNamespaceSpecifier") {
-					return everything;
+					return QUERY_AND_COMMAND;
 				}
 				return [specifier.type === "ImportSpecifier" ? nameOf(specifier.imported) : "default"];
 			});
 		case "ExportNamedDeclaration":
 			return statement.specifiers.map((specifier) => nameOf(specifier.local));
 		case "ExportAllDeclaration":
-			return everything;
+			return QUERY_AND_COMMAND;
 		default:
 			return [];
 	}
 }
 
-// The names a module takes from operation.ts, read from its code as the bundler holds it. A namespace import, a dynamic import
-// or a re-export of everything takes every export, so none of them hides a query or a command from the check.
-async function namesFromOperation(context: Rollup.PluginContext, info: Rollup.ModuleInfo, operation: Option.Option<string>) {
+function statementsOf(context: Rollup.PluginContext, info: Rollup.ModuleInfo, root: string): readonly Statement[] {
+	if (info.code === null) {
+		return [];
+	}
+	try {
+		return context.parse(info.code).body;
+	} catch (cause) {
+		const reason = cause instanceof Error ? cause.message : String(cause);
+		return context.error(`The bundle check cannot read ${relative(root, info.id)}, which imports @shivaedev/contract/operation.ts: ${reason}`);
+	}
+}
+
+// Read from the module's code as the bundler holds it. A namespace import, a dynamic import or a re-export of everything takes
+// both names, and so does a module whose code names operation.ts in no statement, such as a require(), since the check cannot
+// tell what it takes.
+async function namesFromOperation(context: Rollup.PluginContext, info: Rollup.ModuleInfo, operation: Option.Option<string>, root: string) {
 	if (Option.isNone(operation)) {
 		return [];
 	}
-	const everything = context.getModuleInfo(operation.value)?.exports ?? [];
-	const dynamic = info.dynamicallyImportedIds.includes(operation.value) ? everything : [];
-	if (!info.importedIds.includes(operation.value) || info.code === null) {
+	const dynamic = info.dynamicallyImportedIds.includes(operation.value) ? QUERY_AND_COMMAND : [];
+	if (!info.importedIds.includes(operation.value)) {
 		return dynamic;
 	}
 	const taken = await Promise.all(
-		context.parse(info.code).body.map(async (statement) => {
+		statementsOf(context, info, root).map(async (statement) => {
 			const source = "source" in statement ? statement.source : null;
 			if (source === null || (await context.resolve(source.value, info.id))?.id !== operation.value) {
-				return [];
+				return Option.none<readonly string[]>();
 			}
-			return takenBy(statement, everything);
+			return Option.some(takenBy(statement));
 		}),
 	);
-	return [...dynamic, ...taken.flat()];
+	const naming = taken.filter(Option.isSome).map(({ value }) => value);
+	return naming.length === 0 ? QUERY_AND_COMMAND : [...dynamic, ...naming.flat()];
 }
 
 async function graphOf(
@@ -87,7 +102,7 @@ async function graphOf(
 			const bare = id.startsWith(BROWSER_EXTERNAL) ? id.slice(BROWSER_EXTERNAL.length) : id;
 			modules.set(id, {
 				builtin: isBuiltin(bare),
-				fromOperation: await namesFromOperation(context, info, operation),
+				fromOperation: await namesFromOperation(context, info, operation, root),
 				imports: [...info.importedIds, ...info.dynamicallyImportedIds],
 				oldFormFolders: foldersHolding(id, root, oldFormFolders),
 			});

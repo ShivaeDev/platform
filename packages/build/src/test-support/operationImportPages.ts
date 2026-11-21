@@ -5,6 +5,11 @@ const PAGE_IMPORTING_BILLING = `import { Billing } from "#modules/billing/contra
 console.log(Billing);
 `;
 
+const PAGE_IMPORTING_BILLING_CJS = `import { Billing } from "#modules/billing/contract.cjs";
+
+console.log(Billing);
+`;
+
 function billingContractTaking(imports: string, query: string): string {
 	return `import { Schema } from "effect";
 import { contract } from "@shivaedev/contract/contract.ts";
@@ -17,6 +22,25 @@ export const Billing = contract("billing", { queries: [List] });
 }
 
 export const operationImportPages = {
+	"a CommonJS contract that requires operation.ts": {
+		"src/client.ts": PAGE_IMPORTING_BILLING_CJS,
+		"src/modules/billing/contract.cjs": `const { Schema } = require("effect");
+const { query } = require("@shivaedev/contract/operation.ts");
+
+exports.Billing = query("list", { reads: () => [], success: Schema.Array(Schema.String) });
+`,
+	},
+	"a CommonJS contract that requires operation.ts and returns early at its top level": {
+		"src/client.ts": PAGE_IMPORTING_BILLING_CJS,
+		"src/modules/billing/contract.cjs": `const { Schema } = require("effect");
+const { query } = require("@shivaedev/contract/operation.ts");
+
+exports.Billing = query("list", { reads: () => [], success: Schema.Array(Schema.String) });
+if (exports.Billing !== undefined) {
+	return;
+}
+`,
+	},
 	"a contract that imports only stream from operation.ts": {
 		"src/client.ts": `import { Ticks } from "#modules/ticks/contract.ts";
 

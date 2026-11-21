@@ -79,6 +79,7 @@ for (const kind of ["Platform's deployUpdate", "a contract that imports only str
 }
 
 const TAKING_QUERY = [
+	["a CommonJS contract that requires operation.ts", "src/modules/billing/contract.cjs"],
 	["a contract that imports query from operation.ts", "src/modules/billing/contract.ts"],
 	["a contract that imports operation.ts as a namespace", "src/modules/billing/contract.ts"],
 	["a contract that imports operation.ts dynamically", "src/modules/billing/contract.ts"],
@@ -108,6 +109,20 @@ for (const [kind, chain] of TAKING_QUERY) {
 		},
 	);
 }
+
+vite.it(
+	"vite build fails, naming the module, when the bundle check cannot read a module that imports operation.ts",
+	[notesApplication(), generatedOnce(), pageImportingOperations("a CommonJS contract that requires operation.ts and returns early at its top level")],
+	function* ({ builds }) {
+		const built = yield* builds();
+
+		expect(built).toEqual({
+			failed: expect.stringContaining(
+				"The bundle check cannot read src/modules/billing/contract.cjs, which imports @shivaedev/contract/operation.ts: ",
+			),
+		});
+	},
+);
 
 vite.it("vite build stops on a refusal with the generator's message", [notesApplication(), refusedModule()], function* ({ builds }) {
 	const built = yield* builds();
