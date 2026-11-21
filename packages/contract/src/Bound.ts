@@ -2,19 +2,11 @@ import type { Effect, Stream } from "effect";
 import type { Headers } from "effect/http";
 import type * as AsyncResult from "effect/reactivity/AsyncResult";
 import type * as Atom from "effect/reactivity/Atom";
-import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
-import type * as AtomRpc from "effect/reactivity/AtomRpc";
 import type * as Reactivity from "effect/reactivity/Reactivity";
 import type { Rpc } from "effect/rpc";
 import type { RpcClientError } from "effect/rpc/RpcClientError";
-import { bindingOwner } from "#adapters/bindingOwner.ts";
-import { automaticLive, type LiveBound } from "#automaticLive.ts";
-import { bindOperations } from "#bindOperations.ts";
-import { clientOperations } from "#clientOperations.ts";
-import type { Contract, Declared } from "#contract.ts";
 import type { CommandShape, QueryShape, StreamShape } from "#operation.ts";
 import type { Tag } from "#operationRpc.ts";
-import type { ResumeSource, ResumeWindow } from "#resume.ts";
 
 // Like Effect's own `Rpc` helpers, these take any type: `Rpc.ExtractTag` of a generic group is not provably an `Rpc.Any`.
 export type Failure<R> =
@@ -73,41 +65,3 @@ export type Bound<
 } & {
 	readonly [TStream in TStreams[number] as TStream["name"]]: BoundStream<Rpc.ExtractTag<TRpcs, Tag<TName, TStream["name"]>>, TSelf>;
 };
-
-type MatchingClient<TRpcs extends Rpc.Any, TClientRpcs extends Rpc.Any> = [TRpcs] extends [Extract<TClientRpcs, { readonly _tag: TRpcs["_tag"] }>]
-	? [Extract<TClientRpcs, { readonly _tag: TRpcs["_tag"] }>] extends [TRpcs]
-		? unknown
-		: "Client must preserve the contract RPC types"
-	: "Client must implement the contract RPCs";
-
-interface BindOptions {
-	readonly registry?: AtomRegistry.AtomRegistry;
-	readonly resume?: ResumeSource;
-	readonly resumeWindow?: ResumeWindow;
-}
-
-export function bind<
-	TName extends string,
-	TQueries extends readonly QueryShape[],
-	TCommands extends readonly CommandShape[],
-	TRpcs extends Rpc.Any,
-	TSelf,
-	TId extends string,
-	TClientRpcs extends Rpc.Any,
-	TStreams extends readonly StreamShape[],
-	TScope extends "session" | undefined,
->(
-	contract: Contract<TName, TQueries, TCommands, TRpcs, TStreams, TScope>,
-	service: AtomRpc.AtomRpcClient<TSelf, TId, TClientRpcs> & MatchingClient<NoInfer<TRpcs>, TClientRpcs>,
-	...options: "session" extends TScope ? [options: BindOptions & { readonly registry: AtomRegistry.AtomRegistry }] : [options?: BindOptions]
-): Bound<TName, TQueries, TCommands, TRpcs, TSelf, TStreams> & LiveBound;
-export function bind(
-	contract: { readonly declaration: Declared<string, readonly QueryShape[], readonly CommandShape[], readonly StreamShape[], "session" | undefined> },
-	service: AtomRpc.AtomRpcClient<unknown, string, Rpc.Any>,
-	options?: BindOptions,
-): unknown {
-	const { name, keyScope } = contract.declaration;
-	const owner = bindingOwner(keyScope, options?.registry);
-	const automatic = automaticLive(service, name, owner, options?.resume, options?.resumeWindow);
-	return bindOperations(contract.declaration, clientOperations(service, automatic, owner), automatic.subscription);
-}

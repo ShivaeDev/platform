@@ -6,7 +6,7 @@ import type { Rpc, RpcClient, RpcGroup } from "effect/rpc";
 import type { RpcClientError } from "effect/rpc/RpcClientError";
 import { bindingOwner } from "#adapters/bindingOwner.ts";
 import { automaticLive, type LiveBound } from "#automaticLive.ts";
-import type { Bound } from "#bind.ts";
+import type { Bound } from "#Bound.ts";
 import { bindOperations } from "#bindOperations.ts";
 import type { ClientOptions } from "#ClientOptions.ts";
 import type { ActiveClient } from "#clientActivity.ts";

@@ -7,7 +7,7 @@ import type { Rpc } from "effect/rpc";
 import type { BindingOwner } from "#adapters/bindingOwner.ts";
 import { streamingClient, unaryClient } from "#adapters/erasedClient.ts";
 import type { automaticLive } from "#automaticLive.ts";
-import type { QueryOptions, RunOptions } from "#bind.ts";
+import type { QueryOptions, RunOptions } from "#Bound.ts";
 import { clientActivities } from "#clientActivities.ts";
 import { commandPayload } from "#commandPayload.ts";
 import { COMMAND_REFLECTED } from "#commandReflected.ts";

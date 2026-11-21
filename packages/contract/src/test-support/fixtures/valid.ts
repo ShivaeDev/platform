@@ -1,16 +1,14 @@
-import { Context, Effect, Layer, Option, Schema, Stream } from "effect";
-import { FetchHttpClient } from "effect/http";
+import { Context, Effect, type Layer, Option, Schema, Stream } from "effect";
 import type * as AsyncResult from "effect/reactivity/AsyncResult";
 import type * as Atom from "effect/reactivity/Atom";
-import * as AtomRpc from "effect/reactivity/AtomRpc";
 import type * as Reactivity from "effect/reactivity/Reactivity";
-import { RpcClient, RpcMiddleware, RpcSerialization } from "effect/rpc";
+import { RpcMiddleware } from "effect/rpc";
 import type { RpcClientError } from "effect/rpc/RpcClientError";
 import type { SqlError } from "effect/sql/SqlError";
 import { NotFound } from "@shivaedev/errors/taxonomy.ts";
-import { bind } from "#bind.ts";
 import { contract } from "#contract.ts";
 import { defineModule } from "#defineModule.ts";
+import { type ContractsClient, makeClient } from "#makeClient.ts";
 import type { moduleHandlers } from "#moduleHandlers.ts";
 import { command, query } from "#operation.ts";
 import { permissionReadPolicy } from "#permissionReadPolicy.ts";
@@ -20,12 +18,7 @@ import { Create, type Denied, Get, Note, NoteMissing, Notes, notes, type Rename 
 import * as RunNotes from "#test/runNotes.ts";
 import type { WebSocketRequired } from "#WebSocketRequired.ts";
 
-export class Client extends AtomRpc.Service<Client>()("fixture/Client", {
-	group: Notes,
-	protocol: RpcClient.layerProtocolHttp({ url: "http://127.0.0.1/rpc" }).pipe(Layer.provide([FetchHttpClient.layer, RpcSerialization.layerJson])),
-}) {}
-
-export const api = bind(Notes, Client);
+export const api = makeClient({ notes: Notes }, { url: "http://127.0.0.1/rpc" }).api.notes;
 
 export const noteQuery: Atom.Atom<
 	AsyncResult.AsyncResult<Note, NoteMissing | Denied | QueryReadDenied | RpcClientError | MissingReadPolicy | WebSocketRequired>
@@ -33,12 +26,15 @@ export const noteQuery: Atom.Atom<
 	id: 1,
 });
 export const listQuery = api.list.query();
-export const readOnce: Effect.Effect<Note, NoteMissing | Denied | QueryReadDenied | RpcClientError | MissingReadPolicy | WebSocketRequired, Client> =
-	api.get.run({ id: 1 });
+export const readOnce: Effect.Effect<
+	Note,
+	NoteMissing | Denied | QueryReadDenied | RpcClientError | MissingReadPolicy | WebSocketRequired,
+	ContractsClient
+> = api.get.run({ id: 1 });
 
 type Invalid = Effect.Error<ReturnType<typeof Rename.reject.Invalid>>;
 export const invalidField: Invalid["field"] = "title";
-export const rename: Effect.Effect<Note, NoteMissing | Invalid | Denied | RpcClientError, Client | Reactivity.Reactivity> = api.rename.run({
+export const rename: Effect.Effect<Note, NoteMissing | Invalid | Denied | RpcClientError, ContractsClient | Reactivity.Reactivity> = api.rename.run({
 	id: 1,
 	title: "t",
 });
@@ -209,9 +205,5 @@ export const importNotesNeedRunAndPolicyServices: Exactly<
 	Requirements<ReturnType<typeof moduleHandlers<typeof ImportNotes>>>,
 	RunNotes.NoteSource | RunNotes.SessionUser | RunNotes.NotesRepository
 > = true;
-export class ModuleClient extends AtomRpc.Service<ModuleClient>()("fixture/ModuleClient", {
-	group: ModuleNotes.Notes,
-	protocol: RpcClient.layerProtocolHttp({ url: "http://127.0.0.1/rpc" }).pipe(Layer.provide([FetchHttpClient.layer, RpcSerialization.layerJson])),
-}) {}
-export const moduleApi = bind(ModuleNotes.Notes, ModuleClient);
+export const moduleApi = makeClient({ notes: ModuleNotes.Notes }, { url: "http://127.0.0.1/rpc" }).api.notes;
 export const moduleList: Atom.Atom<AsyncResult.AsyncResult<readonly (typeof ModuleNotes.Note.Type)[], unknown>> = moduleApi.list.query();

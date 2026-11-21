@@ -12,6 +12,18 @@ for (const operation of ["read", "save"] as const) {
 	});
 }
 
+for (const [operation, rejection] of [
+	["read", "not found"],
+	["save", "conflict: Title is taken"],
+] as const) {
+	boundaryStory.it(`a client made from the contract over HTTP runs ${operation} and returns its result`, [], function* ({ run }) {
+		expect(yield* run(operation, "success")).toBe("a note");
+	});
+	boundaryStory.it(`a client made from the contract over HTTP runs ${operation} and keeps its declared rejection`, [], function* ({ run }) {
+		expect(yield* run(operation, "declared")).toBe(`failed with ${rejection}`);
+	});
+}
+
 for (const failure of ["unexpected", "defect"] as const) {
 	boundaryStory.it(`the group boundary maps a wrapped stream's late ${failure} failure after delivering its first note`, [], function* ({ follow }) {
 		expect(yield* follow(failure)).toEqual({ ending: "failed with internal server error: Notes unavailable", notes: ["first note"] });

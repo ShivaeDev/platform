@@ -1,20 +1,19 @@
 import { Clock, Context, Effect, Layer, Schema, Stream } from "effect";
 import { Digest } from "effect/crypto";
 import * as Atom from "effect/reactivity/Atom";
-import * as AtomRpc from "effect/reactivity/AtomRpc";
 import * as Reactivity from "effect/reactivity/Reactivity";
-import { RpcTest } from "effect/rpc";
 import { collection, invalidationKeys } from "@shivaedev/changes/keys.ts";
 import { LiveConnection } from "@shivaedev/contract/automaticLive.ts";
-import { bind } from "@shivaedev/contract/bind.ts";
 import { changesHandlerLayer } from "@shivaedev/contract/changesHandlerLayer.ts";
 import { contract } from "@shivaedev/contract/contract.ts";
+import { makeClient } from "@shivaedev/contract/makeClient.ts";
 import { makeLiveServer } from "@shivaedev/contract/makeLiveServer.ts";
 import { query } from "@shivaedev/contract/operation.ts";
 import { querySubscription } from "@shivaedev/contract/querySubscription.ts";
 import { CurrentViewer } from "@shivaedev/contract/readPolicy.ts";
 import { QueryReadDenied } from "@shivaedev/contract/readPolicyErrors.ts";
 import { rerunQuery } from "@shivaedev/server/rerunQuery.ts";
+import { layerMemoryProtocol } from "@shivaedev/test-kits/contract/testing.ts";
 
 const notes = collection("denied-live-notes", Schema.String);
 class Access extends Context.Service<Access, { allowed: boolean; checks: string[] }>()("@shivaedev/react/test/DeniedLiveAccess") {}
@@ -68,13 +67,8 @@ export const deniedLiveClient = Effect.gen(function* () {
 	);
 	const runtime = Atom.context({ memoMap: Layer.makeMemoMapUnsafe() });
 	runtime.addGlobalLayer(Layer.mergeAll(Layer.succeed(Clock.Clock, clock), Layer.succeed(Digest.Digest, digest)));
-	class Client extends AtomRpc.Service<Client>()("test/DeniedLiveClient", {
-		group: Notes,
-		makeEffect: RpcTest.makeClient(Notes, { flatten: true }),
-		protocol: handlers.pipe(Layer.provide(Layer.succeed(Access, access))),
-		runtime,
-	}) {}
-	const api = bind(Notes, Client);
+	const protocol = layerMemoryProtocol(Notes).pipe(Layer.provide(handlers.pipe(Layer.provide(Layer.succeed(Access, access)))));
+	const api = makeClient({ deniedLive: Notes }, { protocol, runtime }).api.deniedLive;
 	return {
 		access,
 		announce: () => reactivity.invalidate(invalidationKeys([notes.item("private"), notes.item("private-details"), notes.item("private-counts")])),
