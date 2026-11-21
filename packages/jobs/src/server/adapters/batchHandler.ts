@@ -1,4 +1,5 @@
 import { Cause, Clock, Effect, Exit } from "effect";
+import { redactDiagnosticCause } from "@shivaedev/errors/redactCause.ts";
 import { batchClockOffset } from "#server/adapters/batchClockOffset.ts";
 import type { PgBossClient } from "#server/adapters/client.ts";
 import { deadlineOf, validateDeadline } from "#server/deadlineOf.ts";
@@ -24,14 +25,37 @@ function settleAttempt(
 	});
 }
 
+const deadlineReached = Symbol("deadlineReached");
+
 const interruptAt = Effect.fnUntraced(function* (deadline: number) {
 	let remaining = deadline - (yield* Clock.currentTimeMillis);
 	while (remaining > 0) {
 		yield* Effect.sleep(remaining);
 		remaining = deadline - (yield* Clock.currentTimeMillis);
 	}
-	return yield* Effect.interrupt;
+	return deadlineReached;
 });
+
+function attemptLogged(name: string, job: WorkerJob<unknown>, outcome: "deadline" | "failed", line: Effect.Effect<void>) {
+	return Effect.annotateLogs(line, { "job.attempt": job.retryCount + 1, "job.id": job.id, "job.outcome": outcome, "job.queue": name });
+}
+
+function deadlineLogged(name: string, job: WorkerJob<unknown>) {
+	return attemptLogged(name, job, "deadline", Effect.logError(`Job attempt hit its ${job.expireInSeconds}s deadline`));
+}
+
+function attemptEnded(name: string, job: WorkerJob<unknown>, exit: Exit.Exit<unknown, unknown>): Effect.Effect<"interrupted" | "ended"> {
+	if (Exit.isSuccess(exit) && exit.value === deadlineReached) {
+		return Effect.as(deadlineLogged(name, job), "interrupted");
+	}
+	if (job.signal.aborted || (Exit.isFailure(exit) && Cause.hasInterrupts(exit.cause))) {
+		return Effect.succeed("interrupted");
+	}
+	if (Exit.isFailure(exit)) {
+		return Effect.as(attemptLogged(name, job, "failed", Effect.logError("Job attempt failed", redactDiagnosticCause(exit.cause))), "ended");
+	}
+	return Effect.succeed("ended");
+}
 
 function aborted(signal: AbortSignal) {
 	return Effect.callback<never>((resume) => {
@@ -67,10 +91,11 @@ export function batchHandler<R>(
 		const deadline = deadlineOf(job) + offset;
 		const remaining = deadline - (yield* Clock.currentTimeMillis);
 		if (remaining <= 0) {
+			yield* deadlineLogged(name, job);
 			return "expired";
 		}
 		const exit = yield* run(job, deadline).pipe(Effect.raceFirst(interruptAt(deadline)), Effect.raceFirst(aborted(job.signal)), Effect.exit);
-		if (job.signal.aborted || (Exit.isFailure(exit) && Cause.hasInterrupts(exit.cause))) {
+		if ((yield* attemptEnded(name, job, exit)) === "interrupted") {
 			return "interrupted";
 		}
 		yield* settleAttempt(complete, fail, name, job, exit);

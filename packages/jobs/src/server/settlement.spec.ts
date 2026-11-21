@@ -96,12 +96,25 @@ runtime.it(
 	},
 );
 
+runtime.it(
+	"an attempt stopped by pg-boss aborting its signal before its deadline logs nothing",
+	[storedJob(stored("reports", "job-1", { id: 1 }, "failed")), running("app", [worker(Reports, "hangs")])],
+	function* ({ deliver, interrupted, logged }) {
+		yield* deliver("reports", [{ data: { id: 1 }, expireInSeconds: 60, id: "job-1" }], { pgBossAborts: "job-1" });
+
+		yield* outcomes([
+			["interrupted", () => interrupted(), ["job-1"]],
+			["logs", () => logged(), []],
+		]);
+	},
+);
+
 for (const reads of [
 	{ given: [storedJob(stored("reports", "job-1", { id: 1 }, "active"))], how: "keep reporting the claim active" },
 	{ given: [claimReadsStall], how: "never answer" },
 ]) {
 	runtime.it(
-		`when claim reads ${reads.how} after an interruption, the batch gives up a second past its deadline with a logged settle error`,
+		`when claim reads ${reads.how} after a job hits its deadline, the batch logs the deadline and gives up a second past it with a logged settle error`,
 		[...reads.given, running("app", [worker(Reports, "hangs")])],
 		function* ({ batchAnswer, batchFailureMessage, clockPasses, deliveryFinishes, deliveryReturned, logged, startsDelivering }) {
 			yield* startsDelivering("reports", { data: { id: 1 }, expireInSeconds: 1, id: "job-1", startedMillisAgo: 900 });
@@ -111,7 +124,14 @@ for (const reads of [
 			yield* outcomes([
 				["batch", () => batchAnswer(), expect.stringMatching(/^rejected with settle reports failed with Operation timed out/u)],
 				["batch returned", () => deliveryReturned(), "1 second after the batch deadline"],
-				["logs", () => logged(), [{ level: "Error", message: expect.stringMatching(/^settle reports failed with Operation timed out/u) }]],
+				[
+					"logs",
+					() => logged(),
+					[
+						{ level: "Error", message: "Job attempt hit its 1s deadline" },
+						{ level: "Error", message: expect.stringMatching(/^settle reports failed with Operation timed out/u) },
+					],
+				],
 				[
 					"settle failure summary",
 					() => batchFailureMessage(),

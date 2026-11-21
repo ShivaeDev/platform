@@ -47,6 +47,17 @@ moduleWorkers.it(
 	},
 );
 
+moduleWorkers.it(
+	"a name listed in the worker host's config.sensitiveKeys is masked in the failure of the line that logs a failed job attempt",
+	[sensitiveKeys("customerReference")],
+	function* ({ chargeMember, complete, recordedWorkerFailure }) {
+		yield* chargeMember(7);
+		yield* complete();
+
+		expect(yield* recordedWorkerFailure("Job attempt failed")).toEqual({ _tag: "ChargeDeclined", customerReference: "<redacted>", id: 7 });
+	},
+);
+
 moduleWorkers.it("a credential-shaped password in a log the worker writes while it starts is masked", [], function* ({ recordedWorkerLog }) {
 	expect(yield* recordedWorkerLog("member mailer connected")).toEqual({ host: "smtp.example.test", password: "<redacted>" });
 });

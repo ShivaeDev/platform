@@ -27,6 +27,7 @@ const worker = { pollingIntervalSeconds: 0.5 };
 export const PrintCard = defineQueue({ name: "members.card", queue: retryNever, schema: MemberJob, worker });
 export const AuditMember = defineQueue({ name: "members.audit", queue: retryNever, schema: MemberJob, worker });
 export const BillMember = defineQueue({ name: "members.bill", queue: retryNever, schema: MemberJob, worker });
+export const ChargeMember = defineQueue({ name: "members.charge", queue: retryNever, schema: MemberJob, worker });
 const MemberJobs = makePgBoss("test/modules/MemberJobs");
 
 export const MemberCardsApi = RpcGroup.make(
@@ -34,6 +35,7 @@ export const MemberCardsApi = RpcGroup.make(
 	Rpc.make("printCard", { payload: MemberJob, success: Schema.String }),
 	Rpc.make("audit", { payload: MemberJob, success: Schema.String }),
 	Rpc.make("bill", { payload: MemberJob, success: Schema.String }),
+	Rpc.make("charge", { payload: MemberJob, success: Schema.String }),
 	Rpc.make("printedAddresses", { success: Schema.Array(Schema.String) }),
 );
 
@@ -64,19 +66,26 @@ function bill({ id }: typeof MemberJob.Type) {
 	return Effect.logInfo("member billed", { customerReference: `cus_${id}`, id });
 }
 
-function enqueue(queue: typeof PrintCard | typeof AuditMember | typeof BillMember) {
+function charge({ id }: typeof MemberJob.Type) {
+	return Effect.fail({ _tag: "ChargeDeclined", customerReference: `cus_${id}`, id });
+}
+
+function enqueue(queue: typeof PrintCard | typeof AuditMember | typeof BillMember | typeof ChargeMember) {
 	return (job: typeof MemberJob.Type) => MemberJobs.use((jobs) => jobs.enqueue(queue, job)).pipe(Effect.orDie, Effect.map(Option.getOrThrow));
 }
 
 const mailerStarted = Layer.effectDiscard(Effect.logInfo("member mailer connected", { host: "smtp.example.test", password: "mail-secret" }));
 
-const memberJobs = jobModule(MemberJobs.layer, { jobs: [PrintCard.handle(printCard), AuditMember.handle(audit), BillMember.handle(bill)] });
+const memberJobs = jobModule(MemberJobs.layer, {
+	jobs: [PrintCard.handle(printCard), AuditMember.handle(audit), BillMember.handle(bill), ChargeMember.handle(charge)],
+});
 
 export const memberCardsModule = {
 	group: MemberCardsApi,
 	handlers: MemberCardsApi.toLayer({
 		audit: enqueue(AuditMember),
 		bill: enqueue(BillMember),
+		charge: enqueue(ChargeMember),
 		join: ({ address, name }) =>
 			MemberCardsRepository.use((members) => members.insert(Member.insert.make({ address, name }))).pipe(
 				Effect.orDie,
@@ -100,6 +109,6 @@ export const memberCardsModule = {
 	},
 	name: "member cards",
 	queues: memberJobs.queues,
-	services: MemberCardsRepository.layer.pipe(Layer.merge(MemberJobs.layer({ jobs: [PrintCard, AuditMember, BillMember] }))),
+	services: MemberCardsRepository.layer.pipe(Layer.merge(MemberJobs.layer({ jobs: [PrintCard, AuditMember, BillMember, ChargeMember] }))),
 	workers: Layer.merge(memberJobs.workers, mailerStarted),
 } satisfies AppModule;
