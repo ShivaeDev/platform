@@ -36,7 +36,7 @@ const Profile = contract("profile", {
 	queries: [query("read", { readPolicy: () => Effect.succeed(true), reads: () => [], success: SessionUserSchema })],
 }).middleware(AuthenticatedUser);
 
-export type SessionStorage = "database" | "cookie cache" | "secondary storage";
+export type SessionStorage = "database" | "cookie cache" | "secondary storage" | "secondary storage and the database";
 
 // Better Auth keeps sessions only here when secondary storage is configured, so the map stands in for a shared cache such as Redis.
 function memorySecondaryStorage(): SecondaryStorage {
@@ -63,8 +63,12 @@ function memorySecondaryStorage(): SecondaryStorage {
 }
 
 function sessionOptions(storage: SessionStorage) {
-	const session = { cookieCache: { enabled: storage === "cookie cache" }, disableSessionRefresh: true };
-	return storage === "secondary storage" ? { secondaryStorage: memorySecondaryStorage(), session } : { session };
+	const session = {
+		cookieCache: { enabled: storage === "cookie cache" },
+		disableSessionRefresh: true,
+		storeSessionInDatabase: storage === "secondary storage and the database",
+	};
+	return storage.startsWith("secondary storage") ? { secondaryStorage: memorySecondaryStorage(), session } : { session };
 }
 const ServedApi = Account.merge(Profile);
 const Api = AccountClient.merge(Profile);

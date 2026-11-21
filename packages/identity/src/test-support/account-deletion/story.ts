@@ -39,6 +39,10 @@ function emailOf(name: Person) {
 	return `${name}@deletion.test`;
 }
 
+export function addressCode(name: Person) {
+	return `email-verification-otp-${emailOf(name)}`;
+}
+
 // The person reads a refusal's own words, so the readout keeps the message of a request rejection.
 function refusalWords(error: unknown) {
 	return Predicate.hasProperty(error, "_tag") && ["BadRequest", "PreconditionFailed", "TooManyRequests"].includes(String(error._tag))
@@ -100,6 +104,16 @@ export const accountDeletion = storyKit({
 		}
 		return {
 			announcedKeys: () => Effect.sync(() => engine.announced.map((key) => String(key).replace(/:(?<id>.+)$/u, (_, id: string) => `:${nameOf(id)}`))),
+			cachedAddressCodes: Effect.fn("AccountDeletionStory.cachedAddressCodes")(function* () {
+				const { internalAdapter } = yield* Effect.promise(() => host().auth.$context);
+				const found: Person[] = [];
+				for (const name of ["alice", "bob"] as const) {
+					if ((yield* Effect.promise(() => internalAdapter.findVerificationValue(addressCode(name)))) !== null) {
+						found.push(name);
+					}
+				}
+				return found;
+			}),
 			changeEmail: (name: Person, password: string) => {
 				story.tell(`${name} asks Better Auth's /change-email route for a new address, confirming it with ${JSON.stringify(password)}`);
 				return host()
@@ -266,9 +280,3 @@ export const lookalikeAddressCodes = accountDeletion.trait(
 		}
 	},
 );
-
-export function sessionsIn(storage: SessionStorage) {
-	return accountDeletion.trait("hosting", `the auth declaration keeps sessions with ${storage}`, (setup) => {
-		setup.storage = storage;
-	});
-}
