@@ -1,12 +1,12 @@
 import { expect } from "vitest";
-import { emptyDatabase, migration } from "#test-support/migration.ts";
+import { ownedData } from "#test-support/ownedData.ts";
 
-migration.it(
-	"after every migration, an owned model covers each column that refers to a person, so an account export or erase leaves none out",
-	[emptyDatabase],
-	function* ({ accountDataCoverage, migrates }) {
-		yield* migrates();
+ownedData.it(
+	"on the migrated database, an owned model covers each column that refers to a person, so an account export or erase leaves none out",
+	[],
+	function* ({ coverage }) {
+		const covered = yield* coverage();
 
-		expect(yield* accountDataCoverage()).toBe("covered");
+		expect(covered).toBe("covered");
 	},
 );
