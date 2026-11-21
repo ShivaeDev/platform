@@ -7,7 +7,7 @@ import type { StreamAnchor } from "#reflectedStream.ts";
 
 export interface AutomaticQueryOptions<A, E> {
 	readonly anchor: (registry: object) => StreamAnchor;
-	readonly clientStatuses: Atom.Writable<ReadonlyMap<object, LiveStatus<unknown>>> | undefined;
+	readonly clientStatuses: Atom.Writable<ReadonlyMap<object, LiveStatus<unknown>>>;
 	readonly equivalent: (left: A, right: A) => boolean;
 	readonly paused: Atom.Writable<boolean>;
 	readonly ready: Atom.Writable<boolean>;

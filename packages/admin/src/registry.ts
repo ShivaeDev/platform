@@ -1,15 +1,12 @@
 import { Effect } from "effect";
-import { RpcGroup } from "effect/rpc";
 import type { AdminPage } from "#page.ts";
 import { validateAdminRoutes } from "#validateAdminRoutes.ts";
 
 export interface AdminRegistry<TPages extends readonly AdminPage[]> {
-	readonly group: RpcGroup.RpcGroup<RpcGroup.Rpcs<TPages[number]["contract"]>>;
 	readonly pages: TPages;
 }
 
 export interface AnyAdminRegistry {
-	readonly group: RpcGroup.Any;
 	readonly pages: readonly AdminPage[];
 }
 
@@ -39,7 +36,7 @@ export function mergeAdminRegistries(...registries: readonly AnyAdminRegistry[])
 }
 
 export function adminRegistry<const TPages extends readonly AdminPage[]>(...pages: TPages & UniquePageIds<TPages>): AdminRegistry<TPages> {
-	return { group: RpcGroup.make().merge(...pages.map((page) => page.contract)), pages };
+	return { pages };
 }
 
 export const validateAdminRegistry = Effect.fnUntraced(function* (pages: readonly AdminPage[]) {

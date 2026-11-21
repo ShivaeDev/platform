@@ -1,4 +1,5 @@
 import { Deferred, Effect } from "effect";
+import { activityScreenSignal } from "@shivaedev/contract/clientActivity.ts";
 import type { Rendered } from "@shivaedev/test-story/client/adapters/react.ts";
 import type { Notice } from "#client/notices.ts";
 import { type FeatureScreen, FeedbackView } from "#test/feedback-path/view.tsx";
@@ -51,7 +52,10 @@ function button(state: State, label: string) {
 
 export function feedbackVerbs(state: State, screen: Screen) {
 	function settle(pending: () => boolean) {
-		return Effect.suspend(() => settleScreen(view(state).container, pending, screen.tell));
+		return Effect.suspend(() => {
+			const { client } = session(state);
+			return settleScreen(view(state).container, pending, screen.tell, activityScreenSignal(client.activity, client.settled));
+		});
 	}
 	function listPending() {
 		return button(state, "Refresh")?.disabled === true;
@@ -104,7 +108,7 @@ export function feedbackVerbs(state: State, screen: Screen) {
 				name,
 				`the server removes ${title}${name ? ` for ${name}` : ""}`,
 				name === undefined || name === state.current.session,
-			),
+			).pipe(Effect.andThen(settle(listPending))),
 		completeRestore: (title: string, name?: Session) =>
 			release("restore", title, name, `the server restores ${title}${name ? ` for ${name}` : ""}`, false).pipe(
 				Effect.andThen(settle(() => button(state, `Undo ${title}`)?.disabled === true)),

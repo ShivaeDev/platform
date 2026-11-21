@@ -101,7 +101,7 @@ export const sessionStory = storyKit({
 			return engine.announce();
 		},
 		bindWithoutOwner: () => {
-			story.tell("the client binds the session contract without an owning registry");
+			story.tell("the client is made from the session contract without an owning registry");
 			return thrown(() => engine.clients.alice.withoutOwner());
 		},
 		changeQuietly: (person: Person, title: string) => {

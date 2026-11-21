@@ -2,7 +2,6 @@ import { Effect, Layer, Logger, Option, References, Schema, Tracer } from "effec
 import { RpcClient, RpcSerialization } from "effect/rpc";
 import * as Socket from "effect/socket/Socket";
 import { SqlClient } from "effect/sql";
-import { moduleHandlers } from "@shivaedev/contract/moduleHandlers.ts";
 import { AuthUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import { betterAuthDatabase } from "@shivaedev/identity/server/better-auth/adapters/database.ts";
 import { migrateBetterAuth } from "@shivaedev/identity/server/better-auth/migrate.ts";
@@ -72,7 +71,7 @@ export const makeUsersEngine = Effect.fnUntraced(function* (mapping: AuthTableOp
 			logs.push({ annotations: options.fiber.getRef(References.CurrentLogAnnotations), message: options.message });
 		}),
 	]);
-	const registration = registerAdmin(adminRegistry(UsersPage), { users: moduleHandlers(Users) });
+	const registration = registerAdmin(adminRegistry(UsersPage), { users: Users });
 	// Every caller's transport shares one change channel, so a change made through one is pushed to the others.
 	const channel = Layer.succeedContext(yield* Layer.build(liveChannel()));
 	const host = yield* liveHost(

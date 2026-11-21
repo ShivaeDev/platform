@@ -5,7 +5,7 @@ import { type Rpc, RpcClient, RpcGroup } from "effect/rpc";
 import type { RpcClientError } from "effect/rpc/RpcClientError";
 import type { ClientOptions } from "#ClientOptions.ts";
 import { catchUp } from "#catchUp.ts";
-import { clientActivities, makeActivity } from "#clientActivities.ts";
+import { makeActivity } from "#clientActivities.ts";
 import { Activity } from "#clientActivity.ts";
 import { ConnectionScope, connectionProtocol } from "#connectionProtocol.ts";
 import { commandConnections } from "#connectionReadiness.ts";
@@ -86,14 +86,13 @@ export function rpcClient(name: string, source: RpcSource, options: ClientOption
 		protocol: typeof options.protocol === "object" ? protocol : (get) => protocolFor(get(socketIdentity)),
 		runtime: options.runtime,
 	});
-	clientActivities.set(Client, activity);
 	const directClient = withClientProtocol(protocol, make).pipe(
 		Effect.map((flat) =>
 			Object.fromEntries([...group.requests.keys()].map((tag) => [tag, (payload: never, callOptions: never) => flat(tag, payload, callOptions)])),
 		),
 	);
 	const layer = Layer.effect(Client, make).pipe(Layer.provide(protocol));
-	return Object.assign(layer, { [Activity]: activity.activity, Client, client: directClient, runtime: Client.runtime });
+	return { activity, connection: Object.assign(layer, { [Activity]: activity.activity, Client, client: directClient, runtime: Client.runtime }) };
 }
 
 function pageRpcUrl() {

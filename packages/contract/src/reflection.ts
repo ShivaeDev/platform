@@ -110,3 +110,8 @@ export const makeReflection = Effect.flatMap(Queue.sliding<void>(1), (catchUps) 
 export type Reflection = Effect.Success<typeof makeReflection>;
 
 export const reflections = new WeakMap<object, { readonly piggyback: boolean; readonly reflection: Reflection }>();
+
+export function reflectionScope(client: object) {
+	const scope = reflections.get(client);
+	return scope === undefined ? Effect.die(new Error("A client made by makeClient carries its connection's reflection")) : Effect.succeed(scope);
+}

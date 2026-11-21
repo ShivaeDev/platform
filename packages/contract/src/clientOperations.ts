@@ -7,8 +7,8 @@ import type { Rpc } from "effect/rpc";
 import type { BindingOwner } from "#adapters/bindingOwner.ts";
 import { streamingClient, unaryClient } from "#adapters/erasedClient.ts";
 import type { automaticLive } from "#automaticLive.ts";
-import type { QueryOptions, RunOptions } from "#bind.ts";
-import { clientActivities } from "#clientActivities.ts";
+import type { QueryOptions, RunOptions } from "#Bound.ts";
+import type { ActivityTracker } from "#clientActivities.ts";
 import { commandPayload } from "#commandPayload.ts";
 import { COMMAND_REFLECTED } from "#commandReflected.ts";
 import { CommandSignal, untilReflected } from "#commandSignal.ts";
@@ -28,6 +28,7 @@ function runSubject(options: unknown): string | undefined {
 
 export function clientOperations(
 	service: AtomRpc.AtomRpcClient<unknown, string, Rpc.Any>,
+	activity: ActivityTracker,
 	automatic: ReturnType<typeof automaticLive>,
 	owner?: BindingOwner,
 ) {
@@ -42,7 +43,7 @@ export function clientOperations(
 		const reactivity = yield* Reactivity.Reactivity;
 		return yield* Effect.sync(
 			(): CommandObserver => ({
-				pending: () => clientActivities.get(ordinaryClient)?.reflecting() ?? (() => undefined),
+				pending: activity.reflecting,
 				signal: (state) => {
 					signal(state);
 					if (state === "reflected") {
@@ -79,7 +80,7 @@ export function clientOperations(
 				function warm(get: Atom.AtomContext): boolean {
 					return get.once(warmQueries).has(tracked);
 				}
-				const watched = clientActivities.get(ordinaryClient)?.watch(result, warm) ?? result;
+				const watched = activity.watch(result, warm);
 				const tracked = retainQuery(ordinaryClient.runtime, watched, stored(payload, inputSubject(headers)));
 				cached.set(atom, tracked);
 				return tracked;

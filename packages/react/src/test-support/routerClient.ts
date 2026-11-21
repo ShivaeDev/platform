@@ -1,7 +1,6 @@
 import { Deferred, Effect, Schema } from "effect";
-import * as AtomRpc from "effect/reactivity/AtomRpc";
-import { bind } from "@shivaedev/contract/bind.ts";
 import { contract } from "@shivaedev/contract/contract.ts";
+import { makeClient } from "@shivaedev/contract/makeClient.ts";
 import { query } from "@shivaedev/contract/operation.ts";
 import { Forbidden, NotFound, Unauthorized } from "@shivaedev/errors/taxonomy.ts";
 import { layerLiveMemoryProtocol } from "@shivaedev/test-kits/contract/liveMemoryProtocol.ts";
@@ -58,12 +57,8 @@ export function routerClient() {
 			});
 		}),
 	);
-	class Client extends AtomRpc.Service<Client>()("test/RouterNotes", {
-		group: Notes,
-		protocol: layerLiveMemoryProtocol(Notes, handlers),
-	}) {}
 	return {
-		api: bind(Notes, Client),
+		api: makeClient({ routerNotes: Notes }, { protocol: layerLiveMemoryProtocol(Notes, handlers) }).api.routerNotes,
 		builds: () => builds,
 		calls,
 		frames,

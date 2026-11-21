@@ -1,16 +1,15 @@
 import { Deferred, Effect, Layer, Schema, Stream } from "effect";
-import * as AtomRpc from "effect/reactivity/AtomRpc";
-import { RpcTest } from "effect/rpc";
 import { collection } from "@shivaedev/changes/keys.ts";
-import { bind } from "@shivaedev/contract/bind.ts";
 import { changesHandlerLayer } from "@shivaedev/contract/changesHandlerLayer.ts";
 import { compareQueries } from "@shivaedev/contract/compareQueries.ts";
 import { contract } from "@shivaedev/contract/contract.ts";
+import { makeClient } from "@shivaedev/contract/makeClient.ts";
 import { query } from "@shivaedev/contract/operation.ts";
 import { querySubscription } from "@shivaedev/contract/querySubscription.ts";
 import { CurrentViewer } from "@shivaedev/contract/readPolicy.ts";
 import type { ResumeSource } from "@shivaedev/contract/resume.ts";
 import { rerunQuery } from "@shivaedev/server/rerunQuery.ts";
+import { layerMemoryProtocol } from "@shivaedev/test-kits/contract/testing.ts";
 
 const notes = collection("resumeNotes", Schema.Number);
 const Notes = contract("resumeNotes", {
@@ -54,14 +53,11 @@ export function resumeLiveClient(resume?: ResumeSource) {
 				),
 	);
 	const handlers = Layer.merge(application, changes.pipe(Layer.provide(application)));
-	class Client extends AtomRpc.Service<Client>()("test/ResumeNotes", {
-		group: Notes,
-		makeEffect: RpcTest.makeClient(Notes, { flatten: true }),
-		protocol: handlers,
-	}) {}
+	const protocol = layerMemoryProtocol(Notes).pipe(Layer.provide(handlers));
+	const connection = makeClient({ resumeNotes: Notes }, { protocol, ...(resume === undefined ? {} : { resume }) });
 	return {
 		active: () => subscriptions.filter((subscription) => subscription.active).length,
-		api: bind(Notes, Client, resume === undefined ? {} : { resume }),
+		api: connection.api.resumeNotes,
 		disconnect: () => {
 			const previous = ended;
 			ended = Effect.runSync(Deferred.make<void>());
