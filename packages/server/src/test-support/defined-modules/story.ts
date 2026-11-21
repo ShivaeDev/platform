@@ -18,6 +18,7 @@ import { OwnedData, ownedDataModule } from "#test/defined-modules/ownedData.ts";
 import { ProviderTokensModule, providerTokensModule } from "#test/defined-modules/providerTokens.ts";
 import { TestRoles } from "#test/permissions.ts";
 import { databaseUrl, postgres } from "#test/postgres.ts";
+import { workerHost } from "#workerHost.ts";
 
 type Caller = "alice" | "a visitor";
 
@@ -27,6 +28,7 @@ interface State {
 	columnKey: string | undefined;
 	drafts: typeof draftsModule | (typeof draftsModule & { readonly queues: readonly (typeof draftsQueue)[] });
 	greetings: typeof greetingsModule | (typeof greetingsModule & { readonly queues: readonly (typeof draftsQueue)[] });
+	host: "app" | "worker";
 	logs: { readonly cause: Cause.Cause<unknown>; readonly message: readonly unknown[] }[];
 	members: typeof membersModule | typeof privateJoinMembersModule;
 	notes: typeof notesModule | typeof handWrittenNotesModule | typeof replacedNotesModule;
@@ -64,17 +66,32 @@ export const definedModulesHost = storyKit({
 				return;
 			}
 			const modules = composed.value;
-			const host = appHost({ postgresSettings: {}, ...modules, config: { databaseUrl: database.url, port: 0 }, sessions });
 			const recorded = Logger.make(({ cause, message }) => {
 				state.logs.push({ cause, message: Array.isArray(message) ? message : [message] });
 			});
-			const configured =
+			const configured = Layer.mergeAll(
+				Logger.layer([recorded]),
 				state.columnKey === undefined
 					? Layer.empty
-					: ConfigProvider.layerAdd(ConfigProvider.fromUnknown({ [COLUMN_KEY_CONFIG]: state.columnKey }), { asPrimary: true });
-			const started = yield* Layer.build(host.pipe(Layer.provide(Logger.layer([recorded])), Layer.provide(configured))).pipe(
+					: ConfigProvider.layerAdd(ConfigProvider.fromUnknown({ [COLUMN_KEY_CONFIG]: state.columnKey }), { asPrimary: true }),
+			);
+			if (state.host === "worker") {
+				const worker = workerHost({ postgresSettings: {}, ...modules, config: { databaseUrl: database.url }, services: modules.services });
+				state.startup = yield* Layer.build(worker.pipe(Layer.provide(configured))).pipe(
+					Effect.as("started"),
+					Effect.catchTag("ColumnKeyError", (refusal) => Effect.succeed(refusal.message)),
+				);
+				return;
+			}
+			const host = appHost({ postgresSettings: {}, ...modules, config: { databaseUrl: database.url, port: 0 }, sessions });
+			const started = yield* Layer.build(host.pipe(Layer.provide(configured))).pipe(
 				Effect.map(Option.some),
 				Effect.catchTags({
+					ColumnKeyError: (refusal) =>
+						Effect.sync(() => {
+							state.startup = refusal.message;
+							return Option.none();
+						}),
 					HandWrittenModuleHandlers: (refusal) =>
 						Effect.sync(() => {
 							state.startup = refusal.message;
@@ -100,10 +117,12 @@ export const definedModulesHost = storyKit({
 	},
 	around: withIsolatedDatabase,
 	clock: "test",
+	// The provider tokens module's model has an encrypted field, so every host starts with a generated key unless a trait changes it.
 	create: (): State => ({
-		columnKey: undefined,
+		columnKey: Base64.encode(globalThis.crypto.getRandomValues(new Uint8Array(32))),
 		drafts: draftsModule,
 		greetings: greetingsModule,
+		host: "app",
 		logs: [],
 		members: membersModule,
 		notes: notesModule,
@@ -173,12 +192,6 @@ export const definedModulesHost = storyKit({
 						state.logs.flatMap(({ cause, message }) => (message[0] === "RPC defect" ? cause.reasons.filter(Cause.isDieReason) : []))[0]?.defect
 						?? "no RPC defect was logged",
 				),
-			loggedDefectMessage: () =>
-				Effect.sync(() => {
-					const defect = state.logs.flatMap(({ cause, message }) => (message[0] === "RPC defect" ? cause.reasons.filter(Cause.isDieReason) : []))[0]
-						?.defect;
-					return defect instanceof Error ? defect.message : "no RPC defect was logged";
-				}),
 			loggedMember: () =>
 				Effect.sync(() => state.logs.find(({ message }) => message[0] === "member shown")?.message[1] ?? "no log mentions a shown member"),
 			ownedModels: () => {
@@ -247,6 +260,16 @@ export const queueSharedWithGreetings = definedModulesHost.trait(
 	},
 );
 
-export const columnKeyConfigured = definedModulesHost.trait("configured", "COLUMN_ENCRYPTION_KEY holds 32 random bytes in base64", (state) => {
-	state.columnKey = Base64.encode(globalThis.crypto.getRandomValues(new Uint8Array(32)));
+export function columnKey(configured: "missing" | "16 random bytes in base64") {
+	return definedModulesHost.trait(
+		"configured",
+		`COLUMN_ENCRYPTION_KEY is ${configured === "missing" ? "not set" : `set to ${configured}`}`,
+		(state) => {
+			state.columnKey = configured === "missing" ? undefined : Base64.encode(globalThis.crypto.getRandomValues(new Uint8Array(16)));
+		},
+	);
+}
+
+export const servedByWorkerHost = definedModulesHost.trait("configured", "the modules are served by workerHost in place of appHost", (state) => {
+	state.host = "worker";
 });

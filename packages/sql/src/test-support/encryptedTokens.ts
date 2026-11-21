@@ -5,7 +5,7 @@ import { Model } from "effect/schema";
 import { SqlClient } from "effect/sql";
 import { collection } from "@shivaedev/changes/keys.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { COLUMN_KEY_CONFIG, ColumnKey } from "#ColumnKey.ts";
+import { COLUMN_KEY_CONFIG, ColumnKey, type ColumnKeyError } from "#ColumnKey.ts";
 import { encrypted } from "#encrypted.ts";
 import { makeRepository } from "#repository.ts";
 import type { RepositoryBuildError } from "#repositoryCollection.ts";
@@ -31,7 +31,7 @@ class BucketedConnection extends Model.Class<BucketedConnection>("BucketedConnec
 
 export type EncryptedRole = "a bucket" | "a conflict column" | "a tuple bucket column" | "the ID column";
 
-const refusals: Record<EncryptedRole, () => Effect.Effect<unknown, RepositoryBuildError, SqlClient.SqlClient>> = {
+const refusals: Record<EncryptedRole, () => Effect.Effect<unknown, RepositoryBuildError | ColumnKeyError, SqlClient.SqlClient | ColumnKey>> = {
 	"a bucket": () => makeRepository(BucketedConnection, { collection: collection("refused_connections", Schema.Number, { token: Schema.String }) }),
 	"a conflict column": () => makeRepository(Connection, { conflictColumns: ["token"], tableName: "refused_connections" }),
 	"a tuple bucket column": () =>
@@ -87,7 +87,7 @@ const connectionEngine = Effect.fnUntraced(function* () {
 	const engine: ConnectionEngine = {
 		columnKey: Effect.succeed(key),
 		configured: undefined,
-		connections: yield* connectionRepository(table),
+		connections: yield* Effect.provideService(connectionRepository(table), ColumnKey, Effect.succeed(key)),
 		ids: new Map(),
 		sql,
 		table,
@@ -125,6 +125,13 @@ export const encryptedTokens = storyKit({
 	verbs: (engine, story) => {
 		const { connections, sql, table } = engine;
 		return {
+			buildRepository: () =>
+				Effect.suspend(() => {
+					story.tell("the connections repository is built, as a host builds it when it starts");
+					return withKey(engine, connectionRepository(table)).pipe(
+						Effect.match({ onFailure: (error) => `${error._tag}: ${error.message}`, onSuccess: () => "built" }),
+					);
+				}),
 			configuredValue: () => Effect.sync(() => engine.configured ?? "nothing"),
 			connect: (owner: string, token: string) =>
 				Effect.suspend(() => {
@@ -151,7 +158,9 @@ export const encryptedTokens = storyKit({
 			register: (role: EncryptedRole) =>
 				Effect.suspend(() => {
 					story.tell(`a repository is built with the encrypted token as ${role}`);
-					return refusals[role]().pipe(Effect.match({ onFailure: (error) => `${error._tag}: ${error.message}`, onSuccess: () => "built" }));
+					return withKey(engine, refusals[role]()).pipe(
+						Effect.match({ onFailure: (error) => `${error._tag}: ${error.message}`, onSuccess: () => "built" }),
+					);
 				}),
 			storedToken: (owner: string) =>
 				Effect.gen(function* () {

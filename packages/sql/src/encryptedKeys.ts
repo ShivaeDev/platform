@@ -1,8 +1,9 @@
 import { Effect, Schema } from "effect";
 import type { Model } from "effect/schema";
+import type { SqlClient } from "effect/sql";
 import { declaredBuckets } from "@shivaedev/changes/buckets.ts";
-import type { ColumnKey } from "#ColumnKey.ts";
-import { EncryptedKeyError } from "#repositoryCollection.ts";
+import { ColumnKey, type ColumnKeyError } from "#ColumnKey.ts";
+import { EncryptedKeyError, type RepositoryBuildError } from "#repositoryCollection.ts";
 import { refuseServerOnlyKeys } from "#serverOnly.ts";
 
 export const ENCRYPTED = "@shivaedev/sql/encrypted";
@@ -25,7 +26,18 @@ export type Filterable<TModel extends Model.Any, TField> = TField extends keyof 
 		: TField
 	: TField;
 
-// Every write seals a value under a fresh random nonce, so two equal values never share bytes and a column that must compare equal cannot hold one.
+// A model with an encrypted field needs the column key on every read and write, so its repository loads the key while it is built and a host refuses to start without it.
+type HasSealed<TModel extends Model.Any> = true extends {
+	[TField in keyof TModel["fields"]]: Sealed<TModel["fields"][TField]>;
+}[keyof TModel["fields"]]
+	? true
+	: false;
+export type RepositoryBuild<TModel extends Model.Any, TShape> = Effect.Effect<
+	TShape,
+	RepositoryBuildError | (HasSealed<TModel> extends true ? ColumnKeyError : never),
+	SqlClient.SqlClient | (HasSealed<TModel> extends true ? ColumnKey : never)
+>;
+
 const refuseEncryptedKeys = Effect.fnUntraced(function* (
 	table: string,
 	columns: readonly string[],
@@ -53,4 +65,10 @@ export const refuseKeyFields = Effect.fnUntraced(function* (
 ) {
 	yield* refuseServerOnlyKeys(table, keys.idColumns, fields, keys.tuples);
 	yield* refuseEncryptedKeys(table, [...keys.idColumns, ...(keys.conflictColumns ?? [])], fields, keys.tuples ?? {});
+});
+
+export const loadColumnKeyFor = Effect.fnUntraced(function* (fields: Schema.Struct.Fields) {
+	if (Object.values(fields).some(isEncrypted)) {
+		yield* yield* ColumnKey;
+	}
 });

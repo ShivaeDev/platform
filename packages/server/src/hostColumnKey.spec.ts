@@ -1,11 +1,9 @@
-import { Effect } from "effect";
 import { expect } from "vitest";
-import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { columnKeyConfigured, definedModulesHost } from "#test/defined-modules/story.ts";
+import { columnKey, definedModulesHost, servedByWorkerHost } from "#test/defined-modules/story.ts";
 
 definedModulesHost.it(
-	"an operation the host serves seals a provider token with the key from COLUMN_ENCRYPTION_KEY and opens it again",
-	[columnKeyConfigured],
+	"an operation the host serves seals a provider token with the key the host reads from COLUMN_ENCRYPTION_KEY and opens it again",
+	[],
 	function* ({ readProviderToken, storeProviderToken }) {
 		const id = yield* storeProviderToken("withings-refresh-a");
 
@@ -13,21 +11,25 @@ definedModulesHost.it(
 	},
 );
 
+const refusals = [
+	{ configured: "missing", refusal: "COLUMN_ENCRYPTION_KEY is not set; encrypted fields need it to hold 32 random bytes in base64" },
+	{ configured: "16 random bytes in base64", refusal: "COLUMN_ENCRYPTION_KEY must hold exactly 32 bytes in base64" },
+] as const;
+
+for (const { configured, refusal } of refusals) {
+	definedModulesHost.it(
+		`an app host whose models declare an encrypted field refuses to start when COLUMN_ENCRYPTION_KEY is ${configured}`,
+		[columnKey(configured)],
+		function* ({ startup }) {
+			expect(yield* startup()).toBe(refusal);
+		},
+	);
+}
+
 definedModulesHost.it(
-	"without COLUMN_ENCRYPTION_KEY the host starts, and storing a provider token fails with a defect that names the config value",
-	[],
-	function* ({ loggedDefectMessage, startup, storeProviderToken }) {
-		expect(yield* startup()).toBe("started");
-
-		const stored = yield* storeProviderToken("withings-refresh-a");
-
-		yield* outcomes([
-			["store answer", () => Effect.succeed(stored), "failed with internal server error"],
-			[
-				"logged defect",
-				() => loggedDefectMessage(),
-				'COLUMN_ENCRYPTION_KEY is not set; encrypted fields need it to hold 32 random bytes in base64\n  at ["token"]',
-			],
-		]);
+	"a worker host whose models declare an encrypted field refuses to start when COLUMN_ENCRYPTION_KEY is missing",
+	[columnKey("missing"), servedByWorkerHost],
+	function* ({ startup }) {
+		expect(yield* startup()).toBe(refusals[0].refusal);
 	},
 );

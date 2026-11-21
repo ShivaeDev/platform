@@ -3,7 +3,7 @@ import type { Aead, SecureRandom } from "effect/crypto";
 import { Model } from "effect/schema";
 import type { SqlClient } from "effect/sql";
 import { expectTypeOf, it } from "vitest";
-import type { ColumnKey } from "#ColumnKey.ts";
+import type { ColumnKey, ColumnKeyError } from "#ColumnKey.ts";
 import { encrypted } from "#encrypted.ts";
 import { makeRepository } from "#repository.ts";
 import type { RepositoryBuildError } from "#repositoryCollection.ts";
@@ -40,6 +40,6 @@ const program = Effect.gen(function* () {
 	yield* makeRepository(Connection, { conflictColumns: ["id"], conflictWhere: { token }, tableName: "connections" });
 });
 
-it("an encrypted field's writes need the column key, Aead and SecureRandom, its reads need the key and Aead, and no filter names it", () => {
-	expectTypeOf(program).toEqualTypeOf<Effect.Effect<void, RepositoryBuildError, SqlClient.SqlClient>>();
+it("building a repository of an encrypted field loads the column key, its writes need the key, Aead and SecureRandom, its reads the key and Aead, and no filter names it", () => {
+	expectTypeOf(program).toEqualTypeOf<Effect.Effect<void, RepositoryBuildError | ColumnKeyError, SqlClient.SqlClient | ColumnKey>>();
 });

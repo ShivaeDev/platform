@@ -77,14 +77,14 @@ const refusedKeys = [
 
 for (const { configured, refusal } of refusedKeys) {
 	encryptedTokens.it(
-		`when COLUMN_ENCRYPTION_KEY holds ${configured}, the key's Layer builds and the first token written fails naming the config value without its text`,
+		`when COLUMN_ENCRYPTION_KEY holds ${configured}, the key's Layer builds and building a repository with an encrypted field fails naming the config value without its text`,
 		[keyConfigured(configured)],
-		function* ({ configuredValue, connect }) {
-			const written = yield* connect("alice", "withings-refresh-a");
+		function* ({ buildRepository, configuredValue }) {
+			const built = yield* buildRepository();
 
 			yield* outcomes([
-				["connection", () => Effect.succeed(written), `SchemaError: ${refusal}\n  at ["token"]`],
-				["failure holds the configured text", () => Effect.map(configuredValue(), (value) => written.includes(value)), false],
+				["repository", () => Effect.succeed(built), `ColumnKeyError: ${refusal}`],
+				["failure holds the configured text", () => Effect.map(configuredValue(), (value) => built.includes(value)), false],
 			]);
 		},
 	);

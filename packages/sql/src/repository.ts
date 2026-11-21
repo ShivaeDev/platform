@@ -3,9 +3,10 @@ import type { Model } from "effect/schema";
 import type { SqlClient } from "effect/sql";
 import { makeBatchedDelete } from "#batchedDelete.ts";
 import { type BatchWrites, makeInsertMany } from "#batchWrites.ts";
+import type { ColumnKey, ColumnKeyError } from "#ColumnKey.ts";
 import { makeCompositeCrud, type PrimaryKey, type Repository } from "#compositeRepository.ts";
 import { type ConflictColumns, type ConflictWrites, makeConflictWrites } from "#conflictWrites.ts";
-import { refuseKeyFields } from "#encryptedKeys.ts";
+import { loadColumnKeyFor, type RepositoryBuild, refuseKeyFields } from "#encryptedKeys.ts";
 import { makeInsertFromSelect, type SelectWrites } from "#insertFromSelect.ts";
 import { makeRecordRead } from "#recordRepositoryRead.ts";
 import { repositoryChanges } from "#repositoryChanges.ts";
@@ -59,11 +60,10 @@ export function makeRepository<
 		readonly conflictColumns: TConflict;
 		readonly conflictWhere?: Pick<RepositoryFilter<TModel>, TWhere>;
 	},
-): Effect.Effect<
+): RepositoryBuild<
+	TModel,
 	VersionedRepositoryShape<TModel, TId, TVersion> &
-		Pick<ConflictWrites<TModel, never, TModel["fields"][Extract<TWhere, keyof TModel["fields"]>]["EncodingServices"]>, "insertOrIgnore">,
-	RepositoryBuildError,
-	SqlClient.SqlClient
+		Pick<ConflictWrites<TModel, never, TModel["fields"][Extract<TWhere, keyof TModel["fields"]>]["EncodingServices"]>, "insertOrIgnore">
 >;
 export function makeRepository<
 	TModel extends Model.Any,
@@ -76,7 +76,7 @@ export function makeRepository<
 		readonly conflictColumns?: never;
 		readonly conflictWhere?: never;
 	},
-): Effect.Effect<VersionedRepositoryShape<TModel, TId, TVersion>, RepositoryBuildError, SqlClient.SqlClient>;
+): RepositoryBuild<TModel, VersionedRepositoryShape<TModel, TId, TVersion>>;
 export function makeRepository<
 	TModel extends Model.Any,
 	const TConflict extends ConflictColumns<TModel>,
@@ -89,7 +89,8 @@ export function makeRepository<
 		readonly conflictColumns: TConflict;
 		readonly conflictWhere?: Pick<RepositoryFilter<TModel>, TWhere>;
 	},
-): Effect.Effect<
+): RepositoryBuild<
+	TModel,
 	Repository<TModel, TId> &
 		BatchWrites<TModel> &
 		SelectWrites<TModel> &
@@ -98,14 +99,12 @@ export function makeRepository<
 			TModel,
 			TConflict[number] | (TId extends readonly PropertyKey[] ? TId[number] : TId),
 			TModel["fields"][Extract<TWhere, keyof TModel["fields"]>]["EncodingServices"]
-		>,
-	RepositoryBuildError,
-	SqlClient.SqlClient
+		>
 >;
 export function makeRepository<TModel extends Model.Any, const TId extends PrimaryKey<TModel> = Extract<PrimaryKey<TModel>, "id">>(
 	model: TModel,
 	options: RepositoryOptions<TModel, TId> & { readonly versionColumn?: never; readonly conflictColumns?: never; readonly conflictWhere?: never },
-): Effect.Effect<Repository<TModel, TId> & BatchWrites<TModel> & SelectWrites<TModel> & Queries<TModel>, RepositoryBuildError, SqlClient.SqlClient>;
+): RepositoryBuild<TModel, Repository<TModel, TId> & BatchWrites<TModel> & SelectWrites<TModel> & Queries<TModel>>;
 export function makeRepository<TModel extends Model.Any, TId extends IdColumn<TModel>>(
 	model: TModel,
 	options: RepositoryOptions<TModel, TId | readonly [TId, TId, ...TId[]]> & {
@@ -113,7 +112,7 @@ export function makeRepository<TModel extends Model.Any, TId extends IdColumn<TM
 		readonly conflictColumns?: readonly string[];
 		readonly conflictWhere?: Readonly<Record<string, unknown>>;
 	},
-): Effect.Effect<unknown, RepositoryBuildError, SqlClient.SqlClient> {
+): Effect.Effect<unknown, RepositoryBuildError | ColumnKeyError, SqlClient.SqlClient | ColumnKey> {
 	return Effect.fnUntraced(function* () {
 		const resolved = resolveRepositoryOptions(options);
 		const { idColumn, tableName } = resolved;
@@ -121,6 +120,7 @@ export function makeRepository<TModel extends Model.Any, TId extends IdColumn<TM
 		yield* refuseKeyFields(tableName, model.fields, { conflictColumns: options.conflictColumns, idColumns, tuples: options.collection?.tuples });
 		yield* validateRepositoryCollection(model.fields, resolved);
 		const changes = yield* repositoryChanges(model, tableName, idColumns, options.collection?.tuples);
+		yield* loadColumnKeyFor(model.fields);
 		const recordRead = makeRecordRead(model, { idColumns, tableName, tuples: options.collection?.tuples });
 		const crud = {
 			...(yield* makeCompositeCrud(model, { ...resolved, columns: idColumns, recordRead }, changes)),

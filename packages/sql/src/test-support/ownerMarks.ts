@@ -6,6 +6,7 @@ import type { SqlClient } from "effect/sql";
 import { bucket } from "@shivaedev/changes/buckets.ts";
 import { collection } from "@shivaedev/changes/keys.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { ColumnKey, type ColumnKeyError } from "#ColumnKey.ts";
 import { clientOptions } from "#clientOptions.ts";
 import { encrypted } from "#encrypted.ts";
 import { makeOrderedChildren } from "#makeOrderedChildren.ts";
@@ -85,7 +86,7 @@ export type Built =
 	| "notes owned by their author bucket"
 	| "unowned note tags";
 
-const repositories: Record<Built, () => Effect.Effect<unknown, RepositoryBuildError, SqlClient.SqlClient>> = {
+const repositories: Record<Built, () => Effect.Effect<unknown, RepositoryBuildError | ColumnKeyError, SqlClient.SqlClient | ColumnKey>> = {
 	"checklist steps through makeOrderedChildren": () =>
 		makeOrderedChildren(Step, { parentColumn: "checklistId", parentTable: "checklists", positionColumn: "position", tableName: "checklist_steps" }),
 	"co-authored notes with two owner fields": () => makeRepository(CoAuthored, { tableName: "co_authored_notes" }),
@@ -97,11 +98,12 @@ const repositories: Record<Built, () => Effect.Effect<unknown, RepositoryBuildEr
 	"unowned note tags": () => makeRepository(Tag, { tableName: "noteTags" }),
 };
 
-// Repositories report to sql's own collector, as they do outside a host.
+// Repositories report to sql's own collector, as they do outside a host; the encrypted owner is refused before its repository would load a key.
 const snakeCaseSqlite = Layer.mergeAll(
 	SqliteClient.layer(clientOptions({ filename: ":memory:" })),
 	Reactivity.layer,
 	Layer.fresh(collectRepositoryModels),
+	ColumnKey.fromConfig,
 );
 
 export const ownerMarks = storyKit({
