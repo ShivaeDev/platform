@@ -104,6 +104,10 @@ export const generator = storyKit({
 			story.tell(`the developer writes ${file}, exporting the ${module} registration ${shape}`);
 			yield* writeFiles(engine.root, { [file]: registrationOf(`${module.toLowerCase()}Registration`, module, shape) });
 		}),
+		addsRegistrationAt: Effect.fn("BuildStory.addsRegistrationAt")(function* (file: string, module: string, shape: RegistrationShape) {
+			story.tell(`the developer writes ${file}, exporting the ${module} registration ${shape}`);
+			yield* writeFiles(engine.root, { [file]: registrationOf(`${module.toLowerCase()}Registration`, module, shape) });
+		}),
 		compiles: () => {
 			story.tell("tsc type-checks the project");
 			return typeCheck(engine.root, engine.lock);

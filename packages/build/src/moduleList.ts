@@ -12,6 +12,7 @@ import { specifierFor } from "#specifiers.ts";
 export interface ListSource {
 	readonly find: (relative: string, text: string, parts: readonly string[]) => Omit<FileRegistrations, "file">;
 	readonly holds: string;
+	readonly readsParts: boolean;
 	// The folder under src/generated the list is written to, and the one its importers name.
 	readonly side: "client" | "server";
 }
@@ -31,11 +32,13 @@ export const LIST_SOURCES: readonly ListSource[] = [
 	{
 		find: registrationsOf,
 		holds: "the server's module list, every exported registration written `satisfies AppModule` in path order",
+		readsParts: true,
 		side: "server",
 	},
 	{
 		find: clientModulesOf,
 		holds: "the client's module list, every exported `clientModule(...)` outside server code in path order",
+		readsParts: false,
 		side: "client",
 	},
 ];
@@ -62,12 +65,15 @@ export const moduleList = Effect.fn("Build.moduleList")(function* (project: Proj
 		Effect.map(fs.readFileString(file), (text) => ({
 			file,
 			imports: text.includes(importedAs),
-			...source.find(path.relative(project.root, file), text, parts),
+			...source.find(path.relative(project.root, file), text, parts.names),
 		})),
 	);
 	const found = read.filter((each) => each.registrations.length + each.refusals.length > 0);
 	const inputs = read.filter((each) => each.imports || each.registrations.length + each.refusals.length > 0).map(({ file }) => file);
-	const refusals = found.flatMap(({ file, refusals: refused }) => refused.map((refusal) => `${path.relative(project.root, file)}: ${refusal}`));
+	const refusals = [
+		...(source.readsParts ? parts.unreadable : []),
+		...found.flatMap(({ file, refusals: refused }) => refused.map((refusal) => `${path.relative(project.root, file)}: ${refusal}`)),
+	];
 	const relative = path.relative(project.root, output);
 	if (refusals.length > 0) {
 		const outcomes: readonly ListOutcome[] = [{ output: relative, status: "refused" }];

@@ -39,8 +39,20 @@ function unionMembers(type: ts.TypeNode): readonly ts.TypeNode[] {
 	return ts.isUnionTypeNode(type) ? type.types.flatMap(unionMembers) : [type];
 }
 
+export interface RegistrationParts {
+	readonly names: readonly string[];
+	readonly unreadable: readonly string[];
+}
+
+function formsOf(appModule: LocalType, local: ReadonlyMap<string, LocalType>): readonly (readonly DeclaredProperty[])[] {
+	return ts.isTypeAliasDeclaration(appModule)
+		? unionMembers(appModule.type).map((form) => declaredProperties(form, local))
+		: [membersOf(appModule.members)];
+}
+
 // A property every form of AppModule may carry, which leaves out the group, handlers, module and name that tell the forms apart,
-// so a part the server adds is one the look-alike check knows.
+// so a part the server adds is one the look-alike check knows. An AppModule declared as an interface has one form, so each of its
+// properties is a part.
 export function registrationParts(declaration: ts.SourceFile): readonly string[] {
 	const local = new Map(
 		declaration.statements.flatMap((statement): readonly (readonly [string, LocalType])[] =>
@@ -48,21 +60,28 @@ export function registrationParts(declaration: ts.SourceFile): readonly string[]
 		),
 	);
 	const appModule = local.get("AppModule");
-	if (appModule === undefined || !ts.isTypeAliasDeclaration(appModule)) {
-		return [];
-	}
-	const forms = unionMembers(appModule.type).map((form) => declaredProperties(form, local));
+	const forms = appModule === undefined ? [] : formsOf(appModule, local);
 	const names = [...new Set(forms.flat().map(({ name }) => name))].sort(byText);
 	return names.filter((name) => forms.every((properties) => properties.some((property) => property.name === name && !property.never)));
 }
 
-// Read from AppModule as the project installs it; a project without @shivaedev/server has no registration to forget.
 export const registrationPartsOf = Effect.fn("Build.registrationPartsOf")(function* (config: ProjectConfig, root: string) {
 	const fs = yield* FileSystem.FileSystem;
 	const declaration = yield* resolvedModule(config, root, "@shivaedev/server/AppModule.ts");
 	if (Option.isNone(declaration)) {
-		return [];
+		const none: RegistrationParts = { names: [], unreadable: [] };
+		return none;
 	}
 	const text = yield* fs.readFileString(declaration.value);
-	return registrationParts(ts.createSourceFile(declaration.value, text, ts.ScriptTarget.Latest, true));
+	const names = registrationParts(ts.createSourceFile(declaration.value, text, ts.ScriptTarget.Latest, true));
+	const parts: RegistrationParts = {
+		names,
+		unreadable:
+			names.length > 0
+				? []
+				: [
+						`${declaration.value}: declares no AppModule type alias or interface with a property every form of registration may carry, so the generator cannot refuse a registration written without \`satisfies AppModule\`; install @shivaedev/server and @shivaedev/build from the same Platform release`,
+					],
+	};
+	return parts;
 });

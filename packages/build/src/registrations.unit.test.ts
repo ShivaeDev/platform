@@ -118,6 +118,13 @@ it("reads the parts every form of AppModule may carry from its declaration, thro
 	expect(registrationParts(parsed(declaration, "AppModule.d.ts"))).toEqual(["admin", "schedules"]);
 });
 
+it("reads every property of an AppModule declared as an interface as a part, and none from a declaration without AppModule", () => {
+	expect([
+		registrationParts(parsed("export interface AppModule {\n\treadonly group: Group;\n\treadonly queues?: Queue[];\n}\n", "AppModule.d.ts")),
+		registrationParts(parsed("export interface ModuleParts {\n\treadonly queues?: Queue[];\n}\n", "AppModule.d.ts")),
+	]).toEqual([["group", "queues"], []]);
+});
+
 const UNFOUND =
 	"exports no registration written `satisfies AppModule`, so the server's module list leaves its module out; export the registration as a const written `satisfies AppModule`, with AppModule imported from @shivaedev/server/AppModule.ts";
 
