@@ -6,14 +6,18 @@ import type { Rendered } from "@shivaedev/test-story/client/adapters/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { type AppConnection, clientApp } from "#client/app.ts";
 import type { SessionUser } from "#client/module.ts";
-import { type Backend, backendProtocol } from "#test/client-app/backend.ts";
+import type { SessionRouting } from "#client/sessionRouter.ts";
 import { type Screen, screenWarnings } from "#test/Screen.ts";
 import { screenKit } from "#test/screenKit.ts";
+import { type SessionBackend, sessionBackendProtocol } from "#test/session-app/backend.ts";
 import { Host } from "#test/session-app/Host.tsx";
-import { accountModule, countModule, notesModule, ReadReports, reportsModule } from "#test/session-app/modules.tsx";
+import { accountModule, brokenModule, countModule, diaryModule, notesModule, ReadReports, reportsModule } from "#test/session-app/modules.tsx";
+import { NotFound } from "#test/session-app/screens.tsx";
 
 interface State {
-	readonly backend: Backend;
+	readonly backend: SessionBackend;
+	readonly caught: string[];
+	checks: number;
 	connection?: AppConnection;
 	history?: RouterHistory;
 	view?: Rendered;
@@ -45,25 +49,51 @@ function settled<A>(state: State, screen: Screen, action: () => Effect.Effect<A>
 export const sessionApps = storyKit(
 	screenKit(
 		"a session app routing its client modules",
-		(): State => ({ backend: { count: 0, countReads: 0, viewer: "" } }),
+		(): State => ({ backend: { count: 0, countReads: 0, diaryReads: 0, viewer: "" }, caught: [], checks: 0 }),
 		(state, screen) => ({
+			caughtByApp: () => Effect.sync(() => [...state.caught]),
 			count: () => Effect.sync(() => opened(state).container.querySelector('output[aria-label="Count"]')?.textContent ?? "no count"),
+			diary: () => Effect.sync(() => opened(state).container.querySelector('output[aria-label="Diary"]')?.textContent ?? "no diary"),
+			diaryReads: () => Effect.sync(() => state.backend.diaryReads),
 			follow: (link: string) => settled(state, screen, () => driver(state, screen).click({ name: link, role: "link" })),
 			heading: () => Effect.sync(() => opened(state).container.querySelector("h1")?.textContent ?? "no heading"),
 			location: () => Effect.sync(() => opened(state).history.location.href),
 			path: () => Effect.sync(() => opened(state).history.location.pathname),
 			returnTo: () => Effect.sync(() => new URLSearchParams(opened(state).history.location.search).get("returnTo") ?? "none"),
+			sessionChecks: () => Effect.sync(() => state.checks),
+			shellHeading: () => Effect.sync(() => opened(state).container.querySelector("[data-shell] h1")?.textContent ?? "no heading in the shell"),
 			signIn: () => settled(state, screen, () => driver(state, screen).click({ name: "Sign in", role: "button" })),
 		}),
 	),
 );
 
-export function openedAt(path: string, viewer?: Viewer, refused = false) {
-	const outcome = refused ? ", which refuses them" : "";
-	return sessionApps.trait("screen", `${viewer ?? "a signed-out visitor"} opens the app at ${path}${outcome}`, function* ({ screen, state }) {
+const ROUTINGS = {
+	"its own not-found page": { notFound: NotFound },
+	"no routing options": {},
+	"refused routes hidden behind its not-found page": { hidden: true, notFound: NotFound },
+	"route errors reported to the app": {},
+} satisfies Record<string, SessionRouting>;
+
+type Routing = keyof typeof ROUTINGS;
+
+const CAUGHT = {
+	"a broken screen": (error: unknown) => error instanceof Error && error.message === "Broken screen",
+	forbidden: isForbidden,
+};
+
+export function openedAt(
+	path: string,
+	viewer?: Viewer,
+	options: { readonly caught?: keyof typeof CAUGHT; readonly checkAnswers?: "signed out"; readonly routing?: Routing } = {},
+) {
+	const routing = options.routing ?? "no routing options";
+	const checked = options.checkAnswers === undefined ? "" : ", and every session check answers signed out";
+	const caught = options.caught === undefined ? "" : `, where React catches ${options.caught}`;
+	const line = `${viewer ?? "a signed-out visitor"} opens an app with ${routing} at ${path}${checked}${caught}`;
+	return sessionApps.trait("screen", line, function* ({ screen, state }) {
 		state.backend.count = 3;
-		const app = clientApp([accountModule, countModule, notesModule, reportsModule], {
-			protocol: backendProtocol(state.backend),
+		const app = clientApp([accountModule, brokenModule, countModule, diaryModule, notesModule, reportsModule], {
+			protocol: sessionBackendProtocol(state.backend),
 			url: "memory://session-app",
 		});
 		const recorded = {
@@ -73,10 +103,27 @@ export function openedAt(path: string, viewer?: Viewer, refused = false) {
 				return state.connection;
 			},
 		};
+		const reported: SessionRouting =
+			routing === "route errors reported to the app"
+				? {
+						onCatch: (error) => {
+							state.caught.push(error instanceof Error ? error.message : "a thrown value that is not an Error");
+						},
+					}
+				: ROUTINGS[routing];
 		state.history = createMemoryHistory({ initialEntries: [path] });
 		state.view = yield* screen.open(
-			<Host app={recorded} history={state.history} initial={viewer === undefined ? null : VIEWERS[viewer]} signedIn={VIEWERS.alice} />,
-			refused ? { onCaughtError: screenWarnings.expectCaughtError(isForbidden) } : undefined,
+			<Host
+				answer={options.checkAnswers === undefined ? VIEWERS.alice : null}
+				app={recorded}
+				countCheck={() => {
+					state.checks += 1;
+				}}
+				history={state.history}
+				initial={viewer === undefined ? null : VIEWERS[viewer]}
+				routing={reported}
+			/>,
+			options.caught === undefined ? undefined : { onCaughtError: screenWarnings.expectCaughtError(CAUGHT[options.caught]) },
 		);
 		yield* driver(state, screen).settle();
 	});

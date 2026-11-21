@@ -10,18 +10,19 @@ import {
 	useRouter,
 } from "@tanstack/react-router";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
-import { type ComponentType, createElement, Fragment, type ReactNode } from "react";
+import { type ComponentType, createElement, type ErrorInfo, Fragment, type ReactNode } from "react";
 import { PermissionBoundary, PermissionBoundaryError } from "#adapters/permissionBoundary.ts";
 import { navigateTo } from "#client/adapters/navigateTo.ts";
 import type { AppConnection, ClientApp } from "#client/app.ts";
 import type { RegisteredAuth, RegisteredSession } from "#client/module.ts";
-import { sessionRoot } from "#client/sessionRoot.ts";
+import { type SessionRootOptions, sessionRoot } from "#client/sessionRoot.ts";
 import { Forbidden } from "#Forbidden.ts";
 import { signInRedirect } from "#signInRedirect.ts";
 
-export interface SessionRouting {
+export interface SessionRouting extends SessionRootOptions {
 	readonly forbidden?: ReactNode;
 	readonly home?: RouteComponent;
+	readonly onCatch?: ((error: unknown, errorInfo: ErrorInfo) => void) | undefined;
 	readonly parseSearch?: SearchParser;
 	readonly shell?: ComponentType<{ readonly children: ReactNode }>;
 	readonly stringifySearch?: SearchSerializer;
@@ -70,15 +71,18 @@ export function sessionRouter<TRoute extends AnyRoute>({
 	auth,
 	connection,
 	forbidden = createElement(Forbidden, { to: "/" }),
+	hidden,
 	history,
 	home,
+	notFound,
+	onCatch,
 	parseSearch,
 	registry,
 	session = () => undefined,
 	shell = PassThrough,
 	stringifySearch,
 }: SessionRouterOptions<TRoute>) {
-	const root = sessionRoot();
+	const root = sessionRoot({ hidden, notFound });
 	const routes = connection.routes(root);
 	const router = createRouter({
 		context: {
@@ -95,6 +99,7 @@ export function sessionRouter<TRoute extends AnyRoute>({
 		disableGlobalCatchBoundary: true,
 		InnerWrap: SessionShell,
 		...(history === undefined ? {} : { history }),
+		...(onCatch === undefined ? {} : { defaultOnCatch: onCatch }),
 		...(parseSearch === undefined ? {} : { parseSearch }),
 		...(stringifySearch === undefined ? {} : { stringifySearch }),
 		routeTree: root.addChildren([

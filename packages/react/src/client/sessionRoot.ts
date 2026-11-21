@@ -1,6 +1,5 @@
-import { createRootRouteWithContext } from "@tanstack/react-router";
+import { createRootRouteWithContext, type NotFoundRouteComponent } from "@tanstack/react-router";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
-import type { Permission } from "@shivaedev/access/permission.ts";
 import { type PermissionGuardOptions, permissionGuard } from "#adapters/permissionGuard.ts";
 import type { AdminNavigation, ModuleParts, RegisteredAuth, RegisteredSession } from "#client/module.ts";
 
@@ -15,29 +14,45 @@ export interface SessionRouteContext {
 	readonly session: () => RegisteredSession | null | undefined;
 }
 
-function template(path: string): string {
-	return path.replace(/\/\$[^/]+/gu, "/$").replace(/\/$/u, "");
+function segments(path: string): readonly string[] {
+	return path.replace(/\/$/u, "").split("/");
 }
 
-// The router has already matched the location, so an admin page's permission applies to the matched route with its path or detail path, whatever its parameters are named.
-function adminPagePermissions(pages: readonly AdminNavigation[], matches: readonly { readonly fullPath: string }[]) {
-	const permissions = new Map<string, Permission>(
-		pages.flatMap(({ route }) =>
-			[route.path, ...(route.detail === undefined ? [] : [route.detail])].map((path) => [template(path), route.permission]),
-		),
+function isParameter(segment: string): boolean {
+	return segment.startsWith("$") || /^\{-?\$[^}]*\}$/u.test(segment);
+}
+
+function matchesPath(declared: string, pathname: readonly string[]): boolean {
+	const expected = segments(declared);
+	return (
+		expected.length === pathname.length
+		&& expected.every((segment, index) => (isParameter(segment) ? pathname[index] !== "" : segment === pathname[index]))
 	);
-	return matches.flatMap((match) => {
-		const permission = permissions.get(template(match.fullPath));
-		return permission === undefined ? [] : [{ staticData: { permission } }];
-	});
 }
 
-export function sessionRoot() {
+// Pages are matched against the location, not the matched route, so a literal or dispatcher route under a page's path still needs the page's permission; the bare admin index needs the first page's, as the admin document guard does.
+function adminPagePermission(pages: readonly AdminNavigation[], pathname: string) {
+	const actual = segments(pathname);
+	const page =
+		actual.join("/") === "/admin"
+			? pages[0]
+			: (pages.find(({ route }) => matchesPath(route.path, actual))
+				?? pages.find(({ route }) => route.detail !== undefined && matchesPath(route.detail, actual)));
+	return page === undefined ? [] : [{ staticData: { permission: page.route.permission } }];
+}
+
+export interface SessionRootOptions {
+	readonly hidden?: boolean | undefined;
+	readonly notFound?: NotFoundRouteComponent | undefined;
+}
+
+export function sessionRoot({ hidden = false, notFound }: SessionRootOptions = {}) {
 	return createRootRouteWithContext<SessionRouteContext>()<unknown>({
 		beforeLoad: ({ context, location, matches }) =>
-			permissionGuard({ session: context.session, signedOut: context.redirects.signedOut })({
+			permissionGuard({ hidden, session: context.session, signedOut: context.redirects.signedOut })({
 				location,
-				matches: [...matches, ...adminPagePermissions(context.adminPages, matches)],
+				matches: [...matches, ...adminPagePermission(context.adminPages, location.pathname)],
 			}),
+		...(notFound === undefined ? {} : { notFoundComponent: notFound }),
 	});
 }

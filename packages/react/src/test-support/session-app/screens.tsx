@@ -1,6 +1,10 @@
 import { Link } from "@tanstack/react-router";
-import type { ReactElement } from "react";
+import { Option } from "effect";
+import type { ReactElement, ReactNode } from "react";
+import type { ContractClient } from "@shivaedev/contract/makeClient.ts";
+import { useQuery } from "#client/resultState.ts";
 import { useSessionRecheck } from "#client/sessionBoundary.ts";
+import type { Diary } from "#test/session-app/backend.ts";
 
 export function SignIn(): ReactElement {
 	const recheck = useSessionRecheck();
@@ -24,4 +28,27 @@ export function Home(): ReactElement {
 			<Link to="/notes">Notes</Link>
 		</main>
 	);
+}
+
+export function DiaryView({ diary }: { readonly diary: ContractClient<typeof Diary> }): ReactElement {
+	const entries = useQuery(diary.entries.query());
+	const shown = Option.isSome(entries.cause) ? "Sign in to read" : Option.getOrElse(entries.data, () => "Loading");
+	return (
+		<main>
+			<h1>Diary</h1>
+			<output aria-label="Diary">{shown}</output>
+		</main>
+	);
+}
+
+export function Broken(): ReactElement {
+	throw new Error("Broken screen");
+}
+
+export function Shell({ children }: { readonly children: ReactNode }): ReactElement {
+	return <div data-shell="">{children}</div>;
+}
+
+export function NotFound(): ReactElement {
+	return <h1>Page not found</h1>;
 }
