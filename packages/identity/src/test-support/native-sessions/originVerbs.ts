@@ -4,6 +4,7 @@ import { countWords } from "@shivaedev/test-story/server/answers.ts";
 import type { Host } from "#test/native-sessions/host.ts";
 import { mintSession } from "#test/native-sessions/mint.ts";
 import { openServerStreams, originStream } from "#test/native-sessions/originStream.ts";
+import { preflightGrants } from "#test/native-sessions/webViewPreflight.ts";
 
 export interface OriginRequest {
 	readonly bearer?: boolean;
@@ -125,6 +126,12 @@ export function originVerbs(host: Host, tell: (line: string) => void) {
 					...corsOf(answer.headers),
 					status: answer.status,
 				};
+			}),
+		preflightFor: (path: string, origin: string, requested: readonly string[]) =>
+			Effect.gen(function* () {
+				tell(`${origin} sends a CORS preflight for POST ${path} asking for ${requested.join(", ")}`);
+				const granted = yield* Effect.promise(() => preflightGrants(`${host.baseUrl}${path}`, origin, "POST", requested));
+				return granted ? "granted" : "refused";
 			}),
 		profile: (request: OriginRequest) =>
 			Effect.gen(function* () {

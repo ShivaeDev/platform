@@ -5,11 +5,16 @@ import { ConfigProvider, Duration, Effect, Exit, Layer, Logger, Scope } from "ef
 import { HttpRouter, HttpServer, HttpServerResponse } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import * as Reactivity from "effect/reactivity/Reactivity";
+import { Migrator } from "effect/sql";
 import { liveServerLayer } from "@shivaedev/contract/live-server/layer.ts";
 import { LiveServer } from "@shivaedev/contract/live-server/service.ts";
 import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
 import { appHost } from "@shivaedev/server/appHost.ts";
+import { migratePostgres } from "@shivaedev/sql/migrations.ts";
 import { otlpReceiver } from "@shivaedev/test-story/server/otlpReceiver.ts";
+import { AccountPreferencesStore } from "#server/account-preferences/service.ts";
+import { accountPreferencesStore } from "#server/account-preferences/store.ts";
+import { accountPreferencesMigration } from "#server/accountPreferencesMigration.ts";
 import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
 import { defineAuth } from "#server/better-auth/define.ts";
 import { betterAuthMount } from "#server/better-auth/mount.ts";
@@ -21,10 +26,15 @@ import { Api, diagnostic, handlers } from "#test/native-sessions/api.ts";
 export const NATIVE_ORIGIN = "capacitor://localhost";
 export const ANDROID_ORIGIN = "https://localhost";
 export const REVALIDATION_INTERVAL = Duration.millis(50);
+export interface HostOptions {
+	readonly accountPreferences?: boolean;
+	readonly siblingOrigins?: readonly string[] | undefined;
+	readonly trustedProxy?: string | undefined;
+}
+
 export const startHost = Effect.fn("NativeSessions.startHost")(function* (
 	nativeOrigins: readonly string[] | undefined,
-	trustedProxy?: string,
-	siblingOrigins: readonly string[] = [],
+	{ accountPreferences = false, siblingOrigins = [], trustedProxy }: HostOptions = {},
 ) {
 	const pool = yield* betterAuthDatabase();
 	const options = {
@@ -38,7 +48,11 @@ export const startHost = Effect.fn("NativeSessions.startHost")(function* (
 		trustedOrigins: ["http://127.0.0.1:*", ...siblingOrigins],
 	} satisfies BetterAuthOptions;
 	yield* Effect.promise(async () => (await getMigrations(options)).runMigrations());
-	const mounted = yield* betterAuthMount(defineAuth({ nativeOrigins, options })).pipe(Effect.provide(memoryStore));
+	if (accountPreferences) {
+		yield* migratePostgres({ loader: Migrator.fromRecord({ "0001_account_preferences": accountPreferencesMigration }), lockTimeout: "5 seconds" });
+	}
+	const mounted = yield* betterAuthMount(defineAuth({ nativeOrigins, options }), { accountPreferences }).pipe(Effect.provide(memoryStore));
+	const preferences = yield* AccountPreferencesStore.pipe(Effect.provide(accountPreferencesStore));
 	const activity = { available: true, lookups: 0 };
 	const sessions = {
 		...mounted.sessions,
@@ -97,6 +111,6 @@ export const startHost = Effect.fn("NativeSessions.startHost")(function* (
 	if (!NetAddress.isInetAddress(server.address)) {
 		return yield* Effect.die("The native session host needs a TCP listener");
 	}
-	return { activity, auth: mounted.auth, baseUrl: `http://127.0.0.1:${server.address.port}`, logs, pool, receiver, stop };
+	return { activity, auth: mounted.auth, baseUrl: `http://127.0.0.1:${server.address.port}`, logs, pool, preferences, receiver, stop };
 });
 export type Host = Effect.Success<ReturnType<typeof startHost>>;
