@@ -25,8 +25,9 @@ export const socketClient = Effect.fnUntraced(function* (url: string, token: str
 		socket.addEventListener("close", (event) => Effect.runSync(Deferred.succeed(closed, { code: event.code, reason: event.reason })));
 		return socket;
 	});
-	const raw = Socket.layerWebSocket(`${url.replace(/^http/u, "ws")}?auth=frame`).pipe(Layer.provide(webSocketConstructor));
-	const authenticated = Layer.effect(Socket.Socket, authenticateSocket(token)).pipe(Layer.provide(raw));
+	const authenticated = Layer.effect(Socket.Socket, authenticateSocket(url.replace(/^http/u, "ws"), Effect.succeed(token))).pipe(
+		Layer.provide(webSocketConstructor),
+	);
 	const protocol = RpcClient.layerProtocolSocket().pipe(Layer.provide([authenticated, RpcSerialization.layerNdjson]));
 	const services = yield* Layer.build(protocol);
 	const client = yield* RpcClient.make(Api).pipe(Effect.provideContext(services));

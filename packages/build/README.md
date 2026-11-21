@@ -167,23 +167,21 @@ export const notesWire = {
 } as const;
 
 export const Notes = clientContract({
-	commands: {
-		create: { invalidates: () => [notes.list] },
-	},
+	commands: ["create"],
 	name: "notes",
 	payloads: {
 		create: NoteFields,
 	},
-	queries: {
-		list: { reads: () => [notes.list] },
-	},
+	queries: ["list"],
 	wire: notesWire,
 });
 
 export const notesMatchModule: ClientMatchesModule<typeof Notes, typeof NotesModule> = true;
 ```
 
-Payloads, `reads`, `readsCollections`, `invalidates` and the module's `middleware`, `subject` and `keyScope` are copied as written, with the imports they use. Two imports that share a name get distinct local names, so a `NoteMissing` from one file and a `NoteMissing` from another both fit. A value declared in the operation's own file, or imported there by a relative path, is refused, because the generated file cannot import it: move it to a module the operation imports through a package import such as `#modules/notes/model.ts`.
+The browser's contract names the module's queries and commands and carries what the browser calls them with. Payloads and the module's `middleware`, `subject` and `keyScope` are copied as written, with the imports they use. Two imports that share a name get distinct local names, so a `NoteMissing` from one file and a `NoteMissing` from another both fit. A copied value declared in the operation's own file, or imported there by a relative path, is refused, because the generated file cannot import it: move it to a module the operation imports through a package import such as `#modules/notes/model.ts`.
+
+A query's `reads` and `readsCollections` and a command's `invalidates` are not copied. The host serves the module, so the server announces each change from the module's own keys, and the browser's queries refresh from those announcements. A key may therefore be declared in the operation's own file, beside the operation that uses it.
 
 ### The server's module list
 
@@ -287,7 +285,7 @@ A run in the dev server after a save that changes a module's inputs builds a pro
 
 A run that builds a program takes the machine-wide [heavy lock](https://github.com/ShivaeDev/platform/tree/main/packages/heavy-lock), so it waits while another heavy run holds it; an unchanged run does not.
 
-`ClientMatchesModule` compares payloads, successes and rejections. A changed `invalidates`, `reads` or key scope changes the module's inputs, so `generate --check` reports the file stale and the next `generate` writes the change.
+`ClientMatchesModule` compares the operations and their payloads, successes and rejections. A changed key scope changes the generated file, so `generate --check` reports the file stale and the next `generate` writes the change. A changed `invalidates` or `reads` leaves the generated file as it is, so `generate` reports it `current`.
 
 ### Limits
 

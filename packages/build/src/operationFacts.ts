@@ -1,6 +1,6 @@
 import ts from "typescript";
 import { copiedCode } from "#copiedCode.ts";
-import type { CodePart, OperationFacts } from "#facts.ts";
+import type { OperationFacts } from "#facts.ts";
 import { failuresOf } from "#failuresOf.ts";
 import { initializerOf, propertyOf } from "#moduleCalls.ts";
 import { type TypeReading, typeArguments } from "#typeReading.ts";
@@ -63,23 +63,15 @@ export function operationFacts(context: OperationReading, element: ts.Expression
 		refuseUnread(context, label, found.literal);
 	}
 	const [, policyError] = kind === "query" ? effectArguments(reading.checker, type, "readPolicy", found.declaration) : [];
-	const literal = found.literal;
-	function copy(field: string, member: boolean): readonly CodePart[] | undefined {
-		const property = propertyOf(literal, field);
-		const node = member ? property : initializerOf(property);
-		return node === undefined ? undefined : copiedCode({ checker: reading.checker, label: `${label} ${field}`, refuse: context.refuse }, node);
-	}
+	const payload = initializerOf(propertyOf(found.literal, "payload"));
 	return {
 		failures: failuresOf(
 			context.reading(label),
 			[runError, policyError].flatMap((error) => error ?? []),
 		),
-		invalidates: copy("invalidates", true),
 		kind,
 		name,
-		payload: copy("payload", false),
-		reads: copy("reads", true),
-		readsCollections: copy("readsCollections", true),
+		payload: payload === undefined ? undefined : copiedCode({ checker: reading.checker, label: `${label} payload`, refuse: context.refuse }, payload),
 		success: success === undefined ? undefined : wireForm(context.reading(label), success, "success"),
 	};
 }

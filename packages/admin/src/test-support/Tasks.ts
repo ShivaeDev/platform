@@ -1,9 +1,12 @@
 import { Context, Effect, Ref, Schema } from "effect";
+import { collection } from "@shivaedev/changes/keys.ts";
 import { defineModule } from "@shivaedev/contract/defineModule.ts";
 import { command, query } from "@shivaedev/contract/operation.ts";
 import { adminTasksWire } from "#generated/test-support/Tasks.ts";
 import { UsersPermission } from "#permissions.ts";
-import { adminTasks } from "#test/adminTasks.ts";
+
+// Declared beside the operations that read and invalidate it; the generated browser contract copies no keys.
+export const adminTasks = collection("admin_tasks", Schema.String);
 
 export class OpenTasks extends Context.Service<OpenTasks, Ref.Ref<readonly string[]>>()("@shivaedev/admin/test/OpenTasks") {}
 

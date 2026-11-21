@@ -32,7 +32,10 @@ const browserRegistry = Effect.acquireRelease(
 export const openBrowser = Effect.fnUntraced(function* (url: string, actor: string) {
 	const opened: string[] = [];
 	const registry = yield* browserRegistry;
-	const client = makeClient({ delegated: Delegated }, { bearerToken: actor, url: `${url}/rpc`, webSocketConstructor: browserWebSocket(opened) });
+	const client = makeClient(
+		{ delegated: Delegated },
+		{ bearerToken: Effect.succeed(actor), url: `${url}/rpc`, webSocketConstructor: browserWebSocket(opened) },
+	);
 	function run<A, E>(effect: Effect.Effect<A, E, Context.Service.Identifier<typeof client.Client> | Reactivity.Reactivity>) {
 		return AtomRegistry.getResult(registry, client.runtime.atom(effect).pipe(Atom.setIdleTTL(0)));
 	}
@@ -183,7 +186,10 @@ export function browserVerbs(state: { readonly url: string }, story: { readonly 
 const openCoachingBrowser = Effect.fnUntraced(function* (url: string, actor: string) {
 	const opened: string[] = [];
 	const registry = yield* browserRegistry;
-	const client = makeClient({ coaching: Coaching }, { bearerToken: actor, url: `${url}/rpc`, webSocketConstructor: browserWebSocket(opened) });
+	const client = makeClient(
+		{ coaching: Coaching },
+		{ bearerToken: Effect.succeed(actor), url: `${url}/rpc`, webSocketConstructor: browserWebSocket(opened) },
+	);
 	function run<A, E>(effect: Effect.Effect<A, E, Context.Service.Identifier<typeof client.Client> | Reactivity.Reactivity>) {
 		return AtomRegistry.getResult(registry, client.runtime.atom(effect).pipe(Atom.setIdleTTL(0)));
 	}
