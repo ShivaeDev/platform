@@ -127,3 +127,62 @@ updates.it(
 		]);
 	},
 );
+
+const HAND_WRITTEN_LIST = `import type { Layer } from "effect";
+import { appModules } from "@shivaedev/server/appModules.ts";
+import { notesRegistration } from "#modules/notes/server/registration.ts";
+import { serverRegistration } from "#server/registration.ts";
+
+const modules = [notesRegistration] as const;
+
+export function serverModules<R = never, E = never, TRequirements = never>(replacements: Layer.Layer<R, E, TRequirements>) {
+	return appModules([serverRegistration(modules), ...modules], { replacements });
+}
+`;
+const listsByHand = starterAt010("lists its server modules by hand in src/server/modules.ts", { "src/server/modules.ts": HAND_WRITTEN_LIST });
+const composesTheGeneratedList = starterAt020("composes the generated server module list in src/server/modules.ts", {
+	"src/server/modules.ts": AS_RELEASED,
+});
+
+for (const flags of [[], ["--minimal"]] as const) {
+	updates.it(
+		`update moves ${flags.length === 0 ? "an app" : "a minimal app"} whose hand-written server module list it never changed onto the fixed composition of the generated list`,
+		[listsByHand, createdWith010(...flags), published010, composesTheGeneratedList],
+		function* ({ answer, file, starterFile, update }) {
+			yield* update();
+
+			yield* outcomes([
+				["answer", () => answer(), APPLIED],
+				["src/server/modules.ts", () => file("src/server/modules.ts"), yield* starterFile("src/server/modules.ts")],
+			]);
+		},
+	);
+}
+
+updates.it(
+	"update leaves conflict markers in src/server/modules.ts when my-app's hand-written list names a module it added",
+	[
+		listsByHand,
+		createdWith010(),
+		published010,
+		appCommits("registers a bookmarks module in its list", {
+			"src/server/modules.ts": (list) =>
+				list
+					.replace(
+						"import { notesRegistration }",
+						'import { bookmarksRegistration } from "#modules/bookmarks/server/registration.ts";\nimport { notesRegistration }',
+					)
+					.replace("[notesRegistration]", "[bookmarksRegistration, notesRegistration]"),
+		}),
+		composesTheGeneratedList,
+	],
+	function* ({ answer, conflictedFiles, fileMentions, update }) {
+		yield* update();
+
+		yield* outcomes([
+			["answer", () => answer(), expect.stringContaining("Files with conflict markers:\nsrc/server/modules.ts")],
+			["conflicted files", () => conflictedFiles(), ["src/server/modules.ts"]],
+			["the generated list's import", () => fileMentions("src/server/modules.ts", 'import { modules } from "#generated/server/modules.ts";'), true],
+		]);
+	},
+);

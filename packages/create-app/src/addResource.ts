@@ -13,12 +13,6 @@ export const addResource = Effect.fn("CreateApp.addResource")(function* (folder:
 	if (!(yield* fs.exists(path.join(root, GENERATION_FILE)))) {
 		return yield* new CreateAppError({ message: `Run create-app resource from a generated app (${GENERATION_FILE} is missing).` });
 	}
-	const registry = "src/server/modules.ts";
-	const source = yield* fs.readFileString(path.join(root, registry));
-	const declaration = /const modules = \[[\s\S]*?\] as const;/gu;
-	if ([...source.matchAll(declaration)].length !== 1) {
-		return yield* new CreateAppError({ message: `Cannot register ${name}: ${registry} must declare const modules = [...] as const;` });
-	}
 	const files = yield* fs.readDirectory(path.join(root, "src"), { recursive: true });
 	const ids = files
 		.filter((file) => path.basename(path.dirname(file)) === MIGRATIONS_FOLDER && MIGRATION_FILE_PATTERN.test(path.basename(file)))
@@ -38,17 +32,7 @@ export const addResource = Effect.fn("CreateApp.addResource")(function* (folder:
 		yield* fs.makeDirectory(path.dirname(path.join(root, file)), { recursive: true });
 		yield* fs.writeFileString(path.join(root, file), content, { flag: "wx", mode: 0o644 });
 	}
-	const registration = `${names.camel}Registration`;
-	const specifier = `#modules/${name}/server/registration.ts`;
-	const lines = source
-		.replace(declaration, (list) => list.replace(/^const modules = \[/u, `const modules = [${registration}${list.includes("[]") ? "" : ", "}`))
-		.split("\n");
-	const following = lines.findIndex((line) => /^import .* from "#/u.test(line) && line.slice(line.indexOf('from "') + 6) > specifier);
-	lines.splice(
-		following === -1 ? lines.findLastIndex((line) => line.startsWith("import ")) + 1 : following,
-		0,
-		`import { ${registration} } from "${specifier}";`,
+	yield* Console.log(
+		`Added ${name}.\n\nNext steps:\n  pnpm format\n  pnpm generate\n  pnpm migrate\n  pnpm test src/modules/${name}/server/lifecycle.spec.ts`,
 	);
-	yield* fs.writeFileString(path.join(root, registry), lines.join("\n"));
-	yield* Console.log(`Added ${name}.\n\nNext steps:\n  pnpm format\n  pnpm migrate\n  pnpm test src/modules/${name}/server/lifecycle.spec.ts`);
 });

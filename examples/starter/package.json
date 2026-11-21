@@ -16,7 +16,7 @@
 		"ci": "quality ci",
 		"db:seed": "node --conditions=@shivaedev/source --env-file-if-exists=.env.local src/server/run-seed.ts",
 		"db:setup": "node --conditions=@shivaedev/source --env-file-if-exists=.env.local src/server/setup-database.ts",
-		"dev": "pnpm db:setup && pnpm migrate && pnpm generate && node --conditions=@shivaedev/source --env-file-if-exists=.env.local src/server/dev.ts",
+		"dev": "pnpm db:setup && pnpm generate && pnpm migrate && node --conditions=@shivaedev/source --env-file-if-exists=.env.local src/server/dev.ts",
 		"format": "quality fix",
 		"generate": "shivaedev-build generate",
 		"lint": "node --conditions=@shivaedev/source tooling/heavy.ts -- sh -c 'pnpm lint:skills && quality lint'",

@@ -81,6 +81,7 @@ export interface DevServer {
 	readonly server: ViteDevServer;
 	readonly terminal: readonly string[];
 	readonly url: string;
+	readonly written: Queue.Queue<string>;
 }
 
 export const viteDevServer = Effect.fn("BuildStory.viteDevServer")(function* (root: string) {
@@ -110,6 +111,12 @@ export const viteDevServer = Effect.fn("BuildStory.viteDevServer")(function* (ro
 		}),
 		(socket) => Effect.sync(() => socket.close()),
 	);
-	const devServer: DevServer = { browser, server, terminal, url };
+	const written = yield* Queue.unbounded<string>();
+	server.watcher.on("all", (event, file) => {
+		if (event === "add" || event === "change") {
+			Queue.offerUnsafe(written, file);
+		}
+	});
+	const devServer: DevServer = { browser, server, terminal, url, written };
 	return devServer;
 });
