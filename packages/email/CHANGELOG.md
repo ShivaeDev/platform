@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.8.4 - 2026-11-21
+
+### Changed
+
+- Update `@shivaedev/identity` from 0.39.0 to 0.40.0.
+- Update `@shivaedev/jobs` from 0.44.0 to 0.44.1.
+
 ## 0.8.3 - 2026-11-21
 
 ### Changed
