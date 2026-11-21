@@ -19,18 +19,27 @@ The starter uses strict application checking with `skipLibCheck: true`, matching
 
 ## Coverage reports
 
-The starter's single `CI` job runs `pnpm run ci --coverage`; `pnpm ready` runs the same checks locally without the coverage flag. Quality collects V8 coverage and JUnit from the one test run, including failed tests, into the git-ignored `coverage/` folder. No application coverage dependency or configuration is needed.
+The starter's single `CI` job runs `pnpm run ci --coverage`; `pnpm ready` runs the same checks locally without the coverage flag. `quality ci --coverage` runs the test script once with V8 coverage, including when tests fail. The starter's test script runs [`vitest-rerun`](../../packages/vitest-rerun/README.md), which reruns failed tests in a fresh process, merges the coverage of every attempt into the git-ignored `coverage/` folder and writes its test reports to the git-ignored `test-results/` folder. No application coverage dependency or configuration is needed.
 
-CI uploads a `coverage-tests` artifact for 14 days, including after test failures. Coverage services read artifacts named `coverage-*` with these files at the artifact root:
+CI uploads a `coverage-tests` artifact for 14 days, including after test failures. The upload names several paths, so the artifact is rooted at their common folder, the app's root, and each file keeps its folder:
 
 ```text
-lcov.info
-junit.xml
-measured-commits.txt
-job.txt
+coverage/lcov.info
+coverage/measured-commits.txt
+coverage/job.txt
+test-results/tests.junit.xml
+test-results/flaky-tests.json
 ```
 
-The text files contain the measured commit and its first parent, one SHA per line, and the job's check-run ID. The lcov report supplies line coverage; JUnit also feeds the coverage service's flaky-test and CI run-time tracking. Pull requests run on opened, synchronize, reopened and ready-for-review events, with superseded runs cancelled. Pushes run only on `main` so the service has default-branch measurements to compare with pull requests; those runs are never cancelled by concurrency. If the app uses another default branch, change the workflow's push branch filter.
+| File                            | Written by                                                                                            | Holds                                                                                 |
+| ------------------------------- | ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| `coverage/lcov.info`            | Vitest's V8 coverage, enabled by `quality ci --coverage` and merged across attempts by `vitest-rerun` | Line coverage of the whole run.                                                       |
+| `test-results/tests.junit.xml`  | `vitest-rerun`                                                                                        | The final JUnit report of the whole run, with each test's file in a `file` attribute. |
+| `test-results/flaky-tests.json` | `vitest-rerun`, only when a test passed only on a rerun                                               | The tests that needed a rerun, with their attempts.                                   |
+| `coverage/measured-commits.txt` | a workflow step                                                                                       | The measured commit and its first parent, one SHA per line.                           |
+| `coverage/job.txt`              | a workflow step                                                                                       | The job's check-run ID.                                                               |
+
+The upload names `tests.junit.xml` alone, so the per-attempt `tests.attempt-<n>.junit.xml` files `vitest-rerun` keeps after a rerun stay out of the artifact. Pull requests run on opened, synchronize, reopened and ready-for-review events, with superseded runs cancelled. Pushes run only on `main`, so the default branch has measurements to compare with pull requests; those runs are never cancelled by concurrency. If the app uses another default branch, change the workflow's push branch filter.
 
 ## Administer the app
 
