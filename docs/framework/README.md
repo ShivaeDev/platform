@@ -75,7 +75,7 @@ The [starter quickstart](./quickstart.md) begins with a runnable app, and its no
 - [Request context](./request-context.md) explains errors, session resolution, Origin policy and redacted request diagnostics; [BetterAuth at the RPC boundary](./auth-boundary.md) shows the session provider.
 - [Commit-bound changes](./changes.md) connects transaction bindings to application change vocabularies.
 - [Live updates](./live-updates.md) explains default query refresh and explicit hint-stream coordination.
-- [Editing](./editing.md) connects queries, forms and saves; [client lifetime](./client-lifecycle.md) ties the client registry to the authenticated session.
+- [Editing](./editing.md) connects queries, forms and saves; [client lifetime](./client-lifecycle.md) ties the client registry, stored results, warm queries and the remembered session to the authenticated session.
 - [Entity settings](./entity-settings.md) composes typed defaults, an authorized query, an upsert and a live form editor without a new helper.
 - [Cancellation](./cancellation.md) covers interruption from React actions to Node requests.
 - [Migrations](./migrations.md) and [PostgreSQL migrations](./postgres-migrations.md) explain authoring and runner ownership.
