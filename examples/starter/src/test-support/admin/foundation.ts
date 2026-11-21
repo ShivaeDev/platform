@@ -27,11 +27,14 @@ export const foundationAdmin = storyKit({
 	stages: ["accounts", "worker"],
 	verbs: (engine, story) => {
 		const adminOf = Effect.fn("FoundationAdmin.adminOf")(function* (name: string) {
-			return yield* makeClient({ jobs: foundation.JobsPage.contract, users: foundation.UsersPage.contract }, {
-				headers: { cookie: engine.cookies.get(name) ?? "", origin: engine.host.origin },
-				url: `${engine.host.baseUrl}/rpc`,
-				webSocketConstructor: layerWebSocketConstructor,
-			}).client;
+			return yield* makeClient(
+				{ jobs: foundation.JobsPage.contract, users: foundation.UsersPage.contract },
+				{
+					headers: { cookie: engine.cookies.get(name) ?? "", origin: engine.host.origin },
+					url: `${engine.host.baseUrl}/rpc`,
+					webSocketConstructor: layerWebSocketConstructor,
+				},
+			).client;
 		});
 		return {
 			failedJobs: Effect.fn("FoundationAdmin.failedJobs")(function* (name: string, queue: string) {

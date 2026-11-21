@@ -1,7 +1,7 @@
-import { useAction } from "@shivaedev/react/client/resultState.ts";
 import type { ContractClient } from "@shivaedev/contract/makeClient.ts";
-import type { Notes } from "#generated/modules/notes/Notes.ts";
+import { useAction } from "@shivaedev/react/client/resultState.ts";
 import { Button } from "#client/ui/button.tsx";
+import type { Notes } from "#generated/modules/notes/Notes.ts";
 import type { Note } from "#modules/notes/model.ts";
 
 export function NoteDelete({

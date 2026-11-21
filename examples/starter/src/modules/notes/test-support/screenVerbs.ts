@@ -26,7 +26,8 @@ export function noteScreenVerbs(engine: Screen, tell: (line: string) => void) {
 		cachedTitle: () =>
 			Effect.sync(
 				() =>
-					AsyncResult.getOrElse(screenView(engine).registry.get(engine.client.api.notes.get.query({ id: 1 })), () => undefined)?.title ?? "nothing cached",
+					AsyncResult.getOrElse(screenView(engine).registry.get(engine.client.api.notes.get.query({ id: 1 })), () => undefined)?.title
+					?? "nothing cached",
 			),
 		finishWordCount: (count: number) =>
 			Effect.promise(async () => {

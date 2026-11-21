@@ -1,7 +1,7 @@
 import { Effect } from "effect";
+import type { ClientOptions } from "@shivaedev/contract/ClientOptions.ts";
 import { clientActivity } from "@shivaedev/contract/clientActivity.ts";
 import { makeClient } from "@shivaedev/contract/makeClient.ts";
-import type { ClientOptions } from "@shivaedev/contract/ClientOptions.ts";
 import { Notes } from "#generated/modules/notes/Notes.ts";
 import { StatisticsPage } from "#modules/notes/admin/pages.ts";
 import { notesRegistration } from "#modules/notes/client/registration.tsx";

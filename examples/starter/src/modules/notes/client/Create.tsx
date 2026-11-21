@@ -1,11 +1,11 @@
 import { Option } from "effect";
 import { useId } from "react";
+import type { ContractClient } from "@shivaedev/contract/makeClient.ts";
 import { useField } from "@shivaedev/form/react.ts";
 import { useCreate } from "@shivaedev/react/client/create.ts";
-import type { ContractClient } from "@shivaedev/contract/makeClient.ts";
-import type { Notes } from "#generated/modules/notes/Notes.ts";
 import { Button } from "#client/ui/button.tsx";
 import { Input } from "#client/ui/input.tsx";
+import type { Notes } from "#generated/modules/notes/Notes.ts";
 
 export function NoteCreate({ client }: { readonly client: ContractClient<typeof Notes> }) {
 	const titleId = useId();

@@ -25,16 +25,17 @@ export const openProfile = Effect.fnUntraced(function* (host: Host, account: Acc
 		Effect.sync(() => AtomRegistry.make()),
 		(current) => Effect.sync(() => current.dispose()),
 	);
-	let resume: (() => void) | undefined;
+	// The client's socket and its live queries each register with the native resume source.
+	const resumed = new Set<() => void>();
 	const api = makeClient(
 		{ profiles: Api },
 		{
 			bearerToken: account.credential ?? "",
 			registry,
 			resume: (notify) => {
-				resume = notify;
+				resumed.add(notify);
 				return () => {
-					resume = undefined;
+					resumed.delete(notify);
 				};
 			},
 			url: `${host.baseUrl}/rpc`,
@@ -51,7 +52,15 @@ export const openProfile = Effect.fnUntraced(function* (host: Host, account: Acc
 	return {
 		closed: Deferred.await(closed),
 		next,
-		resume: Effect.suspend(() => (resume === undefined ? Effect.die("The native resume source is not mounted") : Effect.sync(resume))),
+		resume: Effect.suspend(() =>
+			resumed.size === 0
+				? Effect.die("The native resume source is not mounted")
+				: Effect.sync(() => {
+						for (const notify of resumed) {
+							notify();
+						}
+					}),
+		),
 		urls,
 	};
 });

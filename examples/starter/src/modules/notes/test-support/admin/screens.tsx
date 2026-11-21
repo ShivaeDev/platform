@@ -52,11 +52,14 @@ export const adminScreens = storyKit({
 			alert: () => Effect.sync(() => container().querySelector('[role="alert"]')?.textContent ?? "no alert"),
 			assignsRole: Effect.fn("AdminScreen.assignsRole")(function* (actor: string, target: string, role: typeof AppAccess.Role.Type) {
 				story.tell(`${actor} assigns ${target} the ${role} role from another client`);
-				const client = makeClient({ users: foundation.UsersPage.contract }, {
-					url: `${engine.host.baseUrl}/rpc`,
-					headers: { cookie: engine.accounts.get(actor)?.headers.get("cookie") ?? "", origin: engine.host.origin },
-					webSocketConstructor: layerWebSocketConstructor,
-				});
+				const client = makeClient(
+					{ users: foundation.UsersPage.contract },
+					{
+						headers: { cookie: engine.accounts.get(actor)?.headers.get("cookie") ?? "", origin: engine.host.origin },
+						url: `${engine.host.baseUrl}/rpc`,
+						webSocketConstructor: layerWebSocketConstructor,
+					},
+				);
 				yield* (yield* client.client)["admin.users.changeRole"]({ role, userId: engine.accounts.get(target)?.user.id ?? "missing" });
 			}),
 			choosesRole: (name: string, role: string) =>

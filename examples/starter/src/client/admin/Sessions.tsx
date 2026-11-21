@@ -15,11 +15,6 @@ export function AdminSessions({
 }) {
 	const signOut = useSignOut(auth.signOut, { signIn: "/sign-in" });
 	return (
-		<SessionsView
-			currentSessionId={currentSessionId}
-			list={client.list.query}
-			onCurrentSessionRevoked={signOut.dispatch}
-			revoke={client.revoke}
-		/>
+		<SessionsView currentSessionId={currentSessionId} list={client.list.query} onCurrentSessionRevoked={signOut.dispatch} revoke={client.revoke} />
 	);
 }

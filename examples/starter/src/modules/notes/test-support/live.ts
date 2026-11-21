@@ -62,11 +62,14 @@ export const watchedNote = Effect.fn("AppStory.watchedNote")(function* (address:
 });
 
 function changesClient(address: RpcAddress, cookie: string) {
-	return makeClient({ notes: Notes }, {
-		headers: { cookie, origin: address.origin },
-		url: `${address.baseUrl}/rpc`,
-		webSocketConstructor: layerWebSocketConstructor,
-	}).client;
+	return makeClient(
+		{ notes: Notes },
+		{
+			headers: { cookie, origin: address.origin },
+			url: `${address.baseUrl}/rpc`,
+			webSocketConstructor: layerWebSocketConstructor,
+		},
+	).client;
 }
 
 export const noteChangesSubscription = Effect.fn("AppStory.noteChangesSubscription")(function* (address: RpcAddress, cookie: string, id: number) {

@@ -19,11 +19,14 @@ export const foundationJobsScreen = storyKit({
 	*create() {
 		const host = yield* startHost();
 		const { headers } = yield* mintUser(AppAuth, host, "operator", { role: "admin" });
-		const client = makeClient({ jobs: foundation.JobsPage.contract }, {
-			url: `${host.baseUrl}/rpc`,
-			headers: { cookie: headers.get("cookie") ?? "", origin: host.origin },
-			webSocketConstructor: layerWebSocketConstructor,
-		});
+		const client = makeClient(
+			{ jobs: foundation.JobsPage.contract },
+			{
+				headers: { cookie: headers.get("cookie") ?? "", origin: host.origin },
+				url: `${host.baseUrl}/rpc`,
+				webSocketConstructor: layerWebSocketConstructor,
+			},
+		);
 		const surface: ScreenSurface = { activities: [clientActivity(client)], view: undefined };
 		return { client, surface };
 	},

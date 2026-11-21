@@ -20,7 +20,6 @@ import { type RunningHost, startHost } from "#test-support/host.ts";
 import { testPoolSizes } from "#test-support/poolSizes.ts";
 import { configured, postgres } from "#test-support/postgres.ts";
 
-
 interface AdminEngine {
 	readonly cookies: Map<string, string>;
 	readonly host: RunningHost;
@@ -56,11 +55,14 @@ export const adminHost = storyKit({
 	stages: ["accounts", "development"],
 	verbs: (engine, story) => {
 		const adminOf = Effect.fn("AdminStory.adminOf")(function* (name: string) {
-			return yield* makeClient({ jobs: foundation.JobsPage.contract, statistics: StatisticsPage.contract, users: foundation.UsersPage.contract }, {
-				headers: { cookie: engine.cookies.get(name) ?? "", origin: engine.url },
-				url: `${engine.url}/rpc`,
-				webSocketConstructor: layerWebSocketConstructor,
-			}).client;
+			return yield* makeClient(
+				{ jobs: foundation.JobsPage.contract, statistics: StatisticsPage.contract, users: foundation.UsersPage.contract },
+				{
+					headers: { cookie: engine.cookies.get(name) ?? "", origin: engine.url },
+					url: `${engine.url}/rpc`,
+					webSocketConstructor: layerWebSocketConstructor,
+				},
+			).client;
 		});
 		return {
 			callsAuthAdmin: (name: string, operation: "create-user" | "set-role" | "update-user", target: string) =>

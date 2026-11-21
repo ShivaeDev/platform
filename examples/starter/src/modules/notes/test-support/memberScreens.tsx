@@ -22,11 +22,14 @@ export function notesMemberScreens(baseUrl: string) {
 	return memberScreens({
 		baseUrl,
 		mount: Effect.fnUntraced(function* (member) {
-			const client = makeClient({ notes: Notes, statistics: StatisticsPage.contract }, {
-				headers: { cookie: member.cookie, origin: new URL(baseUrl).origin },
-				url: `${baseUrl}/rpc`,
-				webSocketConstructor: layerWebSocketConstructor,
-			});
+			const client = makeClient(
+				{ notes: Notes, statistics: StatisticsPage.contract },
+				{
+					headers: { cookie: member.cookie, origin: new URL(baseUrl).origin },
+					url: `${baseUrl}/rpc`,
+					webSocketConstructor: layerWebSocketConstructor,
+				},
+			);
 			const auth = makeAuth({ baseUrl, fetchOptions: { customFetchImpl: member.fetch } });
 			const connection = yield* notesRegistration(client).pipe(
 				Effect.map((module) => connectModules([module])),

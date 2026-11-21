@@ -182,7 +182,9 @@ export const openNotes = Effect.fn("ScreenStory.openNotes")(function* (engine: S
 		root: view.container,
 		tell: () => undefined,
 	}).settle();
-	const loaded = yield* Effect.promise(() => loadQuery(view.registry, engine.client.api.notes.list.query(), { abortController: new AbortController() }));
+	const loaded = yield* Effect.promise(() =>
+		loadQuery(view.registry, engine.client.api.notes.list.query(), { abortController: new AbortController() }),
+	);
 	yield* Effect.promise(() =>
 		view.render(
 			<Notices>

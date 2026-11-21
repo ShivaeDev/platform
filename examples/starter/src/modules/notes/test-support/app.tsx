@@ -144,10 +144,13 @@ export function notesHostScreen(initial = "/sign-in") {
 			|| view.registry.get(engine.auth.actions.submit).waiting
 			|| view.registry.get(engine.auth.actions.signOut).waiting;
 		function connect(session: { readonly id: string }) {
-			const client = makeClient({ notes: Notes, statistics: StatisticsPage.contract }, {
-				url: `${engine.baseUrl}/rpc`,
-				...(engine.headers.has("cookie") ? { headers: Object.fromEntries(engine.headers), webSocketConstructor: layerWebSocketConstructor } : {}),
-			});
+			const client = makeClient(
+				{ notes: Notes, statistics: StatisticsPage.contract },
+				{
+					url: `${engine.baseUrl}/rpc`,
+					...(engine.headers.has("cookie") ? { headers: Object.fromEntries(engine.headers), webSocketConstructor: layerWebSocketConstructor } : {}),
+				},
+			);
 			engine.activities = [clientActivity(client)];
 			return clientModules(session, [notesRegistration(client)]);
 		}

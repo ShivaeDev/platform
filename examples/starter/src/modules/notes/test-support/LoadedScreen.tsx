@@ -1,7 +1,7 @@
-import { useLoaderQuery } from "@shivaedev/react/client/useLoaderQuery.ts";
 import type { ContractClient } from "@shivaedev/contract/makeClient.ts";
-import type { Notes } from "#generated/modules/notes/Notes.ts";
+import { useLoaderQuery } from "@shivaedev/react/client/useLoaderQuery.ts";
 import type { AuthActions } from "#client/adapters/auth.ts";
+import type { Notes } from "#generated/modules/notes/Notes.ts";
 import { NotesScreen } from "#modules/notes/client/Screen.tsx";
 import type { Note } from "#modules/notes/model.ts";
 

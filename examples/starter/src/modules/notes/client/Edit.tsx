@@ -3,13 +3,13 @@ import { Option } from "effect";
 import type * as AsyncResult from "effect/reactivity/AsyncResult";
 import type * as Atom from "effect/reactivity/Atom";
 import { useId } from "react";
+import type { ContractClient } from "@shivaedev/contract/makeClient.ts";
 import { useField } from "@shivaedev/form/react.ts";
 import type { Form } from "@shivaedev/form/shape.ts";
 import { useEditor } from "@shivaedev/react/client/editor.ts";
-import type { ContractClient } from "@shivaedev/contract/makeClient.ts";
-import type { Notes } from "#generated/modules/notes/Notes.ts";
 import { Button } from "#client/ui/button.tsx";
 import { Input } from "#client/ui/input.tsx";
+import type { Notes } from "#generated/modules/notes/Notes.ts";
 import { NoteDelete } from "#modules/notes/client/Delete.tsx";
 import type { Note, NoteEditFields } from "#modules/notes/model.ts";
 
