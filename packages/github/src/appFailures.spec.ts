@@ -8,6 +8,7 @@ import {
 	exchangeOversized,
 	exchangeRefused,
 	exchangeReset,
+	exchangeSuspended,
 	lookupDropped,
 	lookupRefused,
 } from "#test/appFailureTraits.ts";
@@ -38,17 +39,22 @@ appGithub.it(
 	},
 );
 
-appGithub.it(
-	"a refused exchange reaches the caller with a status reason, HTTP 401 and GitHub's message",
-	[exchangeBadCredentials],
-	function* ({ appFailures, readPull }) {
-		yield* readPull();
+for (const [trait, status, detail] of [
+	[exchangeBadCredentials, 401, "Bad credentials"],
+	[exchangeSuspended, 403, "This installation has been suspended"],
+] as const) {
+	appGithub.it(
+		`a refused exchange reaches the caller with a status reason, HTTP ${status} and GitHub's message`,
+		[trait],
+		function* ({ appFailures, readPull }) {
+			yield* readPull();
 
-		const [failure] = yield* appFailures();
-		expect(failure).toMatchObject({ _tag: "GitHubAppError", detail: "Bad credentials", reason: "status", status: 401 });
-		expect(failure instanceof GitHubAppError && failure.message).toBe("GitHub refused the App request with HTTP 401: Bad credentials");
-	},
-);
+			const [failure] = yield* appFailures();
+			expect(failure).toMatchObject({ _tag: "GitHubAppError", detail, reason: "status", status });
+			expect(failure instanceof GitHubAppError && failure.message).toBe(`GitHub refused the App request with HTTP ${status}: ${detail}`);
+		},
+	);
+}
 
 appGithub.it(
 	"a refused exchange whose message echoes the App JWT carries the message with the JWT redacted",

@@ -31,6 +31,17 @@ export const exchangeBadCredentials = appGithub.trait(
 	},
 );
 
+export const exchangeSuspended = appGithub.trait(
+	"github",
+	"GitHub refuses the next token exchange with 403 This installation has been suspended",
+	function* ({ server }) {
+		yield* server.scriptFault("token", {
+			kind: "status",
+			reply: { body: { message: "This installation has been suspended" }, status: HttpStatus.fromLiteral("Forbidden") },
+		});
+	},
+);
+
 export const lookupDropped = appGithub.trait("github", "GitHub drops installation-lookup connections", function* ({ server }) {
 	yield* server.scriptFault("installation", { kind: "drop" }, { repeat: true });
 });
