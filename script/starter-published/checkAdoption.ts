@@ -36,20 +36,8 @@ export const checkAdoption = Effect.fn("Published.checkAdoption")(function* (roo
 	yield* command(app, "pnpm", ["exec", "quality", "fix"]);
 	yield* Effect.log(yield* command(app, "pnpm", ["run", "lint"]));
 	yield* Effect.log(yield* command(app, "pnpm", ["run", "typecheck"]));
-	const reportPath = path.join(app, "test-results/adoption.json");
-	yield* Effect.log(
-		yield* command(app, "env", [
-			`TEST_DATABASE_URL=${database}`,
-			"pnpm",
-			"run",
-			"test",
-			"src/adoption",
-			"--reporter=default",
-			"--reporter=json",
-			`--outputFile=${reportPath}`,
-		]),
-	);
-	const report = decodeReport(yield* fs.readFileString(reportPath));
+	yield* Effect.log(yield* command(app, "env", [`TEST_DATABASE_URL=${database}`, "pnpm", "run", "test", "src/adoption"]));
+	const report = decodeReport(yield* fs.readFileString(path.join(app, "test-results/tests.json")));
 	yield* requireThat(
 		report.numTotalTests > 0 && report.numPendingTests === 0 && report.numPassedTests === report.numTotalTests,
 		"Adoption stories must pass against PostgreSQL without skips.",
