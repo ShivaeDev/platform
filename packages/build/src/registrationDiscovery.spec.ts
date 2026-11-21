@@ -75,7 +75,11 @@ generator.it(
 	},
 );
 
-for (const shape of ["through a separate export list", "typed through a namespace import"] as const) {
+for (const shape of [
+	"through a separate export list",
+	"typed through a namespace import",
+	"serving only admin pages, written satisfies AppModule",
+] as const) {
 	generator.it(
 		`generate lists a registration ${shape} under its exported name`,
 		[registrationsProject(), generatedOnce()],
@@ -95,7 +99,7 @@ for (const shape of ["through a separate export list", "typed through a namespac
 }
 
 const NOT_SATISFIED =
-	"labelsRegistration names what it serves and its services but is not written `satisfies AppModule`, so the server's module list leaves it out; write `satisfies AppModule` after its object, with AppModule imported from @shivaedev/server/AppModule.ts";
+	"labelsRegistration names what it serves but is not written `satisfies AppModule`, so the server's module list leaves it out; write `satisfies AppModule` after its object, with AppModule imported from @shivaedev/server/AppModule.ts";
 
 const REFUSALS = [
 	[
@@ -104,6 +108,8 @@ const REFUSALS = [
 	],
 	["with no annotation", NOT_SATISFIED],
 	["in the group and handlers form with no annotation", NOT_SATISFIED],
+	["naming its module and no services, with no annotation", NOT_SATISFIED],
+	["naming its module through a call, with services and no annotation", NOT_SATISFIED],
 	[
 		"built by a function call",
 		"exports no registration written `satisfies AppModule`, so the server's module list leaves its module out; export the registration as a const written `satisfies AppModule`, with AppModule imported from @shivaedev/server/AppModule.ts",

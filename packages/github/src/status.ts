@@ -2,7 +2,9 @@ import { DateTime, Effect, Option, Schema } from "effect";
 import type { HttpClientResponse } from "effect/http";
 import * as HttpStatus from "effect/http/HttpStatus";
 import { readBoundedText } from "@shivaedev/http/body.ts";
+import { BODY_EXCERPT_BYTES, bodyExcerpt } from "@shivaedev/http/bodyExcerpt.ts";
 import { checkStatus as checkResponseStatus } from "@shivaedev/http/checkStatus.ts";
+import { RemoteHttpError, type RemoteStatusError } from "@shivaedev/http/errors.ts";
 import { parseRetryAfter } from "@shivaedev/http/parseRetryAfter.ts";
 import { GitHubConversationLocked, GitHubPermissionDenied, GitHubRateLimited } from "#errors.ts";
 
@@ -19,26 +21,38 @@ export const checkStatus = Effect.fnUntraced(function* (response: HttpClientResp
 	if (status === HttpStatus.fromLiteral("Forbidden") || status === HttpStatus.fromLiteral("TooManyRequests")) {
 		const limitedByHeaders =
 			status === HttpStatus.fromLiteral("TooManyRequests") || headers["x-ratelimit-remaining"] === "0" || headers["retry-after"] !== undefined;
-		const message = !limitedByHeaders && status === HttpStatus.fromLiteral("Forbidden") ? yield* responseMessage(response) : undefined;
-		const limitedByMessage = message !== undefined && /rate limit/iu.test(message);
+		const body = !limitedByHeaders && status === HttpStatus.fromLiteral("Forbidden") ? yield* forbiddenBody(response) : undefined;
+		const limitedByMessage = body?.message !== undefined && /rate limit/iu.test(body.message);
 		if (limitedByHeaders || limitedByMessage) {
 			return yield* refuseRateLimit(response, resource, failures);
 		}
-		const refusal = githubRefusal(message, new URL(response.request.url).pathname);
+		const refusal = githubRefusal(body?.message, new URL(response.request.url).pathname);
 		if (refusal !== undefined) {
 			return yield* refusal;
 		}
+		// The body is already read here, so the status failure would find it consumed and lose GitHub's words.
+		return yield* checkResponseStatus(response).pipe(Effect.mapError((error) => withExcerpt(error, body?.excerpt)));
 	}
 	return yield* checkResponseStatus(response);
 });
 
 const Message = Schema.fromJsonString(Schema.Struct({ message: Schema.String }));
 
-const responseMessage = Effect.fnUntraced(function* (response: HttpClientResponse.HttpClientResponse) {
+export function githubMessage(text: string | undefined) {
+	return text === undefined ? undefined : Option.getOrUndefined(Option.map(Schema.decodeUnknownOption(Message)(text), (body) => body.message));
+}
+
+const forbiddenBody = Effect.fnUntraced(function* (response: HttpClientResponse.HttpClientResponse) {
 	const text = yield* readBoundedText(response, 64 * 1024);
-	const body = Schema.decodeUnknownOption(Message)(text);
-	return Option.isSome(body) ? body.value.message : undefined;
+	const bytes = new TextEncoder().encode(text);
+	return { excerpt: bodyExcerpt(bytes.subarray(0, BODY_EXCERPT_BYTES), bytes.byteLength > BODY_EXCERPT_BYTES), message: githubMessage(text) };
 });
+
+function withExcerpt(error: RemoteStatusError, excerpt: string | undefined) {
+	return excerpt === undefined || error._tag !== "RemoteHttpError"
+		? error
+		: new RemoteHttpError({ bodyExcerpt: excerpt, method: error.method, status: error.status, url: error.url });
+}
 
 function githubRefusal(message: string | undefined, path: string) {
 	if (message === undefined) {

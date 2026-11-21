@@ -1,9 +1,10 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { appGithub, clockReadsTwoMinutes, exchangeRefused } from "#test/appGithub.ts";
+import { exchangeBadCredentials } from "#test/appFailureTraits.ts";
+import { appGithub, clockReadsTwoMinutes } from "#test/appGithub.ts";
 import { holdsInstallationToken } from "#test/holdsInstallationToken.ts";
 
-const APP_JWT = { algorithm: "RS256", expiresIn: 600, issuedAgo: 60, issuer: "123456", signedBy: "the App's key", type: "JWT" };
+const APP_JWT = { algorithm: "RS256", expiresIn: 540, issuedAgo: 60, issuer: "123456", signedBy: "the App's key", type: "JWT" };
 
 appGithub.it(
 	"a first read through installation 7 exchanges an App JWT for installation token 1 and reads with it",
@@ -105,7 +106,7 @@ appGithub.it(
 );
 
 appGithub.it(
-	"at 00:02:00 each App JWT is RS256, signed by the App's key, issued by App 123456 60 seconds back and expires ten minutes ahead",
+	"at 00:02:00 each App JWT is RS256, signed by the App's key, issued by App 123456 60 seconds back and expires nine minutes ahead",
 	[clockReadsTwoMinutes],
 	function* ({ appJwts, readRepositoryPull }) {
 		yield* readRepositoryPull();
@@ -115,9 +116,9 @@ appGithub.it(
 );
 
 appGithub.it(
-	"a token exchange GitHub refuses with 401 fails the read as an exchange refused with HTTP 401",
-	[exchangeRefused],
+	"a token exchange GitHub refuses with 401 Bad credentials fails the read as an exchange refused with HTTP 401 and GitHub's message",
+	[exchangeBadCredentials],
 	function* ({ readPull }) {
-		expect(yield* readPull()).toBe("token exchange refused with HTTP 401");
+		expect(yield* readPull()).toBe("token exchange refused with HTTP 401: Bad credentials");
 	},
 );

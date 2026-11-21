@@ -51,11 +51,14 @@ const phrases = [
 	on(GitHubConversationLocked, ({ path }) => `conversation locked at ${path}`),
 	on(GitHubTokenError, ({ reason }) => `authentication ${reason} failed`),
 	on(GitHubTransportError, ({ path }) => `transport failure at ${path}`),
-	on(GitHubAppError, ({ reason, status }) => {
+	on(GitHubAppError, ({ detail, reason, status }) => {
 		if (reason === "sign") {
 			return "App JWT signing failed";
 		}
-		return reason === "status" ? `token exchange refused with HTTP ${status}` : `token exchange ${reason} failed`;
+		if (reason !== "status") {
+			return `token exchange ${reason} failed`;
+		}
+		return detail === undefined ? `token exchange refused with HTTP ${status}` : `token exchange refused with HTTP ${status}: ${detail}`;
 	}),
 	on(GitHubArtifactError, ({ stage, status }) => `artifact ${stage} answered HTTP ${status}`),
 	on(GitHubArtifactTooLarge, ({ limit }) => `archive over ${size(limit)}`),

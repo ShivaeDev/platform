@@ -1,4 +1,4 @@
-import { Effect, Layer, Option, Schema } from "effect";
+import { Effect, Option, Schema } from "effect";
 import type { RpcGroup } from "effect/rpc";
 import { Migrator, SqlClient } from "effect/sql";
 import { collection } from "@shivaedev/changes/keys.ts";
@@ -86,10 +86,9 @@ export const draftsModule = {
 		}),
 	},
 	name: "drafts",
-	services: Layer.empty,
 } satisfies AppModule;
 
-export const notesModule = { migrations: notesMigrations, module: Notes, services: Layer.empty } satisfies AppModule;
+export const notesModule = { migrations: notesMigrations, module: Notes } satisfies AppModule;
 
 const fakeNote = Notes.application.toLayer({
 	"notes.create": ({ title }) => Effect.succeed(title),
@@ -104,14 +103,12 @@ export const handWrittenNotesModule = {
 	handlers: fakeNote,
 	migrations: notesMigrations,
 	name: "notes",
-	services: Layer.empty,
 } satisfies AppModule;
 
 export const replacedNotesModule = {
 	...replacedModuleHandlers(Notes, fakeNote),
 	migrations: notesMigrations,
 	name: "notes",
-	services: Layer.empty,
 } satisfies AppModule;
 
 export const Api = Drafts.merge(Notes);

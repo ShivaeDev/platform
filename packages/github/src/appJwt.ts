@@ -22,7 +22,8 @@ export const appJwt = Effect.fnUntraced(
 	function* (options: AppCredentials) {
 		const signature = yield* Signature.Signature;
 		const now = Math.floor((yield* Clock.currentTimeMillis) / 1000);
-		const input = `${header}.${Base64Url.encode(JSON.stringify({ exp: now + 600, iat: now - 60, iss: options.appId }))}`;
+		// GitHub documents an `exp` at most ten minutes ahead of its clock and an `iat` in the past; a minute of margin on each side absorbs clock drift.
+		const input = `${header}.${Base64Url.encode(JSON.stringify({ exp: now + 540, iat: now - 60, iss: options.appId }))}`;
 		const signed = yield* signature.sign(yield* decodePrivateKey(options.privateKey), new TextEncoder().encode(input));
 		return Redacted.make(`${input}.${Base64Url.encode(signed)}`);
 	},
