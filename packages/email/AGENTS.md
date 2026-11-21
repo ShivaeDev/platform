@@ -1,6 +1,6 @@
 # @shivaedev/email
 
-This package lets every Platform application send transactional messages through Resend without rebuilding its delivery queue, development mailer or story inbox. Applications own their message union, wording, sender and recipient; this package owns delivery policy. Auth emails are the exception: every application with email and password sign-in sends the same five Better Auth messages, so `authEmailQueue` ships their queue, worker and plain default copy, and applications override only the wording. Read the [README](README.md) for composition and usage.
+This package lets every Platform application send transactional messages through Resend without rebuilding its delivery queue, development mailer or story inbox. Applications own their message union, wording, sender and recipient; this package owns delivery policy. Auth emails are the exception: every application with email and password sign-in sends the same five Better Auth messages, so `authEmailQueue` ships their queue, worker and plain default copy, and applications override only the wording and the HTML layout around it. Read the [README](README.md) for composition and usage.
 
 Native Effect data, typed failures and scoped jobs come first. Keep one Schema from producer to worker, preserve redacted one-time links until rendering, and send the durable job id as Resend's idempotency key. PostgreSQL and the jobs package own execution, backoff and timed deferral; do not build another retry engine here.
 

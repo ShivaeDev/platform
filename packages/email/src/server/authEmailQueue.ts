@@ -5,8 +5,18 @@ import type { Email } from "#Email.ts";
 import { type AuthEmailCopies, type AuthEmailCopy, type AuthEmailKind, defaultAuthEmailCopy } from "#server/authEmailCopy.ts";
 import { defineEmailQueue } from "#server/defineEmailQueue.ts";
 
+export interface AuthEmailLayoutParts {
+	readonly action: { readonly href: string; readonly label: string };
+	readonly body: string;
+	readonly footer?: string;
+	readonly subject: string;
+}
+
+export type AuthEmailLayout = (parts: AuthEmailLayoutParts) => string;
+
 export interface AuthEmailQueueOptions extends Pick<BetterAuthEmails, "window" | "windows"> {
 	readonly copy?: Partial<AuthEmailCopies>;
+	readonly layout?: AuthEmailLayout;
 	readonly paths: Readonly<Record<AuthEmailKind, string>>;
 }
 
@@ -18,9 +28,13 @@ const publicUrl = Effect.gen(function* () {
 });
 const sender = Config.String("EMAIL_FROM").pipe(Config.withDefault("Accounts <onboarding@resend.dev>"));
 
-export function authEmailQueue({ copy, paths, ...windows }: AuthEmailQueueOptions) {
+export function authEmailQueue({ copy, layout = defaultLayout, paths, ...windows }: AuthEmailQueueOptions) {
 	const copies: AuthEmailCopies = { ...defaultAuthEmailCopy, ...copy };
-	const queue = defineEmailQueue(authEmailJobs.schema, (message) => Effect.map(sender, (from) => render(from, message, copies)), authEmailJobs);
+	const queue = defineEmailQueue(
+		authEmailJobs.schema,
+		(message) => Effect.map(sender, (from) => render(from, message, copies, layout)),
+		authEmailJobs,
+	);
 	const emails = Effect.gen(function* () {
 		const origin = yield* publicUrl;
 		const jobs = yield* queue.Jobs;
@@ -61,15 +75,22 @@ function escapeHtml(value: string) {
 	return value.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;");
 }
 
-function paragraphs(values: readonly string[]) {
-	return values.map((line) => `<p>${escapeHtml(line)}</p>`);
+function defaultLayout({ action, body, footer }: AuthEmailLayoutParts) {
+	const opening = body === "" ? [] : [body];
+	const closing = footer === undefined ? [] : [`<p>${footer}</p>`];
+	return [...opening, `<p><a href="${action.href}">${action.label}</a></p>`, ...closing].join("\n");
 }
 
-function render(from: string, message: AuthEmailJob, copies: AuthEmailCopies): Email {
+function render(from: string, message: AuthEmailJob, copies: AuthEmailCopies, layout: AuthEmailLayout): Email {
 	const { action, footer, lines, subject }: AuthEmailCopy = copyFor(copies, message.kind, message);
 	const url = Redacted.value(message.url);
 	const closing = footer === undefined ? [] : [footer];
 	const text = [...lines, "", `${action}: ${url}`, ...closing.flatMap((line) => ["", line])].join("\n");
-	const html = [...paragraphs(lines), `<p><a href="${escapeHtml(url)}">${escapeHtml(action)}</a></p>`, ...paragraphs(closing)].join("\n");
+	const html = layout({
+		action: { href: escapeHtml(url), label: escapeHtml(action) },
+		body: lines.map((line) => `<p>${escapeHtml(line)}</p>`).join("\n"),
+		...(footer === undefined ? {} : { footer: escapeHtml(footer) }),
+		subject: escapeHtml(subject),
+	});
 	return { from, html, subject, text, to: message.to };
 }

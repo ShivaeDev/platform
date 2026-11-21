@@ -1,6 +1,6 @@
 import { expect } from "vitest";
 import { APP_ORIGIN, appPaths } from "#test/authEmailHost.ts";
-import { aliceAccount, approvalRequested, authEmails, production, queueUnavailable, resetCopy } from "#test/authEmails.ts";
+import { aliceAccount, approvalRequested, authEmails, brandedLayout, production, queueUnavailable, resetCopy } from "#test/authEmails.ts";
 
 for (const [kind, to, subject] of [
 	["ConfirmAccount", "alice@example.test", "Confirm your account"],
@@ -37,7 +37,7 @@ authEmails.it(
 );
 
 authEmails.it(
-	"alice's confirmation email comes from the default sender and links the plain address in its text and the escaped address in its HTML",
+	"without a layout, alice's confirmation email comes from the default sender with the plain link in its text and HTML made of its paragraphs, the escaped link and its footer",
 	[aliceAccount(false)],
 	function* ({ nextEmail, request }) {
 		yield* request("ConfirmAccount");
@@ -45,8 +45,38 @@ authEmails.it(
 		const { from, html, link, text } = yield* nextEmail();
 		expect(from).toBe("Accounts <onboarding@resend.dev>");
 		expect(link).toContain("&");
-		expect(text).toContain(`Confirm your account: ${link}`);
-		expect(html).toContain(`<a href="${link.replaceAll("&", "&amp;")}">Confirm your account</a>`);
+		expect(text).toBe(
+			`Confirm this email address to finish setting up your account.\n\nConfirm your account: ${link}\n\nIf you did not create an account, you can ignore this email.`,
+		);
+		expect(html).toBe(
+			[
+				"<p>Confirm this email address to finish setting up your account.</p>",
+				`<p><a href="${link.replaceAll("&", "&amp;")}">Confirm your account</a></p>`,
+				"<p>If you did not create an account, you can ignore this email.</p>",
+			].join("\n"),
+		);
+	},
+);
+
+authEmails.it(
+	"the app's layout wraps alice's confirmation in its header and button with the subject, copy line, label and link escaped except for apostrophes, the absent footer left out and the text body plain",
+	[brandedLayout, aliceAccount(false)],
+	function* ({ nextEmail, request }) {
+		yield* request("ConfirmAccount");
+
+		const { html, link, subject, text } = yield* nextEmail();
+		expect(subject).toBe("Confirm <your> Example account");
+		expect(text).toBe(`Welcome, <b>Alice</b> & Bob's friends.\n\nSay "Confirm": ${link}`);
+		expect(html).toBe(
+			[
+				"<html><head><title>Confirm &lt;your&gt; Example account</title></head><body>",
+				'<header style="color: #b45309">Example</header>',
+				"<p>Welcome, &lt;b&gt;Alice&lt;/b&gt; &amp; Bob's friends.</p>",
+				`<a class="button" style="background: #b45309" href="${link.replaceAll("&", "&amp;")}">Say &quot;Confirm&quot;</a>`,
+				"<footer>No footer</footer>",
+				"</body></html>",
+			].join(""),
+		);
 	},
 );
 

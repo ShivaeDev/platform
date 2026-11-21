@@ -77,12 +77,24 @@ export const AuthEmails = authEmailQueue({
 			action: "Choose a new password",
 		}),
 	},
+	layout: ({ subject, body, action, footer }) => `<!doctype html>
+<html>
+	<head><title>${subject}</title></head>
+	<body style="font-family: sans-serif">
+		<h1 style="color: #b45309">Example</h1>
+		${body}
+		<p><a href="${action.href}" style="background: #b45309; color: #fff; padding: 12px 20px">${action.label}</a></p>
+		${footer === undefined ? "" : `<p style="color: #78716c">${footer}</p>`}
+	</body>
+</html>`,
 });
 ```
 
 `AuthEmails.registration` is the queue's server module: export it from any application source file as `export const authEmailsRegistration = AuthEmails.registration satisfies AppModule;`, with `AppModule` from `@shivaedev/server/AppModule.ts`, and the generated server module list composes its producer Layer into the web process, its worker Layer into the worker and its queue into the admin Jobs page. A host that builds its module list by hand lists `AuthEmails.registration` in `appModules([...])` from `@shivaedev/server/appModules.ts` like any other registration. The worker still needs a mailer Layer, such as `mailerLayer()` below. `AuthEmails.emails` is an Effect that reads `PUBLIC_URL` and the queue's `Jobs` service and returns identity's `BetterAuthEmails`: pass it as `emails` to `betterAuthMount(AppAuth, { emails })` from `@shivaedev/identity/server/better-auth/mount.ts`. With `NODE_ENV=production`, `PUBLIC_URL` is required and a host without it fails at startup with a configuration error naming it; elsewhere it defaults to `http://127.0.0.1:5173` for Vite development. Client code lists the queue through `authEmailJobs` from `@shivaedev/email/authEmailJobs.ts`, which holds the queue name `email.auth-emails` and its payload Schema without server code.
 
 Each auth message becomes one job, addressed to the new address for `ConfirmNewAddress` and to the account's address otherwise, with the link kept `Redacted` in the job payload. When the job cannot be queued, the auth request is refused with the code `EMAIL_UNAVAILABLE`. The worker renders a text body and an HTML body from the kind's copy, escapes the link in the HTML, reads the sender from `EMAIL_FROM` (default `Accounts <onboarding@resend.dev>`) and sends through the `Mailer`. Default English copy covers all five kinds; `copy` replaces a kind's copy with a function that receives the queued message (`to`, `url` and, for `ApproveEmailChange`, `newEmail`) and returns its `subject`, body `lines`, link `action` label and optional `footer`. Kinds without an entry keep the default.
+
+`layout` wraps every auth email's HTML in the application's own document, such as its name, header, button and colours. It receives the parts of one message and returns the whole HTML body: `subject`, `body` (the copy's `lines`, each in its own `<p>` element, joined by newlines), `action` (`href`, the link, and `label`, the copy's `action`) and `footer` (the copy's footer text without an element, absent when the copy has none). Platform has already escaped every one of these strings for HTML, replacing `&`, `<`, `>` and `"` with `&amp;`, `&lt;`, `&gt;` and `&quot;`, so a layout interpolates them as they are into element content or double-quoted attributes and adds only its own constant markup; single quotes are not escaped, so do not put a part inside a single-quoted attribute. The subject header and the text body stay unescaped and do not pass through the layout. Without `layout`, the HTML is the body paragraphs, the link in its own paragraph and the footer paragraph.
 
 ### Choose the mailer by environment
 
