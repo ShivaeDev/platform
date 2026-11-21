@@ -7,6 +7,7 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { untilTimer } from "@shivaedev/test-story/server/watchedClock.ts";
 import { generate } from "#generate.ts";
 import type { GenerateFailed, GenerateReport } from "#report.ts";
+import { CATALOG_PROJECT } from "#test/catalogProject.ts";
 import { type ClientModuleShape, clientModuleFile, clientModulePath } from "#test/clientModulesProject.ts";
 import { CREDENTIAL_MODEL } from "#test/credentialModel.ts";
 import { emptyProject, fromSource, generatedOncePerFile, projectIn, typeCheck, writeFiles } from "#test/fixtureProject.ts";
@@ -16,7 +17,6 @@ import { REFUSING_PROJECT } from "#test/refusingProject.ts";
 import { REGISTRATIONS_PROJECT, type RegistrationShape, registrationOf } from "#test/registrationsProject.ts";
 import { SERVER_ONLY_PROJECT } from "#test/serverOnlyProject.ts";
 
-const NOTES_WIRE = "src/generated/modules/notes/notes.ts";
 const NOTES_MODEL = "src/modules/notes/model.ts";
 
 type WireSchema = Schema.Top & { readonly DecodingServices: never; readonly EncodingServices: never };
@@ -60,12 +60,12 @@ const importedFrom = Effect.fn("BuildStory.importedFrom")(function* (engine: Gen
 	return imported;
 });
 
-const notesSuccess = Effect.fn("BuildStory.notesSuccess")(function* (engine: GeneratorEngine, operation: string) {
-	const generated = yield* importedFrom(engine, NOTES_WIRE);
-	const wire = Predicate.hasProperty(generated, "notesWire") ? generated.notesWire : undefined;
+const successSchema = Effect.fn("BuildStory.successSchema")(function* (engine: GeneratorEngine, module: string, operation: string) {
+	const generated = yield* importedFrom(engine, `src/generated/modules/${module}/${module}.ts`);
+	const wire = Predicate.hasProperty(generated, `${module}Wire`) ? generated[`${module}Wire`] : undefined;
 	const entry = Predicate.hasProperty(wire, operation) ? wire[operation] : undefined;
 	const success = Predicate.hasProperty(entry, "success") ? entry.success : undefined;
-	return isWireSchema(success) ? success : yield* Effect.die(new Error(`the generated notes wire has no success schema for ${operation}`));
+	return isWireSchema(success) ? success : yield* Effect.die(new Error(`the generated ${module} wire has no success schema for ${operation}`));
 });
 
 function run(engine: GeneratorEngine, check: boolean) {
@@ -151,9 +151,9 @@ export const generator = storyKit({
 				yield* Scope.close(engine.otherHold.value, Exit.void);
 			}
 		}),
-		receives: Effect.fn("BuildStory.receives")(function* (operation: string, sent: unknown) {
-			story.tell(`the server encodes what ${operation} returns with the generated wire, JSON carries it and the browser decodes it`);
-			const codec = Schema.toCodecJson(yield* notesSuccess(engine, operation));
+		receives: Effect.fn("BuildStory.receives")(function* (operation: string, sent: unknown, module = "notes") {
+			story.tell(`the server encodes what ${module}.${operation} returns with the generated wire, JSON carries it and the browser decodes it`);
+			const codec = Schema.toCodecJson(yield* successSchema(engine, module, operation));
 			const encoded = yield* Schema.encodeUnknownEffect(codec)(sent).pipe(Effect.option);
 			if (Option.isNone(encoded)) {
 				return "cannot be encoded";
@@ -196,6 +196,12 @@ export const generator = storyKit({
 
 export function notesProject() {
 	return generator.trait("project", "the project has the notes module", (engine) => writeFiles(engine.root, NOTES_PROJECT));
+}
+
+export function catalogProject() {
+	return generator.trait("project", "the project has the catalog module, whose ids are branded and whose items carry authored JSON", (engine) =>
+		writeFiles(engine.root, CATALOG_PROJECT),
+	);
 }
 
 export function projectInsideModulesFolder() {

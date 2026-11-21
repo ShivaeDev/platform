@@ -1,12 +1,14 @@
 import ts from "typescript";
 import { copiedCode } from "#copiedCode.ts";
+import { exportedSchemas } from "#exportedSchemas.ts";
 import type { ModuleFacts } from "#facts.ts";
 import { initializerOf, moduleCalls, propertyOf } from "#moduleCalls.ts";
 import { operationFacts } from "#operationFacts.ts";
 import type { TypeReading } from "#typeReading.ts";
 
-function readingFor(program: ts.Program, refuse: (message: string) => void) {
+function readingFor(program: ts.Program, file: string, refuse: (message: string) => void) {
 	const checker = program.getTypeChecker();
+	const schemasOf = exportedSchemas(program, file);
 	return (label: string): TypeReading => ({
 		checker,
 		program,
@@ -21,6 +23,7 @@ function readingFor(program: ts.Program, refuse: (message: string) => void) {
 			);
 			return undefined;
 		},
+		schemasOf,
 	});
 }
 
@@ -57,7 +60,7 @@ export function moduleFacts(program: ts.Program, file: string): ModuleFacts {
 	if (list === undefined || !ts.isArrayLiteralExpression(list)) {
 		refuse(`${name}: operations is an array literal of the module's operations`);
 	}
-	const reading = readingFor(program, refuse);
+	const reading = readingFor(program, file, refuse);
 	const elements = list !== undefined && ts.isArrayLiteralExpression(list) ? list.elements : [];
 	const operations = elements.flatMap((element) => operationFacts({ moduleName: name, reading, refuse }, element) ?? []);
 	return {

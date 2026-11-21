@@ -1,4 +1,5 @@
 import ts from "typescript";
+import { brandForm, isBranded } from "#brandForm.ts";
 import type { Primitive, WireForm } from "#facts.ts";
 import { classForm, objectForm } from "#objectForm.ts";
 import { isRedacted } from "#serverOnlyPath.ts";
@@ -58,6 +59,13 @@ function objectTypeForm(reading: TypeReading, type: ts.Type, path: string, seen:
 	if (declaredIn(type, "DateTime") && type.getSymbol()?.name === "Utc") {
 		return { form: "primitive", primitive: "DateTimeUtc" };
 	}
+	if (declaredIn(type, "Schema") && type.getSymbol()?.name === "JsonObject") {
+		return { form: "primitive", primitive: "JsonObject" };
+	}
+	// Effect exports no schema named JsonArray; an array of Json is the same values.
+	if (declaredIn(type, "Schema") && type.getSymbol()?.name === "JsonArray") {
+		return { form: "array", item: { form: "primitive", primitive: "Json" }, mutable: false };
+	}
 	if (reading.checker.isTupleType(type) && isReference(type)) {
 		return tupleForm(reading, type, path, seen);
 	}
@@ -92,8 +100,8 @@ export function wireForm(reading: TypeReading, type: ts.Type, path: string, seen
 	if (type.isUnion()) {
 		return unionForm(reading, type, type.types, path, (member, memberPath) => wireForm(reading, member, memberPath, within));
 	}
-	if (type.isIntersection() && type.types.some((member) => !(member.flags & ts.TypeFlags.Object))) {
-		return reading.refuse(type, path, "return the unbranded type, or wrap the value in an exported Schema class");
+	if (isBranded(type)) {
+		return brandForm(reading, type, path);
 	}
 	if (type.flags & ts.TypeFlags.Object || type.isIntersection()) {
 		return objectTypeForm(reading, type, path, within);

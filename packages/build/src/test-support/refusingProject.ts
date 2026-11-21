@@ -1,17 +1,12 @@
+import { MISPLACED_MODULES } from "#test/misplacedModules.ts";
+
 // A module whose every operation needs something the wire cannot carry exactly, each written the way an application might.
 export const REFUSING_PROJECT: Readonly<Record<string, string>> = {
-	"lib/outside.ts": `import { defineModule } from "@shivaedev/contract/defineModule.ts";
-
-export const Outside = defineModule({ name: "outside", operations: [], wire: {} });
-`,
-	"src/modules/refused/hidden.ts": `import { defineModule } from "@shivaedev/contract/defineModule.ts";
-
-const Hidden = defineModule({ name: "hidden", operations: [], wire: {} });
-`,
+	...MISPLACED_MODULES,
 	"src/modules/refused/operations.ts": `import { Effect, Schema } from "effect";
 import { query } from "@shivaedev/contract/operation.ts";
 import { RefusedDraft } from "./payloads.ts";
-import { Busy, Counter, Level, noteId, shared, type Tree } from "#modules/refused/shared.ts";
+import { Busy, Counter, Level, noteId, type Shelf, type Sku, shared, type Tree } from "#modules/refused/shared.ts";
 
 class Hidden extends Schema.TaggedError<Hidden>()("Hidden", { message: Schema.String }) {}
 
@@ -94,6 +89,37 @@ export const ReturnsBrand = query("returnsBrand", {
 	},
 });
 
+export const ReturnsTwiceBranded = query("returnsTwiceBranded", {
+	reads: () => [shared.list],
+	*run() {
+		return yield* Effect.succeed("a" as Sku);
+	},
+});
+
+export const ReturnsPartialRecord = query("returnsPartialRecord", {
+	reads: () => [shared.list],
+	*run() {
+		const counts: Partial<Record<Shelf, number>> = yield* Effect.succeed({});
+		return counts;
+	},
+});
+
+export const ReturnsUnknown = query("returnsUnknown", {
+	reads: () => [shared.list],
+	*run() {
+		const value: unknown = yield* Effect.succeed(1);
+		return value;
+	},
+});
+
+export const ReturnsStringOrBigint = query("returnsStringOrBigint", {
+	reads: () => [shared.list],
+	*run() {
+		const count = yield* Effect.succeed(1n);
+		return count > 0n ? String(count) : count;
+	},
+});
+
 export const ReturnsRecursive = query("returnsRecursive", {
 	reads: () => [shared.list],
 	*run() {
@@ -169,6 +195,8 @@ export const RelativePayload = query("relativePayload", {
 	"src/modules/refused/payloads.ts": `import { Schema } from "effect";
 
 export const RefusedDraft = Schema.Struct({ body: Schema.String });
+
+export const SkuCode = Schema.String.pipe(Schema.brand("Sku"));
 `,
 	"src/modules/refused/refused.ts": `import { defineModule } from "@shivaedev/contract/defineModule.ts";
 import {
@@ -184,12 +212,16 @@ import {
 	ReturnsMap,
 	ReturnsNullOrUndefined,
 	ReturnsNumberKeys,
+	ReturnsPartialRecord,
 	ReturnsPlainClass,
 	ReturnsRecursive,
+	ReturnsStringOrBigint,
 	ReturnsStringOrNumber,
 	ReturnsTupleRest,
+	ReturnsTwiceBranded,
 	ReturnsUndefinedProperty,
 	ReturnsUnexportedClass,
+	ReturnsUnknown,
 } from "#modules/refused/operations.ts";
 
 export const Refused = defineModule({
@@ -204,6 +236,10 @@ export const Refused = defineModule({
 		ReturnsPlainClass,
 		ReturnsEnum,
 		ReturnsBrand,
+		ReturnsTwiceBranded,
+		ReturnsPartialRecord,
+		ReturnsUnknown,
+		ReturnsStringOrBigint,
 		ReturnsRecursive,
 		ReturnsTupleRest,
 		ReturnsNumberKeys,
@@ -231,6 +267,12 @@ export type NoteId = number & Brand.Brand<"NoteId">;
 
 export const noteId = Brand.nominal<NoteId>();
 
+export const Sku = Schema.String.pipe(Schema.brand("Sku"));
+export type Sku = typeof Sku.Type;
+
+export const Shelf = Schema.String.pipe(Schema.brand("Shelf"));
+export type Shelf = typeof Shelf.Type;
+
 export interface Tree {
 	readonly children: readonly Tree[];
 }
@@ -244,11 +286,6 @@ export class Counter {
 		this.count = count;
 	}
 }
-`,
-	"src/modules/refused/twice.ts": `import { defineModule } from "@shivaedev/contract/defineModule.ts";
-
-export const First = defineModule({ name: "first", operations: [], wire: {} });
-export const Second = defineModule({ name: "second", operations: [], wire: {} });
 `,
 	"tsconfig.json": `{
 	"compilerOptions": { "customConditions": ["@shivaedev/source"], "types": [] },

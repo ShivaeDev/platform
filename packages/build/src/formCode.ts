@@ -11,14 +11,16 @@ function mutableWhen(mutable: boolean, inner: Code): Code {
 	return mutable ? schema("mutable", inner) : inner;
 }
 
-function fieldCode(field: Field, classRef: (form: Extract<WireForm, { form: "class" }>) => ImportRef): Code {
+type ExportedRef = (form: Extract<WireForm, { form: "exported" }>) => ImportRef;
+
+function fieldCode(field: Field, classRef: ExportedRef): Code {
 	const value = formCode(field.form, classRef);
 	const optional = field.optional ? schema("optionalKey", value) : value;
 	const key = IDENTIFIER.test(field.name) ? field.name : JSON.stringify(field.name);
 	return code(`${key}: `, field.mutable ? schema("mutableKey", optional) : optional);
 }
 
-export function formCode(form: WireForm, classRef: (form: Extract<WireForm, { form: "class" }>) => ImportRef): Code {
+export function formCode(form: WireForm, classRef: ExportedRef): Code {
 	function inner(each: WireForm) {
 		return formCode(each, classRef);
 	}
@@ -46,14 +48,14 @@ export function formCode(form: WireForm, classRef: (form: Extract<WireForm, { fo
 						" }",
 					);
 		case "record":
-			return schema("Record", schema("String"), ", ", form.mutable ? schema("mutableKey", inner(form.value)) : inner(form.value));
+			return schema("Record", inner(form.key), ", ", form.mutable ? schema("mutableKey", inner(form.value)) : inner(form.value));
 		case "union":
 			return schema("Union", "[", joined(form.members.map(inner), ", "), "]");
 		case "nullOr":
 			return schema("NullOr", inner(form.inner));
 		case "option":
 			return schema("Option", inner(form.inner));
-		case "class":
+		case "exported":
 			return code(classRef(form));
 	}
 }
