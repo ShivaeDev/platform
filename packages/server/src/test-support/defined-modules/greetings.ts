@@ -1,4 +1,4 @@
-import { Effect, Layer, Schema } from "effect";
+import { Effect, Schema } from "effect";
 import { defineModule } from "@shivaedev/contract/defineModule.ts";
 import { command } from "@shivaedev/contract/operation.ts";
 import { MaybeAuthenticated } from "@shivaedev/identity/middleware.ts";
@@ -20,4 +20,4 @@ export const Greetings = defineModule({
 });
 
 // Needs no table and gives no name, so the host must take the name from the module and serve it without a loader.
-export const greetingsModule = { module: Greetings, services: Layer.empty } satisfies AppModule;
+export const greetingsModule = { module: Greetings } satisfies AppModule;

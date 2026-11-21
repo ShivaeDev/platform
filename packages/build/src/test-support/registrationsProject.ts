@@ -4,6 +4,9 @@ const APP_MODULE = 'import type { AppModule } from "@shivaedev/server/AppModule.
 export type RegistrationShape =
 	| "built by a function call"
 	| "in the group and handlers form with no annotation"
+	| "naming its module and no services, with no annotation"
+	| "naming its module through a call, with services and no annotation"
+	| "serving only admin pages, written satisfies AppModule"
 	| "through a separate export list"
 	| "typed : AppModule"
 	| "typed through a namespace import"
@@ -21,6 +24,12 @@ export function registrationOf(name: string, module: string, shape: Registration
 			return `import { registration } from "#server/registration.ts";\n${imported}export const ${name} = registration(${module});\n`;
 		case "in the group and handlers form with no annotation":
 			return `${imported}export const ${name} = { group: ${module}, handlers: ${module}.handlers, name: "${name}", services: ${module}.layer };\n`;
+		case "naming its module and no services, with no annotation":
+			return `${imported}export const ${name} = { module: ${module} };\n`;
+		case "naming its module through a call, with services and no annotation":
+			return `${imported}export const ${name} = { module: served(${module}), services: ${module}.layer };\n`;
+		case "serving only admin pages, written satisfies AppModule":
+			return `${APP_MODULE}\n${imported}export const ${name} = { admin: ${module}.admin } satisfies AppModule;\n`;
 		case "through a separate export list":
 			return `${APP_MODULE}\n${imported}const registered = ${bodyOf(module)} satisfies AppModule;\n\nexport { registered as ${name} };\n`;
 		case "typed : AppModule":

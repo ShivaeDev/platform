@@ -22,7 +22,7 @@ interface State {
 	collector?: { readonly untilSpan: (name: string) => Effect.Effect<OtlpSpan, unknown> };
 	collision?: "shared" | "separate" | "within";
 	readonly env: Record<string, string>;
-	failure?: { readonly queue: string; readonly firstModule: string; readonly secondModule: string };
+	failure?: { readonly queue: string; readonly firstModule: string | undefined; readonly secondModule: string | undefined };
 	replaced: boolean;
 	readonly reported: Cause.Cause<unknown>[];
 	readonly sender: ReturnType<typeof makePgBossTesting>;

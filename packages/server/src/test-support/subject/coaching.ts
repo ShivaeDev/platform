@@ -1,4 +1,4 @@
-import { Effect, Layer, Schema } from "effect";
+import { Effect, Schema } from "effect";
 import { Migrator, SqlClient } from "effect/sql";
 import { collection } from "@shivaedev/changes/keys.ts";
 import { defineModule } from "@shivaedev/contract/defineModule.ts";
@@ -83,4 +83,4 @@ const migrations = {
 export const coachingModule = { migrations, module: Coaching, services: CoachDelegation.layer } satisfies AppModule;
 
 // The same module registered by an application that forgot the delegation rule's service.
-export const coachingWithoutRule = { migrations, module: Coaching, services: Layer.empty } satisfies AppModule;
+export const coachingWithoutRule = { migrations, module: Coaching } satisfies AppModule;

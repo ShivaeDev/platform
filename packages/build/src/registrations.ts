@@ -1,7 +1,7 @@
 import ts from "typescript";
 import { byText } from "#byText.ts";
 import { type ExportedVariable, exportedVariables, exportsAnything } from "#exportedVariables.ts";
-import { propertyOf } from "#moduleCalls.ts";
+import { initializerOf, propertyOf } from "#moduleCalls.ts";
 
 const APP_MODULE = "@shivaedev/server/AppModule.ts";
 
@@ -49,23 +49,39 @@ function withoutParentheses(expression: ts.Expression | undefined): ts.Expressio
 	return expression !== undefined && ts.isParenthesizedExpression(expression) ? withoutParentheses(expression.expression) : expression;
 }
 
-function servesSomething(literal: ts.ObjectLiteralExpression): boolean {
-	return propertyOf(literal, "module") !== undefined || (propertyOf(literal, "group") !== undefined && propertyOf(literal, "handlers") !== undefined);
+const REGISTRATION_PARTS = ["admin", "migrations", "ports", "queues", "requestServices", "services", "workers"];
+
+export function isServerPath(file: string): boolean {
+	return /(?:^|[\\/])server[\\/]/u.test(file);
 }
 
-// A registration names what it serves and its services, so an object with both that is not written `satisfies AppModule` is one
-// the list would leave out without a word.
-function looksLikeRegistration(expression: ts.Expression | undefined): boolean {
+// Services are optional, so a registration is known by what it serves: a group and its handlers, or a `module` beside another
+// registration part. Browser code may hold a module too, so a `module` alone counts only as a reference in a server folder.
+function namesModule(literal: ts.ObjectLiteralExpression, inServerCode: boolean): boolean {
+	const property = propertyOf(literal, "module");
+	if (property === undefined) {
+		return false;
+	}
+	const module = initializerOf(property);
+	const refersToModule = module !== undefined && (ts.isIdentifier(module) || ts.isPropertyAccessExpression(module));
+	return REGISTRATION_PARTS.some((part) => propertyOf(literal, part) !== undefined) || (inServerCode && refersToModule);
+}
+
+function looksLikeRegistration(expression: ts.Expression | undefined, inServerCode: boolean): boolean {
 	const inner = withoutParentheses(expression);
 	if (inner !== undefined && ts.isAsExpression(inner)) {
-		return looksLikeRegistration(inner.expression);
+		return looksLikeRegistration(inner.expression, inServerCode);
 	}
-	return inner !== undefined && ts.isObjectLiteralExpression(inner) && servesSomething(inner) && propertyOf(inner, "services") !== undefined;
+	return (
+		inner !== undefined
+		&& ts.isObjectLiteralExpression(inner)
+		&& (namesModule(inner, inServerCode) || (propertyOf(inner, "group") !== undefined && propertyOf(inner, "handlers") !== undefined))
+	);
 }
 
 type Found = { readonly refusal: string } | { readonly registration: string };
 
-function foundIn({ name, variable }: ExportedVariable, names: AppModuleNames): readonly Found[] {
+function foundIn({ name, variable }: ExportedVariable, names: AppModuleNames, inServerCode: boolean): readonly Found[] {
 	const initializer = withoutParentheses(variable.initializer);
 	if (initializer !== undefined && ts.isSatisfiesExpression(initializer)) {
 		return namesAppModule(initializer.type, names) ? [{ registration: name }] : [];
@@ -78,10 +94,10 @@ function foundIn({ name, variable }: ExportedVariable, names: AppModuleNames): r
 			},
 		];
 	}
-	return looksLikeRegistration(initializer)
+	return looksLikeRegistration(initializer, inServerCode)
 		? [
 				{
-					refusal: `${name} names what it serves and its services but is not written \`satisfies AppModule\`, so the server's module list leaves it out; write \`satisfies AppModule\` after its object, with AppModule imported from ${APP_MODULE}`,
+					refusal: `${name} names what it serves but is not written \`satisfies AppModule\`, so the server's module list leaves it out; write \`satisfies AppModule\` after its object, with AppModule imported from ${APP_MODULE}`,
 				},
 			]
 		: [];
@@ -93,7 +109,7 @@ export function isModuleRegistrationFile(file: string): boolean {
 
 export function registrationsIn(source: ts.SourceFile): Omit<FileRegistrations, "file"> {
 	const names = appModuleNames(source);
-	const found = exportedVariables(source).flatMap((exported) => foundIn(exported, names));
+	const found = exportedVariables(source).flatMap((exported) => foundIn(exported, names, isServerPath(source.fileName)));
 	const refusals = found.flatMap((each) => ("refusal" in each ? [each.refusal] : []));
 	const registrations = found.flatMap((each) => ("registration" in each ? [each.registration] : []));
 	const unfound = found.length === 0 && isModuleRegistrationFile(source.fileName) && exportsAnything(source);

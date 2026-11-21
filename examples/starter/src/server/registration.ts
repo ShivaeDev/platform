@@ -1,5 +1,3 @@
-import { Layer } from "effect";
-import { RpcGroup } from "effect/rpc";
 import type { JobsEntry } from "@shivaedev/admin/jobs/entry.ts";
 import { pgBossSchema } from "@shivaedev/jobs/server/schema.ts";
 import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
@@ -13,10 +11,7 @@ export function serverRegistration<const TModules extends readonly AppModule[]>(
 	const admin = foundationRegistration(...queues, ...featureQueues(modules));
 	return {
 		admin,
-		group: RpcGroup.make(),
-		handlers: Layer.empty,
 		migrations: { ...migrationsIn(import.meta.dirname), components: [pgBossSchema()] },
-		name: "foundation",
 		ports: memoryStore,
 		queues,
 		services: admin.services,

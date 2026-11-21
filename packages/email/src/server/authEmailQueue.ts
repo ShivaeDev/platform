@@ -1,5 +1,4 @@
-import { Config, Effect, Layer, Record, Redacted } from "effect";
-import { RpcGroup } from "effect/rpc";
+import { Config, Effect, Record, Redacted } from "effect";
 import type { AuthEmail, BetterAuthEmails } from "@shivaedev/identity/server/better-auth/emails.ts";
 import { type AuthEmailJob, authEmailJobs } from "#authEmailJobs.ts";
 import type { Email } from "#Email.ts";
@@ -36,9 +35,6 @@ export function authEmailQueue({ copy, paths, ...windows }: AuthEmailQueueOption
 		} satisfies BetterAuthEmails;
 	});
 	const registration = {
-		group: RpcGroup.make(),
-		handlers: Layer.empty,
-		name: authEmailJobs.name,
 		queues: [queue.queue],
 		services: queue.producerLayer,
 		workers: queue.workerLayer,
