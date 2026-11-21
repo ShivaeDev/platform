@@ -3,7 +3,7 @@ import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { application } from "#test/application.ts";
 import { fullAppToCompare } from "#test/traits.ts";
 
-const REGISTRATIONS = ["src/admin/foundation.ts", "src/client/modules.ts"];
+const REGISTRATIONS = ["src/admin/foundation.ts"];
 const NOTES_REFERENCE = /notes(?:Registration|Worker|Migrations)|notesModule|noteQueue|#modules\/notes/u;
 
 application.it(
@@ -20,11 +20,7 @@ application.it(
 		yield* outcomes([
 			["only in the full app", () => filesOnlyIn("full/my-app"), ["src/modules/notes/"]],
 			["only in the minimal app", () => filesMissingFrom("full/my-app"), []],
-			[
-				"different files",
-				() => filesDifferingFrom("full/my-app"),
-				[".create-app.json", ".env.local", "package.json", "src/admin/foundation.ts", "src/client/modules.ts"],
-			],
+			["different files", () => filesDifferingFrom("full/my-app"), [".create-app.json", ".env.local", "package.json", "src/admin/foundation.ts"]],
 			["notes dependency", () => dependsOn("@tanstack/react-table"), false],
 			["generation record", () => generationRecord(), { minimal: true, name: "my-app" }],
 		]);

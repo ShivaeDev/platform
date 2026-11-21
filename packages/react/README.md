@@ -161,23 +161,47 @@ import { SessionBoundary } from "@shivaedev/react/client/sessionBoundary.ts";
 
 `Preferences` is the application's session-scoped contract; the browser's client connects to `/rpc` beside the page and sends the current session cookie. A one-argument `connect` callback also works. The boundary allocates the registry before calling `connect`; an unchanged generation keeps its binding and state. Account replacement, sign-out and same-account re-entry dispose the old registry, private query tracking, live registrations and pending refreshes. Use the user id for cookie-based clients so session rotation keeps state. A sign-out followed by sign-in creates a new registry even for the same user.
 
-#### Connections with several modules
+#### An application's client modules
 
-The session boundary finds bound APIs through nested objects and arrays at any depth, including `client.api.notes`. Shared objects and cycles do not mount a binding twice. Use contract's `composeBindings` to select an explicit list instead of discovering the bindings in that object. The client can keep its application modules nested:
+A client module is a feature's contracts and screens. `clientModule(contracts, (clients) => parts)` from `@shivaedev/react/client/module.ts` names the contracts its screens call, once, under the module's own short names, and receives a typed bound client for each, `ContractClient<typeof Notes>` from `@shivaedev/contract/makeClient.ts`. The parts it returns are what the application shell reads: `routes`, a function of the application's root route returning TanStack routes; `warm`, the bound queries the session keeps subscribed; `admin`, its admin pages for navigation; `menu` and `overlays`, arrays of React nodes; and `footer`, one React node. The module holds no Effect, registry, URL or socket:
+
+```tsx
+import { createRoute } from "@tanstack/react-router";
+import { clientModule } from "@shivaedev/react/client/module.ts";
+
+export const notesModule = clientModule({ notes: Notes }, ({ notes }) => ({
+	routes: (root) => [createRoute({ component: () => <NotesScreen client={notes} />, getParentRoute: () => root, path: "/notes" })],
+	warm: [notes.list.query()],
+}));
+```
+
+`Notes` is the module's generated browser contract and `NotesScreen` its screen. Routes reach the client by closure, so no parent route carries it in route context. The application declares its root route once, the way TanStack Router's own `Register` works, so every module's `root` is typed with the root route's context:
 
 ```ts
-import { composeBindings } from "@shivaedev/contract/composeBindings.ts";
-
-function connect(session: Session, registry: AtomRegistry.AtomRegistry) {
-	const modules = [notesModule(registry), tasksModule(registry)];
-	return composeBindings(
-		{ modules },
-		modules.map((module) => module.api),
-	);
+declare module "@shivaedev/react/client/module.ts" {
+	interface Register {
+		readonly root: ReturnType<typeof rootRoute>;
+	}
 }
 ```
 
-`Session`, `notesModule` and `tasksModule` belong to the application; each module makes its client from its record of contracts with the supplied registry. Import `AtomRegistry` from `effect/reactivity/AtomRegistry`. Return the resulting connection from `SessionBoundary`'s `connect` callback and render `client.modules` in its child.
+`rootRoute` is the application's function that builds its root route. Without the declaration, `root` is any TanStack route.
+
+`clientApp(modules, options?)` from `@shivaedev/react/client/app.ts` turns the list into the session's connection. It makes one client over every module's contracts with `makeClient`, so the tab keeps one socket, one runtime and one client activity, and binds a contract that two modules name once: both modules hold the same binding and read the same live queries. It returns `connect` and `warm`, which spread into `SessionBoundary`:
+
+```tsx
+import { clientApp } from "@shivaedev/react/client/app.ts";
+
+const app = clientApp([notesModule, tasksModule]);
+
+<SessionBoundary {...app} session={session} identify={(current) => current.user.id} recheck={recheck}>
+	{(connection) => <Shell connection={connection} />}
+</SessionBoundary>;
+```
+
+`connect` passes the session's registry to every session-scoped contract. The connection it returns carries `routes(root)`, every module's routes in list order; `adminPages`; `modules`, each module's parts in list order, for the shell's menu, overlays and footer; and the client's activity for `clientActivity` from `@shivaedev/contract/clientActivity.ts`, with its `runtime` and `sync` for `screenSync`. `warm` collects every module's `warm` list. The client connects to `/rpc` beside the page; `options` takes `url`, `protocol`, `headers` and the other client options of `makeClient` for story kits and native shells. A signed-out screen calls `app.connect(undefined, registry)` with the registry it renders in. An application built with `@shivaedev/build` writes no list: the generator lists every exported `clientModule(...)` call in `src/generated/client/modules.ts`, as its [build guide](https://github.com/ShivaeDev/platform/blob/main/packages/build/README.md) describes.
+
+A connection built by hand works too. The session boundary finds bound APIs through nested objects and arrays at any depth, and shared objects and cycles do not mount a binding twice; contract's `composeBindings` selects an explicit list instead of discovering the bindings in that object.
 
 #### Resume from a native shell
 

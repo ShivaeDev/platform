@@ -80,7 +80,7 @@ The module lists both operations under identity's `Authenticated` middleware, wh
 
 ## Edit fields and keep typed failures
 
-The editor binds the generated contract's save command to the query. `settings` is the module's binding, which the module's client registration takes from its record client as `client.api.settings`, as the [feature guide](./add-a-feature.md#6-register-the-client-module-and-route) shows:
+The editor binds the generated contract's save command to the query. `settings` is the module's binding, which its client module receives from `clientModule({ settings: Settings }, ({ settings }) => ...)`, as the [feature guide](./add-a-feature.md#6-write-the-client-module-and-its-route) shows:
 
 ```ts
 const Draft = Schema.Struct({ pageSize: Schema.NumberFromString, title: Schema.String });

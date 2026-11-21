@@ -1,12 +1,12 @@
 import { Effect } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import { act } from "react";
-import { activityScreenSignal, clientActivity } from "@shivaedev/contract/clientActivity.ts";
+import { activityScreenSignal } from "@shivaedev/contract/clientActivity.ts";
 import { screenSync } from "@shivaedev/contract/screenSync.ts";
 import { countWords } from "@shivaedev/test-story/server/answers.ts";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 import { screenActions } from "#modules/notes/test-support/screenActions.ts";
-import type { Screen } from "#modules/notes/test-support/screenState.ts";
+import { connected, type Screen } from "#modules/notes/test-support/screenState.ts";
 import { settleQuery } from "#modules/notes/test-support/settleQuery.ts";
 import { screenView } from "#test-support/screenState.ts";
 import { settleScreen } from "#test-support/settleScreen.ts";
@@ -16,9 +16,9 @@ export function noteScreenVerbs(engine: Screen, tell: (line: string) => void) {
 		const view = screenView(engine);
 		return screenDriver({
 			act,
-			activity: activityScreenSignal(clientActivity(engine.client)),
+			activity: activityScreenSignal(connected(engine).activity),
 			root: view.container,
-			sync: screenSync(engine.client, view.registry),
+			sync: screenSync(connected(engine), view.registry),
 			tell,
 		});
 	}
@@ -26,7 +26,7 @@ export function noteScreenVerbs(engine: Screen, tell: (line: string) => void) {
 		cachedTitle: () =>
 			Effect.sync(
 				() =>
-					AsyncResult.getOrElse(screenView(engine).registry.get(engine.client.api.notes.get.query({ id: 1 })), () => undefined)?.title
+					AsyncResult.getOrElse(screenView(engine).registry.get(connected(engine).notes.get.query({ id: 1 })), () => undefined)?.title
 					?? "nothing cached",
 			),
 		finishWordCount: (count: number) =>
@@ -43,10 +43,13 @@ export function noteScreenVerbs(engine: Screen, tell: (line: string) => void) {
 				await act(() => engine.client.reviseNote(1, title));
 			}),
 		route: () => Effect.sync(() => engine.router?.state.location.pathname ?? "no route"),
+		// A login screen renders without the app, so nothing connects and only the screen itself settles.
 		settle: () =>
-			driver()
-				.settle()
-				.pipe(Effect.andThen(settleScreen(engine, tell))),
+			engine.live === undefined
+				? settleScreen(engine, tell)
+				: driver()
+						.settle()
+						.pipe(Effect.andThen(settleScreen(engine, tell))),
 		settleQuery: () => settleQuery(engine),
 		startWordCount: (count: number) =>
 			Effect.promise(async () => {

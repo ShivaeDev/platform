@@ -1,8 +1,8 @@
 import { createMemoryHistory } from "@tanstack/react-router";
 import { ConfigProvider, DateTime, Effect, Layer, Schema } from "effect";
-import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { act } from "react";
 import { JobsClientFactory } from "@shivaedev/jobs/server/JobsClientFactory.ts";
+import { clientApp } from "@shivaedev/react/client/app.ts";
 import { RouterProvider } from "@shivaedev/react/RouterProvider.ts";
 import { emailLink, inbox } from "@shivaedev/test-kits/email/adapters/inbox.ts";
 import { signedInUser, storyAuth } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
@@ -120,11 +120,12 @@ export const authEmailApp = storyKit({
 					story.tell("alice opens the link in her password reset email");
 					const link = new URL(emailLink(yield* mail.nextEmail));
 					const view = yield* acquireScreen(surface);
-					const router = yield* appRouter(
-						{ modules: [] },
-						auth.actions,
-						createMemoryHistory({ initialEntries: [`${link.pathname}${link.search}`] }),
-					).pipe(Effect.provideService(AtomRegistry.AtomRegistry, view.registry));
+					const router = appRouter({
+						auth: auth.actions,
+						connection: clientApp([]).connect(undefined, view.registry),
+						history: createMemoryHistory({ initialEntries: [`${link.pathname}${link.search}`] }),
+						registry: view.registry,
+					});
 					yield* Effect.promise(async () => {
 						await view.render(<RouterProvider router={router} />);
 						await act(() => router.load());

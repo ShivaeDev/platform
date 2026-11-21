@@ -3,8 +3,8 @@ import { createMemoryHistory } from "@tanstack/react-router";
 import { DateTime, Effect } from "effect";
 import { SqlClient } from "effect/sql";
 import { clientActivity } from "@shivaedev/contract/clientActivity.ts";
-import { makeClient } from "@shivaedev/contract/makeClient.ts";
 import { authTestDatabase } from "@shivaedev/identity/server/better-auth/testDatabase.ts";
+import { clientApp } from "@shivaedev/react/client/app.ts";
 import { mintUser } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { seedCookies } from "@shivaedev/test-story/server/adapters/seedCookies.ts";
@@ -12,10 +12,7 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { App } from "#client/App.tsx";
 import { makeAuth } from "#client/adapters/auth.ts";
 import { LoginScreen } from "#client/LoginScreen.tsx";
-import { clientModules } from "#client/modules.ts";
-import { Notes } from "#generated/modules/notes/Notes.ts";
-import { StatisticsPage } from "#modules/notes/admin/pages.ts";
-import { notesRegistration } from "#modules/notes/client/registration.tsx";
+import { notesModule } from "#modules/notes/client/module.tsx";
 import { heldSignIn } from "#modules/notes/test-support/heldSignIn.ts";
 import { notesMemberScreens } from "#modules/notes/test-support/memberScreens.tsx";
 import { screenActions } from "#modules/notes/test-support/screenActions.ts";
@@ -24,6 +21,7 @@ import { AppAuth } from "#server/AppAuth.ts";
 import { credentials } from "#test-support/authHttp.ts";
 import { createCookieHost } from "#test-support/createCookieHost.ts";
 import { configured, postgres } from "#test-support/postgres.ts";
+import { recordedApp } from "#test-support/recordedApp.ts";
 import { acquireScreen, type ScreenSurface, screenView } from "#test-support/screenState.ts";
 import { settleScreen } from "#test-support/settleScreen.ts";
 import { uiScreenVerbs } from "#test-support/uiScreenVerbs.ts";
@@ -143,19 +141,15 @@ export function notesHostScreen(initial = "/sign-in") {
 			view.registry.get(engine.auth.session.atom).waiting
 			|| view.registry.get(engine.auth.actions.submit).waiting
 			|| view.registry.get(engine.auth.actions.signOut).waiting;
-		function connect(session: { readonly id: string }) {
-			const client = makeClient(
-				{ notes: Notes, statistics: StatisticsPage.contract },
-				{
-					url: `${engine.baseUrl}/rpc`,
-					...(engine.headers.has("cookie") ? { headers: Object.fromEntries(engine.headers), webSocketConstructor: layerWebSocketConstructor } : {}),
-				},
-			);
-			engine.activities = [clientActivity(client)];
-			return clientModules(session, [notesRegistration(client)]);
-		}
+		const app = clientApp([notesModule], {
+			url: `${engine.baseUrl}/rpc`,
+			...(engine.headers.has("cookie") ? { headers: Object.fromEntries(engine.headers), webSocketConstructor: layerWebSocketConstructor } : {}),
+		});
+		const recorded = recordedApp(app, (connection) => {
+			engine.activities = [clientActivity(connection)];
+		});
 
-		yield* Effect.promise(() => view.render(<App auth={engine.auth} connect={connect} history={engine.history} />));
+		yield* Effect.promise(() => view.render(<App app={recorded} auth={engine.auth} history={engine.history} />));
 	});
 }
 

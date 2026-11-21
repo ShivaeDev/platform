@@ -144,7 +144,7 @@ export const adminRegistration = registerAdmin(Admin, {
 });
 ```
 
-The read stays in notes because notes owns the table. The [client registration](https://github.com/ShivaeDev/platform/blob/main/examples/starter/src/modules/notes/client/admin/registration.tsx) and view stay in `src/modules/notes/client/admin/`. Application composition may import these registrations from its member and admin module lists without moving their implementation out of the owning module.
+The read stays in notes because notes owns the table. The page's route sits in the notes admin [client module](https://github.com/ShivaeDev/platform/blob/main/examples/starter/src/modules/notes/client/admin/module.tsx), which names the statistics contract and lists the page in its `admin` field for the admin navigation, beside its view in `src/modules/notes/client/admin/`. The generated client module list finds it by its export, so the page needs no other registration on the client.
 
 ### Built-in Jobs page
 

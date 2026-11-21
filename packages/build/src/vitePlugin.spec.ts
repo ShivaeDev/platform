@@ -176,13 +176,27 @@ vite.it(
 vite.it(
 	"in the dev server, a registration created while it runs is added to the server's module list without a restart",
 	[notesApplication(), generatedOnce()],
-	function* ({ serverListRewritten, startsTheDevServer, writesTheNotesRegistration }) {
+	function* ({ listRewritten, startsTheDevServer, writesTheNotesRegistration }) {
 		yield* startsTheDevServer();
 
 		yield* writesTheNotesRegistration("satisfies AppModule");
 
-		expect(yield* serverListRewritten()).toContain(
+		expect(yield* listRewritten("server")).toContain(
 			'import { notesRegistration } from "#modules/notes/server/registration.ts";\n\nexport const modules = [\n\tnotesRegistration,\n] as const;\n',
+		);
+	},
+);
+
+vite.it(
+	"in the dev server, a client module created while it runs is added to the client's module list without a restart",
+	[notesApplication(), generatedOnce()],
+	function* ({ listRewritten, startsTheDevServer, writesTheNotesClientModule }) {
+		yield* startsTheDevServer();
+
+		yield* writesTheNotesClientModule();
+
+		expect(yield* listRewritten("client")).toContain(
+			'import { notesModule } from "#modules/notes/client/module.tsx";\n\nexport const modules = [\n\tnotesModule,\n] as const;\n',
 		);
 	},
 );

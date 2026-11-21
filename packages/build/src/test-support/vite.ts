@@ -10,7 +10,7 @@ import { REFUSING_PROJECT } from "#test/refusingProject.ts";
 import { VITE_PROJECT } from "#test/viteProject.ts";
 import { appConfigBuild, type DevServer, viteBuild, viteDevServer } from "#test/viteRuns.ts";
 
-const SERVER_LIST = "src/generated/server/modules.ts";
+const LISTS = { client: "src/generated/client/modules.ts", server: "src/generated/server/modules.ts" } as const;
 
 interface ViteEngine {
 	devServer: Option.Option<DevServer>;
@@ -100,6 +100,20 @@ export const vite = storyKit({
 			const full = path.join(engine.root, file);
 			return (yield* fs.exists(full)) ? yield* fs.readFileString(full) : "missing";
 		}),
+		listRewritten: Effect.fn("BuildStory.listRewritten")(function* (side: keyof typeof LISTS) {
+			const { written } = yield* runningDevServer(engine);
+			const fs = yield* FileSystem.FileSystem;
+			const path = yield* Path.Path;
+			const list = path.join(engine.root, LISTS[side]);
+			while (true) {
+				if ((yield* Queue.take(written)) === list) {
+					const text = yield* fs.readFileString(list);
+					if (text !== engine.listBefore) {
+						return text;
+					}
+				}
+			}
+		}),
 		moduleGraphEntry: Effect.fn("BuildStory.moduleGraphEntry")(function* (file: string) {
 			const { server } = yield* runningDevServer(engine);
 			const path = yield* Path.Path;
@@ -117,20 +131,6 @@ export const vite = storyKit({
 			story.tell("two vitest runs start on the project at once");
 			return Effect.all([vitestRun(engine.root, engine.lock), vitestRun(engine.root, engine.lock)], { concurrency: 2 });
 		},
-		serverListRewritten: Effect.fn("BuildStory.serverListRewritten")(function* () {
-			const { written } = yield* runningDevServer(engine);
-			const fs = yield* FileSystem.FileSystem;
-			const path = yield* Path.Path;
-			const list = path.join(engine.root, SERVER_LIST);
-			while (true) {
-				if ((yield* Queue.take(written)) === list) {
-					const text = yield* fs.readFileString(list);
-					if (text !== engine.listBefore) {
-						return text;
-					}
-				}
-			}
-		}),
 		startsTheDevServer: Effect.fn("BuildStory.startsTheDevServer")(function* () {
 			story.tell("the developer starts the vite dev server and the browser connects to it");
 			return yield* viteDevServer(engine.root).pipe(
@@ -150,11 +150,19 @@ export const vite = storyKit({
 				Effect.catchTag("GenerateFailed", (failed) => Effect.succeed(failed.problems.join("\n"))),
 				onlyTheStoryLock(engine),
 			),
+		writesTheNotesClientModule: Effect.fn("BuildStory.writesTheNotesClientModule")(function* () {
+			const { path: file, text } = VITE_PROJECT.notesClientModule;
+			story.tell(`the developer creates ${file}, exporting the notes client module`);
+			const path = yield* Path.Path;
+			engine.listBefore = Option.getOrElse(yield* readIfPresent(path.join(engine.root, LISTS.client)), () => "");
+			engine.edited.add(path.join(engine.root, file));
+			yield* writeAtomically(path.join(engine.root, file), text);
+		}),
 		writesTheNotesRegistration: Effect.fn("BuildStory.writesTheNotesRegistration")(function* (annotation: "satisfies AppModule" | ": AppModule") {
 			const { path: file, texts } = VITE_PROJECT.notesRegistration;
 			story.tell(`the developer creates ${file}, exporting the notes registration written ${annotation}`);
 			const path = yield* Path.Path;
-			engine.listBefore = Option.getOrElse(yield* readIfPresent(path.join(engine.root, SERVER_LIST)), () => "");
+			engine.listBefore = Option.getOrElse(yield* readIfPresent(path.join(engine.root, LISTS.server)), () => "");
 			engine.edited.add(path.join(engine.root, file));
 			yield* writeAtomically(path.join(engine.root, file), texts[annotation]);
 		}),

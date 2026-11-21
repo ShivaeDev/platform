@@ -2,43 +2,37 @@ import { RegistryContext } from "@effect/atom-react";
 import { layerWebSocketConstructor } from "@effect/platform-node/NodeWS";
 import { createMemoryHistory } from "@tanstack/react-router";
 import { Effect } from "effect";
-import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { activityScreenSignal, type ClientActivity, clientActivity } from "@shivaedev/contract/clientActivity.ts";
-import { makeClient } from "@shivaedev/contract/makeClient.ts";
+import { clientApp } from "@shivaedev/react/client/app.ts";
 import { RouterProvider } from "@shivaedev/react/RouterProvider.ts";
 import { memberScreens } from "@shivaedev/test-story/server/adapters/memberScreens.ts";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 import { makeAuth } from "#client/adapters/auth.ts";
 import { appRouter } from "#client/appRouter.tsx";
-import { connectModules } from "#client/Module.ts";
-import { Notes } from "#generated/modules/notes/Notes.ts";
-import { StatisticsPage } from "#modules/notes/admin/pages.ts";
-import { notesRegistration } from "#modules/notes/client/registration.tsx";
+import { notesModule } from "#modules/notes/client/module.tsx";
 
 export function notesMemberScreens(baseUrl: string) {
 	const pending = new Map<string, ClientActivity>();
 	return memberScreens({
 		baseUrl,
 		mount: Effect.fnUntraced(function* (member) {
-			const client = makeClient(
-				{ notes: Notes, statistics: StatisticsPage.contract },
-				{
-					headers: { cookie: member.cookie, origin: new URL(baseUrl).origin },
-					url: `${baseUrl}/rpc`,
-					webSocketConstructor: layerWebSocketConstructor,
-				},
-			);
+			const app = clientApp([notesModule], {
+				headers: { cookie: member.cookie, origin: new URL(baseUrl).origin },
+				url: `${baseUrl}/rpc`,
+				webSocketConstructor: layerWebSocketConstructor,
+			});
 			const auth = makeAuth({ baseUrl, fetchOptions: { customFetchImpl: member.fetch } });
-			const connection = yield* notesRegistration(client).pipe(
-				Effect.map((module) => connectModules([module])),
-				Effect.provideService(AtomRegistry.AtomRegistry, member.registry),
-			);
-			const router = yield* appRouter(connection, auth.actions, createMemoryHistory({ initialEntries: ["/"] }), () => ({
-				user: { id: member.name },
-			})).pipe(Effect.provideService(AtomRegistry.AtomRegistry, member.registry));
-			pending.set(member.name, clientActivity(client));
+			const connection = app.connect({ id: member.name }, member.registry);
+			const router = appRouter({
+				auth: auth.actions,
+				connection,
+				history: createMemoryHistory({ initialEntries: ["/"] }),
+				registry: member.registry,
+				session: () => ({ user: { id: member.name } }),
+			});
+			pending.set(member.name, clientActivity(connection));
 			yield* Effect.addFinalizer(() =>
 				Effect.sync(() => {
 					pending.delete(member.name);
