@@ -38,7 +38,7 @@ void [adminHandlers, ownerHandlers, unguardedAdmin];
 const adminPolicy = {
 	origin: () => true,
 	provider: {
-		get: () => Effect.succeed(Option.some({ user: { email: "a@example.test", id: "a", name: "A" } })),
+		get: () => Effect.succeed(Option.some({ user: { email: "a@example.test", emailVerified: true, id: "a", name: "A" } })),
 	},
 	roles: TestRoles,
 };
@@ -62,7 +62,7 @@ Effect.gen(function* () {
 
 function getSession() {
 	return Promise.resolve({
-		user: { email: "typed@example.test", id: "typed", name: "Typed" },
+		user: { email: "typed@example.test", emailVerified: true, id: "typed", name: "Typed" },
 	});
 }
 const plain = betterAuthSessions(getSession);

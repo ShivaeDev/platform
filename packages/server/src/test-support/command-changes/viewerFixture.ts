@@ -13,7 +13,7 @@ import { authenticatedUserLayer, authenticatedUserWithProviderAccountsLayer } fr
 import { Api, handlers, Note, notes, saveNote } from "#test/command-changes/fixture.ts";
 
 function signedInSession(id: string) {
-	return { user: { email: `${id}@example.test`, id, name: id, providerAccounts: Effect.succeed([]) } };
+	return { user: { email: `${id}@example.test`, emailVerified: true, id, name: id, providerAccounts: Effect.succeed([]) } };
 }
 
 export function viewerFixture() {

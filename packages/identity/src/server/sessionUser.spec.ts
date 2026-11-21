@@ -3,12 +3,12 @@ import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { aliceSignedIn, originForbidden, profile, providerOutage, signedOut } from "#test/rpc/profile.ts";
 
 profile.it(
-	"a handler sees alice's Identity as her id alone and her session user as her email, id and name, without the provider's private field",
+	"a handler sees alice's Identity as her id alone and her session user as her email, its confirmation, id and name, without the provider's private field",
 	[aliceSignedIn],
 	function* ({ whoami }) {
 		expect(yield* whoami()).toEqual({
 			identity: { id: "alice" },
-			user: { email: "alice@example.test", id: "alice", name: "Alice" },
+			user: { email: "alice@example.test", emailVerified: true, id: "alice", name: "Alice" },
 		});
 	},
 );

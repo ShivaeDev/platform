@@ -37,7 +37,7 @@ export const notesClient = Effect.fn("ScreenStory.notesClient")(function* (initi
 			? effect.pipe(
 					Effect.provideService(CurrentViewer, Option.some({ id: "alice" })),
 					Effect.provideService(Identity, { id: "alice" }),
-					Effect.provideService(SessionUser, { email: "alice@app.test", id: "alice", name: "Alice" }),
+					Effect.provideService(SessionUser, { email: "alice@app.test", emailVerified: true, id: "alice", name: "Alice" }),
 				)
 			: Effect.fail(new Unauthorized({ message: "Sign in to continue" })),
 	);

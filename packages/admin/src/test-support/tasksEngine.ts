@@ -14,7 +14,7 @@ import { clientRuntime } from "#test/clientRuntime.ts";
 import { OpenTasks, Tasks } from "#test/Tasks.ts";
 import { TasksPage } from "#test/TasksPage.ts";
 
-const AUDITOR = { email: "alice@example.test", id: "alice", name: "alice", role: "auditor" } as const;
+const AUDITOR = { email: "alice@example.test", emailVerified: true, id: "alice", name: "alice", role: "auditor" } as const;
 
 export const tasksEngine = Effect.gen(function* () {
 	const open = yield* Ref.make<readonly string[]>([]);
