@@ -210,7 +210,36 @@ The select variant refuses every encode. A contract that names the class as a su
 
 This mark differs from a `sensitive: true` annotation, which [`@shivaedev/errors`](https://github.com/ShivaeDev/platform/tree/main/packages/errors#masking-secrets-in-failures) uses to mask a field in diagnostics while its value still reaches the client that owns it. Use `sensitive: true` for a value the client may see but logs may not, and `serverOnly` for a value only the server may hold.
 
-Only `serverOnly` refuses the wire. `Model.Sensitive(Schema.RedactedFromValue(schema))` and `Model.Sensitive(schema)` leave the field out of the JSON variants, but the class itself encodes the plain value, so a contract that sends the class sends it; do not use them for a field that must stay on the server.
+Only `serverOnly` and `encrypted` refuse the wire. `Model.Sensitive(Schema.RedactedFromValue(schema))` and `Model.Sensitive(schema)` leave the field out of the JSON variants, but the class itself encodes the plain value, so a contract that sends the class sends it; do not use them for a field that must stay on the server.
+
+#### Fields encrypted at rest
+
+A provider's access or refresh token that a person entrusted to the application should not be readable by whoever can read the table. Declare it with `encrypted` from `@shivaedev/sql/encrypted.ts`, on a PostgreSQL `bytea` column:
+
+```ts
+import { Schema } from "effect";
+import { Model } from "effect/schema";
+import { encrypted } from "@shivaedev/sql/encrypted.ts";
+
+class Connection extends Model.Class<Connection>("Connection")({
+	accessToken: encrypted(Schema.String),
+	id: Model.Field({ json: Schema.Number, select: Schema.Number, update: Schema.Number }),
+	ownerId: Schema.String,
+	refreshToken: encrypted(Schema.String),
+}) {}
+```
+
+```sql
+create table connections (id serial primary key, owner_id text not null, access_token bytea not null, refresh_token bytea not null);
+```
+
+The field behaves like `serverOnly`: inserts and updates take a `Redacted` value, reads return a `Redacted` that prints `<redacted>`, every encode of the select variant fails, so no response carries it, and it has no JSON variant. Before a write reaches the database the repository seals the JSON text of the value's encoded form with XChaCha20-Poly1305 from Effect's `Aead`, under a fresh 24-byte nonce from `SecureRandom`. The column holds one version byte, the nonce, and the sealed bytes with their 16-byte tag. Reading a value sealed under another key, or bytes that were changed, fails with `SchemaError` at the field, whose message names neither the value nor the key.
+
+It protects the value against anyone who can read the database but not the application's configuration: a database dump, a backup, a SQL role that can read the table, or statement logs. It does not protect against a compromised application process, which holds the key and opens every value, or a leaked key. Because every write uses a fresh nonce, equal values never store equal bytes, so the field cannot be filtered, and building a repository fails with `EncryptedKeyError` when it is the ID column, a bucket, a tuple bucket column or a conflict column. The filter types leave the field out, and an owner field cannot be encrypted.
+
+The repository's operations require `ColumnKey` from `@shivaedev/sql/ColumnKey.ts` with `Aead` and `SecureRandom` wherever the field is written, and `ColumnKey` with `Aead` wherever it is read. `appHost` from `@shivaedev/server/appHost.ts` or `@shivaedev/server/appDatabase.ts` and `workerHost` from `@shivaedev/server/workerHost.ts` provide all three. `ColumnKey.fromConfig` reads `COLUMN_ENCRYPTION_KEY`, 32 bytes in base64, with `Config.Redacted` once, when it is first needed. `makeRepository` loads the key while it builds the repository of a model with an encrypted field, so such a repository's build also requires `ColumnKey` and can fail with `ColumnKeyError`, whose message names `COLUMN_ENCRYPTION_KEY` and never its text. A host builds its repositories as it starts, so a host whose models declare an encrypted field refuses to start when the key is missing or malformed, and an application without encrypted fields never reads the key and configures nothing. Generate a key with `openssl rand -base64 32`, keep it with the application's other secrets and never in the database. The version byte leaves room for another key or format later; today one key opens every value, so replacing it makes the stored values unreadable.
+
+An existing plain `text` column does not become encrypted by changing its model: the application's own migration changes the column to `bytea` and writes each value again through the repository, or the application asks people to connect again. Effect marks `Aead` and `SecureRandom` as unstable, so their API may change in an Effect release that this package then follows.
 
 #### The field that names a row's owner
 
@@ -229,7 +258,7 @@ class Note extends Model.Class<Note>("Note")({
 }) {}
 ```
 
-`owner(schema)` is a schema annotation like `bucket`, so a field can carry both marks and keeps both meanings. The field decodes to the user id string and may be nullable. Building a repository fails with `OwnerFieldError`, naming the table and the fields, when a model marks two owner fields or marks a `serverOnly` field as owner.
+`owner(schema)` is a schema annotation like `bucket`, so a field can carry both marks and keeps both meanings. The field decodes to the user id string and may be nullable. Building a repository fails with `OwnerFieldError`, naming the table and the fields, when a model marks two owner fields or marks a `serverOnly` or `encrypted` field as owner.
 
 Every repository built with `makeRepository` or `makeOrderedChildren` reports its model to `RepositoryModels` from `@shivaedev/sql/RepositoryModels.ts` as it is built: the table and the model, and for an owned model the owner field and its column, both named as the client's SQL name transform stores them. Under the `collectRepositoryModels` Layer from the same module, `(yield* RepositoryModels).owned` reads back each owned model the repositories built on it reported, once per model: a repository built twice appears once, and two models over one table both appear. `appHost` builds on that Layer, so an operation it serves reads the host's owned models; a story or script provides the Layer itself, and without it `owned` is empty. A table the application reaches only through raw SQL is covered once it has a repository on a model with an owner mark.
 
@@ -1115,10 +1144,13 @@ Import the module that defines the name; there is no root entry.
 - `@shivaedev/sql/postgresChanges.ts`: `postgresChanges(options)` — Scoped PostgreSQL LISTEN/NOTIFY Layer for commit-bound invalidation.
 - `@shivaedev/sql/repositoryCollection.ts`: `BucketRegistrationError` — Registration failure with table, collection and bucket field names and invalid tuple columns.
 - `@shivaedev/sql/repositoryCollection.ts`: `ServerOnlyKeyError` — Repository build failure naming the server-only fields used as an ID column, bucket or tuple bucket column.
-- `@shivaedev/sql/repositoryCollection.ts`: `OwnerFieldError` — Repository build failure naming the table and the fields when a model marks two owner fields or a server-only owner field.
-- `@shivaedev/sql/repositoryCollection.ts`: `RepositoryBuildError` — The failures `makeRepository` can fail with: `BucketRegistrationError | OwnerFieldError | ServerOnlyKeyError`.
+- `@shivaedev/sql/repositoryCollection.ts`: `EncryptedKeyError` — Repository build failure naming the encrypted fields used as an ID column, bucket, tuple bucket column or conflict column.
+- `@shivaedev/sql/repositoryCollection.ts`: `OwnerFieldError` — Repository build failure naming the table and the fields when a model marks two owner fields or a server-only or encrypted owner field.
+- `@shivaedev/sql/repositoryCollection.ts`: `RepositoryBuildError` — The failures `makeRepository` can fail with: `BucketRegistrationError | EncryptedKeyError | OwnerFieldError | ServerOnlyKeyError`, plus `ColumnKeyError` for a model with an encrypted field.
 - `@shivaedev/sql/owner.ts`: `owner(schema)` — Annotation marking the one field that holds the owning person's user id, reported with the table and owner column through `RepositoryModels`.
 - `@shivaedev/sql/serverOnly.ts`: `serverOnly(schema)` — Model field stored as the plain value, read as `Redacted`, absent from JSON variants, and refused by every encode of the select variant.
+- `@shivaedev/sql/encrypted.ts`: `encrypted(schema)` — PostgreSQL `bytea` model field sealed with XChaCha20-Poly1305 before it is written, read as `Redacted`, absent from JSON variants, refused by every encode of the select variant and by every filter.
+- `@shivaedev/sql/ColumnKey.ts`: `ColumnKey`, `ColumnKey.fromConfig`, `ColumnKeyError`, `COLUMN_KEY_CONFIG` — The service holding the loading of the key that seals encrypted fields; `fromConfig` reads `COLUMN_ENCRYPTION_KEY` once, when a repository of a model with an encrypted field is built, and fails with `ColumnKeyError` naming it.
 - `@shivaedev/sql/changes.ts`: `changes(covers)`, `ChangeDeclaration` — Declares a raw writer's table, record and bucket keys once, with a `record(options?)` action.
 - `@shivaedev/test-kits/sql/testing.ts`: `withChangeCoverage(body, { covers })`, `expectPublished(keys)`, `UnannouncedWrites`, `PublishedKeysMismatch` — Test assertions that every write announced its keys and that the expected keys were published.
 

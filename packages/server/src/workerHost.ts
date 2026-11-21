@@ -1,6 +1,6 @@
-import * as NodeCrypto from "@effect/platform-node/NodeCrypto";
 import { Effect, Layer } from "effect";
 import { type AppDatabaseOptions, appDatabase, type DatabaseConfig } from "#appDatabase.ts";
+import { hostCrypto } from "#hostCrypto.ts";
 import { redactedHost } from "#redactedHost.ts";
 
 export interface WorkerHostConfig extends DatabaseConfig {
@@ -22,5 +22,5 @@ export function workerHost<R, E, TRequirements, TServices, TServiceError, TServi
 			Layer.provideMerge(options.services),
 			Layer.provideMerge(appDatabase(options)),
 		),
-	).pipe(Layer.provide(NodeCrypto.layer));
+	).pipe(Layer.provide(hostCrypto));
 }

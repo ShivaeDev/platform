@@ -6,7 +6,9 @@ import type { SqlClient } from "effect/sql";
 import { bucket } from "@shivaedev/changes/buckets.ts";
 import { collection } from "@shivaedev/changes/keys.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { ColumnKey, type ColumnKeyError } from "#ColumnKey.ts";
 import { clientOptions } from "#clientOptions.ts";
+import { encrypted } from "#encrypted.ts";
 import { makeOrderedChildren } from "#makeOrderedChildren.ts";
 import { owner } from "#owner.ts";
 import { collectRepositoryModels, RepositoryModels } from "#RepositoryModels.ts";
@@ -49,6 +51,16 @@ const serverOnlyOwner = Model.Field({
 	select: serverOnly(Schema.String).schemas.select.annotate({ "@shivaedev/sql/owner": true }),
 });
 
+const encryptedOwner = Model.Field({
+	...encrypted(Schema.String).schemas,
+	select: encrypted(Schema.String).schemas.select.annotate({ "@shivaedev/sql/owner": true }),
+});
+
+class SealedOwner extends Model.Class<SealedOwner>("SealedOwnerNote")({
+	id: Schema.Number,
+	ownerToken: encryptedOwner,
+}) {}
+
 class HiddenOwner extends Model.Class<HiddenOwner>("HiddenOwnerNote")({
 	id: Schema.Number,
 	ownerToken: serverOnlyOwner,
@@ -57,6 +69,7 @@ class HiddenOwner extends Model.Class<HiddenOwner>("HiddenOwnerNote")({
 const models = new Map<Model.Any, string>([
 	[CoAuthored, "CoAuthored"],
 	[HiddenOwner, "HiddenOwner"],
+	[SealedOwner, "SealedOwner"],
 	[Note, "Note"],
 	[NoteHeading, "NoteHeading"],
 	[Step, "Step"],
@@ -69,25 +82,28 @@ export type Built =
 	| "note headings over the notes table"
 	| "notes keyed by tableName in place of their collection"
 	| "notes owned by a server-only token"
+	| "notes owned by an encrypted token"
 	| "notes owned by their author bucket"
 	| "unowned note tags";
 
-const repositories: Record<Built, () => Effect.Effect<unknown, RepositoryBuildError, SqlClient.SqlClient>> = {
+const repositories: Record<Built, () => Effect.Effect<unknown, RepositoryBuildError | ColumnKeyError, SqlClient.SqlClient | ColumnKey>> = {
 	"checklist steps through makeOrderedChildren": () =>
 		makeOrderedChildren(Step, { parentColumn: "checklistId", parentTable: "checklists", positionColumn: "position", tableName: "checklist_steps" }),
 	"co-authored notes with two owner fields": () => makeRepository(CoAuthored, { tableName: "co_authored_notes" }),
 	"note headings over the notes table": () => makeRepository(NoteHeading, { tableName: "notes" }),
 	"notes keyed by tableName in place of their collection": () => makeRepository(Note, { tableName: "notes" }),
 	"notes owned by a server-only token": () => makeRepository(HiddenOwner, { tableName: "hidden_owner_notes" }),
+	"notes owned by an encrypted token": () => makeRepository(SealedOwner, { tableName: "sealed_owner_notes" }),
 	"notes owned by their author bucket": () => makeRepository(Note, { collection: collection("notes", Schema.Number, { authorId: Schema.String }) }),
 	"unowned note tags": () => makeRepository(Tag, { tableName: "noteTags" }),
 };
 
-// Repositories report to sql's own collector, as they do outside a host.
+// Repositories report to sql's own collector, as they do outside a host; the encrypted owner is refused before its repository would load a key.
 const snakeCaseSqlite = Layer.mergeAll(
 	SqliteClient.layer(clientOptions({ filename: ":memory:" })),
 	Reactivity.layer,
 	Layer.fresh(collectRepositoryModels),
+	ColumnKey.fromConfig,
 );
 
 export const ownerMarks = storyKit({

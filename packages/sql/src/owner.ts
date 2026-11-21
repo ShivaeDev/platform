@@ -1,4 +1,5 @@
 import { Effect, Schema } from "effect";
+import { isEncrypted } from "#encryptedKeys.ts";
 import { OwnerFieldError } from "#repositoryCollection.ts";
 import { serverOnlyStored } from "#serverOnly.ts";
 
@@ -23,6 +24,9 @@ export const declaredOwner = Effect.fnUntraced(function* (table: string, fields:
 	const [field, fieldSchema] = first;
 	if (serverOnlyStored(fieldSchema) !== undefined) {
 		return yield* new OwnerFieldError({ fields: [field], reason: "server-only", tableName: table });
+	}
+	if (isEncrypted(fieldSchema)) {
+		return yield* new OwnerFieldError({ fields: [field], reason: "encrypted", tableName: table });
 	}
 	return field;
 });

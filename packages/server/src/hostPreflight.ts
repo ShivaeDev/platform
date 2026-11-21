@@ -1,12 +1,12 @@
-import type * as NodeCrypto from "@effect/platform-node/NodeCrypto";
 import { Effect, Layer } from "effect";
 import { redactingDiagnostics } from "#adapters/redactingDiagnostics.ts";
+import type { hostCrypto } from "#hostCrypto.ts";
 
 export type HostPreflight<TServices = never, TError = never, TRequirements = never> =
 	| { readonly preflight: Layer.Layer<TServices, TError, TRequirements> }
 	| ([TServices | TError | TRequirements] extends [never] ? { readonly preflight?: never } : never);
 
-type HostCrypto = Layer.Success<typeof NodeCrypto.layer>;
+type HostCrypto = Layer.Success<typeof hostCrypto>;
 
 export type PreflightHost<THost extends Layer.Any, TServices, TError, TRequirements> = Layer.Layer<
 	Layer.Success<THost> | TServices,

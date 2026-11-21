@@ -54,6 +54,11 @@ const refusals = [
 		refusal:
 			'OwnerFieldError: Repository for hidden_owner_notes: owner field ["ownerToken"] is server-only, but it must decode to the plain user id that selects a person\'s rows for export and erasure',
 	},
+	{
+		built: "notes owned by an encrypted token",
+		refusal:
+			'OwnerFieldError: Repository for sealed_owner_notes: owner field ["ownerToken"] is encrypted, but it must decode to the plain user id that selects a person\'s rows for export and erasure',
+	},
 ] as const;
 
 for (const { built, refusal } of refusals) {
