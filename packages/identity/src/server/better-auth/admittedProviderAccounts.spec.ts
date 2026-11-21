@@ -53,6 +53,6 @@ signInPolicy.it(
 	"without an account lookup, the mount keeps the admitted viewer's base profile",
 	[allowed("alice"), mintedSession("alice")],
 	function* ({ sessionFields }) {
-		expect(yield* sessionFields("alice")).toEqual(["email", "id", "name"]);
+		expect(yield* sessionFields("alice")).toEqual(["email", "emailVerified", "id", "name"]);
 	},
 );

@@ -102,7 +102,7 @@ export function sessions(state: Pick<State, "revoked">) {
 		if (id === "visitor" || state.revoked.has(id)) {
 			sessionRole = "visitor";
 		}
-		return Effect.succeed(Option.some({ user: { email: `${id}@example.test`, id, name: id, role: sessionRole } }));
+		return Effect.succeed(Option.some({ user: { email: `${id}@example.test`, emailVerified: true, id, name: id, role: sessionRole } }));
 	}
 	return { origin: () => true, provider: { get }, roles: Roles };
 }

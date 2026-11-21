@@ -28,6 +28,7 @@ demoSeedStory.it(
 		expect(yield* runs()).toEqual(
 			[...users, ...users].map(({ id, email, name, role }) => ({
 				email,
+				emailVerified: true,
 				id,
 				identityId: id,
 				name,

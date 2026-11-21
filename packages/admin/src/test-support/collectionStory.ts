@@ -44,7 +44,7 @@ export const collectionStory = storyKit({
 
 export function signedInAs(id: string, role: typeof Access.Role.Type) {
 	return collectionStory.trait("session", `${id} is signed in with the ${role} role`, ({ session }) =>
-		Ref.set(session, Option.some({ user: { email: `${id}@example.test`, id, name: id, role } })),
+		Ref.set(session, Option.some({ user: { email: `${id}@example.test`, emailVerified: true, id, name: id, role } })),
 	);
 }
 

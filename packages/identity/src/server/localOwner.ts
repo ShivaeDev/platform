@@ -30,7 +30,9 @@ export const localOwner = Effect.fn("Identity.localOwner")(function* (options: {
 				if (bearer === undefined) {
 					return Effect.succeed(Option.none());
 				}
-				return bearer === Redacted.value(token) ? Effect.succeed(Option.some({ user: { ...owner, ...access } })) : machines.resolve(bearer);
+				return bearer === Redacted.value(token)
+					? Effect.succeed(Option.some({ user: { ...owner, emailVerified: true, ...access } }))
+					: machines.resolve(bearer);
 			},
 		},
 		streamRevalidationInterval: options.streamRevalidationInterval,
