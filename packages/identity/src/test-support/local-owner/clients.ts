@@ -15,13 +15,13 @@ export function httpClient(url: string, token?: string) {
 	return Effect.flatMap(Layer.build(protocol), (services) => RpcClient.make(Api).pipe(Effect.provideContext(services)));
 }
 
-export const socketClient = Effect.fnUntraced(function* (url: string, token: string) {
+export const socketClient = Effect.fnUntraced(function* (url: string, token: string, origin?: string) {
 	const closed = yield* Deferred.make<{ code: number; reason: string }>();
 	const webSocketConstructor = Layer.succeed(Socket.WebSocketConstructor, (address, protocols) => {
 		if (protocols !== undefined && typeof protocols !== "string" && !Array.isArray(protocols)) {
 			throw new Error("The local client cannot set upgrade headers");
 		}
-		const socket = new NodeWs.WebSocket(address, protocols);
+		const socket = new NodeWs.WebSocket(address, protocols, origin === undefined ? {} : { origin });
 		socket.addEventListener("close", (event) => Effect.runSync(Deferred.succeed(closed, { code: event.code, reason: event.reason })));
 		return socket;
 	});

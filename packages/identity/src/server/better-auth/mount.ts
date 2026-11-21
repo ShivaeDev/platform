@@ -1,5 +1,5 @@
 import type { BetterAuthOptions } from "better-auth";
-import { Config, Effect, Layer, Schema, type Scope } from "effect";
+import { Effect, Layer, type Scope } from "effect";
 import type { SqlClient } from "effect/sql";
 import type { Store } from "@shivaedev/rate-limit/Store.ts";
 import { accountPreferencesStore } from "#server/account-preferences/store.ts";
@@ -32,7 +32,7 @@ import type { BetterAuthPasswordReset } from "#server/better-auth/PasswordReset.
 import { authRouteHandler } from "#server/better-auth/routeHandler.ts";
 import { storedRoleOptions } from "#server/better-auth/storedRoleOptions.ts";
 import { UndeclaredDefaultRole } from "#server/better-auth/UndeclaredDefaultRole.ts";
-import { NativeOrigins } from "#server/NativeOrigins.ts";
+import { declaredNativeOrigins } from "#server/NativeOrigins.ts";
 import { providerFailure } from "#server/providerFailure.ts";
 
 export interface BetterAuthMountOptions<E = never, R = never> {
@@ -58,10 +58,7 @@ const mountAuth = Effect.fn("Identity.mountAuth")(function* <const TOptions exte
 		const { defaultRole } = declaration;
 		yield* declaration.roles.resolve(defaultRole).pipe(Effect.mapError(() => new UndeclaredDefaultRole({ role: defaultRole })));
 	}
-	const nativeOrigins =
-		declaration.nativeOrigins === undefined
-			? undefined
-			: yield* Schema.decodeUnknownEffect(NativeOrigins)(declaration.nativeOrigins).pipe(Effect.mapError((cause) => new Config.ConfigError(cause)));
+	const nativeOrigins = yield* declaredNativeOrigins(declaration.nativeOrigins);
 	const options =
 		declaration.options.database === undefined ? { ...declaration.options, database: yield* betterAuthDatabase() } : declaration.options;
 	const { authOptions, clientIpHeader, rateLimitEnabled, trustedProxy } = yield* mountSettings(options, mount.clientIp);

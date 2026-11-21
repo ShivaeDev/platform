@@ -1,4 +1,4 @@
-import { Schema } from "effect";
+import { Config, Effect, Schema } from "effect";
 
 export const NativeOrigins = Schema.Array(
 	Schema.String.check(
@@ -14,3 +14,10 @@ export const NativeOrigins = Schema.Array(
 ).pipe(Schema.brand("NativeOrigins"));
 
 export type NativeOrigins = typeof NativeOrigins.Type;
+
+export const declaredNativeOrigins = Effect.fnUntraced(function* (origins: readonly string[] | undefined) {
+	if (origins === undefined) {
+		return undefined;
+	}
+	return yield* Schema.decodeUnknownEffect(NativeOrigins)(origins).pipe(Effect.mapError((cause) => new Config.ConfigError(cause)));
+});

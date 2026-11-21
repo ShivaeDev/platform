@@ -1,9 +1,9 @@
-import * as NodeWs from "@effect/platform-node/NodeWS";
 import { Effect } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
 import { passwordUser } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
 import type { Host } from "#test/native-sessions/host.ts";
 import { CURRENT_PASSWORD, PASSWORD_HASH } from "#test/passwords.ts";
+import { socketUpgrade } from "#test/socketUpgrade.ts";
 
 const SHELL_EMAIL = "shell@example.test";
 
@@ -12,22 +12,6 @@ function signInWords(status: number, body: string) {
 		return "signed in";
 	}
 	return status === HttpStatus.fromLiteral("Forbidden") ? `forbidden: ${body}` : `unexpected answer ${status} ${body}`;
-}
-
-function upgrade(host: Host, origin: string) {
-	return Effect.callback<string>((resume) => {
-		const socket = new NodeWs.WebSocket(`${host.baseUrl.replace(/^http/u, "ws")}/rpc?auth=frame`, { origin });
-		socket.on("error", (error) => resume(Effect.succeed(`failed: ${error.message}`)));
-		socket.once("open", () => {
-			socket.close();
-			resume(Effect.succeed("opened"));
-		});
-		socket.once("unexpected-response", (request, response) => {
-			request.destroy();
-			resume(Effect.succeed(`refused with HTTP ${response.statusCode}`));
-		});
-		return Effect.sync(() => socket.terminate());
-	});
 }
 
 export function admissionVerbs(host: Host, tell: (line: string) => void) {
@@ -53,7 +37,7 @@ export function admissionVerbs(host: Host, tell: (line: string) => void) {
 			}),
 		socketUpgrade: (origin: string) => {
 			tell(`a WebView at ${origin} opens the RPC socket for first-frame authentication`);
-			return upgrade(host, origin);
+			return socketUpgrade(`${host.baseUrl.replace(/^http/u, "ws")}/rpc?auth=frame`, origin);
 		},
 	};
 }

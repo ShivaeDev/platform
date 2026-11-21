@@ -1,33 +1,57 @@
 import { Effect, Fiber, Queue, Redacted, Stream } from "effect";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { Migrator } from "effect/sql";
 import { makePostgresTestLayer } from "@shivaedev/test-sql/server/postgres.ts";
 import { answered } from "@shivaedev/test-story/server/answers.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { passes, untilTimer } from "@shivaedev/test-story/server/watchedClock.ts";
+import { localOwner } from "#server/localOwner.ts";
 import { machineTokenMigration } from "#server/machineTokenMigration.ts";
 import { storyClock, withIdentityDatabase } from "#test/clock.ts";
+import { Access, owner } from "#test/local-owner/api.ts";
 import { httpClient, socketClient } from "#test/local-owner/clients.ts";
-import { ownerHost, REVALIDATION_INTERVAL } from "#test/local-owner/host.ts";
+import { type OwnerHost, ownerHost, REVALIDATION_INTERVAL } from "#test/local-owner/host.ts";
 import { databaseUrl } from "#test/postgres.ts";
+import { socketUpgrade } from "#test/socketUpgrade.ts";
 
 const postgres = makePostgresTestLayer({
 	migrations: { loader: Migrator.fromRecord({ "1_machine_tokens": machineTokenMigration }), lockTimeout: "5 seconds" },
 	url: Redacted.make(databaseUrl ?? "postgresql://integration-tests-disabled"),
 });
 
+type Machine = Effect.Success<ReturnType<OwnerHost["local"]["machines"]["issue"]>>;
+
+interface State {
+	host?: OwnerHost;
+	machine?: Machine;
+	nativeOrigins?: readonly string[];
+}
+
+function profileWords(status: number, body: string) {
+	if (status === HttpStatus.fromLiteral("Forbidden")) {
+		return `forbidden: ${body}`;
+	}
+	return body.includes(`"actor":"${owner.id}"`) ? "the owner's profile" : `unexpected answer ${status} ${body}`;
+}
+
 export const ownerStory = storyKit({
+	after: {
+		*configured(state) {
+			state.host = yield* ownerHost(state.nativeOrigins);
+			state.machine = yield* state.host.local.machines.issue({ name: "reader agent", scope: "reader" });
+		},
+	},
 	around: withIdentityDatabase,
 	clock: storyClock,
-	*create() {
-		const host = yield* ownerHost();
-		const machine = yield* host.local.machines.issue({ name: "reader agent", scope: "reader" });
-		return { host, machine };
-	},
+	create: (): State => ({}),
 	layer: postgres,
 	name: "local owner and scoped machines on PostgreSQL",
 	runIf: databaseUrl !== undefined,
-	stages: [],
-	verbs: ({ host, machine }, story) => {
+	stages: ["configured"],
+	verbs: ({ host, machine, nativeOrigins }, story) => {
+		if (host === undefined || machine === undefined) {
+			throw new Error("The owner host has not started");
+		}
 		let current = host;
 		const previousOwner = Redacted.value(host.local.token);
 		let subscription: { readonly next: Effect.Effect<string, unknown>; readonly closed: Effect.Effect<{ code: number; reason: string }> } | undefined;
@@ -71,16 +95,40 @@ export const ownerStory = storyKit({
 						next: Effect.raceFirst(Queue.take(hints), Fiber.join(following).pipe(Effect.andThen(Effect.die("Subscription ended")))),
 					};
 				}),
+			ownerStartsDeclaring: (origins: readonly string[]) => {
+				story.tell(`a local owner starts naming the native origins ${origins.join(", ")}`);
+				return localOwner({ nativeOrigins: origins, owner, roles: Access }).pipe(
+					Effect.as("started"),
+					Effect.catchTag("ConfigError", () => Effect.succeed("failed with config error")),
+				);
+			},
 			profile: (caller: "owner" | "machine" | "missing" | "invalid" | "previous owner") =>
 				Effect.gen(function* () {
 					story.tell(`${caller} reads the owner profile over HTTP`);
 					const client = yield* httpClient(current.url, token(caller));
 					return yield* answered(client["local.profile"]());
 				}),
+			profileFrom: (origin: string) => {
+				story.tell(`the owner reads the owner profile over HTTP from ${origin}`);
+				return Effect.promise(async () => {
+					const response = await fetch(current.url, {
+						body: `${JSON.stringify({ _tag: "Request", headers: [], id: "0", payload: null, tag: "local.profile" })}\n`,
+						headers: { authorization: `Bearer ${Redacted.value(current.local.token)}`, "content-type": "application/ndjson", origin },
+						method: "POST",
+					});
+					return profileWords(response.status, await response.text());
+				});
+			},
+			profileOverSocketFrom: (origin: string) =>
+				Effect.gen(function* () {
+					story.tell(`the owner reads the owner profile over the RPC socket from ${origin}`);
+					const connection = yield* socketClient(current.url, Redacted.value(current.local.token), origin);
+					return yield* answered(connection.client["local.profile"]());
+				}),
 			rebuildHost: () =>
 				Effect.gen(function* () {
 					story.tell("another loopback host starts with a fresh owner credential over the same PostgreSQL database");
-					current = yield* ownerHost();
+					current = yield* ownerHost(nativeOrigins);
 				}),
 			revalidationIntervalPasses: () => {
 				story.tell("one socket revalidation interval passes");
@@ -94,8 +142,18 @@ export const ownerStory = storyKit({
 				story.tell("the process tries to issue a token with an undeclared scope");
 				return answered(current.local.machines.issue({ name: "unknown", scope: "undeclared" }));
 			},
+			socketUpgradeFrom: (origin: string) => {
+				story.tell(`a client at ${origin} opens the RPC socket`);
+				return socketUpgrade(`${current.url.replace(/^http/u, "ws")}?auth=frame`, origin);
+			},
 			subscriptionClosed: closed,
 			subscriptionUpdate: () => (subscription === undefined ? Effect.die("No live query is open") : subscription.next),
 		};
 	},
 });
+
+export function shellOrigins(origins: readonly string[]) {
+	return ownerStory.trait("configured", `the local owner names the native origins ${origins.join(", ")}`, (state) => {
+		state.nativeOrigins = origins;
+	});
+}

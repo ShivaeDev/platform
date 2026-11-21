@@ -240,7 +240,7 @@ const bearerToken = Redacted.value(local.token);
 const machine = yield* local.machines.issue({ name: "reader agent", scope: "reader" });
 ```
 
-Pass `sessions` to `appHost` and hand `bearerToken` directly from the launching process to its own client. Use the session host with contracts declaring `Authenticated`, `AuthenticatedUser` or permission middleware. Pass it to `makeClient` as `bearerToken: Effect.succeed(bearerToken)`, which sends it as the WebSocket's first authentication frame. Native HTTP callers send `Authorization: Bearer <token>`. Credentials are required even on loopback; the policy also requires a loopback Host and peer and the existing same-origin check. Authenticated handlers, query read policies and audit code receive the configured owner's id.
+Pass `sessions` to `appHost` and hand `bearerToken` directly from the launching process to its own client. Use the session host with contracts declaring `Authenticated`, `AuthenticatedUser` or permission middleware. Pass it to `makeClient` as `bearerToken: Effect.succeed(bearerToken)`, which sends it as the WebSocket's first authentication frame. Native HTTP callers send `Authorization: Bearer <token>`. Credentials are required even on loopback; the policy also requires a loopback Host and peer and the existing same-origin check. A bundled native shell that talks to the local owner names its origins in `localOwner({ nativeOrigins })`; see [Bundled native clients](#bundled-native-clients). Authenticated handlers, query read policies and audit code receive the configured owner's id.
 
 The owner credential lasts for this provider instance. Machine credentials persist in PostgreSQL as SHA-256 digests, and `issue` returns a redacted credential once. A machine acts on behalf of the owner, with `SessionUser.role` and `permissions` resolved solely from its scope through the application's `roleSet`. Use permission middleware for owner-only commands; an owner id alone does not distinguish machine rights. An undeclared scope cannot be issued. `machineTokens` from `server/machineTokens.ts` also exposes this store independently, taking `{ owner, roles }` and returning `issue`, `resolve` and `revoke`; resolved machine sessions include `{ machine: { id, name, scope }, user }`.
 
@@ -526,6 +526,16 @@ const host = appHost({ group, handlers, routes: mounted.routes, sessions });
 ```
 
 Spread `mounted.sessions` into the policy even when you supply your own provider: `nativeOrigins` reaches the session origin check and the host only through it, and a policy without it admits no bundled origin.
+
+The list goes where the session policy is made:
+
+| Host                       | Where the list goes                                                                                                                                 |
+| -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Better Auth                | `defineAuth({ nativeOrigins, options })`, then spread `mounted.sessions` into `SessionPolicy`                                                       |
+| Local owner                | `localOwner({ nativeOrigins, owner, roles })`, then use its `sessions` as the policy                                                                |
+| Hand-built `SessionPolicy` | `nativeOrigins: yield* Schema.decodeUnknownEffect(NativeOrigins)(origins)`, with `NativeOrigins` from `@shivaedev/identity/server/NativeOrigins.ts` |
+
+`localOwner` refuses the same malformed origins at start with a config error, and `NativeOrigins` is a branded type, so a hand-built policy holds only a decoded list.
 
 Always take the provider from the mount's `sessions`, or wrap a custom lookup in `admittedSessions`, even without a sign-in policy: both apply the mount's credential selection to the same request-local identity, profile and role middleware used by cookies. A same-origin request or a request without an Origin carrying the session cookie uses only that cookie, even if invalid or revoked; its bearer header cannot switch accounts or rescue it. Otherwise the signed bearer is resolved by Better Auth. Missing, unsigned, tampered, expired and revoked bearer sessions produce `Unauthorized` at protected RPCs.
 
