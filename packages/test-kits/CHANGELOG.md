@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.15.0 - 2026-11-21
+
+### Breaking
+
+- import from `@shivaedev/test-kits/discord/rest.ts` instead of `@shivaedev/test-kits/discord/adapters/rest.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/test-kits/github/webhookDelivery.ts` instead of `@shivaedev/test-kits/github/adapters/webhookDelivery.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/test-kits/jobs/queueSignal.ts` instead of `@shivaedev/test-kits/jobs/adapters/queueSignal.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/test-kits/jobs/quotedSchema.ts` instead of `@shivaedev/test-kits/jobs/adapters/quotedSchema.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/test-kits/jobs/testingSignal.ts` instead of `@shivaedev/test-kits/jobs/adapters/testingSignal.ts`, which moved out of `adapters/`.
+
 ## 0.14.0 - 2026-11-20
 
 ### Added

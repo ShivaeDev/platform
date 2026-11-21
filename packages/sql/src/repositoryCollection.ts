@@ -61,7 +61,20 @@ export class ServerOnlyKeyError extends Data.TaggedError("ServerOnlyKeyError")<{
 	}
 }
 
-export type RepositoryBuildError = BucketRegistrationError | ServerOnlyKeyError;
+export class OwnerFieldError extends Data.TaggedError("OwnerFieldError")<{
+	readonly tableName: string;
+	readonly fields: readonly string[];
+	readonly reason: "several" | "server-only";
+}> {
+	override get message() {
+		const repository = `Repository for ${this.tableName}`;
+		return this.reason === "several"
+			? `${repository}: owner fields ${JSON.stringify(this.fields)} each claim the row's person; mark exactly one field as owner`
+			: `${repository}: owner field ${JSON.stringify(this.fields)} is server-only, but it must decode to the plain user id that selects a person's rows for export and erasure`;
+	}
+}
+
+export type RepositoryBuildError = BucketRegistrationError | OwnerFieldError | ServerOnlyKeyError;
 
 export const validateRepositoryCollection = Effect.fnUntraced(function* (
 	fields: Schema.Struct.Fields,

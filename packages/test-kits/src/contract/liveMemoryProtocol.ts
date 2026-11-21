@@ -1,12 +1,10 @@
 import { Effect, Layer } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import type { Rpc, RpcGroup } from "effect/rpc";
-import { guardCommands } from "@shivaedev/contract/CommandGuard.ts";
-import { LiveSync } from "@shivaedev/contract/LiveSync.ts";
 import { liveServerLayer } from "@shivaedev/contract/live-server/layer.ts";
-import { hostChanges } from "@shivaedev/server/hostChanges.ts";
-import { liveSyncLayer } from "@shivaedev/server/liveSyncLayer.ts";
-import { hostCommandGuard, type LiveChannel } from "#contract/adapters/hostCommandGuard.ts";
+import { servedGroup } from "@shivaedev/server/servedGroup.ts";
+import { servedHandlers } from "@shivaedev/server/servedHandlers.ts";
+import { type LiveChannel, onChannel } from "#contract/adapters/onChannel.ts";
 import { layerMemoryProtocol, type MemoryProtocolOptions } from "#contract/testing.ts";
 
 // Each host owns its change channel, also when several clients share one runtime's memo map.
@@ -17,12 +15,11 @@ export function liveChannel(): Layer.Layer<LiveChannel> {
 export function liveHost<R extends Rpc.Any, THandlers, E, TRequirements>(
 	group: RpcGroup.RpcGroup<R>,
 	handlers: Layer.Layer<THandlers, E, TRequirements>,
-	channel: Layer.Layer<LiveChannel> = liveChannel(),
+	options: { readonly channel?: Layer.Layer<LiveChannel>; readonly protocol: "http" | "websocket" },
 ) {
-	const changes = hostChanges(group).pipe(Layer.provide(handlers));
-	return Effect.map(guardCommands(group.merge(LiveSync.application)), (served) => ({
-		group: served,
-		handlers: Layer.mergeAll(handlers, changes, liveSyncLayer, hostCommandGuard()).pipe(Layer.provide(channel)),
+	return Effect.map(servedGroup(group, options.protocol === "websocket"), (served) => ({
+		group: served.group,
+		handlers: Layer.mergeAll(servedHandlers(group, handlers), onChannel(served.guards)).pipe(Layer.provide(options.channel ?? liveChannel())),
 	}));
 }
 
@@ -31,5 +28,9 @@ export function layerLiveMemoryProtocol<R extends Rpc.Any, THandlers, E, TRequir
 	handlers: Layer.Layer<THandlers, E, TRequirements>,
 	options?: MemoryProtocolOptions,
 ) {
-	return Layer.unwrap(Effect.map(liveHost(group, handlers), (host) => layerMemoryProtocol(host.group, options).pipe(Layer.provide(host.handlers))));
+	return Layer.unwrap(
+		Effect.map(liveHost(group, handlers, { protocol: "websocket" }), (host) =>
+			layerMemoryProtocol(host.group, options).pipe(Layer.provide(host.handlers)),
+		),
+	);
 }

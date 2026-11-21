@@ -29,6 +29,7 @@ export const commandEngine = Effect.gen(function* () {
 				}),
 			"counter.value": () => Effect.succeed(counter.value),
 		}),
+		{ protocol: "websocket" },
 	);
 	const host = yield* rpcSocketHost(served.group, served.handlers);
 	const runtime = yield* storyRuntime;

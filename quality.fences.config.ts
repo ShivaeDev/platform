@@ -14,6 +14,6 @@ export default [
 		.mayNotImport(hosts)
 		.demonstratedBy({
 			illegal: ["packages/jobs/src/server/adapters/client.ts", "packages/server/src/appHost.ts"],
-			legal: ["packages/test-kits/src/contract/liveMemoryProtocol.ts", "packages/server/src/hostChanges.ts"],
+			legal: ["packages/test-kits/src/contract/liveMemoryProtocol.ts", "packages/server/src/servedGroup.ts"],
 		}),
 ];

@@ -93,6 +93,7 @@ export const jobsEngine = Effect.gen(function* () {
 	const host = yield* liveHost(
 		registration.group,
 		registration.handlers.pipe(Layer.provide(pgBossQueues(Jobs, ...queues)), Layer.provide(Layer.succeed(Jobs, jobs))),
+		{ protocol: "websocket" },
 	);
 	const rpc = yield* adminRpc(registration.group, host);
 

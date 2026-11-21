@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.10.0 - 2026-11-21
+
+### Breaking
+
+- import from `@shivaedev/mcp/InvalidTokenClaim.ts` instead of `@shivaedev/mcp/adapters/InvalidTokenClaim.ts`, which moved out of `adapters/`.
+
 ## 0.9.24 - 2026-11-20
 
 ### Changed

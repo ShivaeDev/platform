@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.54.0 - 2026-11-21
+
+### Added
+
+- `clientActivity(client).rendered` is an Effect that tells the client its first screen has been drawn. The activity's `firstSettled` flag turns `true` once it has run and nothing on the client is waiting.
+
+### Breaking
+
+- import from `@shivaedev/contract/LiveDispatcher.ts` instead of `@shivaedev/contract/adapters/LiveDispatcher.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/contract/liveHintStream.ts` instead of `@shivaedev/contract/adapters/liveHintStream.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/contract/servedHandlers.ts` instead of `@shivaedev/contract/adapters/servedHandlers.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/contract/withClientProtocol.ts` instead of `@shivaedev/contract/adapters/withClientProtocol.ts`, which moved out of `adapters/`.
+- the client activity's `firstSettled` flag no longer turns on from a first query answer alone. A reader of the activity stream outside React runs `clientActivity(client).rendered` once its first screen is drawn; `useFirstSettled` does this for React.
+
 ## 0.53.0 - 2026-11-20
 
 ### Added

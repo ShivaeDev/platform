@@ -120,7 +120,7 @@ export function makeRepository<TModel extends Model.Any, TId extends IdColumn<TM
 		const idColumns = (typeof idColumn === "object" ? idColumn : [idColumn]).map(String);
 		yield* refuseServerOnlyKeys(tableName, idColumns, model.fields, options.collection?.tuples);
 		yield* validateRepositoryCollection(model.fields, resolved);
-		const changes = yield* repositoryChanges(tableName, idColumns, model.fields, options.collection?.tuples);
+		const changes = yield* repositoryChanges(model, tableName, idColumns, options.collection?.tuples);
 		const recordRead = makeRecordRead(model, { idColumns, tableName, tuples: options.collection?.tuples });
 		const crud = {
 			...(yield* makeCompositeCrud(model, { ...resolved, columns: idColumns, recordRead }, changes)),

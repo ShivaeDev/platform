@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.26.0 - 2026-11-21
+
+### Breaking
+
+- import from `@shivaedev/test-sql/server/postgresTestContext.ts` instead of `@shivaedev/test-sql/server/adapters/postgresTestContext.ts`, which moved out of `adapters/`.
+
 ## 0.25.6 - 2026-11-20
 
 ### Changed
