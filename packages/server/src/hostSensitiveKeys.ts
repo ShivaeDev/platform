@@ -29,7 +29,8 @@ export const hostSensitiveKeys = Effect.fnUntraced(function* <TRpcs extends Rpc.
 		return fieldNames.has(key) || MutableRef.get(current)(key);
 	}
 	return Object.assign(sensitive, {
-		// Repositories declare their models while the host builds them; complete recompiles every RPC's policy with their names, as config.sensitiveKeys.
+		// Repositories declare their models while the host builds them, and a deferred application names its RPC group and configured keys
+		// only when it returns, after running inside this policy: complete and configure recompile every RPC's policy from what is known then.
 		complete: Effect.suspend(() => {
 			const { compile, configured } = MutableRef.get(source);
 			return compile([...configured, ...fieldNames]);
@@ -37,7 +38,6 @@ export const hostSensitiveKeys = Effect.fnUntraced(function* <TRpcs extends Rpc.
 			Effect.map((completed) => MutableRef.set(current, completed)),
 			Effect.asVoid,
 		),
-		// A deferred application names its RPC group and configured keys only when it returns, after it ran inside this policy.
 		configure: <TConfigured extends Rpc.Any>(sources: SensitiveSources<TConfigured>) =>
 			Effect.suspend(() => {
 				const next = policySource(sources);
