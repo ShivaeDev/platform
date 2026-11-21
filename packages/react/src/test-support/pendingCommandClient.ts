@@ -1,10 +1,11 @@
 import { Deferred, Effect, Exit, Schema } from "effect";
 import { collection } from "@shivaedev/changes/keys.ts";
 import { makeClient } from "@shivaedev/contract/bind.ts";
-import { activityScreenSignal, type ClientActivityState, clientActivity } from "@shivaedev/contract/clientActivity.ts";
+import { activityScreenSignal, clientActivity } from "@shivaedev/contract/clientActivity.ts";
 import { contract } from "@shivaedev/contract/contract.ts";
 import { command, query } from "@shivaedev/contract/operation.ts";
 import { layerLiveMemoryProtocol } from "@shivaedev/test-kits/contract/liveMemoryProtocol.ts";
+import { settledBeside } from "#test/settledBeside.ts";
 
 export class ToggleRejected extends Schema.TaggedError<ToggleRejected>()("ToggleRejected", { reason: Schema.String }) {}
 const items = collection("items", Schema.Number);
@@ -60,11 +61,10 @@ export function pendingCommandClient(ids: readonly number[] = [1]) {
 		url: "memory://items",
 	});
 	const { api } = connection;
-	// An accepted command stays unreflected while the server holds a rerun of the queries it changed.
-	function settled(state: ClientActivityState) {
-		const rerun = Deferred.isDoneUnsafe(list.served) && Deferred.isDoneUnsafe(count.served);
-		return state.commands === 0 && state.initialQueries === 0 && state.unreflectedCommands === (rerun ? 0 : accepted);
-	}
+	const settled = settledBeside(() => ({
+		awaitingReruns: Deferred.isDoneUnsafe(list.served) && Deferred.isDoneUnsafe(count.served) ? 0 : accepted,
+		commands: 0,
+	}));
 	const listed = api.list.query();
 	const counted = api.count.query();
 	return {

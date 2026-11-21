@@ -1,11 +1,12 @@
 import { Deferred, Effect, Schema } from "effect";
 import { collection } from "@shivaedev/changes/keys.ts";
 import { makeClient } from "@shivaedev/contract/bind.ts";
-import { type ClientActivityState, clientActivity } from "@shivaedev/contract/clientActivity.ts";
+import { clientActivity } from "@shivaedev/contract/clientActivity.ts";
 import { contract } from "@shivaedev/contract/contract.ts";
 import { command, query } from "@shivaedev/contract/operation.ts";
 import { Conflict } from "@shivaedev/errors/taxonomy.ts";
 import { layerLiveMemoryProtocol } from "@shivaedev/test-kits/contract/liveMemoryProtocol.ts";
+import { settledBeside } from "#test/settledBeside.ts";
 
 const Row = Schema.Struct({ id: Schema.String, removed: Schema.Boolean, version: Schema.Number });
 const rowsKey = collection("undoable-rows", Schema.String);
@@ -55,11 +56,10 @@ export function changeClient() {
 		"undoableRows.list": () => Effect.sync(() => [...rows.values()]),
 	});
 	const connection = makeClient(Rows, { protocol: layerLiveMemoryProtocol(Rows, handlers), url: "memory://undoable-rows" });
-	// A change the server holds stays sent and unreflected; every other change has its reply and its push on the screen.
-	function settled(state: ClientActivityState) {
-		const holding = [...held.values()].filter(({ arrived, finished }) => Deferred.isDoneUnsafe(arrived) && !Deferred.isDoneUnsafe(finished)).length;
-		return state.initialQueries === 0 && state.commands === holding && state.unreflectedCommands === holding;
-	}
+	const settled = settledBeside(() => ({
+		awaitingReruns: 0,
+		commands: [...held.values()].filter(({ arrived, finished }) => Deferred.isDoneUnsafe(arrived) && !Deferred.isDoneUnsafe(finished)).length,
+	}));
 	return {
 		activity: clientActivity(connection),
 		api: connection.api,
