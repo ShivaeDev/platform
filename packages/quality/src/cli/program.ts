@@ -13,6 +13,8 @@ import { migrateExceptions } from "#cli/migrateExceptions.ts";
 import { pruneBaseline, tightenBaseline } from "#cli/shrink.ts";
 import { USAGE } from "#cli/usage.ts";
 import { SetupFailure } from "#failure.ts";
+import { GitEnvironment } from "#git/command.ts";
+import { launchEnvironment } from "#git/launchEnvironment.ts";
 import type { Launch } from "#hooks/command.ts";
 import { installHook } from "#hooks/install.ts";
 import { preCommitHook } from "#hooks/preCommit.ts";
@@ -25,7 +27,7 @@ export interface Invocation {
 	readonly launch: Launch;
 }
 
-export const program = Effect.fn("Cli.program")(function* (args: readonly string[], { cwd, launch }: Invocation) {
+const dispatch = Effect.fn("Cli.dispatch")(function* (args: readonly string[], { cwd, launch }: Invocation) {
 	const parsed = parseCommand(args);
 	if (parsed._tag === "Usage") {
 		return yield* new SetupFailure({ message: `${parsed.problem}\n\n${USAGE}` });
@@ -66,4 +68,9 @@ export const program = Effect.fn("Cli.program")(function* (args: readonly string
 		case "HooksPreCommit":
 			return yield* preCommitHook(cwd, command.config);
 	}
+});
+
+export const program = Effect.fn("Cli.program")(function* (args: readonly string[], invocation: Invocation) {
+	const environment = yield* launchEnvironment(invocation.cwd);
+	return yield* dispatch(args, invocation).pipe(Effect.provideService(GitEnvironment, environment));
 });

@@ -80,8 +80,8 @@ function recoveryCommands(stdout: string): readonly string[] {
 }
 
 export function checkoutVerbs(engine: CheckoutEngine, tell: (line: string) => void) {
-	function commitFrom(folder: string, message: string): CommitAnswer {
-		const run = commits(folder, message, engine.environment);
+	function commitFrom(folder: string, message: string, staging?: string): CommitAnswer {
+		const run = commits(folder, message, engine.environment, staging);
 		engine.commit = { outcome: run.status === 0 ? "committed" : "rejected", stderr: run.stderr };
 		return engine.commit;
 	}
@@ -114,6 +114,11 @@ export function checkoutVerbs(engine: CheckoutEngine, tell: (line: string) => vo
 			Effect.sync(() => {
 				tell(`the author commits "${message}"`);
 				return commitFrom(engine.root, message);
+			}),
+		commitsEditsIn: (worktree: string, message: string) =>
+			Effect.sync(() => {
+				tell(`the author commits every edit to a tracked file with git commit --all, "${message}", in the worktree ${worktree}`);
+				return commitFrom(folderOf(engine, worktree), message, "--all");
 			}),
 		commitsIn: (worktree: string, message: string) =>
 			Effect.sync(() => {
