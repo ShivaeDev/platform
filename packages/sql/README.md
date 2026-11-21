@@ -214,7 +214,7 @@ Only `serverOnly` refuses the wire. `Model.Sensitive(Schema.RedactedFromValue(sc
 
 #### The field that names a row's owner
 
-To export a person's data or erase their account, an application has to know which rows belong to them. Mark the one field that holds the owning person's user id with `owner` from `@shivaedev/sql/owner.ts`; identity exports and erases a person's owned rows from these marks, so a new table is covered once its model marks its owner:
+To export a person's data or erase their account, an application has to know which rows belong to them. Mark the one field that holds the owning person's user id with `owner` from `@shivaedev/sql/owner.ts`; [identity exports and erases](https://github.com/ShivaeDev/platform/tree/main/packages/identity#export-and-erase-a-persons-data) a person's owned rows from these marks, so a new table is covered once its model marks its owner:
 
 ```ts
 import { Schema } from "effect";

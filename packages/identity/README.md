@@ -1007,37 +1007,30 @@ export default Effect.gen(function* () {
 });
 ```
 
-Run the auth schema migration before the app migration. Use `ON DELETE CASCADE` to delete owned rows with their user, or a nullable `user_id` and `ON DELETE SET NULL` to retain rows without an owner. `userReference` describes the default PostgreSQL mapping, so an application that customizes Better Auth's user table or id column must use its own mapping. Account reads and writes still go through identity; the foreign key grants no access to auth data. Quality's `boundaries/auth-sql` accepts these references while rejecting other auth SQL outside the configured owners.
+Run the auth schema migration before the app migration. Use `ON DELETE CASCADE` to delete owned rows with their user, or a nullable `user_id` and `ON DELETE SET NULL` to retain rows without an owner. Mark the column's model field with `owner` as well: the foreign key tells PostgreSQL what to do when the user row goes, and the owner mark tells identity which rows to [export and erase](#export-and-erase-a-persons-data), including in tables whose owner column has no foreign key. `userReference` describes the default PostgreSQL mapping, so an application that customizes Better Auth's user table or id column must use its own mapping. Account reads and writes still go through identity; the foreign key grants no access to auth data. Quality's `boundaries/auth-sql` accepts these references while rejecting other auth SQL outside the configured owners.
 
-### Register user data exports
+### Export and erase a person's data
 
-Each domain supplies a `UserDataExport` from `server/userDataExport.ts`: the schema-qualified tables it owns and an `export(userId)` Effect that reads that user's rows. Keep filtering and the choice of exported fields in the domain. Compose the registrations once in the application's account module:
+Identity learns which rows belong to a person from the owner marks on the application's sql models: each model whose field is marked with `owner` from `@shivaedev/sql/owner.ts` and that has a repository is reported to the host, as the [sql README](https://github.com/ShivaeDev/platform/tree/main/packages/sql#the-field-that-names-a-rows-owner) describes. There is no registration per domain. Build the account data once from the application's auth declaration:
 
 ```ts
-import { Effect } from "effect";
-import { SqlClient } from "effect/sql";
-import { accountExport } from "@shivaedev/identity/server/accountExport.ts";
-import { betterAuthUserDataExport } from "@shivaedev/identity/server/better-auth/userDataExport.ts";
+import { accountData } from "@shivaedev/identity/server/better-auth/accountData.ts";
+import { AppAuth } from "#server/AppAuth.ts";
 
-const notesExport = {
-	tables: [{ schema: "public", table: "notes" }],
-	export: Effect.fn(function* (userId: string) {
-		const sql = yield* SqlClient.SqlClient;
-		return yield* sql<{ title: string }>`select title from notes where user_id = ${userId} order by title`;
-	}),
-};
+const data = accountData(AppAuth);
 
-const exports = accountExport({ account: betterAuthUserDataExport(), notes: notesExport });
-
-const checkExportCoverage = exports.check;
-const exportUser = exports.exportUser;
+const checkCoverage = data.check;
+const exportAccount = data.exportAccount;
+const eraseOwnedRows = data.eraseOwnedRows;
 ```
 
-`exportUser(userId)` checks coverage, enumerates every registration and returns one object keyed by domain, preserving each domain's result type, Effect dependencies and failures. Empty domain results remain in the export. The account handler supplies the authorized user's id; this server API does not authenticate callers. Application-owned tables with no foreign key need explicit registration too: PostgreSQL cannot discover their ownership.
+`exportAccount(userId)` returns `{ account, owned }`. `account` holds the person's profile fields, linked-account identifiers and session metadata from Better Auth's tables, with timestamps as native Effect UTC values; passwords, access tokens, refresh tokens and session tokens are left out by explicit field selection. `owned` holds one `{ table, rows }` entry per owned model, ordered by table, with every row whose owner field holds the user id, encoded through the model's `json` variant. A field without a JSON variant, such as a `serverOnly` field, is never read, so it cannot reach the export. A table with none of the person's rows keeps its empty entry. Identity's own account preferences are an owned model too.
 
-Run `check` against the migrated application database in a startup check or PostgreSQL story. It reads PostgreSQL's foreign-key catalog and fails with `UnregisteredUserExportTables` from `server/account-export/check.ts` when any table referencing the user id lacks a registration. The error's `tables` names each missing `{ schema, table }` once, including references from other schemas. A registration covers its named table; the domain remains responsible for exporting the right rows and fields, which its stories should prove. An export runs the same check before reading domain data, so a newly added foreign key cannot silently leave a table out.
+`eraseOwnedRows(userId)` deletes every owned row of the person. It reads PostgreSQL's foreign keys between the owned tables and deletes the rows that reference a table before the rows they reference, so `RESTRICT` and `NO ACTION` keys between owned tables need no hand-kept order. It opens no transaction of its own: run it inside the caller's `transact` from `@shivaedev/sql/transact.ts`, and a failure anywhere in that transaction leaves every row in place. When `RESTRICT` or `NO ACTION` keys between owned tables form a cycle, it fails with `OwnedTableCycle` from `server/account-data/OwnedTableCycle.ts`, naming the tables as `schema.table`, before it deletes anything. It erases owned rows only; the auth user and Better Auth's own tables stay for the account deletion that runs after it.
 
-The default reference is `public.user(id)`. For a customized auth mapping, pass `{ schema, table, column }` as the second argument to `accountExport`. Pass the same Better Auth options to `betterAuthUserDataExport(options)`; its optional second argument selects the PostgreSQL schema. The built-in registration exports profile fields, linked-account identifiers and session metadata for that user, with timestamps as native Effect UTC values. Passwords, access tokens, refresh tokens and session tokens are excluded by explicit field selection. Add registrations for application fields and plugin-owned tables that the built-in registration does not cover.
+`check` fails with `UncoveredUserColumns` from `server/account-data/UncoveredUserColumns.ts` when a column refers to the person but nothing covers it. A column refers to the person when its foreign key points at the auth user's id or at an owned model's owner column. It is covered when it is an owned model's owner column, when its foreign key is `ON DELETE SET NULL` (the row stays without the person, as an authored-by column does), or when it belongs to one of Better Auth's tables. The error's `columns` names each `{ schema, table, column }` once, from every schema. `exportAccount` and `eraseOwnedRows` run the check first, so a new foreign key to the person cannot silently leave a table out. Run `check` against the migrated database in a startup check or a PostgreSQL story too, after the application's repositories are built under `collectRepositoryModels` from `@shivaedev/sql/RepositoryModels.ts`; `appHost` provides that collector, so an operation it serves sees every owned model.
+
+PostgreSQL sees only foreign keys, so a table whose owner column has none is covered by its owner mark alone, and a table the application reaches only through raw SQL needs a repository on a model with an owner mark to be exported and erased. The user reference is the auth declaration's user table, so a customized `user.modelName` needs nothing more, and its `id` column in the `public` schema; when the user's id lives elsewhere, pass that `{ schema, table, column }` as the second argument to `accountData`. The account handler supplies the authorized user's id; these server APIs do not authenticate callers.
 
 ### Signed-in story preconditions
 
@@ -1177,6 +1170,9 @@ Import the module that defines the name; there is no package-root entry. Paths b
 | `server/better-auth/adapters/revokeUnadmitted.ts` | `RevokedSessions`: the `{ users, sessions }` counts of a revocation.                                                                                                                                                                                                     |
 | `server/better-auth/userProfiles.ts`              | Public profile lookups for other users.                                                                                                                                                                                                                                  |
 | `server/better-auth/sweepExpiredSessions.ts`      | `sweepExpiredSessions`: delete expired sessions through the application's SQL client and return the number removed.                                                                                                                                                      |
+| `server/better-auth/accountData.ts`               | `accountData(declaration, reference?)`, returning `{ check, exportAccount, eraseOwnedRows }`: a person's account export, owned-row erasure and the coverage check, from the owned models the host reports.                                                               |
+| `server/account-data/UncoveredUserColumns.ts`     | `UncoveredUserColumns`: the coverage failure naming each column that refers to a person without an owned model to cover it.                                                                                                                                              |
+| `server/account-data/OwnedTableCycle.ts`          | `OwnedTableCycle`: the erase failure naming owned tables whose `RESTRICT` or `NO ACTION` keys form a cycle.                                                                                                                                                              |
 | `server/better-auth/userReference.ts`             | `userReference`: the default auth user table and id column for application foreign keys.                                                                                                                                                                                 |
 | `server/better-auth/testDatabase.ts`              | `authTestDatabase`: test-only identity/session readouts and faults for the default PostgreSQL auth schema.                                                                                                                                                               |
 

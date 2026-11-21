@@ -1,14 +1,17 @@
 import { testUtils } from "better-auth/plugins";
-import { DateTime, Effect } from "effect";
+import { DateTime, Effect, Layer } from "effect";
+import { accountData } from "@shivaedev/identity/server/better-auth/accountData.ts";
 import { assertBetterAuthSchema } from "@shivaedev/identity/server/better-auth/assertSchema.ts";
 import { betterAuthMount } from "@shivaedev/identity/server/better-auth/mount.ts";
 import { authTestDatabase } from "@shivaedev/identity/server/better-auth/testDatabase.ts";
 import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
+import { collectRepositoryModels } from "@shivaedev/sql/RepositoryModels.ts";
 import { signedInUser } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
 import { migrationSteps } from "@shivaedev/test-sql/server/migrationSteps.ts";
 import { storyDatabase } from "@shivaedev/test-sql/server/storyDatabase.ts";
 import { answered } from "@shivaedev/test-story/server/answers.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { modules } from "#generated/server/modules.ts";
 import { AppAuth } from "#server/AppAuth.ts";
 import { migrations } from "#server/migrations.ts";
 import { configured, postgres } from "#test-support/postgres.ts";
@@ -28,6 +31,16 @@ export const migration = storyKit({
 	runIf: configured,
 	stages: ["database", "schema"],
 	verbs: (_engine, story) => ({
+		accountDataCoverage: () => {
+			story.tell("identity checks that an owned model covers every column referring to a person, after every module's repositories are built");
+			return Effect.forEach(modules, ({ services }) => Layer.build(services), { discard: true }).pipe(
+				Effect.andThen(accountData(AppAuth).check),
+				Effect.as("covered" as const),
+				Effect.catchTag("UncoveredUserColumns", ({ columns }) => Effect.succeed(columns)),
+				Effect.scoped,
+				Effect.provide(collectRepositoryModels),
+			);
+		},
 		authSchemaCheck: () => answered(Effect.as(assertBetterAuthSchema(AppAuth), "accepted")),
 		migrates: Effect.fn("AppStory.migrates")(function* () {
 			story.tell("every numbered application migration runs");
