@@ -30,7 +30,7 @@ export const openProfile = Effect.fnUntraced(function* (host: Host, account: Acc
 	const api = makeClient(
 		{ profiles: Api },
 		{
-			bearerToken: account.credential ?? "",
+			bearerToken: Effect.succeed(account.credential ?? ""),
 			registry,
 			resume: (notify) => {
 				resumed.add(notify);
