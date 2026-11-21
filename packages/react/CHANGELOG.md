@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.57.0 - 2026-11-21
+
+### Added
+
+- `SessionApp` from `@shivaedev/react/client/SessionApp.ts` mounts an application's session and routes in one element. It takes the `clientApp` value, the auth actions, the current session, `recheck`, `persist`, an optional `history`, and the app's own `home`, `shell`, `forbidden` screen, `notFound` page, `parseSearch` and `stringifySearch`, plus `onCatch`, the router's `defaultOnCatch`, and `hidden`, which shows a refused route as not found instead of `forbidden`. It renders `SessionBoundary` with the app's `connect` and `warm`, identifies a generation by `session.user.id`, signs out through `auth.signOut`, builds one router per session generation with the current session readable as `session()` in route context, routes a signed-out visitor through the app connected with no session, and continues a fresh sign-in at `/sign-in` to its `returnTo`. Every route comes from the client modules; `home` renders at `/` while no module route claims it.
+- `sessionRouter(options)` from `@shivaedev/react/client/sessionRouter.ts` builds that router for one connection, for kits and hosts without a session boundary, and `SessionRouter<typeof app>` types it for TanStack's `Register`. Its root route, `sessionRoot()` from `@shivaedev/react/client/sessionRoot.ts`, checks every matched route with `permissionGuard`, adds the permission of the module admin page whose path or detail path matches the location segment by segment (a `$id`, `{$id}` or `{-$id}` segment matches any one segment, so a literal route such as `/admin/reports/new` under a detail path is guarded too, and the bare `/admin` needs the first page's permission), takes the app's `notFound` as its `notFoundComponent`, and sends signed-out visitors to `/sign-in` with the requested location in `returnTo`. The router sets `defaultPendingMs: Infinity`, `disableGlobalCatchBoundary` and `defaultErrorComponent: PermissionBoundaryError`, wraps the app's shell in `PermissionBoundary` with the `forbidden` screen, and renders through react's `RouterProvider`.
+- `SessionBoundary` gives its signed-out tree its `recheck` and retry policy. `useSessionRecheck()` works there, so a sign-in screen asks for the session it created.
+
+### Changed
+
+- a `useQuery` or `useAction` result that fails with `Unauthorized` in `SessionBoundary`'s signed-out tree now asks for one session check, as it does signed in; a check that answers signed out asks no second time.
+
+### Breaking
+
+- the `Register` interface of `@shivaedev/react/client/module.ts` takes the app's `auth` and `session` types in place of `root`, and `RootRoute` is the root route `SessionApp` builds. Replace `interface Register { readonly root: ReturnType<typeof rootRoute> }` with `interface Register { readonly auth: AuthActions; readonly session: AppSession }`, delete the app's own root route, and read `adminPages`, `auth`, `modules`, `navigate`, `redirects`, `registry` and `session()` from the root route's context as before.
+
 ## 0.56.0 - 2026-11-21
 
 ### Added
