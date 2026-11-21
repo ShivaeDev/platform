@@ -8,16 +8,17 @@ import { browserSessionMemory } from "@shivaedev/identity/client/adapters/browse
 import { rememberSession } from "@shivaedev/identity/client/SessionMemory.ts";
 import { loadQuery } from "@shivaedev/react/adapters/loadQuery.ts";
 import { authAction } from "@shivaedev/react/client/authAction.ts";
+import { SessionApp } from "@shivaedev/react/client/SessionApp.ts";
+import { sessionRouter } from "@shivaedev/react/client/sessionRouter.ts";
 import { RouterProvider } from "@shivaedev/react/RouterProvider.ts";
 import type { Rendered } from "@shivaedev/test-story/client/adapters/react.ts";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 import { App } from "#client/App.tsx";
 import type { AuthActions } from "#client/adapters/auth.ts";
-import { appRouter } from "#client/appRouter.tsx";
 import type { Credentials } from "#client/Credentials.ts";
 import { LoginScreen } from "#client/LoginScreen.tsx";
 import { Notices } from "#client/Notices.tsx";
-import { SessionApp } from "#client/SessionApp.tsx";
+import { routing } from "#client/routing.tsx";
 import { CodePreview, type CodePreviewLine } from "#modules/notes/client/CodePreview.tsx";
 import { notesClient } from "#modules/notes/test-support/client.ts";
 import { LoadedScreen } from "#modules/notes/test-support/LoadedScreen.tsx";
@@ -46,7 +47,8 @@ export const openRoute = Effect.fn("ScreenStory.openRoute")(function* (engine: S
 			tell: () => undefined,
 		}).settle();
 	}
-	const router = appRouter({
+	const router = sessionRouter({
+		...routing,
 		auth: screenAuth(),
 		connection,
 		history: createMemoryHistory({ initialEntries: [route] }),
@@ -54,13 +56,7 @@ export const openRoute = Effect.fn("ScreenStory.openRoute")(function* (engine: S
 		session: () => (signedIn ? { user: { id: "alice" } } : undefined),
 	});
 	engine.router = router;
-	yield* Effect.promise(() =>
-		view.render(
-			<Notices>
-				<RouterProvider router={router} />
-			</Notices>,
-		),
-	);
+	yield* Effect.promise(() => view.render(<RouterProvider router={router} />));
 	if (signedIn) {
 		yield* settleQuery(engine);
 	}
@@ -199,7 +195,7 @@ export const openSession = Effect.fn("ScreenStory.openSession")(function* (engin
 	const view = yield* acquireScreen(engine);
 	async function switchSession(id: string) {
 		engine.client = connection({ id });
-		await view.render(<SessionApp app={screenApp(engine)} auth={auth} history={history} recheck={recheck} session={{ user: { id } }} userId={id} />);
+		await view.render(<SessionApp {...routing} app={screenApp(engine)} auth={auth} history={history} recheck={recheck} session={{ user: { id } }} />);
 	}
 	engine.switchSession = switchSession;
 	yield* Effect.promise(() => switchSession("alice"));

@@ -3,11 +3,12 @@ import { DateTime, Effect } from "effect";
 import { act } from "react";
 import { authCall } from "@shivaedev/identity/client/adapters/authCall.ts";
 import { authAction } from "@shivaedev/react/client/authAction.ts";
+import { SessionApp } from "@shivaedev/react/client/SessionApp.ts";
 import { expectNoReactWarnings } from "@shivaedev/test-story/client/adapters/react.ts";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import type { AuthActions } from "#client/adapters/auth.ts";
-import { SessionApp } from "#client/SessionApp.tsx";
+import { routing } from "#client/routing.tsx";
 import { notesClient } from "#modules/notes/test-support/client.ts";
 import { fakeHostApp } from "#modules/notes/test-support/fakeHostApp.ts";
 import { screenAuth } from "#modules/notes/test-support/screenAuth.ts";
@@ -40,12 +41,12 @@ export const signOut = storyKit({
 			client.session.signedIn = signedIn;
 			return view.render(
 				<SessionApp
+					{...routing}
 					app={app}
 					auth={auth}
 					history={history}
 					recheck={() => undefined}
 					session={signedIn ? { user: { id: "alice", permissions: [] } } : null}
-					userId={signedIn ? "alice" : undefined}
 				/>,
 			);
 		}

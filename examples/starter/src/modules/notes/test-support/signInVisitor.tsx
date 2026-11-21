@@ -43,7 +43,7 @@ function resumeModule(moduleLink: boolean) {
 	return clientModule({}, () => ({
 		routes: (root) => [
 			createRoute({
-				component: () => <Home auth={root.useRouteContext().auth} />,
+				component: () => <Home />,
 				getParentRoute: () => root,
 				path: "/resume",
 				staticData: { signedIn: !moduleLink },

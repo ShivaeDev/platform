@@ -3,6 +3,7 @@ import { type ClientActivity, clientActivity } from "@shivaedev/contract/clientA
 import type { ContractClient, ContractsClient } from "@shivaedev/contract/makeClient.ts";
 import { type AppConnection, type ClientApp, type ClientAppOptions, clientApp } from "@shivaedev/react/client/app.ts";
 import { type ClientModule, clientModule } from "@shivaedev/react/client/module.ts";
+import { accountModule } from "#client/accountModule.tsx";
 import { Notes } from "#generated/modules/notes/Notes.ts";
 import { notesModule } from "#modules/notes/client/module.tsx";
 import { recordedApp } from "#test-support/recordedApp.ts";
@@ -25,7 +26,7 @@ export function fakeHostApp(
 		bound.notes = notes;
 		return {};
 	});
-	return recordedApp(clientApp([...modules, notesModule, observer], options), (connection) => {
+	return recordedApp(clientApp([accountModule, ...modules, notesModule, observer], options), (connection) => {
 		if (bound.notes === undefined) {
 			throw new Error("The notes contract was not bound");
 		}

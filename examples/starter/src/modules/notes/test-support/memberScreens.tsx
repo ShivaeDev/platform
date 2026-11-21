@@ -6,11 +6,13 @@ import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { activityScreenSignal, type ClientActivity, clientActivity } from "@shivaedev/contract/clientActivity.ts";
 import { clientApp } from "@shivaedev/react/client/app.ts";
+import { sessionRouter } from "@shivaedev/react/client/sessionRouter.ts";
 import { RouterProvider } from "@shivaedev/react/RouterProvider.ts";
 import { memberScreens } from "@shivaedev/test-story/server/adapters/memberScreens.ts";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
+import { accountModule } from "#client/accountModule.tsx";
 import { makeAuth } from "#client/adapters/auth.ts";
-import { appRouter } from "#client/appRouter.tsx";
+import { routing } from "#client/routing.tsx";
 import { notesModule } from "#modules/notes/client/module.tsx";
 
 export function notesMemberScreens(baseUrl: string) {
@@ -18,14 +20,15 @@ export function notesMemberScreens(baseUrl: string) {
 	return memberScreens({
 		baseUrl,
 		mount: Effect.fnUntraced(function* (member) {
-			const app = clientApp([notesModule], {
+			const app = clientApp([accountModule, notesModule], {
 				headers: { cookie: member.cookie, origin: new URL(baseUrl).origin },
 				url: `${baseUrl}/rpc`,
 				webSocketConstructor: layerWebSocketConstructor,
 			});
 			const auth = makeAuth({ baseUrl, fetchOptions: { customFetchImpl: member.fetch } });
 			const connection = app.connect({ id: member.name }, member.registry);
-			const router = appRouter({
+			const router = sessionRouter({
+				...routing,
 				auth: auth.actions,
 				connection,
 				history: createMemoryHistory({ initialEntries: ["/"] }),

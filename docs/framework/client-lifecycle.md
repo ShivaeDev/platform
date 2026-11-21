@@ -23,7 +23,19 @@ An offline write queue needs its own account partition, session ownership and lo
 
 ## `SessionBoundary` owns the generation
 
-`@shivaedev/react/client/sessionBoundary.ts` exports this transition as one component. The auth owner supplies the current session (or `undefined` while signed out or unresolved), an opaque `identify` key and `recheck`. An application's `connect`, which builds the session's client, and `warm` come from `clientApp` over its [client modules](../../packages/react/README.md#an-applications-client-modules) and spread into the boundary:
+An application mounts its session and routes with `SessionApp` from `@shivaedev/react/client/SessionApp.ts`, as [mount a session's routes](../../packages/react/README.md#mount-a-sessions-routes) describes. It hands over its client app, auth actions, current session, `recheck` and `persist`:
+
+```tsx
+import { clientApp } from "@shivaedev/react/client/app.ts";
+import { SessionApp } from "@shivaedev/react/client/SessionApp.ts";
+import { modules } from "#generated/client/modules.ts";
+
+const app = clientApp(modules);
+
+<SessionApp app={app} auth={auth.actions} persist={deviceStorage} recheck={auth.session.refresh} session={session} shell={Shell} />;
+```
+
+`SessionApp` renders the transition below, `SessionBoundary` from `@shivaedev/react/client/sessionBoundary.ts`, with the app's `connect` and `warm`, and identifies each generation by `session.user.id`. A host without a router renders the boundary itself. The auth owner supplies the current session (or `undefined` while signed out or unresolved), an opaque `identify` key and `recheck`. The application's `connect`, which builds the session's client, and `warm` come from `clientApp` over its [client modules](../../packages/react/README.md#an-applications-client-modules) and spread into the boundary:
 
 ```tsx
 import { clientApp } from "@shivaedev/react/client/app.ts";
@@ -45,11 +57,11 @@ const app = clientApp(modules);
 </SessionBoundary>;
 ```
 
-`session`, `recheck`, `deviceStorage`, `signOut`, `SignIn` and `Shell` belong to the application. Each key gets one client and one registry: `connect` runs once per key, so anything it captures stays fixed for that key. A browser client authenticates with the session cookie the browser sends; a bundled native client reads its stored credential through `bearerToken`, an Effect over identity's `SessionCredential` port that runs each time the socket connects, with `sessionCredentialPlugin` keeping that credential current for the auth client, as [bundled native clients](../../packages/identity/README.md#bundled-native-clients) describes. Either way a rotation under the same user id reaches the next connection without a new key. Identifying by session id or including a credential generation (`${session.id}:${generation}`) stays an explicit choice: it remounts the subtree and drops its state on every rotation. A new key remounts the subtree; `undefined` renders `signedOut`. Give the boundary the signed-out router and a `redirectTo` continuation target. Once the auth owner supplies the signed-in session, the boundary unmounts that router before replacing the URL and mounting the authenticated tree. Targets outside the browser origin fall back to `/`. An optional `navigate` callback replaces the URL through the application's router history. The sign-in screen requests a session recheck rather than navigating before the new session is known.
+`auth`, `session`, `recheck`, `deviceStorage`, `signOut`, `SignIn` and `Shell` belong to the application. Each key gets one client and one registry: `connect` runs once per key, so anything it captures stays fixed for that key. A browser client authenticates with the session cookie the browser sends; a bundled native client reads its stored credential through `bearerToken`, an Effect over identity's `SessionCredential` port that runs each time the socket connects, with `sessionCredentialPlugin` keeping that credential current for the auth client, as [bundled native clients](../../packages/identity/README.md#bundled-native-clients) describes. Either way a rotation under the same user id reaches the next connection without a new key. Identifying by session id or including a credential generation (`${session.id}:${generation}`) stays an explicit choice: it remounts the subtree and drops its state on every rotation. A new key remounts the subtree; `undefined` renders `signedOut`. Give the boundary the signed-out router and a `redirectTo` continuation target. Once the auth owner supplies the signed-in session, the boundary unmounts that router before replacing the URL and mounting the authenticated tree. Targets outside the browser origin fall back to `/`. An optional `navigate` callback replaces the URL through the application's router history. The sign-in screen requests a session recheck rather than navigating before the new session is known.
 
 The registry is disposed one microtask after the generation's effects unmount, so StrictMode's effect replay does not dispose a live registry. A subtree hidden by React's `<Activity>` also unmounts its effects while keeping component state; the generation then disposes the registry and renders its kept subtree against a fresh registry for the same client, so revealing it keeps local state and form drafts but reads its queries again. React still re-renders a hidden subtree at low priority, and nothing runs if that subtree is then unmounted without being revealed, so atoms a hidden render reads are reset (finalizers run, `keepAlive` runtimes and RPC connections close) as soon as the render settles. StrictMode's double state initializer can call `connect` twice for the same key; keep it free of side effects.
 
-`useQuery` and `useAction` inside the boundary call `recheck` when a result fails with a tagged `Unauthorized` error. They do not clear retained data: the auth owner decides whether the session ended and, if so, changes `session`, which tears the generation down.
+`useQuery` and `useAction` inside the boundary call `recheck` when a result fails with a tagged `Unauthorized` error, in the signed-out tree too. `useSessionRecheck()` returns the same recheck, signed in or signed out, so a sign-in screen asks for the session it has just created. They do not clear retained data: the auth owner decides whether the session ended and, if so, changes `session`, which tears the generation down.
 
 ## Resume reopens the live subscriptions
 
