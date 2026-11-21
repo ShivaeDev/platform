@@ -32,18 +32,29 @@ function output(state: State) {
 	return found;
 }
 
+function settle(state: State, screen: Screen, pending: () => boolean = () => false) {
+	return Effect.suspend(() => settleScreen(view(state).container, pending, screen.tell, state.current.client.activity));
+}
+
 function finish(
 	state: State,
 	screen: Screen,
 	title: Title,
 	line: string,
 	answer: (gate: ReturnType<typeof state.current.client.command>["gate"]) => void,
+	changed: boolean,
 ) {
-	const { finished, gate } = state.current.client.command(title);
-	return screen.act(line, async () => {
-		answer(gate);
-		await Effect.runPromise(Deferred.await(finished));
-	});
+	const { client } = state.current;
+	const { finished, gate } = client.command(title);
+	return screen
+		.act(line, async () => {
+			answer(gate);
+			await Effect.runPromise(Deferred.await(finished));
+			if (changed) {
+				await Effect.runPromise(Deferred.await(client.rereading));
+			}
+		})
+		.pipe(Effect.andThen(settle(state, screen)));
 }
 
 function commandVerbs(state: State, screen: Screen) {
@@ -54,31 +65,31 @@ function commandVerbs(state: State, screen: Screen) {
 					Deferred.doneUnsafe(state.current.client.refetch, Effect.succeed(value));
 					await Effect.runPromise(Deferred.await(state.current.client.refetched));
 				})
-				.pipe(
-					Effect.andThen(
-						Effect.suspend(() =>
-							settleScreen(view(state).container, () => view(state).container.querySelector("[data-list]")?.textContent !== value, screen.tell),
-						),
-					),
-				),
+				.pipe(Effect.andThen(settle(state, screen, () => view(state).container.querySelector("[data-list]")?.textContent !== value))),
 		commit: (changes: Partial<CompletionScreen>, line: string) =>
 			screen.act(line, async () => {
 				state.current = { ...state.current, ...changes };
 				await view(state).render(<CompletionView state={state.current} />);
 			}),
 		complete: (title: Title, value: string) =>
-			finish(state, screen, title, `the server completes ${title} with ${value}`, (gate) => Deferred.doneUnsafe(gate, Effect.succeed(value))),
+			finish(state, screen, title, `the server completes ${title} with ${value}`, (gate) => Deferred.doneUnsafe(gate, Effect.succeed(value)), true),
 		dispatch: (title: Title) =>
 			screen.act(`dispatch ${title}`, async () => {
 				await Effect.runPromise(screen.driver(view(state).container).click({ name: title, role: "button" }));
 				await Effect.runPromise(Deferred.await(state.current.client.command(title).arrived));
 			}),
 		reject: (title: Title, failure: "Rejected" | "Unauthorized") =>
-			finish(state, screen, title, `the server rejects ${title} as ${failure}`, (gate) =>
-				Deferred.doneUnsafe(
-					gate,
-					Effect.fail(failure === "Unauthorized" ? new Unauthorized({ message: "Sign in to continue" }) : new Rejected({ reason: "Locked" })),
-				),
+			finish(
+				state,
+				screen,
+				title,
+				`the server rejects ${title} as ${failure}`,
+				(gate) =>
+					Deferred.doneUnsafe(
+						gate,
+						Effect.fail(failure === "Unauthorized" ? new Unauthorized({ message: "Sign in to continue" }) : new Rejected({ reason: "Locked" })),
+					),
+				false,
 			),
 	};
 }
@@ -133,6 +144,7 @@ type Options = Partial<Pick<CompletionScreen, "concurrent" | "defect" | "uninter
 function* open({ screen, state }: { readonly screen: Screen; readonly state: State }, options: Options) {
 	state.current = { ...state.current, ...options };
 	state.view = yield* screen.open(<CompletionView state={state.current} />);
+	yield* settle(state, screen);
 }
 
 function optionWords(options: Options) {

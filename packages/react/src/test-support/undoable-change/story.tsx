@@ -1,6 +1,7 @@
 import { layerWebSocketConstructor } from "@effect/platform-node/NodeWS";
 import { Deferred, Effect } from "effect";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
+import { activityScreenSignal } from "@shivaedev/contract/clientActivity.ts";
 import type { Rendered } from "@shivaedev/test-story/client/adapters/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { deployUpdate } from "#client/deployUpdate.ts";
@@ -51,7 +52,12 @@ export const undoableChangeStory = storyKit({
 			return Effect.sync(() => container().querySelector(selector)?.textContent ?? "");
 		}
 		function settle() {
-			return settleScreen(container(), () => container().querySelector('[data-loading="true"]') !== null, story.tell);
+			return settleScreen(
+				container(),
+				() => container().querySelector('[data-loading="true"]') !== null,
+				story.tell,
+				activityScreenSignal(client.activity, client.settled),
+			);
 		}
 		function click(name: string) {
 			return screen.driver(container()).click({ name, role: "button" });
@@ -77,8 +83,12 @@ export const undoableChangeStory = storyKit({
 			completeRemove: (id: string) => complete(id, true),
 			completeUndo: (id: string) => complete(id, false),
 			*edit(id: string) {
-				Deferred.doneUnsafe(client.hold(id, true).gate, Effect.void);
-				yield* start(id, true, `Edit ${id}`);
+				const { finished, gate } = client.hold(id, true);
+				Deferred.doneUnsafe(gate, Effect.void);
+				yield* screen.act(`Edit ${id}`, async () => {
+					await Effect.runPromise(click(`Edit ${id}`));
+					await Effect.runPromise(Deferred.await(finished));
+				});
 				yield* settle();
 				client.forget(id, true);
 			},

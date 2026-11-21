@@ -47,7 +47,7 @@ function answered(state: State, id: number) {
 }
 
 function settle(state: State, screen: Screen, pending: () => boolean = () => false) {
-	return Effect.suspend(() => settleScreen(container(state), pending, screen.tell));
+	return Effect.suspend(() => settleScreen(container(state), pending, screen.tell, client(state).activity));
 }
 
 function pendingVerbs(state: State, screen: Screen) {

@@ -4,6 +4,7 @@ import { act } from "react";
 import { activityScreenSignal, isClientIdle } from "@shivaedev/contract/clientActivity.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { render } from "@shivaedev/test-story/client/adapters/react.ts";
+import { screenAct } from "@shivaedev/test-story/server/adapters/screenAct.ts";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { JobsView } from "#client/JobsView.ts";
@@ -19,6 +20,11 @@ Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 
 function driverFor(engine: JobsScreenEngine, tell: (line: string) => void, settled?: typeof isClientIdle) {
 	return screenDriver({ act, activity: activityScreenSignal(engine.activity, settled), root: () => screenOf(engine), tell });
+}
+
+// The reopened subscriptions push over the socket after the clock step, so the step and the wait for their pushes share one act.
+function inScreenAct<A, E>(step: (clock: TestClock.TestClock) => Effect.Effect<A, E>) {
+	return TestClock.testClockWith((clock) => screenAct(act, step(clock)));
 }
 
 export const jobsScreen = storyKit({
@@ -49,7 +55,7 @@ export const jobsScreen = storyKit({
 				story.tell("the host accepts the held reconnection and the live retry's longest jittered delay passes");
 				// The live retry doubles a one-second delay with up to a fifth of jitter, so its second attempt can wait 2.4 seconds.
 				return Effect.andThen(
-					Effect.andThen(engine.host.accept, TestClock.adjust("5 seconds")),
+					inScreenAct((clock) => engine.host.accept.pipe(Effect.andThen(clock.adjust("5 seconds")), Effect.andThen(engine.sync))),
 					driverFor(engine, story.tell, isClientIdle).settle(),
 				);
 			},
@@ -61,7 +67,7 @@ export const jobsScreen = storyKit({
 				story.tell(`refresh the ${section} while its connection is lost`);
 				return Effect.andThen(
 					driver.within('[role="tabpanel"]').click({ name: "Refresh", role: "button" }),
-					Effect.andThen(TestClock.adjust("1 second"), engine.host.held),
+					inScreenAct((clock) => Effect.andThen(clock.adjust("1 second"), engine.host.held)),
 				);
 			},
 			retrySelected: () => Effect.andThen(driver.click({ name: "Retry job", role: "button" }), driver.settle()),
