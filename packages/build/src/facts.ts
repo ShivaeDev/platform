@@ -20,7 +20,7 @@ export interface DeclaredClass {
 
 export type Literal = string | number | boolean;
 
-export type Primitive = "BigInt" | "Boolean" | "Date" | "DateTimeUtc" | "Null" | "Number" | "String" | "Undefined" | "Void";
+export type Primitive = "BigInt" | "Boolean" | "Date" | "DateTimeUtc" | "Json" | "JsonObject" | "Null" | "Number" | "String" | "Undefined" | "Void";
 
 export interface Field {
 	readonly form: WireForm;
@@ -35,11 +35,11 @@ export type WireForm =
 	| { readonly form: "array"; readonly item: WireForm; readonly mutable: boolean }
 	| { readonly form: "tuple"; readonly elements: readonly WireForm[]; readonly mutable: boolean }
 	| { readonly form: "struct"; readonly fields: readonly Field[] }
-	| { readonly form: "record"; readonly value: WireForm; readonly mutable: boolean }
+	| { readonly form: "record"; readonly key: WireForm; readonly value: WireForm; readonly mutable: boolean }
 	| { readonly form: "union"; readonly members: readonly WireForm[] }
 	| { readonly form: "nullOr"; readonly inner: WireForm }
 	| { readonly form: "option"; readonly inner: WireForm }
-	| { readonly form: "class"; readonly declared: DeclaredClass };
+	| { readonly form: "exported"; readonly declared: DeclaredClass };
 
 export type Failure =
 	| { readonly kind: "retryable" }

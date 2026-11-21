@@ -5,7 +5,9 @@ import type { AppViteOptions } from "#appViteConfig.ts";
 import { readIfPresent, writeAtomically } from "#files.ts";
 import { generate } from "#generate.ts";
 import { emptyProject, generatedOncePerFile, vitestRun, writeFiles } from "#test/fixtureProject.ts";
+import { MISPLACED_MODULES } from "#test/misplacedModules.ts";
 import { NOTES_PROJECT } from "#test/notesProject.ts";
+import { REFUSED_BRANDS } from "#test/refusedBrands.ts";
 import { REFUSING_PROJECT } from "#test/refusingProject.ts";
 import { VITE_PROJECT } from "#test/viteProject.ts";
 import { appConfigBuild, type DevServer, viteBuild, viteDevServer } from "#test/viteRuns.ts";
@@ -270,6 +272,11 @@ export function solutionTsconfig() {
 
 export function refusedModule() {
 	return vite.trait("project", "the project also has the refused module, whose operations the wire cannot carry exactly", (engine) =>
-		writeFiles(engine.root, Object.fromEntries(Object.entries(REFUSING_PROJECT).filter(([file]) => file.startsWith("src/")))),
+		writeFiles(
+			engine.root,
+			Object.fromEntries(
+				Object.entries({ ...MISPLACED_MODULES, ...REFUSED_BRANDS, ...REFUSING_PROJECT }).filter(([file]) => file.startsWith("src/")),
+			),
+		),
 	);
 }
