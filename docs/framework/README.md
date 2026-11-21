@@ -37,7 +37,7 @@ Schema describes data once. Each operation is written once as its payload and `r
 
 ## Secure invite codes and tokens
 
-Use Effect's native `effect/crypto` services for secure values: `SecureRandom` for random bytes, integers, UUIDv4/v7 and ULIDs, and `Digest` for hashes. The application host supplies the Node implementations from `NodeCrypto.layer`, including during preflight and deferred application construction; Platform adds no wrapper. Use Effect's `Random` for non-secure choices such as sampling or jitter.
+Use Effect's native `effect/crypto` services for secure values: `SecureRandom` for random bytes, integers, UUIDv4/v7 and ULIDs, `Digest` for hashes, and `Mac` for HMAC signatures and constant-time comparison. `Mac.verify` checks a received HMAC tag in constant time; `Mac.timingSafeEqual` compares other secrets of a known length. The application host supplies the Node implementations from `NodeCrypto.layer`, including during preflight and deferred application construction; Platform adds no wrapper. Use Effect's `Random` for non-secure choices such as sampling or jitter.
 
 ```ts
 import { Effect } from "effect";
