@@ -11,6 +11,7 @@ import type { OtlpSpan } from "@shivaedev/test-story/server/otlpReceiver.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { appHost } from "#appDatabase.ts";
 import { appModules } from "#appModules.ts";
+import { type Construction, constructionVerbs, logDuringConstruction, makeConstruction } from "#test/defined-modules/constructionLogs.ts";
 import { Api, draftsModule, handWrittenNotesModule, notesModule, replacedNotesModule } from "#test/defined-modules/features.ts";
 import { Greetings, greetingsModule } from "#test/defined-modules/greetings.ts";
 import { Members, membersModule, privateJoinMembersModule } from "#test/defined-modules/members.ts";
@@ -28,6 +29,7 @@ const draftsQueue = { name: "drafts.publish" };
 interface State {
 	collector?: { readonly untilSpan: (name: string) => Effect.Effect<OtlpSpan, unknown> };
 	columnKey: string | undefined;
+	readonly construction: Construction;
 	drafts: typeof draftsModule | (typeof draftsModule & { readonly queues: readonly (typeof draftsQueue)[] });
 	readonly env: Record<string, string>;
 	greetings: typeof greetingsModule | (typeof greetingsModule & { readonly queues: readonly (typeof draftsQueue)[] });
@@ -78,14 +80,15 @@ export const definedModulesHost = storyKit({
 			// The application form, as the starter writes it: the application Effect builds the module services and hands the host the built context.
 			function application() {
 				const { group, handlers, requestServices } = modules;
-				return Effect.map(Layer.build(modules.services), (built) => ({
+				const built = Effect.map(Layer.build(modules.services), (context) => ({
 					config,
 					group,
 					handlers,
 					requestServices,
-					services: Layer.succeedContext(built),
+					services: Layer.succeedContext(context),
 					sessions,
 				}));
+				return Effect.tap(built, () => logDuringConstruction(state.construction));
 			}
 			const host =
 				state.host === "application"
@@ -129,6 +132,7 @@ export const definedModulesHost = storyKit({
 	// The provider tokens module's model has an encrypted field, so every host starts with a generated key unless a trait changes it.
 	create: (): State => ({
 		columnKey: Base64.encode(globalThis.crypto.getRandomValues(new Uint8Array(32))),
+		construction: makeConstruction(),
 		drafts: draftsModule,
 		env: {},
 		greetings: greetingsModule,
@@ -180,6 +184,7 @@ export const definedModulesHost = storyKit({
 			);
 		}
 		return {
+			...constructionVerbs(state.construction, state.logs, story),
 			auditMember: (id: number) => {
 				story.tell(`alice audits member ${id} through members.audit, whose handler dies holding the member's row`);
 				return answered(Effect.flatMap(membersClient(), (call) => call("members.audit", { id })));

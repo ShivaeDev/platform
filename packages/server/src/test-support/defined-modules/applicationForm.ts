@@ -19,3 +19,11 @@ export const collector = definedModulesHost.trait("configured", "the host export
 		Object.assign(state.env, { "OTEL_BSP_MAX_EXPORT_BATCH_SIZE": "1", "OTEL_EXPORTER_OTLP_ENDPOINT": receiver.url });
 	}),
 );
+
+export const loggingApplicationEffect = definedModulesHost.trait(
+	"configured",
+	"the application Effect, after building the module services, logs a password and a member's address, forks a fiber that logs them once released and keeps its context for a service to log through later",
+	(state) => {
+		state.construction.logs = true;
+	},
+);
