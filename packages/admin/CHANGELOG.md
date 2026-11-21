@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.29.6 - 2026-11-21
+
+### Changed
+
+- Update `@shivaedev/identity` from 0.42.0 to 0.43.0.
+- Update `@shivaedev/react` from 0.59.0 to 0.59.1.
+
 ## 0.29.5 - 2026-11-21
 
 ### Changed

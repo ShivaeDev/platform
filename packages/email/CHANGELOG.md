@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.9.0 - 2026-11-21
+
+### Breaking
+
+- `authEmailQueue`'s `registration` no longer has `group`, `handlers` or `name`; it carries only its queue, producer services and worker. It needs the `@shivaedev/server` version that ships the third `AppModule` form: an older `AppModule` refuses it in `satisfies AppModule` and `appModules([...])`. Code that read `registration.name` reads `authEmailJobs.name` from `@shivaedev/email/authEmailJobs.ts`, which holds the same value.
+
 ## 0.8.6 - 2026-11-21
 
 ### Changed

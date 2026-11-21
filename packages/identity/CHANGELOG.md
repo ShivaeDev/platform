@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.43.0 - 2026-11-21
+
+### Added
+
+- The account `delete` command admits three attempts per person in ten seconds, the budget Better Auth gives `/change-email`, through `@shivaedev/rate-limit`, and refuses a further attempt with `TooManyRequests`, which a form hook shows as a notice.
+- `SessionUser` carries `emailVerified`, whether the signed-in person has confirmed their email address. An operation reads it from the session lookup Platform already makes, so it learns the flag with no second session read, and a `defineSeed` run reads the seeded persona's stored flag. An account that has not confirmed reads `false`; the first lookup after the person follows the confirmation link reads `true`.
+
+### Breaking
+
+- `accountDeletion` requires a rate-limit `Store` from `@shivaedev/rate-limit/Store.ts`. An application whose registrations provide none adds one to one registration's `ports`, such as `ports: memoryStore` with `memoryStore` from `@shivaedev/rate-limit/memoryStore.ts`.
+- `SessionUserSchema`, `SessionUserValue` and `UserSessionShape` require `emailVerified: boolean`. A custom session provider adds `emailVerified` to the `user` it returns, and a test fixture that builds a `SessionUser` value or a provider's session user adds the field too, such as `Effect.provideService(SessionUser, { email, emailVerified: true, id, name })`. A provider without it still compiles, because `SessionPolicy.provider` requires only `user.id`: every operation behind `AuthenticatedUser`, `AuthenticatedUserWithProviderAccounts`, permission middleware, a subject resolver or `mcpRoutes` then fails as a defect when it reads the session user, while the person stays signed in. Operations behind `Authenticated` alone keep working. An application on Better Auth changes nothing, because Better Auth always supplies the field.
+
 ## 0.42.0 - 2026-11-21
 
 ### Added
