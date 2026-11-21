@@ -1,5 +1,41 @@
 # Changelog
 
+## 0.7.0 - 2026-11-21
+
+### Breaking
+
+- import from `@shivaedev/agent-codex/Request.ts` instead of `@shivaedev/agent-codex/adapters/Request.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/agent-codex/UserMessageItem.ts` instead of `@shivaedev/agent-codex/adapters/UserMessageItem.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/agent-codex/attributed.ts` instead of `@shivaedev/agent-codex/adapters/attributed.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/agent-codex/backend.ts` instead of `@shivaedev/agent-codex/adapters/backend.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/agent-codex/census.ts` instead of `@shivaedev/agent-codex/adapters/census.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/agent-codex/codexFailure.ts` instead of `@shivaedev/agent-codex/adapters/codexFailure.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/agent-codex/configuredBackend.ts` instead of `@shivaedev/agent-codex/adapters/configuredBackend.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/agent-codex/deliveryState.ts` instead of `@shivaedev/agent-codex/adapters/deliveryState.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/agent-codex/engine.ts` instead of `@shivaedev/agent-codex/adapters/engine.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/agent-codex/features.ts` instead of `@shivaedev/agent-codex/adapters/features.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/agent-codex/handshake.ts` instead of `@shivaedev/agent-codex/adapters/handshake.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/agent-codex/initializeCodex.ts` instead of `@shivaedev/agent-codex/adapters/initializeCodex.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/agent-codex/initializeEngine.ts` instead of `@shivaedev/agent-codex/adapters/initializeEngine.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/agent-codex/items.ts` instead of `@shivaedev/agent-codex/adapters/items.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/agent-codex/mapping.ts` instead of `@shivaedev/agent-codex/adapters/mapping.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/agent-codex/protocol.ts` instead of `@shivaedev/agent-codex/adapters/protocol.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/agent-codex/protocolItems.ts` instead of `@shivaedev/agent-codex/adapters/protocolItems.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/agent-codex/rateLimitEvents.ts` instead of `@shivaedev/agent-codex/adapters/rateLimitEvents.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/agent-codex/reads.ts` instead of `@shivaedev/agent-codex/adapters/reads.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/agent-codex/recovery.ts` instead of `@shivaedev/agent-codex/adapters/recovery.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/agent-codex/residualApproval.ts` instead of `@shivaedev/agent-codex/adapters/residualApproval.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/agent-codex/rpc.ts` instead of `@shivaedev/agent-codex/adapters/rpc.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/agent-codex/rpcProtocol.ts` instead of `@shivaedev/agent-codex/adapters/rpcProtocol.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/agent-codex/session.ts` instead of `@shivaedev/agent-codex/adapters/session.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/agent-codex/subagentItems.ts` instead of `@shivaedev/agent-codex/adapters/subagentItems.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/agent-codex/tellCliVersionOnce.ts` instead of `@shivaedev/agent-codex/adapters/tellCliVersionOnce.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/agent-codex/threadClaims.ts` instead of `@shivaedev/agent-codex/adapters/threadClaims.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/agent-codex/threadSweep.ts` instead of `@shivaedev/agent-codex/adapters/threadSweep.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/agent-codex/threadTree.ts` instead of `@shivaedev/agent-codex/adapters/threadTree.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/agent-codex/turnRequests.ts` instead of `@shivaedev/agent-codex/adapters/turnRequests.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/agent-codex/userMessageEvent.ts` instead of `@shivaedev/agent-codex/adapters/userMessageEvent.ts`, which moved out of `adapters/`.
+
 ## 0.6.5 - 2026-11-20
 
 ### Changed

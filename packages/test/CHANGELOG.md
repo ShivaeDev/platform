@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.18.0 - 2026-11-21
+
+### Breaking
+
+- import from `@shivaedev/test/it.ts` instead of `@shivaedev/test/adapters/it.ts`, which moved out of `adapters/`.
+
 ## 0.17.3 - 2026-11-20
 
 ### Changed

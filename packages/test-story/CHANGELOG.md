@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.51.0 - 2026-11-21
+
+### Fixed
+
+- `fakeHttpService` no longer sends `content-type: application/json` on a reply without a `body` or `chunks`, such as `{ status: 204 }`, so a client that picks its parser from the content type no longer fails to parse the empty body as JSON. A route that names its own content type still sends it, and replies with a `body` or `chunks` keep the JSON default.
+
+### Breaking
+
+- import from `@shivaedev/test-story/server/assertOutcomes.ts` instead of `@shivaedev/test-story/server/adapters/assertOutcomes.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/test-story/server/documentRedirect.ts` instead of `@shivaedev/test-story/server/adapters/documentRedirect.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/test-story/server/outcomeMatchers.ts` instead of `@shivaedev/test-story/server/adapters/outcomeMatchers.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/test-story/server/screenAccessibility.ts` instead of `@shivaedev/test-story/server/adapters/screenAccessibility.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/test-story/server/screenDialogs.ts` instead of `@shivaedev/test-story/server/adapters/screenDialogs.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/test-story/server/screenLoading.ts` instead of `@shivaedev/test-story/server/adapters/screenLoading.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/test-story/server/screenMutations.ts` instead of `@shivaedev/test-story/server/adapters/screenMutations.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/test-story/server/screenNavigation.ts` instead of `@shivaedev/test-story/server/adapters/screenNavigation.ts`, which moved out of `adapters/`.
+
 ## 0.50.2 - 2026-11-20
 
 ### Changed

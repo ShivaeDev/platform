@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.0 - 2026-11-21
+
+### Breaking
+
+- import from `@shivaedev/rate-limit/postgresMigration.ts` instead of `@shivaedev/rate-limit/adapters/postgresMigration.ts`, which moved out of `adapters/`.
+
 ## 0.7.0 - 2026-11-20
 
 ### Changed
