@@ -54,13 +54,7 @@ export const socketBody = storyKit({
 					Effect.match({
 						onFailure: (error) => {
 							closed = true;
-							return {
-								closeReason: error.reason._tag === "SocketCloseError" ? error.reason.closeReason : undefined,
-								code: error.reason._tag === "SocketCloseError" ? error.reason.code : undefined,
-								connection: "closed",
-								error: error._tag,
-								reason: error.reason._tag,
-							};
+							return closure(error);
 						},
 						onSuccess: (frames) => ({
 							body: frames.map((frame) => (typeof frame === "string" ? frame : new TextDecoder().decode(frame))).join(""),
@@ -71,3 +65,13 @@ export const socketBody = storyKit({
 		};
 	},
 });
+
+function closure(error: Socket.SocketError) {
+	return {
+		closeReason: error.reason._tag === "SocketCloseError" ? error.reason.closeReason : undefined,
+		code: error.reason._tag === "SocketCloseError" ? error.reason.code : undefined,
+		connection: "closed",
+		error: error._tag,
+		reason: error.reason._tag,
+	};
+}

@@ -9,10 +9,11 @@ export interface UnexpectedFailure {
 	readonly message: string;
 }
 
+const MESSAGE_TOO_BIG = 1009;
+
 export function unexpectedFailure(cause: Cause.Cause<unknown>): UnexpectedFailure {
 	const error = Option.getOrUndefined(Cause.findErrorOption(cause));
-	// The host closes the socket with 1009 when a message exceeds its body limit.
-	if (error instanceof RpcClientError && error.reason._tag === "SocketCloseError" && error.reason.code === 1009) {
+	if (error instanceof RpcClientError && error.reason._tag === "SocketCloseError" && error.reason.code === MESSAGE_TOO_BIG) {
 		return { cause, kind: "tooLarge", message: "What you sent is too large for the server. Try again with something smaller." };
 	}
 	if (Predicate.isTagged(error, "RpcClientError") || Predicate.isTagged(error, "WebSocketRequired")) {

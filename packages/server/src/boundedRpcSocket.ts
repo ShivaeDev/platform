@@ -13,22 +13,7 @@ export const boundedRpcSocket = Effect.fnUntraced(function* (limit: number, rout
 				const writer = yield* socket.writer;
 				return {
 					...reader,
-					pull: reader.pull.pipe(
-						Effect.tapError((error) => (payloadRefused(error) ? refused(limit, route, undefined) : Effect.void)),
-						Effect.flatMap((frames) => {
-							const size = frames
-								.map((frame) => (typeof frame === "string" ? Buffer.byteLength(frame) : frame.byteLength))
-								.find((bytes) => bytes > limit);
-							if (size === undefined) {
-								return Effect.succeed(frames);
-							}
-							const reason = new Socket.SocketCloseError({ closeReason: "RPC frame exceeds maxBodySize", code: 1009 });
-							return refused(limit, route, size).pipe(
-								Effect.andThen(writer.write(new Socket.CloseEvent(reason.code, reason.closeReason))),
-								Effect.andThen(Effect.fail(new Socket.SocketError({ reason }))),
-							);
-						}),
-					),
+					pull: boundedPull(reader.pull, writer, limit, route),
 				};
 			}),
 		}),
@@ -37,6 +22,23 @@ export const boundedRpcSocket = Effect.fnUntraced(function* (limit: number, rout
 		get: (target, key, receiver) => (key === "upgrade" ? upgrade : Reflect.get(target, key, receiver)),
 	});
 });
+
+function boundedPull(pull: Socket.Reader["pull"], writer: Effect.Success<Socket.Socket["writer"]>, limit: number, route: string) {
+	return pull.pipe(
+		Effect.tapError((error) => (payloadRefused(error) ? refused(limit, route, undefined) : Effect.void)),
+		Effect.flatMap((frames) => {
+			const size = frames.map((frame) => (typeof frame === "string" ? Buffer.byteLength(frame) : frame.byteLength)).find((bytes) => bytes > limit);
+			if (size === undefined) {
+				return Effect.succeed(frames);
+			}
+			const reason = new Socket.SocketCloseError({ closeReason: "RPC frame exceeds maxBodySize", code: 1009 });
+			return refused(limit, route, size).pipe(
+				Effect.andThen(writer.write(new Socket.CloseEvent(reason.code, reason.closeReason))),
+				Effect.andThen(Effect.fail(new Socket.SocketError({ reason }))),
+			);
+		}),
+	);
+}
 
 function refused(limit: number, route: string, size: number | undefined) {
 	return Effect.logWarning(
