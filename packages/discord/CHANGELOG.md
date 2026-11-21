@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.5.0 - 2026-11-21
+
+### Breaking
+
+- import from `@shivaedev/discord/gatewayConnection.ts` instead of `@shivaedev/discord/adapters/gatewayConnection.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/discord/restStatus.ts` instead of `@shivaedev/discord/adapters/restStatus.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/discord/routeKey.ts` instead of `@shivaedev/discord/adapters/routeKey.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/discord/webSocketLayer.ts` instead of `@shivaedev/discord/adapters/webSocketLayer.ts`, which moved out of `adapters/`.
+
 ## 0.4.7 - 2026-11-20
 
 ### Changed

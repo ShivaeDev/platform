@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.49.0 - 2026-11-21
+
+### Breaking
+
+- import from `@shivaedev/create-app/frameworkCatalog.ts` instead of `@shivaedev/create-app/adapters/frameworkCatalog.ts`, which moved out of `adapters/`.
+
 ## 0.48.0 - 2026-11-20
 
 ### Added

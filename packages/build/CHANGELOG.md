@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.4.0 - 2026-11-21
+
+### Breaking
+
+- import from `@shivaedev/build/appViteConfig.ts` instead of `@shivaedev/build/adapters/appViteConfig.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/build/copiedCode.ts` instead of `@shivaedev/build/adapters/copiedCode.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/build/failuresOf.ts` instead of `@shivaedev/build/adapters/failuresOf.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/build/isReadonlyProperty.ts` instead of `@shivaedev/build/adapters/isReadonlyProperty.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/build/moduleCalls.ts` instead of `@shivaedev/build/adapters/moduleCalls.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/build/moduleFacts.ts` instead of `@shivaedev/build/adapters/moduleFacts.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/build/objectForm.ts` instead of `@shivaedev/build/adapters/objectForm.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/build/operationFacts.ts` instead of `@shivaedev/build/adapters/operationFacts.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/build/serverOnlyPath.ts` instead of `@shivaedev/build/adapters/serverOnlyPath.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/build/typeReading.ts` instead of `@shivaedev/build/adapters/typeReading.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/build/unionForm.ts` instead of `@shivaedev/build/adapters/unionForm.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/build/wireForm.ts` instead of `@shivaedev/build/adapters/wireForm.ts`, which moved out of `adapters/`.
+
 ## 0.3.5 - 2026-11-20
 
 ### Changed

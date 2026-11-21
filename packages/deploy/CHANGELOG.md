@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.8.0 - 2026-11-21
+
+### Breaking
+
+- import from `@shivaedev/deploy/railway/configurePostgres.ts` instead of `@shivaedev/deploy/adapters/railway/configurePostgres.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/deploy/railway/postgresStartCommand.ts` instead of `@shivaedev/deploy/adapters/railway/postgresStartCommand.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/deploy/railway/webService.ts` instead of `@shivaedev/deploy/adapters/railway/webService.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/deploy/railway/workerService.ts` instead of `@shivaedev/deploy/adapters/railway/workerService.ts`, which moved out of `adapters/`.
+
 ## 0.7.2 - 2026-11-20
 
 ### Changed

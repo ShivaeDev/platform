@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.6.0 - 2026-11-21
+
+### Breaking
+
+- import from `@shivaedev/agent-opencode/MessageUpdatedProperties.ts` instead of `@shivaedev/agent-opencode/adapters/MessageUpdatedProperties.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/agent-opencode/OpencodeRequest.ts` instead of `@shivaedev/agent-opencode/adapters/OpencodeRequest.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/agent-opencode/listeningUrl.ts` instead of `@shivaedev/agent-opencode/adapters/listeningUrl.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/agent-opencode/mapping.ts` instead of `@shivaedev/agent-opencode/adapters/mapping.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/agent-opencode/messageAuthors.ts` instead of `@shivaedev/agent-opencode/adapters/messageAuthors.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/agent-opencode/openSseBuffer.ts` instead of `@shivaedev/agent-opencode/adapters/openSseBuffer.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/agent-opencode/openTurnBoundary.ts` instead of `@shivaedev/agent-opencode/adapters/openTurnBoundary.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/agent-opencode/opencodePlugin.config.ts` instead of `@shivaedev/agent-opencode/adapters/opencodePlugin.config.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/agent-opencode/partEvents.ts` instead of `@shivaedev/agent-opencode/adapters/partEvents.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/agent-opencode/projection.ts` instead of `@shivaedev/agent-opencode/adapters/projection.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/agent-opencode/protocol.ts` instead of `@shivaedev/agent-opencode/adapters/protocol.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/agent-opencode/protocolParts.ts` instead of `@shivaedev/agent-opencode/adapters/protocolParts.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/agent-opencode/sessionFrames.ts` instead of `@shivaedev/agent-opencode/adapters/sessionFrames.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/agent-opencode/toolEvents.ts` instead of `@shivaedev/agent-opencode/adapters/toolEvents.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/agent-opencode/toolSessions.ts` instead of `@shivaedev/agent-opencode/adapters/toolSessions.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/agent-opencode/wireName.ts` instead of `@shivaedev/agent-opencode/adapters/wireName.ts`, which moved out of `adapters/`.
+
 ## 0.5.5 - 2026-11-20
 
 ### Changed
