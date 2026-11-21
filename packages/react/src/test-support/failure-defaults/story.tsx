@@ -19,6 +19,7 @@ type Control =
 	| "Rename with its own wording"
 	| "Rename offline"
 	| "Rename with a dying server"
+	| "Rename with too much text"
 	| "Rename with the server's words"
 	| "Rename with a quiet handler"
 	| "Rename during an outage"
