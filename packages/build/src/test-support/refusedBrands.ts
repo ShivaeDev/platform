@@ -2,7 +2,7 @@
 export const REFUSED_BRANDS: Readonly<Record<string, string>> = {
 	"src/modules/refused/brands.ts": `import { Effect } from "effect";
 import { query } from "@shivaedev/contract/operation.ts";
-import { type NoteId, noteId, type Shelf, type Sku, shared, type UserId } from "#modules/refused/shared.ts";
+import { type Letter, type NoteId, noteId, type Shelf, type Sku, shared, type UserId } from "#modules/refused/shared.ts";
 
 export const ReturnsBrand = query("returnsBrand", {
 	reads: () => [shared.list],
@@ -30,6 +30,20 @@ export const ReturnsNumberBrandKeys = query("returnsNumberBrandKeys", {
 	*run() {
 		const titles: Record<NoteId, string> = yield* Effect.succeed({});
 		return titles;
+	},
+});
+
+export const ReturnsLiteralBrandKeys = query("returnsLiteralBrandKeys", {
+	reads: () => [shared.list],
+	*run() {
+		return yield* Effect.succeed<Record<Letter, number>>({} as Record<Letter, number>);
+	},
+});
+
+export const ReturnsReadonlyLiteralBrandKeys = query("returnsReadonlyLiteralBrandKeys", {
+	reads: () => [shared.list],
+	*run() {
+		return yield* Effect.succeed<Readonly<Record<Letter | "c", number>>>({ c: 1 });
 	},
 });
 

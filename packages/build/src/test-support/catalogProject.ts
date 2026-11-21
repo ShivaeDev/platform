@@ -3,11 +3,11 @@
 export const CATALOG_PROJECT: Readonly<Record<string, string>> = {
 	"src/modules/catalog/catalog.ts": `import { defineModule } from "@shivaedev/contract/defineModule.ts";
 import { catalogWire } from "#generated/modules/catalog/catalog.ts";
-import { Answer, Code, Document, History, Item, Prices, Settings } from "#modules/catalog/operations.ts";
+import { Answer, Blank, Code, Document, History, Item, Prices, Settings } from "#modules/catalog/operations.ts";
 
 export const Catalog = defineModule({
 	name: "catalog",
-	operations: [Item, Code, Prices, Document, Settings, History, Answer],
+	operations: [Item, Code, Prices, Document, Settings, History, Answer, Blank],
 	wire: catalogWire,
 });
 `,
@@ -71,6 +71,13 @@ export const History = query("history", {
 	*run() {
 		const history = yield* Effect.succeed<Schema.JsonArray>([]);
 		return history;
+	},
+});
+
+export const Blank = query("blank", {
+	*run() {
+		const blank: Record<never, number> = yield* Effect.succeed({});
+		return blank;
 	},
 });
 

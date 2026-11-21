@@ -27,6 +27,7 @@ generator.it(
 			["document", () => Effect.succeed(successOf(text, "document")), "Schema.Json"],
 			["settings", () => Effect.succeed(successOf(text, "settings")), "Schema.JsonObject"],
 			["history", () => Effect.succeed(successOf(text, "history")), "Schema.Array(Schema.Json)"],
+			["blank, a record with no keys", () => Effect.succeed(successOf(text, "blank")), "Schema.Struct({})"],
 			[
 				"answer",
 				() => Effect.succeed(successOf(text, "answer")),
@@ -60,6 +61,7 @@ generator.it(
 			["an item code", "code", "item-a b"],
 			["prices keyed by item code", "prices", { "item-": Number.POSITIVE_INFINITY, "item-a": 2.5 }],
 			["no prices", "prices", {}],
+			["a blank record", "blank", {}],
 			["a JSON document", "document", DOCUMENT],
 			["a JSON string", "document", "Plan"],
 			["JSON null", "document", null],

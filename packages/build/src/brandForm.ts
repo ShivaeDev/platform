@@ -7,6 +7,36 @@ export function isBranded(type: ts.Type): type is ts.IntersectionType {
 	return type.isIntersection() && type.types.some((member) => !(member.flags & ts.TypeFlags.Object));
 }
 
+const RECORD = new Set(["Record"]);
+const HOMOMORPHIC = new Set(["Partial", "Readonly", "Required"]);
+
+function isLibraryAlias(reading: TypeReading, type: ts.Type, names: ReadonlySet<string>): boolean {
+	const alias = type.aliasSymbol;
+	return (
+		alias !== undefined
+		&& names.has(alias.name)
+		&& alias.declarations?.some((declaration) => reading.program.isSourceFileDefaultLibrary(declaration.getSourceFile())) === true
+	);
+}
+
+// TypeScript makes neither a property nor an index signature of a branded literal key, so a Record over one loses that key.
+export function dropsBrandedLiteralKeys(reading: TypeReading, type: ts.Type): boolean {
+	const [argument] = type.aliasTypeArguments ?? [];
+	if (argument === undefined) {
+		return false;
+	}
+	if (isLibraryAlias(reading, type, HOMOMORPHIC)) {
+		return dropsBrandedLiteralKeys(reading, argument);
+	}
+	const keys = argument.isUnion() ? argument.types : [argument];
+	return (
+		isLibraryAlias(reading, type, RECORD)
+		&& keys.some(
+			(key) => key.isIntersection() && key.types.some((member) => member.flags & (ts.TypeFlags.StringLiteral | ts.TypeFlags.NumberLiteral)),
+		)
+	);
+}
+
 export function isStringBrand(type: ts.IntersectionType): boolean {
 	return type.types.some((member) => member.flags & ts.TypeFlags.StringLike);
 }

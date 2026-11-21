@@ -174,7 +174,15 @@ export const RefusedDraft = Schema.Struct({ body: Schema.String });
 export const SkuCode = Schema.String.pipe(Schema.brand("Sku"));
 `,
 	"src/modules/refused/refused.ts": `import { defineModule } from "@shivaedev/contract/defineModule.ts";
-import { ReturnsBrand, ReturnsHandBranded, ReturnsNumberBrandKeys, ReturnsPartialRecord, ReturnsTwiceBranded } from "#modules/refused/brands.ts";
+import {
+	ReturnsBrand,
+	ReturnsHandBranded,
+	ReturnsLiteralBrandKeys,
+	ReturnsNumberBrandKeys,
+	ReturnsPartialRecord,
+	ReturnsReadonlyLiteralBrandKeys,
+	ReturnsTwiceBranded,
+} from "#modules/refused/brands.ts";
 import {
 	FailsDataTagged,
 	FailsUnexported,
@@ -212,6 +220,8 @@ export const Refused = defineModule({
 		ReturnsTwiceBranded,
 		ReturnsHandBranded,
 		ReturnsNumberBrandKeys,
+		ReturnsLiteralBrandKeys,
+		ReturnsReadonlyLiteralBrandKeys,
 		ReturnsPartialRecord,
 		ReturnsUnknown,
 		ReturnsStringOrBigint,
@@ -249,6 +259,8 @@ export const Shelf = Schema.String.pipe(Schema.brand("Shelf"));
 export type Shelf = typeof Shelf.Type;
 
 export type UserId = string & { readonly __brand: "UserId" };
+
+export type Letter = ("a" | "b") & Brand.Brand<"Letter">;
 
 export interface Tree {
 	readonly children: readonly Tree[];
