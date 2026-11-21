@@ -8,4 +8,4 @@
 
 ### Breaking
 
-- `accountDeletion` requires a rate-limit `Store` from `@shivaedev/rate-limit/Store.ts`. Add one to the account registration's `ports`, such as `ports: memoryStore` with `memoryStore` from `@shivaedev/rate-limit/memoryStore.ts`, or provide the application's shared `postgresStore`.
+- `accountDeletion` requires a rate-limit `Store` from `@shivaedev/rate-limit/Store.ts`. An application whose registrations provide none adds one to one registration's `ports`, such as `ports: memoryStore` with `memoryStore` from `@shivaedev/rate-limit/memoryStore.ts`.
