@@ -142,7 +142,7 @@ What this means for the person using the application: their data rests on the de
 
 #### Session-scoped bindings
 
-A contract declared with `keyScope: "session"` binds to the registry that owns the session's queries. In the browser, `bind` prefixes every client read and invalidation key of that contract with an opaque id of its registry, so a successful command in one session refreshes none of another session's queries on the page, even when both registries share one runtime. The server adds no prefix: its subscriptions and committed writes use plain keys, and each query's read policy decides what a viewer receives. The [contract guide](https://github.com/ShivaeDev/platform/blob/main/packages/contract/README.md#session-owned-keys) describes the declaration and its handlers. `SessionBoundary` passes that registry to `connect` as its second argument:
+A contract declared with `keyScope: "session"` binds to the registry that owns the session's queries. Its queries, commands and streams run in that registry. The server's subscriptions and committed writes use plain keys, and each query's read policy decides what a viewer receives. The [contract guide](https://github.com/ShivaeDev/platform/blob/main/packages/contract/README.md#session-owned-keys) describes the declaration and its handlers. `SessionBoundary` passes that registry to `connect` as its second argument:
 
 ```tsx
 import { bind } from "@shivaedev/contract/bind.ts";
@@ -334,7 +334,7 @@ const add = useAction(api.add);
 add.dispatch({ title: "Morning walk" });
 ```
 
-`api` comes from `makeClient` over the module's generated contract, as the [contract guide](https://github.com/ShivaeDev/platform/blob/main/packages/contract/README.md#the-wire-and-the-browsers-contract) describes, with a `list` query and an `add` command that takes `{ title }`. The command's success refreshes the queries that read its keys.
+`api` comes from `makeClient` over the module's generated contract, as the [contract guide](https://github.com/ShivaeDev/platform/blob/main/packages/contract/README.md#the-wire-and-the-browsers-contract) describes, with a `list` query and an `add` command that takes `{ title }`. The server reruns the queries that read the command's keys and pushes their new results.
 
 An action's `dispatch(input)` returns `void`. Read the atom's latest result from `data`, `cause` or `result`. With the default `Atom.fn` action, a later dispatch interrupts the earlier work and the shared state reports the later result.
 
@@ -486,7 +486,7 @@ export function OneShotEdit({ opening, onSaved }: { readonly opening: VersionedL
 
 The app captures the opening record once. Pass a stable `onSaved` callback to close the dialog, navigate or record a completion message; mount a new form for another opening. Domain data, including expected versions and any Undo payload, stays in the app. A `Conflict` shows the server's message through the notice host and keeps the input; the typed error is also in `failure`. Field rejections stay on the submitted form until corrected; stale-rejection matching belongs to form. Success uses `useCreate`'s normal reset to opening values while preserving input changed during submission, so `onSaved` owns what happens next rather than turning this into a continuing editor.
 
-Use `useEditor` for a continuing editor that subscribes to a record, merges refreshes and receives saved rows as its new baseline. Its `loaded` option supplies the initial row, usually from a route loader; it still requires `query` because the query owns identity, refresh and invalidation. Supplying `loaded` does not make an editor query-free. In either pattern contract owns the command Effect and invalidation, form owns submission and field errors, and react exposes query state where a query exists.
+Use `useEditor` for a continuing editor that subscribes to a record, merges refreshes and receives saved rows as its new baseline. Its `loaded` option supplies the initial row, usually from a route loader; it still requires `query` because the query owns identity, refresh and the server's pushed changes. Supplying `loaded` does not make an editor query-free. In either pattern contract owns the command Effect and its declared changes, form owns submission and field errors, and react exposes query state where a query exists.
 
 #### Failures of commands and saves
 
@@ -519,7 +519,7 @@ A missing handler is a compile error that names the tag. `useAction(api.retitle)
 
 #### Query, command and form feedback
 
-Use `useQuery` with `QueryView` for reads, `useAction` with a bound command for commands, and `useCreate` or `useEditor` for form submissions. Give these owners success notice descriptors and mount one `NoticeHost` inside the session boundary; failures reach it as the previous section describes. contract still runs commands and invalidates queries; form still owns submission, fields and drafts. The app supplies wording, Undo payloads and expected versions.
+Use `useQuery` with `QueryView` for reads, `useAction` with a bound command for commands, and `useCreate` or `useEditor` for form submissions. Give these owners success notice descriptors and mount one `NoticeHost` inside the session boundary; failures reach it as the previous section describes. contract still runs commands, and the server pushes the queries they change; form still owns submission, fields and drafts. The app supplies wording, Undo payloads and expected versions.
 
 `useAction` with a command accepts `notices.onSuccess(value, input)`, which returns a descriptor or `undefined`. Independent concurrent completions publish independently, preserving the invocation's input. `useCreate` and `useEditor` accept the same `notices` option around their existing save Effects. Use the descriptors instead of screen-local notice state, expiry timers or result-watching effects:
 
@@ -560,7 +560,7 @@ const save = useCreate(api.save, {
 });
 ```
 
-Here `api` belongs to the app, and `api.save` takes `{ title }` and returns the saved title. Render `notes` through `QueryView`: its loading renderer shows pending work, its failure renderer offers `notes.refresh` as Retry, and its content renderer holds the form and command controls. Bind fields with form's `useField`, submit with `save.save()` and disable Save with `save.saving`. A tagged field rejection stays beside that input. A held save keeps newer edits when it completes and publishes its success notice before the invalidated query finishes. A failed refresh keeps the last content and the draft while publishing the refresh notice.
+Here `api` belongs to the app, and `api.save` takes `{ title }` and returns the saved title. Render `notes` through `QueryView`: its loading renderer shows pending work, its failure renderer offers `notes.refresh` as Retry, and its content renderer holds the form and command controls. Bind fields with form's `useField`, submit with `save.save()` and disable Save with `save.saving`. A tagged field rejection stays beside that input. A held save keeps newer edits when it completes and publishes its success notice before the server pushes the changed query. A failed refresh keeps the last content and the draft while publishing the refresh notice.
 
 Replacing the session during a command or Undo disposes the outgoing registry: late completion callbacks and outcomes do not publish, and retained notice action and dismiss handlers cannot change the new host.
 
@@ -662,8 +662,6 @@ function EnabledToggle({ row }: { readonly row: { readonly id: number; readonly 
 The example assumes a bound `api.toggle` that takes `{ id, enabled }`. Its `run` and `runtime` are the command's identity and must stay the same between renders, as for `useAction`. Each use of the hook owns its action state, so one row can fail while another keeps its requested display.
 
 `command.value` changes on dispatch and holds the requested value until the command is [reflected](https://github.com/ShivaeDev/platform/blob/main/packages/contract/README.md#when-a-commands-change-is-on-the-screen): every live query open on the connection shows the server's state after it. A switch backed by a live query therefore does not fall back to the old server value between the command's reply and the server's update, and a command that changes nothing frees the switch without an update. `pending` covers that whole interval, and `result`, `data` and `cause` settle when it ends. After the hold ends, `value` follows the server again, even if it differs from the requested value. A command failure immediately returns to the server value and remains typed in `result` and `cause`, just as with `useAction`. This binding holds a display value; it applies no optimistic update and does not write to the query cache.
-
-Queries the client reloads itself, such as those of a client made with `live: false`, are not part of a command's reflection. List them as `queries`, an array that keeps its identity between renders, and the hold also lasts while any of them is reloading; `result` can then already be successful while `pending` still waits. `queries` adds no invalidations.
 
 #### Trace an action across RPCs
 
@@ -814,7 +812,7 @@ Without a callback at either level, failures keep their normal error or not-foun
 
 For a loader that coordinates more work, use `loadQuery(registry, atom, loaderContext)` from `@shivaedev/react/adapters/loadQuery.ts` directly. It reads the atom in the supplied registry and throws typed failures unchanged, including `NotFound`; the loader decides how to handle them.
 
-`defaultPendingMs: Infinity` keeps the current route's data visible during navigation; the shell reads TanStack's `isLoading` to display pending state. The new route commits when its loader settles. This is TanStack's pending policy, separate from `useQuery`'s retained display. The loader hands its query over to the route's component: the first render has the loaded value, and the query handler runs once, for a live subscription and for a `live: false` query alike, even when the route mounts after the registry’s idle window.
+`defaultPendingMs: Infinity` keeps the current route's data visible during navigation; the shell reads TanStack's `isLoading` to display pending state. The new route commits when its loader settles. This is TanStack's pending policy, separate from `useQuery`'s retained display. The loader hands its query over to the route's component: the first render has the loaded value, and the query handler runs once even when the route mounts after the registry’s idle window.
 
 `useQuery()` reads the current match's params, decoded search, context and loader value, and exposes `data` as the query's success type, with no `Option` or Initial result. It takes the options of `useQuery` from `@shivaedev/react/client/resultState.ts`. Call it inside the route's component or a component it renders. Refetches keep the last value visible. `useQuery`, a route's `useQuery()` and a loader-backed editor’s `query` expose `denied: true` for `QueryReadDenied`, alongside the typed `cause`. Use this state to replace retained content with the application’s not-found screen after access is revoked. Refused live queries stay refused through change notifications until their input or viewer changes. For a loader-backed editor, spread the route's `useLoaded()`, which returns its atom as `query` and the loader value as `loaded`: `useEditor(api.save, { ...noteQuery.useLoaded(), fixed: { id } })`. Its form is defined on the first render and `editor.query.data` is the row directly. A loader written with `loadQuery` reads its atom with `useLoaderQuery(atom, route.useLoaderData())` from `@shivaedev/react/client/useLoaderQuery.ts`, which `useQuery()` uses underneath.
 
@@ -1163,17 +1161,18 @@ const Add = command("add", {
 export const Notes = defineModule({ middleware: Authenticated, name: "notes", operations: [List, Add], wire: notesWire });
 ```
 
-`model.ts` declares `notes` as `collection("notes", Schema.Number)` and `NoteTitle` as `Schema.Struct({ title: Schema.String })`, and `services.ts` declares `NoteTitles` with an `all` Effect of titles and an `add(title)` method. Keep the engine, rendering and verbs in a story kit under `src/test-support/notesScreen.tsx`. This kit serves the module's own handlers from `moduleHandlers` over native RPC, with an in-memory `NoteTitles` and a fake `Authenticated` that signs alice in, binds the generated contract and gives the screen driver the registry's pending signal:
+`model.ts` declares `notes` as `collection("notes", Schema.Number)` and `NoteTitle` as `Schema.Struct({ title: Schema.String })`, and `services.ts` declares `NoteTitles` with an `all` Effect of titles and an `add(title)` method. Keep the engine, rendering and verbs in a story kit under `src/test-support/notesScreen.tsx`. This kit serves the module's own handlers from `moduleHandlers` over native RPC, with an in-memory `NoteTitles` and a fake `Authenticated` that signs alice in, serves them live in-process as the application host does, binds the generated contract and gives the screen driver the registry's pending signal and the client's activity, so `settle()` also waits for a command until the server has pushed its change:
 
 ```tsx
 import { Effect, Layer, Option, Ref } from "effect";
 import { act, createElement } from "react";
 import { makeClient } from "@shivaedev/contract/bind.ts";
+import { activityScreenSignal, clientActivity } from "@shivaedev/contract/clientActivity.ts";
 import { moduleHandlers } from "@shivaedev/contract/moduleHandlers.ts";
 import { CurrentViewer } from "@shivaedev/contract/readPolicy.ts";
 import { Identity } from "@shivaedev/identity/identity.ts";
 import { Authenticated } from "@shivaedev/identity/middleware.ts";
-import { layerMemoryProtocol } from "@shivaedev/test-kits/contract/testing.ts";
+import { layerLiveMemoryProtocol } from "@shivaedev/test-kits/contract/liveMemoryProtocol.ts";
 import { screenPending } from "@shivaedev/react/screenPending.ts";
 import { useAction, useQuery } from "@shivaedev/react/client/resultState.ts";
 import { render } from "@shivaedev/test-story/client/adapters/react.ts";
@@ -1195,11 +1194,11 @@ export const notesScreen = storyKit({
 			effect.pipe(Effect.provideService(CurrentViewer, Option.some({ id: "alice" })), Effect.provideService(Identity, { id: "alice" })),
 		);
 		const handlers = moduleHandlers(NotesModule).pipe(Layer.provide(titles));
-		const { api } = makeClient(Notes, {
-			live: false,
-			protocol: layerMemoryProtocol(NotesModule.application).pipe(Layer.provide([handlers, signedIn])),
+		const connection = makeClient(Notes, {
+			protocol: layerLiveMemoryProtocol(NotesModule, Layer.merge(handlers, signedIn)),
 			url: "memory://notes",
 		});
+		const { api } = connection;
 		function NotesView() {
 			const list = useQuery(api.list.query());
 			const add = useAction(api.add);
@@ -1223,16 +1222,17 @@ export const notesScreen = storyKit({
 			(mounted) => Effect.promise(mounted.unmount),
 		);
 		const pending = yield* screenPending().pipe(Effect.provideService(AtomRegistry.AtomRegistry, view.registry));
-		return { pending, view };
+		return { activity: clientActivity(connection), pending, view };
 	},
 	inspect: ({ view }) => ({ screen: view.container.textContent }),
 	name: "notes screen",
 	stages: ["screen"],
-	verbs: ({ pending, view }, story) =>
+	verbs: ({ activity, pending, view }, story) =>
 		screenDriver({
 			act: async (action) => {
 				await act(action);
 			},
+			activity: activityScreenSignal(activity),
 			pending,
 			root: view.container,
 			tell: story.tell,
@@ -1250,7 +1250,7 @@ import { notesScreen } from "#test/notesScreen.tsx";
 Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 expectNoReactWarnings();
 
-notesScreen.it("a command refetches the rendered notes through native RPC", [], function* ({ click, settle, text }) {
+notesScreen.it("a command's change reaches the rendered notes through the live subscription", [], function* ({ click, settle, text }) {
 	yield* settle();
 	expect(text("output")).toBe("");
 

@@ -53,11 +53,9 @@ export const commandEngine = Effect.gen(function* () {
 			Layer.provide(Socket.layerWebSocket(host.url.replace(/^http/u, "ws")).pipe(Layer.provide(Socket.layerWebSocketConstructorGlobal))),
 			Layer.provide(RpcSerialization.layerNdjson),
 		),
-		live = true,
 	) {
 		const client = makeClient(Counter, {
 			...(custom ? { protocol } : {}),
-			...(live ? {} : { live: false }),
 			resume: native.source,
 			resumeWindow: browser.window,
 			runtime,

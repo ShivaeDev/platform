@@ -61,10 +61,9 @@ export const deniedEngine = Effect.gen(function* () {
 	);
 	const native = syntheticNative();
 	const api = bind(Records, Client, { resume: native.source });
-	const clientReactivity = AtomRegistry.getResult(registry, Client.runtime.atom(Effect.service(Reactivity.Reactivity)));
 	function run<A, E>(effect: Effect.Effect<A, E, Client | Reactivity.Reactivity>) {
 		return AtomRegistry.getResult(registry, Client.runtime.atom(effect));
 	}
-	return { access, api, attempts, clientReactivity, native, reactivity, registry, run, view: api.pushed.query() };
+	return { access, api, attempts, native, reactivity, registry, run, view: api.pushed.query() };
 });
 export type DeniedEngine = Effect.Success<typeof deniedEngine>;

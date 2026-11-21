@@ -46,9 +46,10 @@ export const jobsScreen = storyKit({
 			openJob: (name: string) => Effect.andThen(driver.click({ name: engine.ids.get(name) ?? name, role: "button" }), driver.settle()),
 			previousPage: () => Effect.andThen(driver.click({ name: "Previous", role: "button" }), driver.settle()),
 			reconnects: () => {
-				story.tell("the host accepts the held reconnection");
+				story.tell("the host accepts the held reconnection and the live retry's longest jittered delay passes");
+				// The live retry doubles a one-second delay with up to a fifth of jitter, so its second attempt can wait 2.4 seconds.
 				return Effect.andThen(
-					Effect.andThen(engine.host.accept, TestClock.adjust("2 seconds")),
+					Effect.andThen(engine.host.accept, TestClock.adjust("5 seconds")),
 					driverFor(engine, story.tell, isClientIdle).settle(),
 				);
 			},
