@@ -1,8 +1,8 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { nativeSessions, nativeTransport, passwordAccount } from "#test/native-sessions/story.ts";
+import { nativeSessions, passwordAccount } from "#test/native-sessions/story.ts";
 
-const shell = [nativeTransport, passwordAccount("alice")];
+const shell = [passwordAccount("alice")];
 const UNAUTHORIZED = "failed with unauthorized";
 
 nativeSessions.it(

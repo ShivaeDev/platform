@@ -1,4 +1,4 @@
-import { Effect, type Scope } from "effect";
+import { Effect, Option, type Scope } from "effect";
 import { Headers, HttpServerRequest, HttpServerResponse } from "effect/http";
 import * as HttpStatus from "effect/http/HttpStatus";
 import { isAuthUnavailable, isForbidden } from "@shivaedev/errors/taxonomy.ts";
@@ -14,22 +14,20 @@ export function socketRpc(
 	handler: Effect.Effect<HttpServerResponse.HttpServerResponse, never, HttpServerRequest.HttpServerRequest | Scope.Scope>,
 	policy: Extract<HostPolicy, { readonly policy: "loopback" }>,
 	trustedProxy: string | undefined,
-	nativeOrigins: readonly string[],
 ): Effect.Effect<HttpServerResponse.HttpServerResponse, never, HttpServerRequest.HttpServerRequest | Scope.Scope>;
 export function socketRpc(
 	handler: Effect.Effect<HttpServerResponse.HttpServerResponse, never, HttpServerRequest.HttpServerRequest | Scope.Scope>,
 	policy: HostPolicy,
 	trustedProxy: string | undefined,
-	nativeOrigins: readonly string[],
 ): Effect.Effect<HttpServerResponse.HttpServerResponse, never, HttpServerRequest.HttpServerRequest | Scope.Scope | SessionPolicy>;
 export function socketRpc(
 	handler: Effect.Effect<HttpServerResponse.HttpServerResponse, never, HttpServerRequest.HttpServerRequest | Scope.Scope>,
 	policy: HostPolicy,
 	trustedProxy: string | undefined,
-	nativeOrigins: readonly string[],
 ) {
 	return Effect.gen(function* () {
 		const request = yield* HttpServerRequest.HttpServerRequest;
+		const nativeOrigins = Option.getOrUndefined(yield* Effect.serviceOption(SessionPolicy))?.nativeOrigins;
 		if (!((yield* UnixSocketRequest) || localTransport(trustedProxy, nativeOrigins)(request))) {
 			return HttpServerResponse.text("Local same-origin requests only", { status: HttpStatus.fromLiteral("Forbidden") });
 		}

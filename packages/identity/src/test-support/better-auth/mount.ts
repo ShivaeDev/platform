@@ -154,6 +154,14 @@ export const mount = storyKit({
 			story.tell(`alice signs up from ${origin} through a development proxy that sends Host ${authority}`);
 			return signUpThroughProxy(engine, origin, authority);
 		},
+		startDeclaring: (origins: readonly string[]) => {
+			story.tell(`an auth host starts with an auth declaration naming the native origins ${origins.join(", ")}`);
+			return startMountHost({ ...engine, nativeOrigins: origins }).pipe(
+				Effect.provide(memoryStore),
+				Effect.as("started"),
+				Effect.catchTag("ConfigError", () => Effect.succeed("failed with config error")),
+			);
+		},
 		startSecondHost: () => {
 			story.tell("a second auth host starts in the same process");
 			return startMountHost(engine).pipe(Effect.provide(memoryStore));
@@ -168,6 +176,12 @@ export const mount = storyKit({
 export function authOptions(line: string, options: Pick<BetterAuthOptions, "baseURL" | "trustedOrigins">) {
 	return mount.trait("configured", line, (engine) => {
 		Object.assign(engine.authOptions, options);
+	});
+}
+
+export function nativeOrigins(origins: readonly string[]) {
+	return mount.trait("configured", `the auth declaration names the native origins ${origins.join(", ")}`, (engine) => {
+		engine.nativeOrigins = origins;
 	});
 }
 

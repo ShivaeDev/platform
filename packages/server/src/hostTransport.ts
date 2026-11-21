@@ -1,7 +1,6 @@
 import { Config, Effect, Option, Result, Schema } from "effect";
 import * as NetAddress from "effect/net/NetAddress";
 import { TrustedProxy } from "@shivaedev/identity/server/adapters/trustedProxy.ts";
-import { NativeOrigins } from "#nativeClientOrigins.ts";
 import { TrustedProxyRequired } from "#TrustedProxyRequired.ts";
 
 interface Options {
@@ -12,7 +11,6 @@ interface Options {
 		readonly maxBodySize?: number;
 		readonly trustedProxy?: string;
 	};
-	readonly nativeOrigins?: readonly string[];
 	readonly policy?: "loopback" | undefined;
 }
 export const hostTransport = Effect.fn("Platform.hostTransport")(function* (options: Options) {
@@ -38,8 +36,5 @@ export const hostTransport = Effect.fn("Platform.hostTransport")(function* (opti
 	if (!socketOnly && options.policy !== "loopback" && !loopback && trustedProxy === undefined) {
 		return yield* Effect.fail(new TrustedProxyRequired());
 	}
-	const nativeOrigins = yield* Schema.decodeUnknownEffect(NativeOrigins)(options.nativeOrigins ?? []).pipe(
-		Effect.mapError((cause) => new Config.ConfigError(cause)),
-	);
-	return { bodySize, host, nativeOrigins, trustedProxy };
+	return { bodySize, host, trustedProxy };
 });

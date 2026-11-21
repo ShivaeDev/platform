@@ -9,7 +9,8 @@ import type { SessionShape } from "#server/session.ts";
 export const sessionRequest = Effect.fnUntraced(function* (headers: Headers.Headers, rpc: string) {
 	const policy = yield* SessionPolicy;
 	const request = yield* transportOriginRequest(headers, rpc);
-	if (!policy.origin(request)) {
+	const native = Option.exists(request.origin, (origin) => policy.nativeOrigins?.includes(origin) === true);
+	if (!(native || policy.origin(request))) {
 		const refused = Option.match(request.origin, { onNone: () => "a request without an Origin header", onSome: (origin) => `origin ${origin}` });
 		yield* Effect.logWarning(
 			`The session policy refused ${refused} calling ${rpc}. Add the origin to the policy's trusted origins if the application is served from it.`,

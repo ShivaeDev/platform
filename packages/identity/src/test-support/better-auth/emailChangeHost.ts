@@ -34,9 +34,8 @@ export const emailChangeHost = Effect.fnUntraced(function* () {
 	};
 	yield* migrateBetterAuth({ options });
 	const mounted = yield* betterAuthMount(
-		{ options },
+		{ nativeOrigins: ["capacitor://localhost"], options },
 		{
-			bearerSessions: { origins: ["capacitor://localhost"] },
 			emails: {
 				deliver: (message) => Effect.sync(() => void messages.push(message)),
 				routes: {
