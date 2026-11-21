@@ -6,6 +6,7 @@ import { RpcClient, RpcSerialization } from "effect/rpc";
 import { Migrator } from "effect/sql";
 import { contract } from "@shivaedev/contract/contract.ts";
 import { query } from "@shivaedev/contract/operation.ts";
+import { AuthUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
 import type { AppModule } from "@shivaedev/server/AppModule.ts";
 import { appHost } from "@shivaedev/server/appHost.ts";
@@ -48,6 +49,7 @@ const ReportApi = contract("report", {
 			payload: { account: Schema.String, instant: Instant },
 			readPolicy: () => Effect.succeed(true),
 			reads: () => [],
+			rejections: { AuthUnavailable },
 			success: Schema.String,
 		}),
 	],
@@ -79,9 +81,9 @@ export const preferencesHost = Effect.fnUntraced(function* (dayStart?: number) {
 				"clock.day": ({ instant }) =>
 					Effect.gen(function* () {
 						return yield* (yield* AccountClock).logicalDay((yield* Subject).id, instant);
-					}).pipe(Effect.orDie),
+					}),
 				"clock.days": ({ accounts, instant }) =>
-					Effect.flatMap(AccountClock, (clock) => Effect.forEach(accounts, (account) => clock.logicalDay(account, instant))).pipe(Effect.orDie),
+					Effect.flatMap(AccountClock, (clock) => Effect.forEach(accounts, (account) => clock.logicalDay(account, instant))),
 				"clock.range": ({ day }) =>
 					Effect.gen(function* () {
 						return yield* (yield* AccountClock).dayRange((yield* Subject).id, day);
@@ -93,7 +95,7 @@ export const preferencesHost = Effect.fnUntraced(function* (dayStart?: number) {
 		{
 			group: ReportApi,
 			handlers: ReportApi.application.toLayer({
-				"report.day": ({ account, instant }) => Effect.flatMap(AccountClock, (clock) => clock.logicalDay(account, instant)).pipe(Effect.orDie),
+				"report.day": ({ account, instant }) => Effect.flatMap(AccountClock, (clock) => clock.logicalDay(account, instant)),
 			}),
 			name: "report",
 			services: Layer.empty,

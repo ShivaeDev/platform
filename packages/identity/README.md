@@ -182,7 +182,7 @@ const today = Effect.gen(function* () {
 });
 ```
 
-The registration provides the store to the clock and to the module's operations at once. A self read passes `(yield* Subject).id`, a read that already takes its owner passes that id, and a roster asks once per account. Each call that cannot read the account's preferences fails with `AuthUnavailable`, in the call's own error channel.
+The registration provides the store to the clock and to the module's operations at once. A self read passes `(yield* Subject).id`, a read that already takes its owner passes that id, and a roster asks once per account. Each call that cannot read the account's preferences fails with `AuthUnavailable`, in the call's own error channel, and `dayRange` also fails with `SchemaError` when `day` is not an ISO calendar date. A contract's subject or identity middleware already declares `AuthUnavailable`; a native query without either declares `rejections: { AuthUnavailable }`.
 
 `logicalDay(account, instant)` returns the account's ISO calendar date; omitting the instant uses Effect's current clock. An account without saved preferences reads `UTC`. `dayRange(account, day)` returns UTC `DateTime` values `{ start, end }`, with an inclusive start and exclusive end. Endpoints are constructed separately in local calendar time: a 04:00 New York day spanning spring DST lasts 23 hours, and one spanning autumn DST lasts 25 hours. The exact boundary belongs to the new logical day. Applications use `timestamp >= start && timestamp < end` when grouping records. Day starts within a DST gap use Effect's compatible disambiguation (later in a gap, earlier in an overlap).
 
