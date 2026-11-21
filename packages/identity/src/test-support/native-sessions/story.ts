@@ -7,6 +7,7 @@ import { type Host, NATIVE_ORIGIN, startHost } from "#test/native-sessions/host.
 import { mintAccounts } from "#test/native-sessions/mintAccounts.ts";
 import type { Account } from "#test/native-sessions/requests.ts";
 import { requestVerbs } from "#test/native-sessions/requestVerbs.ts";
+import { shellVerbs } from "#test/native-sessions/shellVerbs.ts";
 import { socketVerbs } from "#test/native-sessions/socketVerbs.ts";
 import { sessionVerbs } from "#test/native-sessions/verbs.ts";
 import { databaseUrl, postgres } from "#test/postgres.ts";
@@ -42,6 +43,7 @@ export const nativeSessions = storyKit({
 			...diagnosticVerbs(host, state.accounts, story.tell),
 			...requestVerbs(host, state.accounts, story.tell),
 			...sessionVerbs(host, state.accounts, story.tell),
+			...shellVerbs(host, state.accounts, story.tell),
 		};
 	},
 });

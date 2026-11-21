@@ -240,7 +240,7 @@ const bearerToken = Redacted.value(local.token);
 const machine = yield* local.machines.issue({ name: "reader agent", scope: "reader" });
 ```
 
-Pass `sessions` to `appHost` and hand `bearerToken` directly from the launching process to its own client. Use the session host with contracts declaring `Authenticated`, `AuthenticatedUser` or permission middleware. The existing `makeClient` option `bearerToken` sends HTTP authorization and the WebSocket's first authentication frame. Native HTTP callers send `Authorization: Bearer <token>`. Credentials are required even on loopback; the policy also requires a loopback Host and peer and the existing same-origin check. Authenticated handlers, query read policies and audit code receive the configured owner's id.
+Pass `sessions` to `appHost` and hand `bearerToken` directly from the launching process to its own client. Use the session host with contracts declaring `Authenticated`, `AuthenticatedUser` or permission middleware. Pass it to `makeClient` as `bearerToken: Effect.succeed(bearerToken)`, which sends it as the WebSocket's first authentication frame. Native HTTP callers send `Authorization: Bearer <token>`. Credentials are required even on loopback; the policy also requires a loopback Host and peer and the existing same-origin check. Authenticated handlers, query read policies and audit code receive the configured owner's id.
 
 The owner credential lasts for this provider instance. Machine credentials persist in PostgreSQL as SHA-256 digests, and `issue` returns a redacted credential once. A machine acts on behalf of the owner, with `SessionUser.role` and `permissions` resolved solely from its scope through the application's `roleSet`. Use permission middleware for owner-only commands; an owner id alone does not distinguish machine rights. An undeclared scope cannot be issued. `machineTokens` from `server/machineTokens.ts` also exposes this store independently, taking `{ owner, roles }` and returning `issue`, `resolve` and `revoke`; resolved machine sessions include `{ machine: { id, name, scope }, user }`.
 
@@ -521,7 +521,40 @@ const host = appHost({ group, handlers, routes: mounted.routes, sessions, native
 
 Always take the provider from the mount's `sessions`, or wrap a custom lookup in `admittedSessions`, even without a sign-in policy: both apply the mount's credential selection to the same request-local identity, profile and role middleware used by cookies. A same-origin request or a request without an Origin carrying the session cookie uses only that cookie, even if invalid or revoked; its bearer header cannot switch accounts or rescue it. Otherwise the signed bearer is resolved by Better Auth. Missing, unsigned, tampered, expired and revoked bearer sessions produce `Unauthorized` at protected RPCs.
 
-A native client signs in through `/api/auth/sign-in/email` with `credentials: "omit"` and its bundled Origin, reads the signed credential from the `set-auth-token` response header, and sends that exact value as `Authorization: Bearer <credential>` with `credentials: "omit"` on later auth and RPC requests. Persist it only in OS-backed secure storage, such as iOS Keychain or Android Keystore-backed storage; never use localStorage, sessionStorage or IndexedDB. Browser responses keep HttpOnly cookies and omit the plugin's token header and JSON token fields. Clients without a bundled Origin receive cookie responses.
+A native client keeps its signed credential behind identity's credential port and hands its storage to one Layer. `SessionCredential` from `@shivaedev/identity/client/SessionCredential.ts` is shaped like `SessionMemory`: `read`, `write` and `clear` Effects that fail with `SessionCredentialUnavailable`. The application's Layer wraps the OS-backed secure storage of its shell's plugin, such as iOS Keychain or Android Keystore-backed storage, in its own `adapters/`; never use localStorage, sessionStorage or IndexedDB. For a Capacitor shell with a secure-storage plugin:
+
+```ts
+import { SecureStorage } from "@aparajita/capacitor-secure-storage";
+import { Effect, Layer } from "effect";
+import { SessionCredential, SessionCredentialUnavailable } from "@shivaedev/identity/client/SessionCredential.ts";
+
+const KEY = "session-credential";
+
+function secure<A>(call: () => Promise<A>) {
+	return Effect.tryPromise({ catch: (cause) => new SessionCredentialUnavailable({ cause }), try: call });
+}
+
+export const secureCredential = Layer.succeed(SessionCredential, {
+	clear: secure(() => SecureStorage.remove(KEY)).pipe(Effect.asVoid),
+	read: secure(() => SecureStorage.get(KEY)).pipe(Effect.map((value) => (typeof value === "string" ? value : null))),
+	write: (value) => secure(() => SecureStorage.set(KEY, value)).pipe(Effect.asVoid),
+});
+```
+
+Pass that Layer to the Better Auth client as a plugin, and to `makeClient` through `storedCredential`:
+
+```ts
+import { createAuthClient } from "better-auth/client";
+import { Effect } from "effect";
+import { makeClient } from "@shivaedev/contract/makeClient.ts";
+import { sessionCredentialClient } from "@shivaedev/identity/client/adapters/sessionCredentialClient.ts";
+import { storedCredential } from "@shivaedev/identity/client/SessionCredential.ts";
+
+export const authClient = createAuthClient({ baseURL: publicOrigin, plugins: [sessionCredentialClient(secureCredential)] });
+const client = makeClient(contracts, { bearerToken: Effect.provide(storedCredential, secureCredential), registry, url: `${publicOrigin}/rpc` });
+```
+
+The plugin sends every auth request with `credentials: "omit"` and the stored credential as `Authorization: Bearer <credential>`, stores the `set-auth-token` header of a sign-in answer, and clears the credential when sign-out succeeds or a `get-session` check answers signed out. An answer changes the stored credential only when its request carried the credential stored at the moment it answers, so a session check sent before sign-in that answers signed out after it leaves the new credential in place. The application never reads or writes the token itself. Browser responses keep HttpOnly cookies and omit the plugin's token header and JSON token fields. Clients without a bundled Origin receive cookie responses.
 
 Native sign-out revokes the stored session. Signing in again while sending the current bearer replaces it and revokes the old session after successful sign-in. Streams keep their original request headers, so the old session ends with `Unauthorized` on the next revalidation; it never adopts the replacement. Keep cookie caching disabled for database-backed revocation and choose `streamRevalidationInterval` for the required delivery window.
 
@@ -529,7 +562,7 @@ Native sign-out revokes the stored session. Signing in again while sending the c
 
 The host answers native preflights with POST for RPC, GET and POST for auth, and only `Authorization` and `Content-Type` headers. Native responses echo the allowed origin exactly with `Vary: Origin`; auth responses expose `set-auth-token`. Native responses never enable CORS credentials. It strips cookies from admitted native requests before auth or RPC session resolution, so only the signed bearer session can authenticate them. This prevents native access from opening a cookie CSRF path, even if a caller sends a cookie. Resource authorization remains app-owned.
 
-A WebView's live queries subscribe over the shared WebSocket client: pass the signed credential as `bearerToken` to contract's `makeClient`, which sends it as the socket's first frame, as the [contract guide](https://github.com/ShivaeDev/platform/blob/main/packages/contract/README.md#build-a-shared-websocket-client) describes. The host refuses a query's change stream over HTTP with `WebSocketRequired`. Over HTTP, use the WebView's own fetch with `credentials: "omit"` for commands, one-off reads and explicit NDJSON streams, and abort a stream's request to release server work; a buffering native HTTP bridge cannot deliver a stream incrementally. The host still validates trusted proxy peers and forwarded authority, enforces NDJSON and body limits, uses only transport credentials, redacts diagnostics and authorizes sessions. Native HTTP callers without an Origin can exercise bearer RPC with an origin policy that explicitly permits missing Origins.
+A WebView's live queries subscribe over the shared WebSocket client. `storedCredential` reads the port each time the socket connects: contract's `makeClient` sends the credential stored then as the socket's first frame, as the [contract guide](https://github.com/ShivaeDev/platform/blob/main/packages/contract/README.md#build-a-shared-websocket-client) describes, and connects without one when none is stored. A new client after each sign-in, sign-out or second sign-in, as React's `SessionBoundary` makes one per session, therefore carries the current credential. The host refuses a query's change stream over HTTP with `WebSocketRequired`. Over HTTP, use the WebView's own fetch with `credentials: "omit"` for commands, one-off reads and explicit NDJSON streams, and abort a stream's request to release server work; a buffering native HTTP bridge cannot deliver a stream incrementally. The host still validates trusted proxy peers and forwarded authority, enforces NDJSON and body limits, uses only transport credentials, redacts diagnostics and authorizes sessions. Native HTTP callers without an Origin can exercise bearer RPC with an origin policy that explicitly permits missing Origins.
 
 ### Decide who may sign in
 
