@@ -1,7 +1,18 @@
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { GitHubAppError } from "#errors.ts";
-import { exchangeDropped, exchangeMalformed, exchangeOversized, exchangeReset, lookupDropped, lookupRefused } from "#test/appFailureTraits.ts";
-import { appGithub, exchangeRefused } from "#test/appGithub.ts";
+import {
+	exchangeBadCredentials,
+	exchangeDropped,
+	exchangeMalformed,
+	exchangeOversized,
+	exchangeRefused,
+	exchangeReset,
+	exchangeSuspended,
+	lookupDropped,
+	lookupRefused,
+} from "#test/appFailureTraits.ts";
+import { appGithub } from "#test/appGithub.ts";
 
 appGithub.it(
 	"an exchange connection failure reaches the caller as transport with the original cause off the wire",
@@ -28,11 +39,35 @@ appGithub.it(
 	},
 );
 
-appGithub.it("a refused exchange reaches the caller with a status reason and HTTP 401", [exchangeRefused], function* ({ appFailures, readPull }) {
-	yield* readPull();
+for (const [trait, status, detail] of [
+	[exchangeBadCredentials, 401, "Bad credentials"],
+	[exchangeSuspended, 403, "This installation has been suspended"],
+] as const) {
+	appGithub.it(
+		`a refused exchange reaches the caller with a status reason, HTTP ${status} and GitHub's message`,
+		[trait],
+		function* ({ appFailures, readPull }) {
+			yield* readPull();
 
-	expect(yield* appFailures()).toMatchObject([{ _tag: "GitHubAppError", reason: "status", status: 401 }]);
-});
+			const [failure] = yield* appFailures();
+			expect(failure).toMatchObject({ _tag: "GitHubAppError", detail, reason: "status", status });
+			expect(failure instanceof GitHubAppError && failure.message).toBe(`GitHub refused the App request with HTTP ${status}: ${detail}`);
+		},
+	);
+}
+
+appGithub.it(
+	"a refused exchange whose message echoes the App JWT carries the message with the JWT redacted",
+	[exchangeRefused],
+	function* ({ appFailures, credentialsSeenIn, readPull }) {
+		yield* readPull();
+
+		yield* outcomes([
+			["failures", () => appFailures(), [expect.objectContaining({ detail: "Bearer <redacted> <redacted>", reason: "status", status: 401 })]],
+			["credentials seen in", () => credentialsSeenIn(), {}],
+		]);
+	},
+);
 
 for (const [trait, causeTag] of [
 	[exchangeMalformed, "SchemaError"],
@@ -68,7 +103,7 @@ appGithub.it("a signing failure keeps its original crypto cause off the wire", [
 
 for (const [trait, expected] of [
 	[lookupDropped, { reason: "transport" }],
-	[lookupRefused, { reason: "status", status: 401 }],
+	[lookupRefused, { detail: "Bad credentials", reason: "status", status: 401 }],
 ] as const) {
 	appGithub.it(
 		`an installation lookup failure keeps its ${expected.reason} reason before exchanging a token`,

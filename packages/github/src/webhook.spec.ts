@@ -1,6 +1,7 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { appGithub, exchangeRefused } from "#test/appGithub.ts";
+import { exchangeRefused } from "#test/appFailureTraits.ts";
+import { appGithub } from "#test/appGithub.ts";
 
 appGithub.it("a signed workflow_run delivery is decoded once with the caller's Schema", [], function* ({ bodiesDecoded, receive, receiverAnswered }) {
 	yield* receive("a signed delivery");
@@ -44,7 +45,7 @@ appGithub.it("verifying only the signature accepts signed bytes that are not JSO
 });
 
 appGithub.it(
-	"a token exchange GitHub refuses while echoing every credential records its span but keeps every credential out of failures, logs and spans",
+	"a token exchange GitHub refuses while echoing the App JWT records its span but keeps every credential out of failures, logs and spans",
 	[exchangeRefused],
 	function* ({ credentialsSeenIn, readPull, spanNames }) {
 		yield* readPull();
