@@ -3,22 +3,21 @@ import * as Base64 from "effect/encoding/Base64";
 import { FetchHttpClient, HttpClient, HttpClientRequest, HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import { RpcClient, RpcSerialization } from "effect/rpc";
-import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import { COLUMN_KEY_CONFIG } from "@shivaedev/sql/ColumnKey.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { answered } from "@shivaedev/test-story/server/answers.ts";
 import { type OtlpSpan, otlpReceiver } from "@shivaedev/test-story/server/otlpReceiver.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { appHost } from "#appDatabase.ts";
 import { appModules } from "#appModules.ts";
 import { Api, draftsModule, handWrittenNotesModule, notesModule, replacedNotesModule } from "#test/defined-modules/features.ts";
 import { Greetings, greetingsModule } from "#test/defined-modules/greetings.ts";
+import { startAppHost } from "#test/defined-modules/host.ts";
 import { Members, membersModule, privateJoinMembersModule } from "#test/defined-modules/members.ts";
 import { OwnedData, ownedDataModule } from "#test/defined-modules/ownedData.ts";
 import { ProviderTokensModule, providerTokensModule } from "#test/defined-modules/providerTokens.ts";
-import { TestRoles } from "#test/permissions.ts";
 import { databaseUrl, postgres } from "#test/postgres.ts";
+import { spanAttribute } from "#test/spanAttribute.ts";
 import { workerHost } from "#workerHost.ts";
 
 type Caller = "alice" | "a visitor";
@@ -38,19 +37,6 @@ interface State {
 	startup: string;
 	url: string;
 }
-
-const sessions = Layer.succeed(SessionPolicy, {
-	origin: () => true,
-	provider: {
-		get: (headers) =>
-			Effect.succeed(
-				headers.authorization === "alice"
-					? Option.some({ user: { email: "alice@example.test", id: "alice", name: "Alice", role: "user" } })
-					: Option.none(),
-			),
-	},
-	roles: TestRoles,
-});
 
 export const definedModulesHost = storyKit({
 	after: {
@@ -87,24 +73,7 @@ export const definedModulesHost = storyKit({
 				);
 				return;
 			}
-			const config = { databaseUrl: database.url, port: 0 };
-			const host =
-				state.host === "application"
-					? appHost({
-							application: Effect.map(Layer.build(modules.services), (built) => ({
-								config,
-								group: modules.group,
-								handlers: modules.handlers,
-								requestServices: modules.requestServices,
-								services: Layer.succeedContext(built),
-								sessions,
-							})),
-							config,
-							migrations: modules.migrations,
-							postgresSettings: {},
-						})
-					: appHost({ postgresSettings: {}, ...modules, config, sessions });
-			const started = yield* Layer.build(host.pipe(Layer.provide(configured))).pipe(
+			const started = yield* startAppHost(state.host, modules, configured, database.url).pipe(
 				Effect.map(Option.some),
 				Effect.catchTags({
 					ColumnKeyError: (refusal) =>
@@ -204,10 +173,7 @@ export const definedModulesHost = storyKit({
 					if (state.collector === undefined) {
 						return yield* Effect.die("Give the host a collector before reading its exported spans");
 					}
-					const span = yield* state.collector.untilSpan("Members.show");
-					const value = span.attributes.find((attribute) => attribute.key === "member")?.value;
-					const entry = typeof value === "object" && value !== null ? Object.values(value)[0] : value;
-					return typeof entry === "string" ? JSON.parse(entry) : entry;
+					return spanAttribute(yield* state.collector.untilSpan("Members.show"), "member");
 				}),
 			greet: (name: string) => {
 				story.tell(`alice greets ${name} through greetings.greet`);
