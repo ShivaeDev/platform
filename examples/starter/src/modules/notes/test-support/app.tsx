@@ -90,6 +90,15 @@ export const notesApp = storyKit({
 					Effect.timeoutOrElse({ duration: "10 seconds", orElse: () => Effect.die(`The app never reached ${path}`) }),
 					Effect.andThen(settleScreen(engine, story.tell)),
 				),
+			noteWrittenPastTheApp: Effect.fn("NotesApp.noteWrittenPastTheApp")(function* (name: string, title: string) {
+				story.tell(`a note ${JSON.stringify(title)} for ${name} is written straight to PostgreSQL, so no live update announces it`);
+				const sql = yield* SqlClient.SqlClient;
+				const owner = (yield* engine.authStorage.users).find(({ email }) => email === `${name}@app.test`);
+				if (owner === undefined) {
+					return yield* Effect.die(`No account for ${name}`);
+				}
+				yield* sql`insert into notes (title, user_id) values (${title}, ${owner.id})`;
+			}),
 			route: () => Effect.sync(() => engine.history.location.pathname),
 			signInButton: () =>
 				Effect.sync(() => {
