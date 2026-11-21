@@ -1,4 +1,3 @@
-import * as NodeCrypto from "@effect/platform-node/NodeCrypto";
 import * as PgClient from "@effect/sql-pg/PgClient";
 import { Clock, Config, Context, Effect, Layer, Option, Redacted } from "effect";
 import { Digest } from "effect/crypto";
@@ -16,6 +15,7 @@ import type { AppHostFactory } from "#AppHostFactory.ts";
 import type { AppHostInput } from "#AppHostInput.ts";
 import { deferredHost, migratedHost } from "#appDatabaseHttp.ts";
 import { appHostHttp } from "#appHostHttp.ts";
+import { hostCrypto } from "#hostCrypto.ts";
 import type { HostRouteRequirements } from "#hostOptions.ts";
 import { hostPreflight } from "#hostPreflight.ts";
 import { hostSensitiveKeys } from "#hostSensitiveKeys.ts";
@@ -139,12 +139,12 @@ export const appHost: AppHostFactory = <
 ) => {
 	const preflight = hostPreflight(options.preflight, "application" in options ? Effect.succeed(isSensitiveKey) : hostSensitiveKeys(options));
 	if ("application" in options) {
-		return deferredHost(options.application, appDatabase(options)).pipe(Layer.provideMerge(preflight), Layer.provide(NodeCrypto.layer));
+		return deferredHost(options.application, appDatabase(options)).pipe(Layer.provideMerge(preflight), Layer.provide(hostCrypto));
 	}
 	return options.migrations === undefined
-		? appHostHttp(options).pipe(Layer.provideMerge(preflight), Layer.provide(NodeCrypto.layer))
+		? appHostHttp(options).pipe(Layer.provideMerge(preflight), Layer.provide(hostCrypto))
 		: migratedHost({ ...options, migrations: options.migrations }, appDatabase({ ...options, migrations: options.migrations })).pipe(
 				Layer.provideMerge(preflight),
-				Layer.provide(NodeCrypto.layer),
+				Layer.provide(hostCrypto),
 			);
 };

@@ -1,4 +1,5 @@
 import { Context, Effect, Layer, Schema } from "effect";
+import { Digest, SecureRandom } from "effect/crypto";
 import { Rpc, RpcGroup } from "effect/rpc";
 import { Migrator, type SqlClient } from "effect/sql";
 import { expectTypeOf, it } from "vitest";
@@ -6,6 +7,7 @@ import { defineModule } from "@shivaedev/contract/defineModule.ts";
 import { query } from "@shivaedev/contract/operation.ts";
 import { SessionUser } from "@shivaedev/identity/identity.ts";
 import { AuthenticatedUser } from "@shivaedev/identity/middleware.ts";
+import { ColumnKey } from "@shivaedev/sql/ColumnKey.ts";
 import type { AppModule, RegisteredModule } from "#AppModule.ts";
 import { appHost } from "#appDatabase.ts";
 import { appModules } from "#appModules.ts";
@@ -114,6 +116,37 @@ it("a defined module takes its services from any registration or the host, and n
 	expectTypeOf(appModules([greetings])).not.toBeAny();
 	// @ts-expect-error Replacements override default ports, so a service only they provide still needs a registration's default.
 	expectTypeOf(appModules([greetings], { replacements: Layer.succeed(Greeting, "Hi") })).not.toBeAny();
+});
+
+const Tokens = defineModule({
+	middleware: AuthenticatedUser,
+	name: "tokens",
+	operations: [
+		query("issue", {
+			readPolicy: () => Effect.succeed(true),
+			reads: () => [],
+			*run() {
+				const bytes = yield* (yield* SecureRandom.SecureRandom).randomBytes(16);
+				const digest = yield* (yield* Digest.Digest).digest(Digest.sha256, bytes);
+				return `${Effect.isEffect(yield* ColumnKey)}:${digest.length}`;
+			},
+		}),
+		query("greet", {
+			readPolicy: () => Effect.succeed(true),
+			reads: () => [],
+			*run() {
+				return `${yield* Greeting}, ${(yield* (yield* SecureRandom.SecureRandom).randomBytes(1)).length}`;
+			},
+		}),
+	],
+	wire: { greet: { rejections: {}, success: Schema.String }, issue: { rejections: {}, success: Schema.String } },
+});
+const tokens = { module: Tokens, services: Layer.empty } satisfies AppModule;
+
+it("a defined module's operations take the host's crypto services and ColumnKey from the host, and still need a registration for any other service", () => {
+	expectTypeOf(appModules([tokens, greetingPorts])).not.toBeAny();
+	// @ts-expect-error No registration provides Greeting, which the greet query yields beside the host's SecureRandom.
+	expectTypeOf(appModules([tokens])).not.toBeAny();
 });
 
 const annotated: AppModule = notesModule;

@@ -61,20 +61,29 @@ export class ServerOnlyKeyError extends Data.TaggedError("ServerOnlyKeyError")<{
 	}
 }
 
+export class EncryptedKeyError extends Data.TaggedError("EncryptedKeyError")<{
+	readonly tableName: string;
+	readonly fields: readonly string[];
+}> {
+	override get message() {
+		return `Repository for ${this.tableName}: encrypted fields ${JSON.stringify(this.fields)} cannot be an ID column, a bucket or a conflict column, because every write seals them under a fresh random nonce, so equal values never match; key the table by another column`;
+	}
+}
+
 export class OwnerFieldError extends Data.TaggedError("OwnerFieldError")<{
 	readonly tableName: string;
 	readonly fields: readonly string[];
-	readonly reason: "several" | "server-only";
+	readonly reason: "encrypted" | "several" | "server-only";
 }> {
 	override get message() {
 		const repository = `Repository for ${this.tableName}`;
 		return this.reason === "several"
 			? `${repository}: owner fields ${JSON.stringify(this.fields)} each claim the row's person; mark exactly one field as owner`
-			: `${repository}: owner field ${JSON.stringify(this.fields)} is server-only, but it must decode to the plain user id that selects a person's rows for export and erasure`;
+			: `${repository}: owner field ${JSON.stringify(this.fields)} is ${this.reason}, but it must decode to the plain user id that selects a person's rows for export and erasure`;
 	}
 }
 
-export type RepositoryBuildError = BucketRegistrationError | OwnerFieldError | ServerOnlyKeyError;
+export type RepositoryBuildError = BucketRegistrationError | EncryptedKeyError | OwnerFieldError | ServerOnlyKeyError;
 
 export const validateRepositoryCollection = Effect.fnUntraced(function* (
 	fields: Schema.Struct.Fields,
