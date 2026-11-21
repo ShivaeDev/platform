@@ -1,7 +1,7 @@
 import { Deferred, Effect, Schema } from "effect";
 import * as AtomRpc from "effect/reactivity/AtomRpc";
 import { RpcClientError } from "effect/rpc/RpcClientError";
-import { SocketOpenError } from "effect/socket/Socket";
+import { SocketCloseError, SocketOpenError } from "effect/socket/Socket";
 import { bind } from "@shivaedev/contract/bind.ts";
 import { contract } from "@shivaedev/contract/contract.ts";
 import { command, query } from "@shivaedev/contract/operation.ts";
@@ -87,7 +87,7 @@ export function failureClient() {
 	const api = bind(Drafts, Client);
 	return {
 		api,
-		// Custom operations stand in for a lost connection, a server outage, one that answers only when released, and a handler that dies.
+		// Custom operations stand in for a lost connection, a socket the host closed for an oversized message, a server outage, one that answers only when released, and a handler that dies.
 		dies: { run: (_input: { readonly title: string }) => Effect.die(new Error("Database password rejected for user app")), runtime: Client.runtime },
 		heldOutage: {
 			run: (_input: { readonly title: string }) => Effect.andThen(Deferred.await(server.heldOutage), Effect.fail(outage("ServiceUnavailable"))),
@@ -100,6 +100,10 @@ export function failureClient() {
 			runtime: Client.runtime,
 		},
 		server,
+		tooLarge: {
+			run: (_input: { readonly title: string }) => Effect.fail(new RpcClientError({ reason: new SocketCloseError({ closeReason: "", code: 1009 }) })),
+			runtime: Client.runtime,
+		},
 		unavailable: {
 			run: (_input: { readonly title: string }) => (server.outage === "over" ? Effect.void : Effect.fail(outage(server.outage))),
 			runtime: Client.runtime,
