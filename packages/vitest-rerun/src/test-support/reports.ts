@@ -1,8 +1,9 @@
 import { Effect, Schema } from "effect";
+import { DEFAULT_OUTPUT_DIR } from "#defaults.ts";
 import { FlakyTests } from "#flakyTests.ts";
 import { decodeJsonReport, type JsonReport } from "#test/jsonReport.ts";
 import { NODE_ENV_SEEN, RAN } from "#test/specFiles.ts";
-import { lastRun, listFiles, REPORTS, readFile, type Suite } from "#test/suite.ts";
+import { lastRun, listFiles, readFile, type Suite } from "#test/suite.ts";
 
 export interface Testcase {
 	readonly classname: string;
@@ -48,7 +49,7 @@ function testcases(xml: string): readonly Testcase[] {
 
 export function reportReadouts(suite: Suite) {
 	function reportText(name: string): string {
-		const contents = readFile(suite, `${REPORTS}/${name}`);
+		const contents = readFile(suite, `${DEFAULT_OUTPUT_DIR}/${name}`);
 		if (contents === undefined) {
 			throw new Error(`vitest-rerun wrote no ${name}`);
 		}
@@ -83,7 +84,7 @@ export function reportReadouts(suite: Suite) {
 		fileDurations: (file: string) => durations(file, (written) => written.testResults.find((result) => result.name.endsWith(`/${file}`))?.durationMs),
 		flakyTests: () =>
 			Effect.sync(() => {
-				const contents = readFile(suite, `${REPORTS}/flaky-tests.json`);
+				const contents = readFile(suite, `${DEFAULT_OUTPUT_DIR}/flaky-tests.json`);
 				return contents === undefined ? "not written" : Schema.decodeUnknownSync(Schema.fromJsonString(FlakyTests))(contents);
 			}),
 		jsonCoveredFunctions: () =>
@@ -97,11 +98,16 @@ export function reportReadouts(suite: Suite) {
 				Object.fromEntries(json(name).testResults.flatMap((file) => file.assertionResults.map((test) => [testName(test), test.status]))),
 			),
 		jsonSnapshotTotals: () => Effect.sync(() => json("tests.json").snapshot),
+		junitReports: () => Effect.sync(() => listFiles(suite).filter((path) => path.endsWith(".xml"))),
 		junitResults: (name = "tests.junit.xml") => Effect.sync(() => testcases(reportText(name))),
+		missedThreshold: () =>
+			Effect.sync(
+				() => /^ERROR: Coverage for (?<metric>\w+) .+ does not meet global threshold/mu.exec(lastRun(suite).output)?.groups?.metric ?? "none",
+			),
 		nodeEnvSeen: () => Effect.sync(() => readFile(suite, NODE_ENV_SEEN) ?? "no test ran"),
 		printedError: () => Effect.sync(() => /^vitest-rerun: (?<message>.+)$/mu.exec(lastRun(suite).output)?.groups?.message ?? "nothing"),
 		reportContents: (name: string) => Effect.sync(() => reportText(name)),
-		reports: (directory = REPORTS) => Effect.sync(() => listFiles(suite, directory).filter((path) => REPORT_FILE.test(path))),
+		reports: (directory = DEFAULT_OUTPUT_DIR) => Effect.sync(() => listFiles(suite, directory).filter((path) => REPORT_FILE.test(path))),
 		resultsCaches: () =>
 			Effect.sync(() =>
 				listFiles(suite)

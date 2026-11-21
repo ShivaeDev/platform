@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { NodeServices } from "@effect/platform-node";
 import { Effect } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { DEFAULT_OUTPUT_DIR } from "#defaults.ts";
 import { changingIdentity, type IdentityChange } from "#test/identityFiles.ts";
 import { pendingVerbs } from "#test/pendingAttempt.ts";
 import { reportReadouts } from "#test/reports.ts";
@@ -19,7 +20,7 @@ import {
 	passing,
 	unhandledError,
 } from "#test/specFiles.ts";
-import { createSuite, listFiles, REPORTS, readFile, runProgram, spawnCli, writeFile } from "#test/suite.ts";
+import { createSuite, listFiles, readFile, runProgram, spawnCli, spawnQualityCi, writeFile } from "#test/suite.ts";
 
 function withArgs(args: readonly string[]): string {
 	return args.length === 0 ? "" : ` with ${args.join(" ")}`;
@@ -30,7 +31,7 @@ export const rerunStory = storyKit({
 	inspect: (suite) => ({
 		exitCodes: suite.runs.map((run) => run.exitCode),
 		files: listFiles(suite),
-		flakyTests: readFile(suite, `${REPORTS}/flaky-tests.json`),
+		flakyTests: readFile(suite, `${DEFAULT_OUTPUT_DIR}/flaky-tests.json`),
 	}),
 	layer: NodeServices.layer,
 	name: "vitest rerun",
@@ -38,6 +39,10 @@ export const rerunStory = storyKit({
 	verbs: (suite, story) => ({
 		...pendingVerbs(suite),
 		...reportReadouts(suite),
+		qualityCiWithCoverage: () => {
+			story.tell("the application's CI runs quality ci --coverage, and its test script runs vitest-rerun");
+			return spawnQualityCi(suite);
+		},
 		run: (...args: string[]) => {
 			story.tell(`vitest-rerun runs${withArgs(args)}`);
 			return runProgram(suite, args);
@@ -92,9 +97,9 @@ export const STALE_REPORTS = ["flaky-tests.json", "tests.attempt-1.json", "tests
 
 export function staleReports() {
 	return rerunStory.trait("tests", `an earlier run left ${STALE_REPORTS.join(", ")} in the output directory`, (suite) => {
-		mkdirSync(join(suite.directory, REPORTS), { recursive: true });
+		mkdirSync(join(suite.directory, DEFAULT_OUTPUT_DIR), { recursive: true });
 		for (const report of STALE_REPORTS) {
-			writeFile(suite, `${REPORTS}/${report}`, "stale");
+			writeFile(suite, `${DEFAULT_OUTPUT_DIR}/${report}`, "stale");
 		}
 	});
 }
