@@ -1,6 +1,6 @@
 import { createMemoryHistory, type RouterHistory } from "@tanstack/react-router";
 import { Effect } from "effect";
-import { activityScreenSignal, clientActivity } from "@shivaedev/contract/clientActivity.ts";
+import { activityScreenSignal, clientActivity, isClientIdle } from "@shivaedev/contract/clientActivity.ts";
 import type { Rendered } from "@shivaedev/test-story/client/adapters/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { type AppConnection, clientApp } from "#client/app.ts";
@@ -26,13 +26,17 @@ function opened(state: State) {
 	return { connection: state.connection, container: state.view.container };
 }
 
-function driver(state: State, screen: Screen) {
+function driver(state: State, screen: Screen, settledWhen?: typeof isClientIdle) {
 	const { connection, container } = opened(state);
-	return screen.driver(container, activityScreenSignal(clientActivity(connection)));
+	return screen.driver(container, activityScreenSignal(clientActivity(connection), settledWhen));
 }
 
-function settled(state: State, screen: Screen, action: () => Effect.Effect<unknown>) {
-	return Effect.suspend(action).pipe(Effect.andThen(Effect.suspend(() => driver(state, screen).settle())));
+function settled(state: State, screen: Screen, action: () => Effect.Effect<unknown>, settledWhen?: typeof isClientIdle) {
+	return Effect.suspend(action).pipe(Effect.andThen(Effect.suspend(() => driver(state, screen, settledWhen).settle())));
+}
+
+function pressAndAwaitRead(state: State, screen: Screen, button: "Refresh" | "Retry") {
+	return settled(state, screen, () => driver(state, screen).click({ name: button, role: "button" }), isClientIdle);
 }
 
 function texts(state: State, selector: string) {
@@ -49,8 +53,8 @@ export const reportApps = storyKit(
 			noticeActions: () => Effect.sync(() => texts(state, "[data-notice] > button")),
 			// A notice's own paragraph holds its words; the buttons beside it are the host's.
 			notices: () => Effect.sync(() => texts(state, "[data-notice] > p")),
-			pressRefresh: () => settled(state, screen, () => driver(state, screen).click({ name: "Refresh", role: "button" })),
-			pressRetry: () => settled(state, screen, () => driver(state, screen).click({ name: "Retry", role: "button" })),
+			pressRefresh: () => pressAndAwaitRead(state, screen, "Refresh"),
+			pressRetry: () => pressAndAwaitRead(state, screen, "Retry"),
 			reads: () => Effect.sync(() => timesWords(state.backend.reads)),
 			retryOffered: () => Effect.sync(() => texts(state, "button").includes("Retry")),
 			screenFailure: () => Effect.sync(() => texts(state, "[role='alert']:not([data-notice])")),
