@@ -1,13 +1,15 @@
 import { Option } from "effect";
 import { useBrowserErrors } from "@shivaedev/react/client/adapters/useBrowserErrors.ts";
 import { useQuery } from "@shivaedev/react/client/resultState.ts";
+import { SessionApp, type SessionAppProps } from "@shivaedev/react/client/SessionApp.ts";
 import type { Auth } from "#client/adapters/auth.ts";
-import { SessionApp } from "#client/SessionApp.tsx";
+import { clientModules } from "#client/modules.ts";
+import { routing } from "#client/routing.tsx";
 import { ThemeToggle } from "#client/ThemeToggle.tsx";
 
-type SessionProps = Parameters<typeof SessionApp>[0];
+type AppProps = { readonly auth: Auth } & Partial<Pick<SessionAppProps, "app">> & Pick<SessionAppProps, "history" | "persist">;
 
-export function App(props: { readonly auth: Auth } & Pick<SessionProps, "app" | "history" | "persist">) {
+export function App(props: AppProps) {
 	useBrowserErrors();
 	return (
 		<>
@@ -17,7 +19,7 @@ export function App(props: { readonly auth: Auth } & Pick<SessionProps, "app" | 
 	);
 }
 
-function SessionContent({ app, auth, history, persist }: { readonly auth: Auth } & Pick<SessionProps, "app" | "history" | "persist">) {
+function SessionContent({ app = clientModules, auth, history, persist }: AppProps) {
 	const session = useQuery(auth.session.atom);
 	const current = Option.getOrNull(session.data);
 	if (Option.isNone(session.data) && session.pending) {
@@ -39,14 +41,13 @@ function SessionContent({ app, auth, history, persist }: { readonly auth: Auth }
 	}
 	return (
 		<SessionApp
+			{...routing}
 			app={app}
 			auth={auth.actions}
 			history={history}
 			persist={persist}
-			recheck={session.refresh}
+			recheck={auth.session.refresh}
 			session={current}
-			sessionCheck={auth.session.refresh}
-			userId={current?.user.id}
 		/>
 	);
 }

@@ -175,33 +175,69 @@ export const notesModule = clientModule({ notes: Notes }, ({ notes }) => ({
 }));
 ```
 
-`Notes` is the module's generated browser contract and `NotesScreen` its screen. Routes reach the client by closure, so no parent route carries it in route context. The application declares its root route once, the way TanStack Router's own `Register` works, so every module's `root` is typed with the root route's context:
+`Notes` is the module's generated browser contract and `NotesScreen` its screen. Routes reach the client by closure, so no parent route carries it in route context. Every module's `root` is the root route that [`SessionApp`](#mount-a-sessions-routes) builds, and its context carries the app's `auth` and current `session`. The application declares their types once, the way TanStack Router's own `Register` works:
 
 ```ts
 declare module "@shivaedev/react/client/module.ts" {
 	interface Register {
-		readonly root: ReturnType<typeof rootRoute>;
+		readonly auth: AuthActions;
+		readonly session: AppSession;
 	}
 }
 ```
 
-`rootRoute` is the application's function that builds its root route. Without the declaration, `root` is any TanStack route.
+`AuthActions` and `AppSession` are the application's types: the auth actions need a `signOut` atom, and the session is a `PermissionSession` whose user has an `id`. Without the declaration, `auth` is `{ signOut }` and `session` that minimal session.
 
-`clientApp(modules, options?)` from `@shivaedev/react/client/app.ts` turns the list into the session's connection. It makes one client over every module's contracts with `makeClient`, so the tab keeps one socket, one runtime and one client activity, and binds a contract that two modules name once: both modules hold the same binding and read the same live queries. It returns `connect` and `warm`, which spread into `SessionBoundary`:
+`clientApp(modules, options?)` from `@shivaedev/react/client/app.ts` turns the list into the session's connection. It makes one client over every module's contracts with `makeClient`, so the tab keeps one socket, one runtime and one client activity, and binds a contract that two modules name once: both modules hold the same binding and read the same live queries. It returns `connect` and `warm`, which [`SessionApp`](#mount-a-sessions-routes) passes to `SessionBoundary`:
 
 ```tsx
 import { clientApp } from "@shivaedev/react/client/app.ts";
 
-const app = clientApp([notesModule, tasksModule]);
-
-<SessionBoundary {...app} session={session} identify={(current) => current.user.id} recheck={recheck}>
-	{(connection) => <Shell connection={connection} />}
-</SessionBoundary>;
+export const app = clientApp([notesModule, tasksModule]);
 ```
 
-`connect` passes the session's registry to every session-scoped contract. The connection it returns carries `routes(root)`, every module's routes in list order; `adminPages`; `modules`, each module's parts in list order, for the shell's menu, overlays and footer; and the client's activity for `clientActivity` from `@shivaedev/contract/clientActivity.ts`, with its `runtime` and `sync` for `screenSync`. `warm` collects every module's `warm` list. The client connects to `/rpc` beside the page; `options` takes `url`, `protocol`, `headers` and the other client options of `makeClient` for story kits and native shells. A signed-out screen calls `app.connect(undefined, registry)` with the registry it renders in. An application built with `@shivaedev/build` writes no list: the generator lists every exported `clientModule(...)` call in `src/generated/client/modules.ts`, as its [build guide](https://github.com/ShivaeDev/platform/blob/main/packages/build/README.md) describes.
+`connect` passes the session's registry to every session-scoped contract. The connection it returns carries `routes(root)`, every module's routes in list order; `adminPages`; `modules`, each module's parts in list order, for the shell's menu, overlays and footer; and the client's activity for `clientActivity` from `@shivaedev/contract/clientActivity.ts`, with its `runtime` and `sync` for `screenSync`. `warm` collects every module's `warm` list. The client connects to `/rpc` beside the page; `options` takes `url`, `protocol`, `headers` and the other client options of `makeClient` for story kits and native shells. Signed out, `SessionApp` calls `app.connect(undefined, registry)` with the registry it renders in. An application built with `@shivaedev/build` writes no list: the generator lists every exported `clientModule(...)` call in `src/generated/client/modules.ts`, as its [build guide](https://github.com/ShivaeDev/platform/blob/main/packages/build/README.md) describes.
 
 A connection built by hand works too. The session boundary finds bound APIs through nested objects and arrays at any depth, and shared objects and cycles do not mount a binding twice; contract's `composeBindings` selects an explicit list instead of discovering the bindings in that object.
+
+#### Mount a session's routes
+
+`SessionApp` from `@shivaedev/react/client/SessionApp.ts` is the application's session and router in one element. The application hands it its client app, its auth actions, the current session and its own screens; react builds the root route, one router per session generation and the signed-out router:
+
+```tsx
+import { SessionApp } from "@shivaedev/react/client/SessionApp.ts";
+
+<SessionApp
+	app={app}
+	auth={auth.actions}
+	forbidden={<Forbidden to="/" />}
+	home={Home}
+	parseSearch={parseSearch}
+	persist={deviceStorage}
+	recheck={auth.session.refresh}
+	session={session}
+	shell={Shell}
+	stringifySearch={stringifySearch}
+/>;
+```
+
+`auth`, `Home`, `Shell`, `parseSearch`, `stringifySearch` and `deviceStorage` belong to the application; `session` is the auth owner's current session, `null` or `undefined` when signed out. The routes all come from the modules, the application's own sign-in and password reset screens included, written as one more `clientModule`. `home` renders at `/` while no module route claims it. `shell` wraps every route (TanStack's `InnerWrap`) and reads the modules' parts from `useRouter().options.context.modules`; `forbidden` is the screen a refused route shows inside it, `<Forbidden to="/" />` by default; `parseSearch` and `stringifySearch` go to `createRouter` unchanged. `history` replaces the browser history for a story or a native shell.
+
+`SessionApp` renders a [`SessionBoundary`](#own-the-registry-and-the-session) with the app's `connect` and `warm`, identifies each generation by `session.user.id`, signs out through `auth.signOut`, and passes `recheck` and `persist` through. A signed-out visitor gets the app connected with no session and the same routes, so public routes read their contracts; a route that declares `staticData: { signedIn: true }` or a `permission` sends them to sign-in with the requested location in `returnTo`. The sign-in route is `/sign-in`. Its screen calls `useSessionRecheck()` from `@shivaedev/react/client/sessionBoundary.ts` once the auth owner has signed in; when the session arrives at the sign-in path, the boundary continues to `returnTo`, or `/`. A signed-in session that lacks a route's permission sees `forbidden` at the requested URL, and so does one that lacks the permission of a module's admin page at the page's path or detail path. The root route's context, typed through `Register`, carries `adminPages`, `auth`, `modules`, `navigate(path)`, `redirects.signedOut`, the session's `registry` and `session()`, which reads the current session. The router keeps the current route on screen while the next one loads (`defaultPendingMs: Infinity`), sends route failures to the refused screen's boundary (`defaultErrorComponent: PermissionBoundaryError`) and lets other errors reach the application (`disableGlobalCatchBoundary`). It renders through react's [`RouterProvider`](#route-loaders-with-tanstack-router).
+
+Register the router's type once for typed links, beside the app:
+
+```ts
+import type { SessionRouter } from "@shivaedev/react/client/sessionRouter.ts";
+
+declare module "@tanstack/react-router" {
+	interface Register {
+		router: SessionRouter<typeof app>;
+	}
+}
+```
+
+A story kit or host that holds a connection without a session boundary builds the same router with `sessionRouter({ ...routing, auth, connection, history, registry, session })` from `@shivaedev/react/client/sessionRouter.ts` and renders it with `RouterProvider`; `routing` is the object of `forbidden`, `home`, `shell` and the search codec, typed `SessionRouting`.
 
 #### Resume from a native shell
 
@@ -712,7 +748,7 @@ With native `RpcClient.layerProtocolHttp` and `FetchHttpClient.layer` as the bro
 
 #### Route loaders with TanStack Router
 
-TanStack Router owns routes, navigation, search validation, loader data and screen components. Mount the router with `RouterProvider` from `@shivaedev/react/RouterProvider.ts` in place of TanStack's: it renders TanStack's provider unchanged and tells the session's `useFirstSettled` when the first route has rendered. Declare a route's query once with `queryRoute(buildQuery)` from `@shivaedev/react/client/adapters/queryRoute.ts`, spread the result into `createRoute`, and call its `useQuery()` in the route's component. The spread derives loader dependencies from validated search and loads the contract query atom in the router context’s registry; `useQuery()` reads the same atom, so the component names neither the operation nor its arguments. A `NotFound` instance from `@shivaedev/errors/taxonomy.ts` or a `QueryReadDenied` refusal enters TanStack's not-found handling with the original rejection in the not-found component's `data` prop, preserving its message. One root `notFoundComponent` can show that message for all query routes; a route's own `notFoundComponent` takes precedence. Other typed failures reach `errorComponent` unchanged. The atom runs through its native RPC runtime and shares its execution with React. The factory receives `{ context, params, search }`: `context` is the loader’s router context, including parent `beforeLoad` contributions. Annotate it with `typeof root.types.allContext` (or the parent route’s `types.allContext`) to keep client and viewer access checked against the route’s declaration.
+TanStack Router owns routes, navigation, search validation, loader data and screen components. [`SessionApp`](#mount-a-sessions-routes) builds the application's router and mounts it; the examples in this section build a router by hand to show each piece alone. Mount a router with `RouterProvider` from `@shivaedev/react/RouterProvider.ts` in place of TanStack's: it renders TanStack's provider unchanged and tells the session's `useFirstSettled` when the first route has rendered. Declare a route's query once with `queryRoute(buildQuery)` from `@shivaedev/react/client/adapters/queryRoute.ts`, spread the result into `createRoute`, and call its `useQuery()` in the route's component. The spread derives loader dependencies from validated search and loads the contract query atom in the router context’s registry; `useQuery()` reads the same atom, so the component names neither the operation nor its arguments. A `NotFound` instance from `@shivaedev/errors/taxonomy.ts` or a `QueryReadDenied` refusal enters TanStack's not-found handling with the original rejection in the not-found component's `data` prop, preserving its message. One root `notFoundComponent` can show that message for all query routes; a route's own `notFoundComponent` takes precedence. Other typed failures reach `errorComponent` unchanged. The atom runs through its native RPC runtime and shares its execution with React. The factory receives `{ context, params, search }`: `context` is the loader’s router context, including parent `beforeLoad` contributions. Annotate it with `typeof root.types.allContext` (or the parent route’s `types.allContext`) to keep client and viewer access checked against the route’s declaration.
 
 This example assumes an application-owned `api.get.query({ id, page })` returning `{ id, title }`, with declared `NotFound` and `NoteMissing` rejections:
 
@@ -805,7 +841,7 @@ export function App() {
 
 Keep the result of `queryRoute` to call its `useRetry()` hook inside that route's error component. The returned callback refreshes the query using the current match's params, decoded search dependencies and context, then invalidates that match. A successful retry renders the route again without replacing the surrounding shell or its draft inputs.
 
-State where a signed-out visitor goes once, as `redirects.signedOut` in the router's context. A query route whose query fails with the shared `Unauthorized` rejection redirects there, and `permissionGuard` takes the same callback. `signInRedirect(path)` from `@shivaedev/react/signInRedirect.ts` builds it: a TanStack redirect to `path` that carries the requested path, search and fragment in sign-in's `returnTo` search field. `redirects.refused` handles `Forbidden` and `QueryReadDenied` the same way, with a callback that returns TanStack's `redirect`. A route overrides either target for its own query with `queryRoute(buildQuery, { redirects })`, as `memberNote` does here:
+State where a signed-out visitor goes once, as `redirects.signedOut` in the router's context; `SessionApp` sets it to `/sign-in`. A query route whose query fails with the shared `Unauthorized` rejection redirects there, and `permissionGuard` takes the same callback. `signInRedirect(path)` from `@shivaedev/react/signInRedirect.ts` builds it: a TanStack redirect to `path` that carries the requested path, search and fragment in sign-in's `returnTo` search field. `redirects.refused` handles `Forbidden` and `QueryReadDenied` the same way, with a callback that returns TanStack's `redirect`. A route overrides either target for its own query with `queryRoute(buildQuery, { redirects })`, as `memberNote` does here:
 
 ```ts
 import { createRootRouteWithContext, createRoute, createRouter } from "@tanstack/react-router";
@@ -848,128 +884,44 @@ For a loader that coordinates more work, use `loadQuery(registry, atom, loaderCo
 
 Permissions come from the session payload's `user.permissions`, populated by `@shivaedev/access` through the server's role policy. `can(session, permission)` uses access's grant evaluator without making a request: names match exactly, and an `any` grant covers an `own` check for that name. An `own` grant does not cover an `any` check. `useCan()` supplies the same check from the nearest `PermissionBoundary` for component controls. A signed-out session has no grants. These checks control visibility; the server still authorizes every request.
 
-Declare a route's requirement in TanStack's native `staticData`: `signedIn: true` admits any signed-in viewer, and `permission` requires a specific grant. Routes that declare neither stay public. Install `permissionGuard` once as the root route's `beforeLoad`; it checks all matched routes before their loaders run, including requirements on parents. Signed-out visitors go to the guard's `signedOut` redirect; pass it the router's `redirects.signedOut` so the guard and query routes share one target. A signed-in session without a required grant throws the shared `Forbidden` failure. A signed-in-only parent does not bypass a child's permission requirement.
-
-Set `permissionGuard({ session, signedOut, hidden: true })` to hide refused routes from signed-in members. The guard throws TanStack's native not-found result, renders the app's `notFoundComponent` at the requested URL and prevents the route's loader from running. Signed-out visitors still go to sign-in with their return location; sessions with the required grant still enter the route.
+Declare a route's requirement in TanStack's native `staticData`: `signedIn: true` admits any signed-in viewer, and `permission` requires a specific grant. Routes that declare neither stay public. [`SessionApp`](#mount-a-sessions-routes)'s root route checks all matched routes with `permissionGuard` from `@shivaedev/react/adapters/permissionGuard.ts` before their loaders run, including requirements on parents, and adds the permission of the admin page whose path or detail path a matched route has. Signed-out visitors go to the router's `redirects.signedOut`, the target query routes share. A signed-in session without a required grant throws the shared `Forbidden` failure, and the route shows `SessionApp`'s `forbidden` screen at its URL. A signed-in-only parent does not bypass a child's permission requirement.
 
 ```tsx
-import { RegistryContext } from "@effect/atom-react";
-import { createRootRouteWithContext, createRoute, createRouter, Link, useRouter } from "@tanstack/react-router";
-import { RouterProvider } from "@shivaedev/react/RouterProvider.ts";
-import type { ReactNode } from "react";
-import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
+import { createRoute } from "@tanstack/react-router";
 import { permission } from "@shivaedev/access/permission.ts";
-import { Forbidden } from "@shivaedev/react/Forbidden.ts";
-import { PermissionBoundary, PermissionBoundaryError, useCan } from "@shivaedev/react/adapters/permissionBoundary.ts";
-import { permissionGuard } from "@shivaedev/react/adapters/permissionGuard.ts";
-import type { QueryRouteRedirects } from "@shivaedev/react/queryRouteFailure.ts";
-import { signInRedirect } from "@shivaedev/react/signInRedirect.ts";
-import type { PermissionSession } from "@shivaedev/identity/PermissionSession.ts";
-import { can } from "@shivaedev/react/can.ts";
+import { useCan } from "@shivaedev/react/adapters/permissionBoundary.ts";
 import { queryRoute } from "@shivaedev/react/client/adapters/queryRoute.ts";
-import { api, registry } from "./notes-client.ts";
-import { auth, SignIn } from "./auth.tsx";
-import { navigateTo } from "./adapters/navigateTo.ts";
+import { clientModule } from "@shivaedev/react/client/module.ts";
 
 const ReadNotes = permission("notes.read");
-const root = createRootRouteWithContext<{
-	registry: AtomRegistry.AtomRegistry;
-	api: typeof api;
-	redirects: Required<Pick<QueryRouteRedirects, "signedOut">>;
-	session: PermissionSession | undefined;
-}>()({
-	beforeLoad: ({ context, ...route }) => permissionGuard({ session: () => context.session, signedOut: context.redirects.signedOut })(route),
-});
-const profile = createRoute({
-	getParentRoute: () => root,
-	path: "/profile",
-	staticData: { signedIn: true },
-	component: () => <h1>Profile</h1>,
-});
-const noteQuery = queryRoute(
-	({ context, params }: { context: typeof root.types.allContext; params: { id: string }; search: Record<string, never> }) =>
-		context.api.get.query({ id: params.id, page: 1 }),
-);
-const note = createRoute({
-	getParentRoute: () => root,
-	path: "/notes/$id",
-	staticData: { permission: ReadNotes },
-	...noteQuery,
-	component: () => {
-		const query = noteQuery.useQuery();
-		return <h1>{query.data.title}</h1>;
+
+export const notesModule = clientModule({ notes: Notes }, ({ notes }) => ({
+	menu: [<Controls key="controls" />],
+	routes: (root) => {
+		const profile = createRoute({ component: () => <h1>Profile</h1>, getParentRoute: () => root, path: "/profile", staticData: { signedIn: true } });
+		const noteQuery = queryRoute(({ params }: { params: { id: string } }) => notes.get.query({ id: params.id, page: 1 }));
+		const note = createRoute({
+			getParentRoute: () => root,
+			path: "/notes/$id",
+			staticData: { permission: ReadNotes },
+			...noteQuery,
+			component: () => <h1>{noteQuery.useQuery().data.title}</h1>,
+		});
+		return [profile, note];
 	},
-});
-const login = createRoute({
-	getParentRoute: () => root,
-	path: "/login",
-	validateSearch: (search: Record<string, unknown>) => ({
-		returnTo: typeof search.returnTo === "string" ? search.returnTo : "/",
-	}),
-	component: () => {
-		const { returnTo } = login.useSearch();
-		return <SignIn onSignedIn={() => navigateTo(router, returnTo)} />;
-	},
-});
-const router = createRouter({
-	context: { registry, api, redirects: { signedOut: signInRedirect("/login") }, session: auth.session },
-	InnerWrap: PermissionShell,
-	defaultErrorComponent: PermissionBoundaryError,
-	routeTree: root.addChildren([profile, note, login]),
-	disableGlobalCatchBoundary: true,
-});
+}));
 
 function Controls() {
 	const can = useCan();
 	return can(ReadNotes) ? <button type="button">Read notes</button> : null;
 }
-
-function PermissionShell({ children }: { readonly children: ReactNode }) {
-	const session = useRouter<typeof router>().options.context?.session;
-	return (
-		<PermissionBoundary session={session} fallback={<NoAccess />}>
-			<Controls />
-			{children}
-		</PermissionBoundary>
-	);
-}
-
-function NoAccess(): ReactNode {
-	return (
-		<>
-			<Forbidden to="/profile" backLabel="Back to profile" />
-			<Link to="/login">Use another account</Link>
-		</>
-	);
-}
-
-export function App({ session }: { readonly session: PermissionSession | undefined }) {
-	return (
-		<RegistryContext.Provider value={registry}>
-			<RouterProvider router={router} context={{ session }} />
-		</RegistryContext.Provider>
-	);
-}
-
-const showNotes = can(auth.session, ReadNotes);
 ```
 
-TanStack's `navigate` answers with a Promise, so the sign-in callback starts the navigation through a module in `adapters/`:
+`Notes` is the application's contract. Importing `permissionGuard` augments TanStack's `StaticDataRouteOption`; route options and their inference remain native.
 
-```ts
-// adapters/navigateTo.ts
-import type { AnyRouter } from "@tanstack/react-router";
+`SessionApp` wraps the shell in `PermissionBoundary`, so `useCan()` anywhere inside it reads the current session's grants and the `forbidden` screen can render `Link` and read route context. `PermissionBoundary` runs the guards again when the grants of the session change without a navigation, such as a remembered session whose check answers with fewer grants, so a screen that needs a removed grant is replaced by the refusal. The router sends route and loader failures to that boundary (`defaultErrorComponent: PermissionBoundaryError`) while TanStack keeps its navigation controller mounted, so a refused viewer can follow the refusal's link without reloading the page; other errors propagate to an enclosing application boundary. A route-specific `errorComponent` owns any failures it consumes.
 
-export function navigateTo(router: AnyRouter, href: string): void {
-	void router.navigate({ href });
-}
-```
-
-`auth` owns the current session and passes it to `App`; `SignIn` updates that session before invoking `onSignedIn`. Use the session's registry for router context and React, as with other query routes. Importing `permissionGuard` augments TanStack's `StaticDataRouteOption`; route options and their inference remain native. The guard returns `void` explicitly, so `beforeLoad` needs no return annotation, including when it reads the session from route context.
-
-`PermissionBoundary` runs the guards again when the grants of its `session` change without a navigation, such as a remembered session whose check answers with fewer grants, so a screen that needs a removed grant is replaced by the refusal. The application writes nothing for it; the boundary invalidates the router it renders inside.
-
-`InnerWrap` puts `PermissionBoundary` inside the router, and the boundary's fallback can render `Link` and read route context. TanStack types `InnerWrap` as a component that returns an element, so `PermissionShell` leaves its return type to inference; annotated as returning `ReactNode`, it does not compile. Set `defaultErrorComponent: PermissionBoundaryError` so route and loader failures reach the boundary's fallback while TanStack keeps its navigation controller mounted. This lets a refused viewer follow the fallback link without reloading the page. Keep `disableGlobalCatchBoundary: true`; other errors propagate to an enclosing application boundary. A route-specific `errorComponent` owns any failures it consumes.
+A root route built without `SessionApp` installs the guard as its `beforeLoad`, `({ context, ...route }) => permissionGuard({ session: context.session, signedOut: context.redirects.signedOut })(route)`, and renders `PermissionBoundary` with its `fallback` and `session` itself. There, `permissionGuard({ session, signedOut, hidden: true })` hides refused routes from signed-in members: the guard throws TanStack's native not-found result, renders the app's `notFoundComponent` at the requested URL and prevents the route's loader from running. Signed-out visitors still go to sign-in with their return location; sessions with the required grant still enter the route.
 
 `Forbidden` from `@shivaedev/react/Forbidden.ts` supplies the no-access heading, explanation and a router link. Set `to` to a route the viewer may open. Optional `title`, `children`, `backLabel` and `className` let the application choose wording and layout. The default heading is “Permission denied” and the link says “Go back”.
 

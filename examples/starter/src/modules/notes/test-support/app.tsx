@@ -9,6 +9,7 @@ import { mintUser } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { seedCookies } from "@shivaedev/test-story/server/adapters/seedCookies.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { accountModule } from "#client/accountModule.tsx";
 import { App } from "#client/App.tsx";
 import { makeAuth } from "#client/adapters/auth.ts";
 import { LoginScreen } from "#client/LoginScreen.tsx";
@@ -141,7 +142,7 @@ export function notesHostScreen(initial = "/sign-in") {
 			view.registry.get(engine.auth.session.atom).waiting
 			|| view.registry.get(engine.auth.actions.submit).waiting
 			|| view.registry.get(engine.auth.actions.signOut).waiting;
-		const app = clientApp([notesModule], {
+		const app = clientApp([accountModule, notesModule], {
 			url: `${engine.baseUrl}/rpc`,
 			...(engine.headers.has("cookie") ? { headers: Object.fromEntries(engine.headers), webSocketConstructor: layerWebSocketConstructor } : {}),
 		});

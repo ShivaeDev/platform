@@ -3,7 +3,9 @@ import { Effect } from "effect";
 import { clientApp } from "@shivaedev/react/client/app.ts";
 import { type ClientModule, clientModule } from "@shivaedev/react/client/module.ts";
 import { expectNoReactWarnings } from "@shivaedev/test-story/client/adapters/react.ts";
-import { SessionApp } from "#client/SessionApp.tsx";
+import { SessionApp } from "@shivaedev/react/client/SessionApp.ts";
+import { accountModule } from "#client/accountModule.tsx";
+import { routing } from "#client/routing.tsx";
 import { appAuth } from "#test-support/appAuth.ts";
 import { acquireScreen, type ScreenSurface } from "#test-support/screenState.ts";
 import { screens } from "#test-support/screens.ts";
@@ -79,11 +81,12 @@ const openShell = Effect.fnUntraced(function* (engine: ScreenSurface, modules: r
 	yield* Effect.promise(() =>
 		view.render(
 			<SessionApp
-				app={clientApp(modules)}
+				{...routing}
+				app={clientApp([accountModule, ...modules])}
 				auth={auth}
 				history={createMemoryHistory({ initialEntries: [path] })}
 				recheck={() => undefined}
-				userId={undefined}
+				session={null}
 			/>,
 		),
 	);

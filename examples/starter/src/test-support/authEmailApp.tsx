@@ -3,6 +3,7 @@ import { ConfigProvider, DateTime, Effect, Layer, Schema } from "effect";
 import { act } from "react";
 import { JobsClientFactory } from "@shivaedev/jobs/server/JobsClientFactory.ts";
 import { clientApp } from "@shivaedev/react/client/app.ts";
+import { sessionRouter } from "@shivaedev/react/client/sessionRouter.ts";
 import { RouterProvider } from "@shivaedev/react/RouterProvider.ts";
 import { emailLink, inbox } from "@shivaedev/test-kits/email/adapters/inbox.ts";
 import { signedInUser, storyAuth } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
@@ -12,7 +13,8 @@ import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDat
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { makeAuth } from "#client/adapters/auth.ts";
-import { appRouter } from "#client/appRouter.tsx";
+import { accountModule } from "#client/accountModule.tsx";
+import { routing } from "#client/routing.tsx";
 import { AppAuth } from "#server/AppAuth.ts";
 import { applicationWorker } from "#server/applicationWorker.ts";
 import { startHost } from "#test-support/host.ts";
@@ -120,9 +122,10 @@ export const authEmailApp = storyKit({
 					story.tell("alice opens the link in her password reset email");
 					const link = new URL(emailLink(yield* mail.nextEmail));
 					const view = yield* acquireScreen(surface);
-					const router = appRouter({
+					const router = sessionRouter({
+						...routing,
 						auth: auth.actions,
-						connection: clientApp([]).connect(undefined, view.registry),
+						connection: clientApp([accountModule]).connect(undefined, view.registry),
 						history: createMemoryHistory({ initialEntries: [`${link.pathname}${link.search}`] }),
 						registry: view.registry,
 					});

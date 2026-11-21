@@ -1,13 +1,26 @@
 import type { AnyRoute } from "@tanstack/react-router";
+import type * as AsyncResult from "effect/reactivity/AsyncResult";
 import type * as Atom from "effect/reactivity/Atom";
 import type { ReactNode } from "react";
 import type { Permission } from "@shivaedev/access/permission.ts";
 import type { ContractClients, Contracts } from "@shivaedev/contract/makeClient.ts";
+import type { PermissionSession } from "@shivaedev/identity/PermissionSession.ts";
+import type { sessionRoot } from "#client/sessionRoot.ts";
 
-// The application declares a required root once, overriding the optional one, as TanStack Router's own Register works.
-export interface Register extends Partial<Record<"root", AnyRoute>> {}
+export interface SessionAuth {
+	readonly signOut: Atom.Atom<AsyncResult.AsyncResult<unknown, unknown>>;
+}
 
-export type RootRoute = Register extends { readonly root: infer TRoot extends AnyRoute } ? TRoot : AnyRoute;
+export type SessionUser = PermissionSession & { readonly user: { readonly id: string } };
+
+// The application declares its auth and session types once, overriding the optional ones, as TanStack Router's own Register works.
+export interface Register extends Partial<{ readonly auth: SessionAuth; readonly session: SessionUser }> {}
+
+export type RegisteredAuth = Register extends { readonly auth: infer TAuth extends SessionAuth } ? TAuth : SessionAuth;
+
+export type RegisteredSession = Register extends { readonly session: infer TSession extends SessionUser } ? TSession : SessionUser;
+
+export type RootRoute = ReturnType<typeof sessionRoot>;
 
 export interface AdminNavigation {
 	readonly id: string;
