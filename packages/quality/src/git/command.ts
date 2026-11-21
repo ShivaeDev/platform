@@ -9,7 +9,7 @@ export interface GitResult {
 }
 
 // The variables every git child receives on top of Quality's own environment; the CLI sets them once at launch.
-export const GitEnvironment = Context.Reference<Readonly<Record<string, string>>>("@shivaedev/quality/GitEnvironment", {
+export const GitEnvironment = Context.Reference<Readonly<Record<string, string | undefined>>>("@shivaedev/quality/GitEnvironment", {
 	defaultValue: () => ({}),
 });
 
