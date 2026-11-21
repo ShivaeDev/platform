@@ -1,10 +1,14 @@
-import { Context, Effect, Option } from "effect";
+import { Context, Effect, Option, Schema } from "effect";
+import { collection } from "@shivaedev/changes/keys.ts";
 import { Unauthorized } from "@shivaedev/errors/taxonomy.ts";
 import { defineModule } from "#defineModule.ts";
 import { command, query } from "#operation.ts";
 import { CurrentViewer } from "#readPolicy.ts";
 import { wireNotesWire } from "#test/wireNotesClient.ts";
-import { NoteFields, TitleTaken, WireCaller, wireNotes } from "#test/wireNotesModel.ts";
+import { NoteFields, TitleTaken, WireCaller } from "#test/wireNotesModel.ts";
+
+// Declared beside the operations that use it: the browser's contract carries no keys, so nothing imports it from another file.
+const wireNotes = collection("wireNotes", Schema.Number);
 
 export interface StoredNote {
 	readonly createdAt: Date;

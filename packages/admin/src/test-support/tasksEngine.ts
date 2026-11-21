@@ -11,8 +11,8 @@ import { adminRegistry } from "#registry.ts";
 import { registerAdmin } from "#server/registerAdmin.ts";
 import { Access } from "#test/Access.ts";
 import { clientRuntime } from "#test/clientRuntime.ts";
-import { TasksPage } from "#test/keylessTasks.ts";
 import { OpenTasks, Tasks } from "#test/Tasks.ts";
+import { TasksPage } from "#test/TasksPage.ts";
 
 const AUDITOR = { email: "alice@example.test", id: "alice", name: "alice", role: "auditor" } as const;
 

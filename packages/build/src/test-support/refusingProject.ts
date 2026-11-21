@@ -8,14 +8,9 @@ export const Outside = defineModule({ name: "outside", operations: [], wire: {} 
 
 const Hidden = defineModule({ name: "hidden", operations: [], wire: {} });
 `,
-	"src/modules/refused/keys.ts": `import { Schema } from "effect";
-import { collection } from "@shivaedev/changes/keys.ts";
-
-export const refusedKeys = collection("refused", Schema.Number);
-`,
 	"src/modules/refused/operations.ts": `import { Effect, Schema } from "effect";
 import { query } from "@shivaedev/contract/operation.ts";
-import { refusedKeys } from "./keys.ts";
+import { RefusedDraft } from "./payloads.ts";
 import { Busy, Counter, Level, noteId, shared, type Tree } from "#modules/refused/shared.ts";
 
 class Hidden extends Schema.TaggedError<Hidden>()("Hidden", { message: Schema.String }) {}
@@ -163,12 +158,17 @@ export const LocalPayload = query("localPayload", {
 	},
 });
 
-export const RelativeReads = query("relativeReads", {
-	reads: () => [refusedKeys.list],
-	*run() {
-		return yield* Effect.succeed(1);
+export const RelativePayload = query("relativePayload", {
+	payload: RefusedDraft,
+	reads: () => [shared.list],
+	*run({ body }) {
+		return yield* Effect.succeed(body);
 	},
 });
+`,
+	"src/modules/refused/payloads.ts": `import { Schema } from "effect";
+
+export const RefusedDraft = Schema.Struct({ body: Schema.String });
 `,
 	"src/modules/refused/refused.ts": `import { defineModule } from "@shivaedev/contract/defineModule.ts";
 import {
@@ -176,7 +176,7 @@ import {
 	FailsUnexported,
 	FailsUntagged,
 	LocalPayload,
-	RelativeReads,
+	RelativePayload,
 	ReturnsAny,
 	ReturnsBrand,
 	ReturnsEnum,
@@ -212,7 +212,7 @@ export const Refused = defineModule({
 		FailsUnexported,
 		FailsDataTagged,
 		LocalPayload,
-		RelativeReads,
+		RelativePayload,
 	],
 	wire: {},
 });

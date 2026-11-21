@@ -1,5 +1,7 @@
 // An application's notes module: its operations cover every wire form, a field rejection, a twin rejection class, a stale
-// versioned write, a query whose policy reads the store, a query that declares no keys and a type declared globally in the project's declaration file. Paths are relative to the project; the kit writes package.json and tsconfig.json.
+// versioned write, a query whose policy reads the store, a query that declares no keys, a command that declares its key in
+// its own file and a type declared globally in the project's declaration file. Paths are relative to the project; the kit
+// writes package.json and tsconfig.json.
 export const NOTES_PROJECT: Readonly<Record<string, string>> = {
 	"src/modules/notes/archive.ts": `import { Schema } from "effect";
 
@@ -90,6 +92,7 @@ import { Create } from "#modules/notes/create.ts";
 import { Get } from "#modules/notes/get.ts";
 import { List } from "#modules/notes/list.ts";
 import { NotesCaller } from "#modules/notes/model.ts";
+import { Pin } from "#modules/notes/pin.ts";
 import { Recent } from "#modules/notes/recent.ts";
 import { Remove } from "#modules/notes/remove.ts";
 import { Rename } from "#modules/notes/rename.ts";
@@ -99,8 +102,23 @@ import { Summary } from "#modules/notes/summary.ts";
 export const Notes = defineModule({
 	middleware: NotesCaller,
 	name: "notes",
-	operations: [List, Get, Create, Recent, Remove, Rename, Stats, Summary],
+	operations: [List, Get, Create, Pin, Recent, Remove, Rename, Stats, Summary],
 	wire: notesWire,
+});
+`,
+	"src/modules/notes/pin.ts": `import { Schema } from "effect";
+import { collection } from "@shivaedev/changes/keys.ts";
+import { command } from "@shivaedev/contract/operation.ts";
+import { NotesStore } from "#modules/notes/store.ts";
+
+const pins = collection("pins", Schema.Number);
+
+export const Pin = command("pin", {
+	invalidates: ({ id }) => [pins.item(id)],
+	payload: { id: Schema.Number },
+	*run({ id }) {
+		yield* (yield* NotesStore).find(id);
+	},
 });
 `,
 	"src/modules/notes/recent.ts": `import { query } from "@shivaedev/contract/operation.ts";

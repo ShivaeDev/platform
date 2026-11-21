@@ -7,7 +7,6 @@ function imported(name: string, specifier: string): ImportRef {
 }
 
 const SELF_SUBJECT = imported("selfSubject", "@shivaedev/identity/subject.ts");
-const NOTES = imported("notes", "#modules/notes/model.ts");
 
 const planned: PlannedModule = {
 	exportName: "Notes",
@@ -16,26 +15,22 @@ const planned: PlannedModule = {
 	module: { ...imported("Notes", "#modules/notes/notes.ts"), typeOnly: true },
 	name: "notes",
 	operations: [
-		{
-			kind: "query",
-			members: [code("reads: () => [", NOTES, ".list]"), code("readsCollections: [", NOTES, "]")],
-			name: "list",
-			payload: undefined,
-			rejections: [],
-			success: code(SCHEMA, ".Void"),
-		},
+		{ kind: "command", name: "create", payload: undefined, rejections: [], success: code(SCHEMA, ".Void") },
+		{ kind: "query", name: "list", payload: undefined, rejections: [], success: code(SCHEMA, ".Void") },
+		{ kind: "query", name: "get", payload: undefined, rejections: [], success: code(SCHEMA, ".Void") },
 	],
 	source: "src/modules/notes/notes.ts",
 	subject: code(SELF_SUBJECT),
 };
 
-it("writes a module's subject, key scope and a query's readsCollections into the browser's contract as written", () => {
+it("writes a module's subject and key scope into the browser's contract as written, and lists its queries and commands by name", () => {
 	const text = emit(planned);
 
-	expect(text.split("\n").filter((line) => /keyScope|subject|readsCollections|selfSubject"/u.test(line))).toEqual([
+	expect(text.split("\n").filter((line) => /keyScope|subject|queries|commands|selfSubject"/u.test(line))).toEqual([
 		'import { selfSubject } from "@shivaedev/identity/subject.ts";',
+		'\tcommands: ["create"],',
 		'\tkeyScope: "session",',
-		"\t\tlist: { reads: () => [notes.list], readsCollections: [notes] },",
+		'\tqueries: ["list", "get"],',
 		"\tsubject: selfSubject,",
 	]);
 });
