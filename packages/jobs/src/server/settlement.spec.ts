@@ -4,7 +4,7 @@ import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { defineSchedule } from "#server/defineSchedule.ts";
 import { defineQueue } from "#server/definition.ts";
 import { deferralWritesFail } from "#test/runtime/deferralWritesFail.ts";
-import { claimReadsStall, running, runtime, settlementlessClient, storedJob } from "#test/runtime/kit.ts";
+import { claimReadsStall, databaseStallsAfterBatchStart, running, runtime, settlementlessClient, storedJob } from "#test/runtime/kit.ts";
 import { storedJob as stored } from "#test/runtime/storedJob.ts";
 import { scheduled, worker, workerBy } from "#test/workers.ts";
 
@@ -141,6 +141,22 @@ for (const reads of [
 		},
 	);
 }
+
+runtime.it(
+	"when the database stops answering after a job hits its deadline and leaves another behind, the batch has not returned ten seconds past its bound",
+	[databaseStallsAfterBatchStart, running("app", [workerBy(Reports, ({ id }) => (id === 1 ? "hangs" : "succeeds"))])],
+	function* ({ batchAnswer, clockPasses, startsDelivering }) {
+		yield* startsDelivering(
+			"reports",
+			{ data: { id: 1 }, expireInSeconds: 1, id: "job-1", startedMillisAgo: 900 },
+			{ data: { id: 2 }, expireInSeconds: 1, id: "job-2", startedMillisAgo: 900 },
+		);
+		yield* clockPasses(1100);
+		yield* clockPasses(10_000);
+
+		expect(yield* batchAnswer()).toBe("not delivered");
+	},
+);
 
 runtime.it(
 	"while an interrupted claim stays active, the batch reads it back off to at most ten reads before giving up",
