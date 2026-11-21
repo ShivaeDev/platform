@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.55.0 - 2026-11-21
+
+### Added
+
+- `NoticeHost`'s default wording for a command whose socket the host closed with code 1009, because the message was over its body limit, is `What you sent is too large for the server. Try again with something smaller.` instead of the lost-connection message.
+
+### Breaking
+
+- `usePendingCommand` no longer takes `queries`. Delete the option: the hold already lasts until the command is reflected, which every query the command changed now shows.
+- `UnexpectedFailure["kind"]` has the new member `"tooLarge"` for that failure, so an application's own `failure` wording can tell it apart from `"connection"`. To migrate, add a `"tooLarge"` case to a `switch` over `kind` that lists every kind, or let its default branch show `failure.message`.
+
 ## 0.54.1 - 2026-11-21
 
 ### Fixed

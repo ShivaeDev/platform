@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.28.2 - 2026-11-21
+
+### Changed
+
+- the Users page's role change declares no invalidation of its own; the user directory's role assignment announces the changed user, which reruns the users list.
+
 ## 0.28.1 - 2026-11-21
 
 ### Changed

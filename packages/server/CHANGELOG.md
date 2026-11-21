@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.41.0 - 2026-11-21
+
+### Added
+
+- when the host closes an RPC socket because a message exceeds `maxBodySize` or `MAX_BODY_SIZE`, it logs one warning with the limit, the message size and the RPC path, annotated as `rpc.maxBodySize`, `rpc.messageSize` and `url.path`, and none of the message's content. The size is `unknown` when the Node listener's WebSocket server refuses the message before the host reads it.
+
 ## 0.40.0 - 2026-11-21
 
 ### Added
