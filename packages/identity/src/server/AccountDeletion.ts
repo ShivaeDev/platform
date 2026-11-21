@@ -9,10 +9,6 @@ export class AccountDeletion extends Context.Service<
 	{
 		readonly delete: (
 			password: string,
-		) => Effect.Effect<
-			void,
-			AuthUnavailable | BadRequest | PreconditionFailed | Schema.SchemaError | SqlError,
-			SessionUser | SqlClient.SqlClient | Reactivity.Reactivity
-		>;
+		) => Effect.Effect<void, AuthUnavailable | BadRequest | PreconditionFailed | Schema.SchemaError | SqlError, SessionUser>;
 	}
 >()("@shivaedev/identity/AccountDeletion") {}
