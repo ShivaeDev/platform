@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.54.1 - 2026-11-21
+
+### Fixed
+
+- a live query's `Unauthorized` failure asks the session's auth owner to recheck once. It reached the screen through the query's result and through the live status, and a recheck that returned at once ran twice.
+
 ## 0.54.0 - 2026-11-21
 
 ### Added

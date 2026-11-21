@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.54.1 - 2026-11-21
+
+### Fixed
+
+- a live query that failed and is refreshed or retried shows its failure as waiting while its subscription reopens, instead of a settled failure.
+
 ## 0.54.0 - 2026-11-21
 
 ### Added

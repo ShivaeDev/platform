@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.50.0 - 2026-11-21
+
+### Changed
+
+- generated apps state their auth once in `src/server/AppAuth.ts`. `src/server/authOptions.ts`, `src/server/admin/adapters/signUpEmail.ts` and `src/test-support/sessionPrecondition.ts` are gone; `src/server/admin/create.ts` is one `provisionAdmin` call, so `pnpm admin:create` run again for a registered email keeps that account; story kits mint users with test-kits' `mintUser(AppAuth, host, name, { role })`; and the story host passes `AUTH_TEST_SECRET` as `BETTER_AUTH_SECRET` instead of `applicationHost`'s removed `secret` option. Generated resource kits import `mintUser` from test-kits.
+
+### Breaking
+
+- generated apps register server modules by their folder. `src/server/modules.ts` imports `modules` from `#generated/server/modules.ts` and composes `appModules([serverRegistration(modules), ...modules], { replacements })`, and `create-app add-resource` no longer edits it. To migrate an app with a hand-written list, delete `const modules = [...] as const;` and the imports of the registrations it names from `src/server/modules.ts`, add `import { modules } from "#generated/server/modules.ts";`, keep the foundation's `serverRegistration(modules)` in the composition, make sure each module's registration is exported and written `satisfies AppModule`, and run `pnpm generate`. `create-app update` makes this change itself when the app never edited its list, and leaves conflict markers in `src/server/modules.ts` when it did. The starter's `dev` script now generates before it migrates, so a new module's migrations run on the first start.
+
 ## 0.49.0 - 2026-11-21
 
 ### Breaking

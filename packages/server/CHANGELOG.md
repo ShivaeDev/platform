@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.40.0 - 2026-11-21
+
+### Added
+
+- `servedGroup(group, websocket)` from `@shivaedev/server/servedGroup.ts` and `servedHandlers(group, handlers, buildVersion?)` from `@shivaedev/server/servedHandlers.ts` are the composition `appHost` serves its RPC group with: the read policy guard, which refuses `$changes` over HTTP, the command guard, the change stream, the host version and live sync. A native RPC host uses them to serve as `appHost` does.
+
 ## 0.39.0 - 2026-11-21
 
 ### Added
