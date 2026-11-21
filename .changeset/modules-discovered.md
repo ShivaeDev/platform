@@ -1,11 +1,16 @@
 ---
 "@shivaedev/build": minor
 "@shivaedev/create-app": minor
+"@shivaedev/quality": patch
 ---
 
 ### Added
 
 - `@shivaedev/build`: `shivaedev-build generate` also writes the server's module list to `src/generated/server/modules.ts`: every exported registration written `satisfies AppModule` from `@shivaedev/server/AppModule.ts`, one import each, in the order of their files' paths, as `export const modules = [...] as const`. Registrations in `test-support` folders and test files are left out. An exported registration typed `: AppModule` or cast `as AppModule`, and an exported object naming a `module` and its `services` without `satisfies AppModule`, stop `generate` with a message that names the file and the fix, and the list keeps its last content. `--check` reports the list missing or stale, and the dev server's plugin writes it again when a registration file appears or changes, so a module created while the dev server runs is served without a restart.
+
+### Fixed
+
+- `@shivaedev/quality`: in a checkout without Git, the `.gitignore` files decide which imported files are ignored output, as they decide which files are sources, so an export that only generated output imports counts as used there too.
 
 ### Breaking
 

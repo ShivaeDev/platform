@@ -224,6 +224,12 @@ export function registrationsProject() {
 	);
 }
 
+export function importsTheServerList() {
+	return generator.trait("project", "the project's src/server/modules.ts imports the generated server module list", (engine) =>
+		writeFiles(engine.root, { "src/server/modules.ts": REGISTRATIONS_PROJECT["src/server/modules.ts"] ?? "" }),
+	);
+}
+
 export function refusingProject() {
 	return generator.trait("project", "the project has the refused module, whose operations the wire cannot carry exactly", (engine) =>
 		writeFiles(engine.root, REFUSING_PROJECT),

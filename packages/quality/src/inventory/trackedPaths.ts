@@ -34,9 +34,7 @@ export const ignoredPaths = Effect.fn("Inventory.ignoredPaths")(function* (direc
 	return paths?.map((path) => resolve(path));
 });
 
-export const ignoredAmong = Effect.fn("Inventory.ignoredAmong")(function* (directory: string, paths: readonly string[]) {
-	if (paths.length === 0) {
-		return [];
-	}
-	return (yield* listedPaths(directory, ["--others", "--ignored", "--exclude-standard"], paths)) ?? [];
+// Undefined outside a Git repository.
+export const gitIgnoredAmong = Effect.fn("Inventory.gitIgnoredAmong")(function* (directory: string, paths: readonly string[]) {
+	return yield* listedPaths(directory, ["--others", "--ignored", "--exclude-standard"], paths);
 });

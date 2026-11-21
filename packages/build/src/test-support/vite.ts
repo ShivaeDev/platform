@@ -2,7 +2,7 @@ import * as NodeServices from "@effect/platform-node/NodeServices";
 import { ConfigProvider, Effect, FileSystem, Option, Path, Queue } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import type { AppViteOptions } from "#appViteConfig.ts";
-import { writeAtomically } from "#files.ts";
+import { readIfPresent, writeAtomically } from "#files.ts";
 import { generate } from "#generate.ts";
 import { emptyProject, generatedOncePerFile, vitestRun, writeFiles } from "#test/fixtureProject.ts";
 import { NOTES_PROJECT } from "#test/notesProject.ts";
@@ -153,9 +153,8 @@ export const vite = storyKit({
 		writesTheNotesRegistration: Effect.fn("BuildStory.writesTheNotesRegistration")(function* (annotation: "satisfies AppModule" | ": AppModule") {
 			const { path: file, texts } = VITE_PROJECT.notesRegistration;
 			story.tell(`the developer creates ${file}, exporting the notes registration written ${annotation}`);
-			const fs = yield* FileSystem.FileSystem;
 			const path = yield* Path.Path;
-			engine.listBefore = yield* fs.readFileString(path.join(engine.root, SERVER_LIST));
+			engine.listBefore = Option.getOrElse(yield* readIfPresent(path.join(engine.root, SERVER_LIST)), () => "");
 			engine.edited.add(path.join(engine.root, file));
 			yield* writeAtomically(path.join(engine.root, file), texts[annotation]);
 		}),

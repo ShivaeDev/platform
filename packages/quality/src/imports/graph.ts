@@ -8,7 +8,7 @@ import type { ImportKind } from "#imports/extract.ts";
 import { type WorkspacePackage, workspacePackages } from "#imports/workspace.ts";
 import { posix } from "#inventory/ignoreScope.ts";
 import { linesOf } from "#inventory/linesOf.ts";
-import { ignoredAmong } from "#inventory/trackedPaths.ts";
+import { ignoredAmong } from "#inventory/walk.ts";
 import type { Findings, RuleInputs, SourceFile } from "#rule.ts";
 
 export interface ImportEdge {

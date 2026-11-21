@@ -68,8 +68,8 @@ export const generate = Effect.fn("Build.generate")(function* (directory: string
 	const list = yield* serverList(project, options.check);
 	refusals.push(...list.refusals);
 	const inputs = [...new Set([...keyed.flatMap((file) => file.inputs), ...list.inputs])].sort(byText);
-	const report: GenerateReport = { inputs, lists: [list.outcome], modules: outcomes, programBuilt: pending.length > 0 };
-	const lines = [...outcomes, list.outcome].flatMap((outcome) => problemOf(outcome) ?? []);
+	const report: GenerateReport = { inputs, lists: list.outcomes, modules: outcomes, programBuilt: pending.length > 0 };
+	const lines = [...outcomes, ...list.outcomes].flatMap((outcome) => problemOf(outcome) ?? []);
 	if (refusals.length > 0 || lines.length > 0) {
 		const problems = [...refusals, ...lines].map((problem) => problem.replaceAll(`${project.root}${path.sep}`, ""));
 		return yield* new GenerateFailed({ problems, report });

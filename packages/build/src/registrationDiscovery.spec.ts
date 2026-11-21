@@ -1,6 +1,6 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { generatedOnce, generator, notesProject, registrationsProject } from "#test/generator.ts";
+import { generatedOnce, generator, importsTheServerList, notesProject, registrationsProject } from "#test/generator.ts";
 
 const LIST = "src/generated/server/modules.ts";
 const HEADER =
@@ -34,10 +34,18 @@ generator.it(
 );
 
 generator.it(
-	"generate writes an empty list for a project whose module has no registration",
-	[notesProject(), generatedOnce()],
+	"generate writes an empty list for a project that imports it and has no registration yet",
+	[notesProject(), importsTheServerList(), generatedOnce()],
 	function* ({ generatedFile }) {
 		expect(yield* generatedFile(LIST)).toBe(`${HEADER}\n\nexport const modules = [] as const;\n`);
+	},
+);
+
+generator.it(
+	"generate writes no list for a project that neither registers a module nor imports the list",
+	[notesProject(), generatedOnce()],
+	function* ({ generatedFile }) {
+		expect(yield* generatedFile(LIST)).toBe("missing");
 	},
 );
 
