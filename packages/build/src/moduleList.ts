@@ -55,7 +55,7 @@ export function listsSomething(relative: string, text: string, parts: readonly s
 
 // Written from syntax alone, so it needs no program and no cache: every run reads the sources and writes the list again. A
 // project with nothing to list gets the list only when its sources import it, so a library that serves nothing carries none.
-export const moduleList = Effect.fn("Build.moduleList")(function* (project: Project, check: boolean, source: ListSource, parts: readonly string[]) {
+export const moduleList = Effect.fn("Build.moduleList")(function* (project: Project, check: boolean, source: ListSource, parts: RegistrationParts) {
 	const fs = yield* FileSystem.FileSystem;
 	const path = yield* Path.Path;
 	const importedAs = `generated/${source.side}/modules`;
