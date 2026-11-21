@@ -11,7 +11,7 @@ export const homeScreen = screens.trait("screen", "the app has no feature module
 	const fixture = appAuth({ baseUrl: "http://foundation.story.test" });
 	const view = yield* acquireScreen(engine);
 	engine.pending = () =>
-		(engine.view?.registry.get(fixture.auth.session.atom).waiting ?? false)
+		(engine.view !== undefined && fixture.sessionPending(engine.view.registry))
 		|| (engine.view !== undefined
 			&& (engine.view.registry.get(fixture.auth.actions.submit).waiting || engine.view.registry.get(fixture.auth.actions.signOut).waiting));
 	yield* Effect.promise(() =>

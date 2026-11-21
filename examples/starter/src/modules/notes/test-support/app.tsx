@@ -1,6 +1,7 @@
 import { layerWebSocketConstructor } from "@effect/platform-node/NodeWS";
 import { createMemoryHistory } from "@tanstack/react-router";
 import { DateTime, Effect } from "effect";
+import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { SqlClient } from "effect/sql";
 import { clientActivity } from "@shivaedev/contract/clientActivity.ts";
 import { authTestDatabase } from "@shivaedev/identity/server/better-auth/testDatabase.ts";
@@ -24,6 +25,7 @@ import { createCookieHost } from "#test-support/createCookieHost.ts";
 import { configured, postgres } from "#test-support/postgres.ts";
 import { recordedApp } from "#test-support/recordedApp.ts";
 import { acquireScreen, type ScreenSurface, screenView } from "#test-support/screenState.ts";
+import { sessionRequests } from "#test-support/sessionRequests.ts";
 import { settleScreen } from "#test-support/settleScreen.ts";
 import { uiScreenVerbs } from "#test-support/uiScreenVerbs.ts";
 
@@ -37,7 +39,8 @@ export const notesApp = storyKit({
 		const host = yield* createCookieHost();
 		const authStorage = yield* authTestDatabase;
 		const signIn = heldSignIn(host.fetch);
-		const auth = makeAuth({ baseUrl: host.baseUrl, fetchOptions: { customFetchImpl: signIn.fetch } });
+		const checks = sessionRequests(signIn.fetch);
+		const auth = makeAuth({ baseUrl: host.baseUrl, fetchOptions: { customFetchImpl: checks.fetch } });
 		const screen: ScreenSurface = { view: undefined };
 		return {
 			...host,
@@ -47,6 +50,7 @@ export const notesApp = storyKit({
 			headers: new Headers(),
 			history: createMemoryHistory({ initialEntries: ["/sign-in"] }),
 			members: notesMemberScreens(host.baseUrl),
+			sessionPending: (registry: AtomRegistry.AtomRegistry) => checks.pending(registry, auth.session.atom),
 			signIn,
 		};
 	},
@@ -139,7 +143,7 @@ export function notesHostScreen(initial = "/sign-in") {
 		engine.history.replace(initial);
 		const view = yield* acquireScreen(engine);
 		engine.pending = () =>
-			view.registry.get(engine.auth.session.atom).waiting
+			engine.sessionPending(view.registry)
 			|| view.registry.get(engine.auth.actions.submit).waiting
 			|| view.registry.get(engine.auth.actions.signOut).waiting;
 		const app = clientApp([accountModule, notesModule], {

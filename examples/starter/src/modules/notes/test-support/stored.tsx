@@ -20,7 +20,7 @@ const openStoredApp = Effect.fn("StoredNotes.openStoredApp")(function* (engine: 
 	);
 	yield* screenDriver({
 		act,
-		pending: () => view.registry.get(fixture.auth.session.atom).waiting || view.container.querySelector('section[aria-label="Saved notes"]') === null,
+		pending: () => fixture.sessionPending(view.registry) || view.container.querySelector('section[aria-label="Saved notes"]') === null,
 		root: view.container,
 		tell: () => undefined,
 	}).settle();
