@@ -234,7 +234,7 @@ import { modules } from "#generated/client/modules.ts";
 export const clientModules = clientApp(modules);
 ```
 
-A call is found when its `clientModule` is imported by name, renamed or not, or through a namespace import, and its `const` is exported as `export const` or through a separate `export { ... }`. The list skips test files and `test-support` folders, as the server's does, and never imports a file under a `server` folder, which the browser bundle must not reach: an exported `clientModule(...)` there is refused with the fix, moving it to the module's `client/module.tsx`. A `client/module.tsx` under a `modules` folder that exports something but no client module the list finds is refused too. Menu entries, overlays, footers and admin navigation follow the list's path order. A project that imports the list and has no client module yet gets an empty list.
+A call is found when its `clientModule` is imported by name, renamed or not, or through a namespace import, and its `const` is exported as `export const` or through a separate `export { ... }`. The list skips test files and `test-support` folders, as the server's does, and never imports a file under a `server` folder, which the browser bundle must not reach: an exported `clientModule(...)` there is refused with the fix, moving it to the module's `client/module.tsx`. A `client/module.tsx` or `client/admin/module.tsx` under a `modules` folder that exports something but no client module the list finds is refused too. Menu entries, overlays, footers and admin navigation follow the list's path order. A project that imports the list and has no client module yet gets an empty list.
 
 ### What `run` may return
 

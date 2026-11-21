@@ -45,6 +45,11 @@ const named = [
 		"packages/app/src/modules/notes/client/module.tsx",
 		`import { clientModule } from "@shivaedev/react/client/module.ts";\nexport const notesModule = clientModule({}, () => ({}));\n`,
 	],
+	[
+		"the client module module.tsx in tags/client/ under modules/ built through a namespace import",
+		"packages/app/src/modules/tags/client/module.tsx",
+		`import * as Client from "@shivaedev/react/client/module.ts";\nexport const tagsModule = Client.clientModule({}, () => ({}));\n`,
+	],
 	["Order.ts exporting the interface Order", "packages/app/src/Order.ts", "export interface Order {}\n"],
 	["the topic file limits.ts exporting two constants", "packages/app/src/limits.ts", "export const MAX_ITEMS = 10;\nexport const MAX_DEPTH = 4;\n"],
 	["the camelCase topic file helpers.ts", "packages/app/src/helpers.ts", "export function list() {}\nexport function count() {}\n"],

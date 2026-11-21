@@ -3,7 +3,12 @@ import { registrationOf } from "#test/registrationsProject.ts";
 
 const CLIENT_MODULE = 'import { clientModule } from "@shivaedev/react/client/module.ts";';
 
-export type ClientModuleShape = "built by clientModule" | "exporting something else" | "in server code" | "through a namespace import";
+export type ClientModuleShape =
+	| "built by clientModule"
+	| "exporting something else"
+	| "for an admin page exporting something else"
+	| "in server code"
+	| "through a namespace import";
 
 export function clientModuleFile(module: string, shape: ClientModuleShape = "built by clientModule") {
 	const name = `${module.toLowerCase()}Module`;
@@ -12,14 +17,23 @@ export function clientModuleFile(module: string, shape: ClientModuleShape = "bui
 		case "in server code":
 			return `${CLIENT_MODULE}\n\nexport const ${name} = clientModule({}, () => ({}));\n`;
 		case "exporting something else":
+		case "for an admin page exporting something else":
 			return `export const ${name} = { routes: () => [] };\n`;
 		case "through a namespace import":
 			return `import * as Client from "@shivaedev/react/client/module.ts";\n\nexport const ${name} = Client.clientModule({}, () => ({}));\n`;
 	}
 }
 
+const FILES: Readonly<Record<ClientModuleShape, string>> = {
+	"built by clientModule": "client/module.tsx",
+	"exporting something else": "client/module.tsx",
+	"for an admin page exporting something else": "client/admin/module.tsx",
+	"in server code": "server/clientModule.tsx",
+	"through a namespace import": "client/module.tsx",
+};
+
 export function clientModulePath(module: string, shape: ClientModuleShape = "built by clientModule") {
-	return `src/modules/${module.toLowerCase()}/${shape === "in server code" ? "server/clientModule.tsx" : "client/module.tsx"}`;
+	return `src/modules/${module.toLowerCase()}/${FILES[shape]}`;
 }
 
 export const CLIENT_MODULES_PROJECT: Readonly<Record<string, string>> = {

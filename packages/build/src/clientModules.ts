@@ -46,7 +46,7 @@ function callsClientModule(expression: ts.Expression | undefined, names: ClientM
 }
 
 export function isClientModuleFile(file: string): boolean {
-	return /[\\/]modules[\\/].+[\\/]client[\\/]module\.tsx?$/u.test(file);
+	return /[\\/]modules[\\/].+[\\/]client[\\/](?:admin[\\/])?module\.tsx?$/u.test(file);
 }
 
 // Server code never reaches the browser bundle, so the client's list must never import a file under a server folder.

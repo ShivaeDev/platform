@@ -82,6 +82,11 @@ const REFUSALS = [
 		"exports no client module, so the client's module list leaves its module out; export the module as a const built by clientModule from @shivaedev/react/client/module.ts",
 	],
 	[
+		"for an admin page exporting something else",
+		"src/modules/labels/client/admin/module.tsx",
+		"exports no client module, so the client's module list leaves its module out; export the module as a const built by clientModule from @shivaedev/react/client/module.ts",
+	],
+	[
 		"in server code",
 		"src/modules/labels/server/clientModule.tsx",
 		"exports labelsModule built by clientModule in server code, which the client's module list never imports; move it to the module's client/module.tsx",
