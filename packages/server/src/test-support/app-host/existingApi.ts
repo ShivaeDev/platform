@@ -3,7 +3,7 @@ import { HttpRouter, HttpServerRequest, HttpServerResponse } from "effect/http";
 import { Migrator, SqlClient } from "effect/sql";
 import { readBoundedBody } from "@shivaedev/http/server/boundedBody.ts";
 import { appHost } from "#appDatabase.ts";
-import { databaseOf } from "#test/app-host/state.ts";
+import { applicationConfig, databaseOf } from "#test/app-host/state.ts";
 import { host, postgresHost } from "#test/app-host/story.ts";
 
 class ExistingApi extends Context.Service<ExistingApi, (request: Request) => Promise<Response>>()("@shivaedev/server/test/ExistingApi") {}
@@ -61,7 +61,7 @@ export function migratedExistingApi(deferred = false) {
 		state.build = () => {
 			const options = { config, routes, services: services(state.lifecycle, state.calls, greeting) };
 			return deferred
-				? appHost({ application: Effect.succeed(options), config, migrations, postgresSettings: {} })
+				? appHost({ application: Effect.succeed({ ...options, config: applicationConfig(state).served }), config, migrations, postgresSettings: {} })
 				: appHost({ postgresSettings: {}, ...options, migrations });
 		};
 	});

@@ -132,3 +132,6 @@ it("native RPC still requires its group, handlers and session policy together", 
 appHost({ migrations, postgresSettings: {} });
 // @ts-expect-error Deferred database construction belongs to the database entry.
 appHost({ application: Effect.succeed({}), migrations, postgresSettings: {} });
+databaseHost({ application: Effect.succeed({}), config: { sensitiveKeys: ["contact"] }, migrations, postgresSettings: {} });
+// @ts-expect-error An application lists its sensitive names in appHost's own config, which masks them while its application Effect runs.
+databaseHost({ application: Effect.succeed({ config: { sensitiveKeys: ["contact"] } }), migrations, postgresSettings: {} });
