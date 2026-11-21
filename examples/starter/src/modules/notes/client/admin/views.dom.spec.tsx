@@ -5,7 +5,7 @@ import { adminScreen, adminScreens, pendingNote } from "#modules/notes/test-supp
 adminScreens.it("the Jobs page filters by foundation and note word-count queues", [adminScreen()], function* ({ queueFilter, settle }) {
 	yield* settle();
 
-	expect(yield* queueFilter()).toEqual(["identity.auth-emails", "sweep-expired-auth-sessions", "count-note-words"]);
+	expect(yield* queueFilter()).toEqual(["email.auth-emails", "sweep-expired-auth-sessions", "count-note-words"]);
 });
 
 adminScreens.it(

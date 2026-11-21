@@ -58,17 +58,28 @@
 	},
 	"devDependencies": {
 		"@effect/platform-node": "catalog:",
+		"@effect/sql-pg": "catalog:",
+		"@shivaedev/identity": "workspace:*",
 		"@shivaedev/quality": "workspace:*",
+		"@shivaedev/rate-limit": "workspace:*",
+		"@shivaedev/sql": "workspace:*",
 		"@shivaedev/test-kits": "workspace:*",
 		"@shivaedev/test-sql": "workspace:*",
 		"@shivaedev/test-story": "workspace:*",
 		"@types/node": "catalog:",
+		"better-auth": "catalog:",
 		"effect": "catalog:",
 		"typescript": "catalog:",
 		"vitest": "catalog:"
 	},
 	"peerDependencies": {
+		"@shivaedev/identity": "workspace:*",
 		"effect": "catalog:"
+	},
+	"peerDependenciesMeta": {
+		"@shivaedev/identity": {
+			"optional": true
+		}
 	},
 	"engines": {
 		"node": ">=24"

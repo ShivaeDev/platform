@@ -7,6 +7,6 @@ foundationJobsScreen.it(
 	function* ({ queueFilter, settle }) {
 		yield* settle();
 
-		expect(yield* queueFilter()).toEqual(expect.arrayContaining(["identity.auth-emails", "sweep-expired-auth-sessions"]));
+		expect(yield* queueFilter()).toEqual(expect.arrayContaining(["email.auth-emails", "sweep-expired-auth-sessions"]));
 	},
 );
