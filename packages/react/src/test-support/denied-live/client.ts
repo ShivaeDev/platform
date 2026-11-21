@@ -79,8 +79,6 @@ export const deniedLiveClient = Effect.gen(function* () {
 		access,
 		announce: () => reactivity.invalidate(invalidationKeys([notes.item("private"), notes.item("private-details"), notes.item("private-counts")])),
 		api,
-		clientReactivity: Client.runtime.atom(Effect.service(Reactivity.Reactivity)),
-		keys: invalidationKeys([notes.item("private"), notes.item("private-details"), notes.item("private-counts")]),
 		requests,
 		response,
 		status: api[LiveConnection].status,

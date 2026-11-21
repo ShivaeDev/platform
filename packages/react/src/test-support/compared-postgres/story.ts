@@ -29,8 +29,8 @@ const create = Effect.gen(function* () {
 	const host = yield* openHost(database.url);
 	const wire = transport();
 	const runtime = yield* storyRuntime;
-	const client = connect(host.url, wire.layer, true, runtime);
-	const writer = connect(host.url, layerWebSocketConstructor, false, runtime);
+	const client = connect(host.url, wire.layer, runtime);
+	const writer = connect(host.url, layerWebSocketConstructor, runtime);
 	const writerRegistry = yield* Effect.acquireRelease(
 		Effect.sync(() => AtomRegistry.make()),
 		(registry) => Effect.sync(() => registry.dispose()),

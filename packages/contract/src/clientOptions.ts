@@ -13,7 +13,6 @@ import type { ResumeSource, ResumeWindow } from "#resume.ts";
 export interface ClientOptions {
 	readonly bearerToken?: string;
 	readonly headers?: Readonly<Record<string, string>>;
-	readonly live?: boolean;
 	readonly protocol?: Layer.Layer<RpcClient.Protocol> | ((identity: string | undefined) => Layer.Layer<RpcClient.Protocol>);
 	readonly resume?: ResumeSource;
 	readonly resumeWindow?: ResumeWindow;

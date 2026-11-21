@@ -8,7 +8,6 @@ import type { SwitchClient } from "#test/reflected-switch/connect.ts";
 function ToggleRow({ client, enabled, id }: { readonly client: PendingClient; readonly enabled: boolean; readonly id: number }) {
 	const toggle = usePendingCommand(client.command, {
 		failures: { ToggleRejected: "silent" },
-		queries: client.queries,
 		value: enabled,
 		wanted: (input) => input.enabled,
 	});
@@ -25,8 +24,11 @@ function ToggleRow({ client, enabled, id }: { readonly client: PendingClient; re
 }
 export function PendingCommandScreen({ client }: { readonly client: PendingClient }) {
 	const list = useQuery(client.list);
+	// The count is on screen so the server reruns it after a toggle, and the toggle is reflected only once both have rerun.
+	const count = useQuery(client.count);
 	return (
 		<section>
+			<output data-count>{String(Option.getOrElse(count.data, () => ""))}</output>
 			<output data-list-pending={list.pending}>
 				{Option.getOrElse(list.data, () => [])
 					.map((row) => String(row.enabled))

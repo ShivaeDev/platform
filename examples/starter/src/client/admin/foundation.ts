@@ -12,11 +12,11 @@ export function makeFoundationClient(url: string, options: Omit<ClientOptions, "
 		...options,
 	});
 	const { api: users, Client, runtime } = transport;
-	const sessions = bind(foundation.SessionsPage.contract, Client, { ...options, live: options.live ?? true });
+	const sessions = bind(foundation.SessionsPage.contract, Client, options);
 	return Object.assign(transport, {
 		activity: clientActivity(transport),
 		changeRole: runtime.fn(users.changeRole.run),
-		jobs: bind(foundation.JobsPage.contract, Client, { ...options, live: options.live ?? true }),
+		jobs: bind(foundation.JobsPage.contract, Client, options),
 		sessions,
 		users,
 	});
