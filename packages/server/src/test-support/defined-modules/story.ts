@@ -1,8 +1,7 @@
 import { Cause, ConfigProvider, Effect, Layer, Logger, Option } from "effect";
 import * as Base64 from "effect/encoding/Base64";
-import { FetchHttpClient, HttpClient, HttpClientRequest, HttpServer } from "effect/http";
+import { HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
-import { RpcClient, RpcSerialization } from "effect/rpc";
 import { COLUMN_KEY_CONFIG } from "@shivaedev/sql/ColumnKey.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
@@ -17,7 +16,9 @@ import { Greetings, greetingsModule } from "#test/defined-modules/greetings.ts";
 import { Members, membersModule, privateJoinMembersModule } from "#test/defined-modules/members.ts";
 import { OwnedData, ownedDataModule } from "#test/defined-modules/ownedData.ts";
 import { ProviderTokensModule, providerTokensModule } from "#test/defined-modules/providerTokens.ts";
+import { rpcClient } from "#test/defined-modules/rpcClient.ts";
 import { sessions } from "#test/defined-modules/sessions.ts";
+import { remindersModule, UsagePage, usageModule } from "#test/defined-modules/usage.ts";
 import { databaseUrl, postgres } from "#test/postgres.ts";
 import { spanAttribute } from "#test/spanAttribute.ts";
 import { workerHost } from "#workerHost.ts";
@@ -37,15 +38,26 @@ interface State {
 	logs: { readonly cause: Cause.Cause<unknown>; readonly message: readonly unknown[] }[];
 	members: typeof membersModule | typeof privateJoinMembersModule;
 	notes: typeof notesModule | typeof handWrittenNotesModule | typeof replacedNotesModule;
+	reminders: { readonly queues: readonly { readonly name: string }[] };
 	startup: string;
 	url: string;
+	usage: typeof usageModule | (typeof usageModule & { readonly queues: readonly (typeof draftsQueue)[] });
 }
 
 export const definedModulesHost = storyKit({
 	after: {
 		configured: Effect.fnUntraced(function* (state: State) {
 			const database = yield* PostgresTestDatabase;
-			const composed = yield* appModules([state.drafts, state.notes, state.members, state.greetings, ownedDataModule, providerTokensModule]).pipe(
+			const composed = yield* appModules([
+				state.drafts,
+				state.notes,
+				state.members,
+				state.greetings,
+				ownedDataModule,
+				providerTokensModule,
+				state.usage,
+				state.reminders,
+			]).pipe(
 				Effect.map(Option.some),
 				Effect.catchTag("DuplicateModuleQueue", (refusal) =>
 					Effect.sync(() => {
@@ -140,8 +152,10 @@ export const definedModulesHost = storyKit({
 		logs: [],
 		members: membersModule,
 		notes: notesModule,
+		reminders: remindersModule,
 		startup: "not built",
 		url: "",
+		usage: usageModule,
 	}),
 	layer: postgres,
 	name: "defined modules",
@@ -149,45 +163,13 @@ export const definedModulesHost = storyKit({
 	stages: ["configured"],
 	verbs: (state, story) => {
 		function client(caller: Caller) {
-			return RpcClient.make(Api, { flatten: true }).pipe(
-				Effect.provide(
-					RpcClient.layerProtocolHttp({
-						transformClient: (http) => HttpClient.mapRequest(http, HttpClientRequest.setHeader("authorization", caller === "alice" ? "alice" : "")),
-						url: state.url,
-					}).pipe(Layer.provide([FetchHttpClient.layer, RpcSerialization.layerNdjson])),
-				),
-			);
-		}
-		function membersClient() {
-			return RpcClient.make(Members, { flatten: true }).pipe(
-				Effect.provide(
-					RpcClient.layerProtocolHttp({
-						transformClient: (http) => HttpClient.mapRequest(http, HttpClientRequest.setHeader("authorization", "alice")),
-						url: state.url,
-					}).pipe(Layer.provide([FetchHttpClient.layer, RpcSerialization.layerNdjson])),
-				),
-			);
-		}
-		function greetingsClient() {
-			return RpcClient.make(Greetings, { flatten: true }).pipe(
-				Effect.provide(RpcClient.layerProtocolHttp({ url: state.url }).pipe(Layer.provide([FetchHttpClient.layer, RpcSerialization.layerNdjson]))),
-			);
-		}
-		function providerTokensClient() {
-			return RpcClient.make(ProviderTokensModule, { flatten: true }).pipe(
-				Effect.provide(RpcClient.layerProtocolHttp({ url: state.url }).pipe(Layer.provide([FetchHttpClient.layer, RpcSerialization.layerNdjson]))),
-			);
-		}
-		function ownedDataClient() {
-			return RpcClient.make(OwnedData, { flatten: true }).pipe(
-				Effect.provide(RpcClient.layerProtocolHttp({ url: state.url }).pipe(Layer.provide([FetchHttpClient.layer, RpcSerialization.layerNdjson]))),
-			);
+			return rpcClient(Api, state.url, caller === "alice" ? "alice" : "");
 		}
 		return {
 			...constructionVerbs(state.construction, state.logs, story),
 			auditMember: (id: number) => {
 				story.tell(`alice audits member ${id} through members.audit, whose handler dies holding the member's row`);
-				return answered(Effect.flatMap(membersClient(), (call) => call("members.audit", { id })));
+				return answered(Effect.flatMap(rpcClient(Members, state.url, "alice"), (call) => call("members.audit", { id })));
 			},
 			createNote: (title: string, caller: Caller = "alice") => {
 				story.tell(`${caller} creates the note ${title} through notes.create`);
@@ -202,11 +184,11 @@ export const definedModulesHost = storyKit({
 				}),
 			greet: (name: string) => {
 				story.tell(`alice greets ${name} through greetings.greet`);
-				return answered(Effect.flatMap(greetingsClient(), (call) => call("greetings.greet", { name })));
+				return answered(Effect.flatMap(rpcClient(Greetings, state.url), (call) => call("greetings.greet", { name })));
 			},
 			joinMember: (name: string, address: string) => {
 				story.tell(`alice adds the member ${name} living at ${address} through members.join`);
-				return answered(Effect.flatMap(membersClient(), (call) => call("members.join", { address, name })));
+				return answered(Effect.flatMap(rpcClient(Members, state.url, "alice"), (call) => call("members.join", { address, name })));
 			},
 			loggedDefect: () =>
 				Effect.sync(
@@ -219,7 +201,7 @@ export const definedModulesHost = storyKit({
 			ownedModels: () => {
 				story.tell("an operation served by the host reads the owned models its repositories reported");
 				return answered(
-					Effect.flatMap(ownedDataClient(), (call) =>
+					Effect.flatMap(rpcClient(OwnedData, state.url), (call) =>
 						Effect.map(call("ownedData.owned", {}), (owned) => [...owned].sort((left, right) => (left.table < right.table ? -1 : 1))),
 					),
 				);
@@ -234,16 +216,20 @@ export const definedModulesHost = storyKit({
 			},
 			readProviderToken: (id: number) => {
 				story.tell(`a visitor reads provider token ${id} back through providerTokens.reveal`);
-				return answered(Effect.flatMap(providerTokensClient(), (call) => call("providerTokens.reveal", { id })));
+				return answered(Effect.flatMap(rpcClient(ProviderTokensModule, state.url), (call) => call("providerTokens.reveal", { id })));
+			},
+			readUsage: () => {
+				story.tell("alice reads every note's title through the usage admin page's admin.usage.titles");
+				return answered(Effect.flatMap(rpcClient(UsagePage.contract, state.url, "alice"), (call) => call("admin.usage.titles", undefined)));
 			},
 			showMember: (id: number) => {
 				story.tell(`alice reads member ${id} through members.show, whose handler logs the member's row`);
-				return answered(Effect.flatMap(membersClient(), (call) => call("members.show", { id })));
+				return answered(Effect.flatMap(rpcClient(Members, state.url, "alice"), (call) => call("members.show", { id })));
 			},
 			startup: () => Effect.sync(() => state.startup),
 			storeProviderToken: (token: string) => {
 				story.tell(`a visitor stores the provider token ${token} through providerTokens.store`);
-				return answered(Effect.flatMap(providerTokensClient(), (call) => call("providerTokens.store", { token })));
+				return answered(Effect.flatMap(rpcClient(ProviderTokensModule, state.url), (call) => call("providerTokens.store", { token })));
 			},
 		};
 	},
@@ -281,6 +267,21 @@ export const queueSharedWithGreetings = definedModulesHost.trait(
 		state.greetings = { ...greetingsModule, queues: [draftsQueue] };
 	},
 );
+
+export function queueSharedWithDrafts(owner: "the usage report" | "the reminders registration") {
+	return definedModulesHost.trait(
+		"configured",
+		`the drafts module and ${owner}, which has no name, both declare the queue drafts.publish`,
+		(state) => {
+			state.drafts = { ...draftsModule, queues: [draftsQueue] };
+			if (owner === "the usage report") {
+				state.usage = { ...usageModule, queues: [draftsQueue] };
+			} else {
+				state.reminders = { queues: [...remindersModule.queues, draftsQueue] };
+			}
+		},
+	);
+}
 
 export function columnKey(configured: "missing" | "16 random bytes in base64") {
 	return definedModulesHost.trait(

@@ -1,7 +1,7 @@
 import ts from "typescript";
 import { byText } from "#byText.ts";
 import { type ExportedVariable, exportedVariables, exportsAnything } from "#exportedVariables.ts";
-import { propertyOf } from "#moduleCalls.ts";
+import { initializerOf, propertyOf } from "#moduleCalls.ts";
 
 const APP_MODULE = "@shivaedev/server/AppModule.ts";
 
@@ -49,18 +49,23 @@ function withoutParentheses(expression: ts.Expression | undefined): ts.Expressio
 	return expression !== undefined && ts.isParenthesizedExpression(expression) ? withoutParentheses(expression.expression) : expression;
 }
 
-function servesSomething(literal: ts.ObjectLiteralExpression): boolean {
-	return propertyOf(literal, "module") !== undefined || (propertyOf(literal, "group") !== undefined && propertyOf(literal, "handlers") !== undefined);
+// Services are optional, so a registration is known by what it serves: a `module` it refers to, or a group and its handlers. One
+// that serves only admin pages, queues or workers looks like any other object, so only `satisfies AppModule` lists it.
+function namesModule(literal: ts.ObjectLiteralExpression): boolean {
+	const module = initializerOf(propertyOf(literal, "module"));
+	return module !== undefined && (ts.isIdentifier(module) || ts.isPropertyAccessExpression(module));
 }
 
-// A registration names what it serves and its services, so an object with both that is not written `satisfies AppModule` is one
-// the list would leave out without a word.
 function looksLikeRegistration(expression: ts.Expression | undefined): boolean {
 	const inner = withoutParentheses(expression);
 	if (inner !== undefined && ts.isAsExpression(inner)) {
 		return looksLikeRegistration(inner.expression);
 	}
-	return inner !== undefined && ts.isObjectLiteralExpression(inner) && servesSomething(inner) && propertyOf(inner, "services") !== undefined;
+	return (
+		inner !== undefined
+		&& ts.isObjectLiteralExpression(inner)
+		&& (namesModule(inner) || (propertyOf(inner, "group") !== undefined && propertyOf(inner, "handlers") !== undefined))
+	);
 }
 
 type Found = { readonly refusal: string } | { readonly registration: string };
@@ -81,7 +86,7 @@ function foundIn({ name, variable }: ExportedVariable, names: AppModuleNames): r
 	return looksLikeRegistration(initializer)
 		? [
 				{
-					refusal: `${name} names what it serves and its services but is not written \`satisfies AppModule\`, so the server's module list leaves it out; write \`satisfies AppModule\` after its object, with AppModule imported from ${APP_MODULE}`,
+					refusal: `${name} names what it serves but is not written \`satisfies AppModule\`, so the server's module list leaves it out; write \`satisfies AppModule\` after its object, with AppModule imported from ${APP_MODULE}`,
 				},
 			]
 		: [];
