@@ -1,4 +1,4 @@
-import { Duration, Effect, type FileSystem, Option, type Path, type Scope } from "effect";
+import { Console, Duration, Effect, type FileSystem, Option, type Path, type Scope } from "effect";
 import { SecureRandom } from "effect/crypto";
 import type { ChildProcessSpawner } from "effect/process";
 import { currentProcess } from "#adapters/currentProcess.ts";
@@ -9,6 +9,7 @@ import { HOLDER_ID_ENV } from "#holder.ts";
 import { readHolder } from "#lockFile.ts";
 import { processStartTime } from "#processStart.ts";
 import { readSettings } from "#settings.ts";
+import { PS_MISSING_LINE } from "#status.ts";
 import { waitForLock } from "#wait.ts";
 
 export interface HeavyLockOptions {
@@ -24,8 +25,20 @@ function heldBy(id: string, lockPath: string): HeldLockShape {
 	return { env: { [HOLDER_ID_ENV]: id, "HEAVY_PROCESS_LOCK": lockPath } };
 }
 
+const NO_HOLD = { env: {} } satisfies HeldLockShape;
+
+// Without `ps` no waiter could check this process's hold, so the command runs unlocked; a `ps` that runs without a start time is broken and fails.
 const ownStartTime = Effect.fn("HeavyLock.ownStartTime")(function* (pid: number) {
-	const started = yield* processStartTime(pid).pipe(Effect.mapError(failWith("Could not run ps to read this process's start time.")));
+	const started = yield* processStartTime(pid).pipe(
+		Effect.catchIf(
+			(error) => error.reason._tag === "NotFound",
+			() => Effect.succeed(undefined),
+		),
+		Effect.mapError(failWith("Could not run ps to read this process's start time.")),
+	);
+	if (started === undefined) {
+		return undefined;
+	}
 	if (Option.isNone(started)) {
 		return yield* new HeavyLockError({ message: "Could not read this process's start time from ps." });
 	}
@@ -35,7 +48,7 @@ const ownStartTime = Effect.fn("HeavyLock.ownStartTime")(function* (pid: number)
 const acquire = Effect.fn("HeavyLock.acquire")(function* (options: HeavyLockOptions) {
 	const settings = yield* readSettings(options.lockPath);
 	if (settings.ci) {
-		return { env: {} } satisfies HeldLockShape;
+		return NO_HOLD;
 	}
 	const current = yield* readHolder(settings.lock).pipe(Effect.mapError(failWith(`Could not read the heavy-process lock at ${settings.lock}.`)));
 	const inherited = Option.filter(settings.inherited, (id) => Option.exists(current, (currentHolder) => currentHolder.id === id));
@@ -43,8 +56,12 @@ const acquire = Effect.fn("HeavyLock.acquire")(function* (options: HeavyLockOpti
 		return heldBy(inherited.value, settings.lock);
 	}
 	const self = yield* currentProcess;
-	const branch = yield* currentBranch.pipe(Effect.mapError(failWith("Could not read this process's Git branch.")));
 	const processStartedAt = yield* ownStartTime(self.pid);
+	if (processStartedAt === undefined) {
+		yield* Console.error(PS_MISSING_LINE);
+		return NO_HOLD;
+	}
+	const branch = yield* currentBranch.pipe(Effect.mapError(failWith("Could not read this process's Git branch.")));
 	const random = yield* SecureRandom.SecureRandom;
 	const holderId = yield* random.uuidV4();
 	const holder = yield* waitForLock(

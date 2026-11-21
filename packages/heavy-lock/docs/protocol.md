@@ -36,7 +36,7 @@ The PID alone is insufficient. The holder is live only when `ps` succeeds, print
 ## Acquire and reclaim
 
 1. Resolve the path from the Effect API's explicit `lockPath`, then `HEAVY_PROCESS_LOCK`, then `HOME/.cache/heavy-process.lock`. Create its directory if missing.
-2. Read this process's start time before taking a new hold. If `ps` cannot run or supplies no start time, fail before starting the command.
+2. Read this process's start time before taking a new hold. If `ps` is not found, take no hold and leave the lock file and gate alone: run the command without the lock, as under CI, and say so on stderr. If `ps` runs but fails or supplies no start time, fail before starting the command.
 3. Register cleanup for `<lock>.<id>.draft`, write the complete holder there, hard-link the draft to `<lock>` and remove the draft. Cleanup also runs after a partial write, failure or interruption. If cleanup fails after publication, release that attempt's hold and report the failure.
 4. If the path already exists and its holder is live, return that holder to the waiting loop. Do not preempt it.
 5. Otherwise acquire the reclamation gate by atomically creating the directory `<lock>.reclaim`. If it already exists, leave the lock alone and retry acquisition.

@@ -141,7 +141,7 @@ Import the module that defines each name; there is no root entry.
 | `@shivaedev/heavy-lock/HeldLock.ts`      | `HeldLock`, `HeldLockShape`                                 |
 | `@shivaedev/heavy-lock/error.ts`         | `HeavyLockError`, `failWith`                                |
 
-`HeldLock` is an Effect service whose value is `HeldLockShape`. Its `env` contains the hold ID and selected lock path for children, including when an explicit `lockPath` overrides `HEAVY_PROCESS_LOCK`, and is empty when CI skips acquisition. Pass `held.env` to child processes so nested runs join the same hold. `HeavyLockError` has the tag `HeavyLockError`, a `message` and an optional `cause`; caller failures remain separate from acquisition failures. `failWith(message)` constructs an error mapper that keeps the cause.
+`HeldLock` is an Effect service whose value is `HeldLockShape`. Its `env` contains the hold ID and selected lock path for children, including when an explicit `lockPath` overrides `HEAVY_PROCESS_LOCK`, and is empty when CI or a missing `ps` skips acquisition. Pass `held.env` to child processes so nested runs join the same hold. `HeavyLockError` has the tag `HeavyLockError`, a `message` and an optional `cause`; caller failures remain separate from acquisition failures. `failWith(message)` constructs an error mapper that keeps the cause.
 
 | Option         | Meaning                                                                              | Default                                                            |
 | -------------- | ------------------------------------------------------------------------------------ | ------------------------------------------------------------------ |
@@ -166,13 +166,15 @@ The Effect packages are peers. The package requires Node 24 or later.
 | `HOME`                  | Supplies `HOME/.cache/heavy-process.lock` when no explicit path is supplied. |
 | `HEAVY_PROCESS_LOCK_ID` | An inherited hold ID; joins when it matches the lock file.                   |
 | `CI`                    | A nonempty value skips acquisition. An empty value does not.                 |
+| `PATH`                  | Locates `ps`. Without `ps`, acquisition is skipped with one notice line.     |
 
-The Effect API reads these through Effect's `Config`, so a `ConfigProvider` can supply them. CI gives `HeldLock.env` no new owner ID and leaves another holder's lock alone.
+The Effect API reads all but `PATH` through Effect's `Config`, so a `ConfigProvider` can supply them; `ps` is looked up on the process's own `PATH`. CI, or a `PATH` without `ps`, gives `HeldLock.env` no new owner ID and leaves another holder's lock alone.
 
 ### Limits
 
 - Participants must share a lock path. This does not stop commands that run outside the protocol.
-- Acquisition needs `ps -o lstart= -p <pid>` in the C locale and a filesystem that supports hard links and atomic directory creation in the lock directory. All participants must use the [reclamation gate protocol](https://github.com/ShivaeDev/platform/blob/main/packages/heavy-lock/docs/protocol.md#acquire-and-reclaim); stop participants before upgrading from an implementation that renames stale locks.
+- A hold needs `ps -o lstart= -p <pid>` in the C locale and a filesystem that supports hard links and atomic directory creation in the lock directory. All participants must use the [reclamation gate protocol](https://github.com/ShivaeDev/platform/blob/main/packages/heavy-lock/docs/protocol.md#acquire-and-reclaim); stop participants before upgrading from an implementation that renames stale locks.
+- Without `ps` on the `PATH` the lock cannot record a holder, so the command runs without the lock and prints `heavy-process lock: ps is not on the PATH, so this command runs without the lock.` to stderr. A `ps` that runs but prints no start time fails acquisition.
 - The holder's identity is the wrapper process and its start time. A matching inherited hold ID joins the recorded hold; it is not an authentication token.
 - A stopped holder can leave a file behind. The next acquisition checks its identity and reclaims a stale file; do not remove a live holder's file to hurry a waiter.
 - An uncatchable termination during reclamation can leave `<lock>.reclaim` behind. Stop participants and remove that abandoned directory before restarting them.

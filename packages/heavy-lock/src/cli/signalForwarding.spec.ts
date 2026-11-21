@@ -82,22 +82,32 @@ lockStory.it(
 	CLI_TIMEOUT_MS,
 );
 
-for (const [how, message] of [
-	["missing", "Could not run ps to read this process's start time."],
-	["prints nothing", "Could not read this process's start time from ps."],
-] as const) {
-	lockStory.it(
-		`when ps is ${how === "missing" ? "not on the PATH" : "printing no start time"}, the CLI prints "${message}" and exits 1 without running check's command`,
-		[psFails(how)],
-		function* ({ cli }) {
-			yield* cli.runs("check", cli.commands.exitsWith(0));
+lockStory.it(
+	"when ps is not on the PATH, the CLI runs check's command without the lock, exits with its exit code 3 and prints one notice line",
+	[psFails("missing")],
+	function* ({ cli }) {
+		yield* cli.runs("check", cli.commands.exitsWith(3));
 
-			yield* outcomes([
-				["check ran its command", () => cli.ranItsCommand("check"), false],
-				["check's exit code", () => cli.exitCodeOf("check"), 1],
-				["printed by check", () => cli.printedBy("check"), [`heavy-lock: ${message}`]],
-			]);
-		},
-		CLI_TIMEOUT_MS,
-	);
-}
+		yield* outcomes([
+			["check ran its command", () => cli.ranItsCommand("check"), true],
+			["check's exit code", () => cli.exitCodeOf("check"), 3],
+			["printed by check", () => cli.printedBy("check"), ["heavy-process lock: ps is not on the PATH, so this command runs without the lock."]],
+		]);
+	},
+	CLI_TIMEOUT_MS,
+);
+
+lockStory.it(
+	`when ps prints no start time, the CLI prints "Could not read this process's start time from ps." and exits 1 without running check's command`,
+	[psFails("prints nothing")],
+	function* ({ cli }) {
+		yield* cli.runs("check", cli.commands.exitsWith(0));
+
+		yield* outcomes([
+			["check ran its command", () => cli.ranItsCommand("check"), false],
+			["check's exit code", () => cli.exitCodeOf("check"), 1],
+			["printed by check", () => cli.printedBy("check"), ["heavy-lock: Could not read this process's start time from ps."]],
+		]);
+	},
+	CLI_TIMEOUT_MS,
+);
