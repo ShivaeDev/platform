@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.40.40 - 2026-11-21
+
+### Changed
+
+- Update `@shivaedev/admin` from 0.29.5 to 0.29.6.
+- Update `@shivaedev/email` from 0.8.6 to 0.9.0.
+- Update `@shivaedev/github` from 0.19.0 to 0.20.0.
+- Update `@shivaedev/identity` from 0.42.0 to 0.43.0.
+- Update `@shivaedev/react` from 0.59.0 to 0.59.1.
+- Update `@shivaedev/server` from 0.45.0 to 0.46.0.
+- Update `@shivaedev/webhooks` from 0.13.1 to 0.13.2.
+
 ## 0.40.39 - 2026-11-21
 
 ### Changed
