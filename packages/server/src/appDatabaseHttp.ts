@@ -2,9 +2,10 @@ import { Effect, Layer } from "effect";
 import type { Rpc } from "effect/rpc";
 import type { appDatabase } from "#appDatabase.ts";
 import type { AppHttpHostOptions } from "#appHost.ts";
-import { appHostHttp } from "#appHostHttp.ts";
+import { appHostHttp, servedHost } from "#appHostHttp.ts";
 import type { HostOptions, HostPolicy, HostRouteRequirements } from "#hostOptions.ts";
 import type { MigrationOptions } from "#MigrationOptions.ts";
+import { redactedHost } from "#redactedHost.ts";
 
 export function migratedHost<
 	TRpcs extends Rpc.Any,
@@ -82,5 +83,10 @@ export function deferredHost<
 	>,
 	database: ReturnType<typeof appDatabase<TMigrations, TMigrationError>>,
 ) {
-	return Layer.unwrap(Effect.map(application, (options) => appHostHttp(options))).pipe(Layer.provideMerge(database));
+	// The application and the database it runs on build inside the host's one policy, so whatever they log, fork or capture is masked too.
+	return redactedHost({}, (sensitive) =>
+		Layer.unwrap(Effect.flatMap(application, (options) => Effect.as(sensitive.configure(options), servedHost(options, sensitive)))).pipe(
+			Layer.provideMerge(database),
+		),
+	);
 }
