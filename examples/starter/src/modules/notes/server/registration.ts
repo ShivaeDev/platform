@@ -1,5 +1,4 @@
 import { Layer } from "effect";
-import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
 import type { AppModule } from "@shivaedev/server/AppModule.ts";
 import { migrationsIn } from "@shivaedev/server/migrationsIn.ts";
 import { Notes } from "#modules/notes/Notes.ts";
@@ -13,7 +12,7 @@ export const notesRegistration = {
 	admin: adminRegistration,
 	migrations: migrationsIn(import.meta.dirname),
 	module: Notes,
-	ports: Layer.mergeAll(jsonPlaceholderNotes, memoryStore, noteProducer),
+	ports: Layer.merge(jsonPlaceholderNotes, noteProducer),
 	queues: notesWorker.queues,
 	services: NotesRepository.layer,
 	workers: notesWorker.workers,

@@ -1,6 +1,6 @@
 import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
-import { emailLinks, unverifiedAlice } from "#test/better-auth/emailLinks.ts";
+import { emailLinks, signedInUnverifiedAlice, unverifiedAlice } from "#test/better-auth/emailLinks.ts";
 
 emailLinks.it(
 	"alice's emailed verification link redirects to its callback with an empty body behind bearer sessions",
@@ -28,5 +28,18 @@ emailLinks.it(
 			location: expect.stringMatching(/^http:\/\/localhost:3000\/new-password\?from=email&token=[^&]+$/u),
 			status: HttpStatus.fromLiteral("Found"),
 		});
+	},
+);
+
+emailLinks.it(
+	"alice's operation reads her email as unconfirmed until she follows the verification link, then as confirmed",
+	[signedInUnverifiedAlice],
+	function* ({ emailVerifiedInOperation, followEmail, requestEmail }) {
+		yield* requestEmail("verification", "/email-confirmed");
+		expect(yield* emailVerifiedInOperation()).toBe(false);
+
+		yield* followEmail("verification");
+
+		expect(yield* emailVerifiedInOperation()).toBe(true);
 	},
 );

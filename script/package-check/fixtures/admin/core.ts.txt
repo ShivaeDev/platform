@@ -54,7 +54,7 @@ await Effect.runPromise(Effect.gen(function* () {
   const sessions = Layer.succeed(SessionPolicy, {
     origin: () => true,
     provider: { get: () => Effect.map(Ref.get(currentRole), (role) => Option.some({
-      user: { id: "alice", email: "alice@app.test", name: "Alice", role },
+      user: { id: "alice", email: "alice@app.test", emailVerified: true, name: "Alice", role },
     })) },
     roles: roleSet(role("viewer", []), role("operator", [ReadJobs])),
   });

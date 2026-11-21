@@ -3,13 +3,13 @@ import { RpcClient, RpcSerialization } from "effect/rpc";
 import * as Socket from "effect/socket/Socket";
 import { SqlClient } from "effect/sql";
 import { AuthUnavailable } from "@shivaedev/errors/taxonomy.ts";
+import { SessionUserSchema } from "@shivaedev/identity/identity.ts";
 import { betterAuthDatabase } from "@shivaedev/identity/server/better-auth/adapters/database.ts";
 import { migrateBetterAuth } from "@shivaedev/identity/server/better-auth/migrate.ts";
 import { betterAuthMount } from "@shivaedev/identity/server/better-auth/mount.ts";
 import type { AuthTableOptions } from "@shivaedev/identity/server/better-auth/tables.ts";
 import { betterAuthUserDirectory } from "@shivaedev/identity/server/better-auth/userDirectory.ts";
 import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
-import { DirectoryUser } from "@shivaedev/identity/users.ts";
 import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
 import { liveChannel, liveHost } from "@shivaedev/test-kits/contract/liveMemoryProtocol.ts";
 import { rpcSocketHost } from "@shivaedev/test-story/server/rpcSocketHost.ts";
@@ -19,7 +19,6 @@ import { Access } from "#test/Access.ts";
 import { Users } from "#Users.ts";
 import { UsersPage } from "#users/Page.ts";
 
-const Profile = DirectoryUser.mapFields(({ email, id, name, role }) => ({ email, id, name, role }));
 export interface LogRecord {
 	readonly annotations: Readonly<Record<string, unknown>>;
 	readonly message: unknown;
@@ -85,7 +84,7 @@ export const makeUsersEngine = Effect.fnUntraced(function* (mapping: AuthTableOp
 	);
 	function currentUser(id: string) {
 		return Effect.tryPromise(() => context.internalAdapter.findUserById(id)).pipe(
-			Effect.flatMap(Schema.decodeUnknownEffect(Profile)),
+			Effect.flatMap(Schema.decodeUnknownEffect(SessionUserSchema)),
 			Effect.map((user) => Option.some({ user })),
 			Effect.mapError(() => new AuthUnavailable({ message: "Could not resolve session" })),
 		);

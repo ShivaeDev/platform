@@ -67,7 +67,9 @@ export function policyHost(state: HostState, checks: Check[], revoked: Set<strin
 				const id = headers.authorization;
 				state.lookups.push(id ?? "");
 				return Effect.succeed(
-					id === undefined || revoked.has(id) ? Option.none() : Option.some({ user: { email: `${id}@example.test`, id, name: id } }),
+					id === undefined || revoked.has(id)
+						? Option.none()
+						: Option.some({ user: { email: `${id}@example.test`, emailVerified: true, id, name: id } }),
 				);
 			},
 		},

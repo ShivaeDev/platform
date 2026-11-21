@@ -44,8 +44,8 @@ export const collectionEngine = Effect.gen(function* () {
 		conflictColumns: ["title"],
 	}).pipe(Effect.provideContext(services));
 	const permissions = new Map([
-		["admin", { email: "admin@example.test", id: "admin", name: "Admin", permissions: [ManageWorkspaces] }],
-		["member", { email: "member@example.test", id: "member", name: "Member", permissions: [] }],
+		["admin", { email: "admin@example.test", emailVerified: true, id: "admin", name: "Admin", permissions: [ManageWorkspaces] }],
+		["member", { email: "member@example.test", emailVerified: true, id: "member", name: "Member", permissions: [] }],
 	]);
 	const live = Context.get(services, LiveServer);
 	const application = Workspaces.application.toLayer({

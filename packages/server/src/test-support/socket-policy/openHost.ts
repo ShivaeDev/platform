@@ -24,6 +24,7 @@ export const openHost = Effect.gen(function* () {
 					}
 					const user = {
 						email: `${id}@example.test`,
+						emailVerified: true,
 						id,
 						name: id,
 						permissions: id === "admin" && access.admin ? [ManageNotes] : [],

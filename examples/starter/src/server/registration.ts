@@ -1,5 +1,6 @@
 import type { JobsEntry } from "@shivaedev/admin/jobs/entry.ts";
 import { pgBossSchema } from "@shivaedev/jobs/server/schema.ts";
+import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
 import type { AppModule } from "@shivaedev/server/AppModule.ts";
 import { migrationsIn } from "@shivaedev/server/migrationsIn.ts";
 import { foundationRegistration } from "#server/admin/foundationRegistration.ts";
@@ -11,6 +12,7 @@ export function serverRegistration<const TModules extends readonly AppModule[]>(
 	return {
 		admin,
 		migrations: { ...migrationsIn(import.meta.dirname), components: [pgBossSchema()] },
+		ports: memoryStore,
 		queues,
 		services: admin.services,
 		workers: foundationWorker.workers,

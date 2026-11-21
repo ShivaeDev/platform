@@ -1,5 +1,6 @@
 import { Effect } from "effect";
 import { invalidationKeys } from "@shivaedev/changes/keys.ts";
+import { rateLimit } from "@shivaedev/rate-limit/rateLimit.ts";
 import { invalidateOnCommit, transact } from "@shivaedev/sql/transact.ts";
 import { SessionUser } from "#identity.ts";
 import { AccountDeletionPolicy } from "#server/better-auth/AccountDeletionPolicy.ts";
@@ -13,6 +14,8 @@ import { userKeys } from "#users.ts";
 export const deleteAccount = Effect.fn("Identity.deleteAccount")(function* (password: string) {
 	const { id } = yield* SessionUser;
 	const { auth, handOver } = yield* AccountDeletionPolicy;
+	// Better Auth's own budget for its password-checked routes such as /change-email, kept per person rather than per address.
+	yield* rateLimit({ key: `identity.account.delete:${id}`, per: 3, window: "10 seconds" });
 	yield* confirmPassword(auth.options, password);
 	yield* Effect.gen(function* () {
 		yield* handOver(id);
