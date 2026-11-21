@@ -1,7 +1,7 @@
 import { Config, Effect, Layer, Option, type Redacted } from "effect";
+import { mailerLayer } from "@shivaedev/email/server/mailerLayer.ts";
 import { workerHost } from "@shivaedev/server/workerHost.ts";
 import { databaseOptions } from "#server/databaseOptions.ts";
-import { emailMailerLayer } from "#server/emailMailerLayer.ts";
 import { jobsLayer } from "#server/jobsLayer.ts";
 import { serverModules } from "#server/modules.ts";
 import type { PoolSizes } from "#server/PoolSizes.ts";
@@ -25,7 +25,7 @@ export function applicationWorker<R = never, E = never, TRequirements = never>(c
 				...database,
 				migrations: { ...database.migrations, ...Option.match(configuredRelease, { onNone: () => ({}), onSome: (release) => ({ release }) }) },
 				services,
-				workers: modules.workers.pipe(Layer.provide(Layer.merge(emailMailerLayer(), replacements))),
+				workers: modules.workers.pipe(Layer.provide(Layer.merge(mailerLayer(), replacements))),
 			});
 		}),
 	);
