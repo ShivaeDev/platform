@@ -16,4 +16,4 @@
 ### Changed
 
 - `@shivaedev/email`: `authEmailQueue`'s `registration` no longer writes an empty RPC group, empty handlers or a name; it carries only its queue, producer services and worker.
-- `@shivaedev/build`: `generate` lists a registration that serves no RPCs, such as `{ admin } satisfies AppModule`, in the server's module list, and refuses an exported object that names `module` by reference, or `group` and `handlers`, without `satisfies AppModule` whether or not it names `services`.
+- `@shivaedev/build`: `generate` lists a registration that serves no RPCs, such as `{ admin } satisfies AppModule`, in the server's module list, and refuses an exported object without `satisfies AppModule` that names `group` and `handlers`, or names `module` by reference beside another registration part or under a `server` folder, whether or not it names `services`.

@@ -38,14 +38,27 @@ it("refuses an exported registration typed as AppModule or cast to it, naming th
 	});
 });
 
-it("refuses an exported object naming a module, with or without services, without satisfies AppModule, even with no AppModule import", () => {
-	expect(found("export const tags = { module: Tags, services: TagsRepository.layer };\nexport const notes = { module: Modules.Notes };\n")).toEqual({
-		refusals: [
-			"tags names what it serves but is not written `satisfies AppModule`, so the server's module list leaves it out; write `satisfies AppModule` after its object, with AppModule imported from @shivaedev/server/AppModule.ts",
-			"notes names what it serves but is not written `satisfies AppModule`, so the server's module list leaves it out; write `satisfies AppModule` after its object, with AppModule imported from @shivaedev/server/AppModule.ts",
-		],
+function notSatisfied(name: string) {
+	return `${name} names what it serves but is not written \`satisfies AppModule\`, so the server's module list leaves it out; write \`satisfies AppModule\` after its object, with AppModule imported from @shivaedev/server/AppModule.ts`;
+}
+
+it("refuses an exported object naming a module without satisfies AppModule beside another registration part, with or without services", () => {
+	expect(
+		found("export const tags = { module: Tags, services: TagsRepository.layer };\nexport const notes = { migrations, module: Modules.Notes };\n"),
+	).toEqual({
+		refusals: [notSatisfied("tags"), notSatisfied("notes")],
 		registrations: [],
 	});
+});
+
+it("refuses an exported object naming only a module in server code, and leaves the same object in browser code to the bundle check", () => {
+	expect([
+		found("export const notes = { module: Notes };\n", "src/server/notes.ts"),
+		found("export const notesScreen = { module: Notes };\n", "src/screens/notes.ts"),
+	]).toEqual([
+		{ refusals: [notSatisfied("notes")], registrations: [] },
+		{ refusals: [], registrations: [] },
+	]);
 });
 
 it("finds a registration that serves only admin pages, queues or workers when it is written satisfies AppModule, and leaves the same object without it alone", () => {
@@ -66,9 +79,7 @@ it("finds a registration exported through a separate export list under its expor
 
 it("refuses a group and handlers registration without satisfies AppModule", () => {
 	expect(found('export const drafts = { group: Drafts, handlers, name: "drafts", services };\n')).toEqual({
-		refusals: [
-			"drafts names what it serves but is not written `satisfies AppModule`, so the server's module list leaves it out; write `satisfies AppModule` after its object, with AppModule imported from @shivaedev/server/AppModule.ts",
-		],
+		refusals: [notSatisfied("drafts")],
 		registrations: [],
 	});
 });
