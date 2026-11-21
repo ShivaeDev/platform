@@ -1,6 +1,7 @@
 import { Schema } from "effect";
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { platformShell, WORK_BOARD_BREAKING } from "#release/test-support/platformShell.ts";
 import { repository } from "#release/test-support/repository.ts";
 
 const Versions = Schema.fromJsonString(Schema.Record(Schema.String, Schema.String));
@@ -134,3 +135,28 @@ repository.it("the release check rejects an additional input created and consume
 	yield* apply();
 	expect(yield* check()).toContain("@shivaedev/platform: release notes differ from releases apply");
 });
+
+repository.it(
+	"a release that takes platform to a minor for work-board's Breaking entry aligns the starter pin and passes the release check with the repeated notes",
+	[platformShell],
+	function* ({ apply, check, read }) {
+		yield* apply();
+
+		yield* outcomes([
+			["platform version", () => read("packages/platform/package.json"), expect.stringContaining('"version": "0.16.0"')],
+			[
+				"platform notes",
+				() => read("packages/platform/CHANGELOG.md"),
+				expect.stringContaining(
+					`\n\n### Fixed\n\n- Pending behavior.\n\n### Breaking\n\n- \`@shivaedev/work-board\`: ${WORK_BOARD_BREAKING}\n\n## 0.15.0\n`,
+				),
+			],
+			[
+				"starter pins",
+				() => read("examples/starter/published-versions.json"),
+				expect.stringContaining('"@shivaedev/platform": "0.16.0",\n\t"@shivaedev/work-board": "0.5.0"'),
+			],
+			["check", () => check(), undefined],
+		]);
+	},
+);

@@ -1,4 +1,8 @@
+import { Effect } from "effect";
 import { expect } from "vitest";
+import { atMost } from "@shivaedev/test-story/server/outcomeMatchers.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { CREATE_APP_BREAKING, oversizedRelease, shellRelease } from "#release/test-support/bodies.ts";
 import { migrationPlan, patchPlan } from "#release/test-support/migrations.ts";
 import { releasePullRequest } from "#release/test-support/pullRequest.ts";
 
@@ -72,3 +76,73 @@ for (const { description, trait, expected, starterNotes } of [
 		},
 	);
 }
+
+releasePullRequest.it(
+	"the GitHub release lists a shell's repeated Breaking bullet once in the migration checklist, under create-app, while platform's notes keep it",
+	[shellRelease],
+	function* ({ run, git, publishNotes, readGitHub }) {
+		const base = yield* git("rev-parse", "origin/main");
+		yield* run();
+		yield* git("switch", "main");
+		yield* git("merge", "--squash", "release/next");
+		yield* git("commit", "-m", "Release packages");
+
+		yield* publishNotes(base);
+
+		const [release] = (yield* readGitHub()).requests.filter((request) => request.endpoint.endsWith("/releases"));
+		yield* outcomes([
+			[
+				"migration checklist",
+				() => Effect.succeed(release?.body?.body),
+				expect.stringMatching(
+					`^${RegExp.escape(`## Migration checklist\n\n### @shivaedev/create-app\n\n- ${CREATE_APP_BREAKING}`)}\n\n## @shivaedev/`,
+				),
+			],
+			[
+				"platform notes",
+				() => Effect.succeed(release?.body?.body),
+				expect.stringMatching(
+					`## @shivaedev/platform 0\\.16\\.0\n\n[\\s\\S]*### Breaking\n\n${RegExp.escape(`- \`@shivaedev/create-app\`: ${CREATE_APP_BREAKING}`)}`,
+				),
+			],
+		]);
+	},
+);
+
+releasePullRequest.it(
+	"an oversized GitHub release links create-app's long notes to its changelog at the release tag and keeps the whole migration checklist under GitHub's limit",
+	[oversizedRelease],
+	function* ({ run, git, publishNotes, readGitHub }) {
+		const base = yield* git("rev-parse", "origin/main");
+		yield* run();
+		yield* git("switch", "main");
+		yield* git("merge", "--squash", "release/next");
+		yield* git("commit", "-m", "Release packages");
+		const head = yield* git("rev-parse", "HEAD");
+
+		yield* publishNotes(base);
+
+		const [release] = (yield* readGitHub()).requests.filter((request) => request.endpoint.endsWith("/releases"));
+		const body = String(release?.body?.body);
+		yield* outcomes([
+			["body length", () => Effect.succeed(body.length), atMost(125_000)],
+			[
+				"migration checklist",
+				() => Effect.succeed(body),
+				expect.stringMatching(`^${RegExp.escape(`## Migration checklist\n\n### @shivaedev/create-app\n\n- ${CREATE_APP_BREAKING}\n\n`)}`),
+			],
+			[
+				"create-app section",
+				() => Effect.succeed(body),
+				expect.stringContaining(
+					`## @shivaedev/create-app 0.10.0\n\nThese notes are too long for one GitHub release; read them in [CHANGELOG.md](https://github.com/example/workspace/blob/release-${head}/packages/create-app/CHANGELOG.md).`,
+				),
+			],
+			[
+				"platform section",
+				() => Effect.succeed(body),
+				expect.stringContaining("## @shivaedev/platform 0.15.1\n\n### Fixed\n\n- Keep a saved draft."),
+			],
+		]);
+	},
+);

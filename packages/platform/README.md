@@ -20,6 +20,10 @@ Platform is a dependency shell. Its manifest lists every runtime piece at the ve
 
 pnpm installs a dependency's dependencies out of an application's reach unless the application hoists them, so an application on platform hoists the `@shivaedev` scope. Without that setting the pieces are installed, but type checking cannot resolve an import of any piece the application does not list itself.
 
+### What a platform version means
+
+Platform takes a minor when a piece it pins releases a breaking change, and also when its own changeset adds something, such as a new piece. The migration steps for an upgrade are the entries under the `### Breaking` section of platform's changelog: platform repeats each piece's Breaking entries there, naming the piece. A release without that section needs no migration. A platform patch never carries a breaking change, its own or a pinned piece's.
+
 ### Set up an application
 
 Add `@shivaedev/platform` to `dependencies`, add `@shivaedev/test-story` and `@shivaedev/quality` to `devDependencies`, and hoist the scope in `pnpm-workspace.yaml`:
