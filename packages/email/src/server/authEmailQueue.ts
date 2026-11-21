@@ -1,4 +1,5 @@
-import { Config, Effect, Record, Redacted } from "effect";
+import { Config, Effect, Layer, Record, Redacted } from "effect";
+import { RpcGroup } from "effect/rpc";
 import type { AuthEmail, BetterAuthEmails } from "@shivaedev/identity/server/better-auth/emails.ts";
 import { type AuthEmailJob, authEmailJobs } from "#authEmailJobs.ts";
 import type { Email } from "#Email.ts";
@@ -10,7 +11,12 @@ export interface AuthEmailQueueOptions extends Pick<BetterAuthEmails, "window" |
 	readonly paths: Readonly<Record<AuthEmailKind, string>>;
 }
 
-const publicUrl = Config.URL("PUBLIC_URL").pipe(Config.withDefault(new URL("http://127.0.0.1:5173")));
+// A production host without PUBLIC_URL would mail links to the development origin, so production refuses to start without it.
+const publicUrl = Effect.gen(function* () {
+	const environment = yield* Config.String("NODE_ENV").pipe(Config.withDefault("development"));
+	const url = Config.URL("PUBLIC_URL");
+	return yield* environment === "production" ? url : url.pipe(Config.withDefault(new URL("http://127.0.0.1:5173")));
+});
 const sender = Config.String("EMAIL_FROM").pipe(Config.withDefault("Accounts <onboarding@resend.dev>"));
 
 export function authEmailQueue({ copy, paths, ...windows }: AuthEmailQueueOptions) {
@@ -29,7 +35,15 @@ export function authEmailQueue({ copy, paths, ...windows }: AuthEmailQueueOption
 			routes: Record.map(paths, (path) => new URL(path, origin).href),
 		} satisfies BetterAuthEmails;
 	});
-	return { emails, Jobs: queue.Jobs, producerLayer: queue.producerLayer, queue: queue.queue, workerLayer: queue.workerLayer };
+	const registration = {
+		group: RpcGroup.make(),
+		handlers: Layer.empty,
+		name: authEmailJobs.name,
+		queues: [queue.queue],
+		services: queue.producerLayer,
+		workers: queue.workerLayer,
+	};
+	return { emails, registration };
 }
 
 function job(message: AuthEmail): AuthEmailJob {

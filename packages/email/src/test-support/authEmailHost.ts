@@ -30,9 +30,9 @@ export const appPaths = {
 	ResetPassword: "/reset-password",
 } as const;
 
-const config = ConfigProvider.layer(ConfigProvider.fromEnv({ env: { "AUTH_RATE_LIMIT_ENABLED": "false", "PUBLIC_URL": APP_ORIGIN } }));
+const config = ConfigProvider.layer(ConfigProvider.fromEnv({ env: { "AUTH_RATE_LIMIT_ENABLED": "false" } }));
 
-export const authEmailHost = Effect.fnUntraced(function* (copy: AuthEmailQueueOptions["copy"]) {
+export const authEmailHost = Effect.fnUntraced(function* (copy: AuthEmailQueueOptions["copy"], env: Record<string, string>) {
 	const server = yield* Layer.build(NodeHttpServer.layer(createServer, { host: "127.0.0.1", port: 0 }));
 	const { address } = yield* HttpServer.HttpServer.pipe(Effect.provideContext(server));
 	if (!NetAddress.isInetAddress(address)) {
@@ -57,18 +57,18 @@ export const authEmailHost = Effect.fnUntraced(function* (copy: AuthEmailQueueOp
 	const mail = yield* inbox();
 	const jobs = makePgBossTesting({ clock: yield* TestClock.testClockWith(Effect.succeed) });
 	const worker = yield* Layer.build(
-		AuthEmails.workerLayer.pipe(
+		AuthEmails.registration.workers.pipe(
 			Layer.provide(mail.mailerLayer),
 			Layer.provide(pgBossLayer({ connectionString: database.url })),
 			Layer.provide(Layer.succeed(JobsClientFactory, jobs.clientFactory)),
 		),
 	);
-	const emails = yield* AuthEmails.emails.pipe(Effect.provideContext(worker), Effect.provide(config));
+	const emails = yield* AuthEmails.emails.pipe(Effect.provideContext(worker), Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env }))));
 	const { auth, routes } = yield* betterAuthMount(Auth, { emails, hardening: { requirePasswordForEmailChange: false } }).pipe(
 		Effect.provide(memoryStore),
 		Effect.provideContext(sql),
 		Effect.provide(config),
 	);
 	yield* Layer.build(HttpRouter.serve(routes, { disableLogger: true })).pipe(Effect.provideContext(server));
-	return { auth, baseUrl, jobs, mail, queue: AuthEmails.queue };
+	return { auth, baseUrl, jobs, mail };
 });

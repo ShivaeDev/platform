@@ -1,17 +1,20 @@
-import { Effect, Schema } from "effect";
+import { Config, Effect, Schema } from "effect";
 import { emailLink } from "@shivaedev/test-kits/email/adapters/inbox.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { authEmailJobs } from "#authEmailJobs.ts";
 import type { AuthEmailKind } from "#server/authEmailCopy.ts";
 import type { AuthEmailQueueOptions } from "#server/authEmailQueue.ts";
-import { authEmailHost } from "#test/authEmailHost.ts";
+import { APP_ORIGIN, authEmailHost } from "#test/authEmailHost.ts";
 import { configured, postgres } from "#test/fixture.ts";
 
 interface AuthEmailEngine {
 	approvalToken?: string | undefined;
 	copy?: AuthEmailQueueOptions["copy"];
+	env: Record<string, string>;
 	headers: Headers;
 	host?: Effect.Success<ReturnType<typeof authEmailHost>>;
+	startup: string;
 }
 
 const Refusal = Schema.Struct({ code: Schema.String });
@@ -63,12 +66,25 @@ function answer(response: Response) {
 export const authEmails = storyKit({
 	after: {
 		configured: Effect.fnUntraced(function* (engine: AuthEmailEngine) {
-			engine.host = yield* authEmailHost(engine.copy);
+			yield* authEmailHost(engine.copy, engine.env).pipe(
+				Effect.tap((host) =>
+					Effect.sync(() => {
+						engine.host = host;
+					}),
+				),
+				Effect.catchIf(
+					(error) => error instanceof Config.ConfigError,
+					(error) =>
+						Effect.sync(() => {
+							engine.startup = `configuration failed: ${error.message}`;
+						}),
+				),
+			);
 		}),
 	},
 	around: withIsolatedDatabase,
 	clock: "test",
-	create: (): AuthEmailEngine => ({ headers: new Headers() }),
+	create: (): AuthEmailEngine => ({ env: { "PUBLIC_URL": APP_ORIGIN }, headers: new Headers(), startup: "ready" }),
 	inspect: () => ({}),
 	layer: postgres,
 	name: "auth emails queued through the email worker",
@@ -89,6 +105,7 @@ export const authEmails = storyKit({
 			story.tell(`alice requests ${kind}`);
 			return Effect.promise(() => send(engine, kind)).pipe(Effect.flatMap(answer));
 		},
+		startup: () => Effect.succeed(engine.startup),
 	}),
 });
 
@@ -122,7 +139,16 @@ export const resetCopy = authEmails.trait("configured", "the app writes its own 
 	};
 });
 
-export const queueUnavailable = authEmails.trait("queue", "the auth email queue refuses the next job", (engine) => {
-	const { jobs, queue } = started(engine);
-	return jobs.failNextSend(queue);
-});
+export const queueUnavailable = authEmails.trait("queue", "the auth email queue refuses the next job", (engine) =>
+	started(engine).jobs.failNextSend(authEmailJobs),
+);
+
+export function production(publicUrl?: string) {
+	return authEmails.trait(
+		"configured",
+		`the host runs in production ${publicUrl === undefined ? "without PUBLIC_URL" : `with PUBLIC_URL ${publicUrl}`}`,
+		(engine) => {
+			engine.env = { "NODE_ENV": "production", ...(publicUrl === undefined ? {} : { "PUBLIC_URL": publicUrl }) };
+		},
+	);
+}

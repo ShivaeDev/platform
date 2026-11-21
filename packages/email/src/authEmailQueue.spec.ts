@@ -1,6 +1,6 @@
 import { expect } from "vitest";
 import { APP_ORIGIN, appPaths } from "#test/authEmailHost.ts";
-import { aliceAccount, approvalRequested, authEmails, queueUnavailable, resetCopy } from "#test/authEmails.ts";
+import { aliceAccount, approvalRequested, authEmails, production, queueUnavailable, resetCopy } from "#test/authEmails.ts";
 
 for (const [kind, to, subject] of [
 	["ConfirmAccount", "alice@example.test", "Confirm your account"],
@@ -69,5 +69,23 @@ authEmails.it(
 	[aliceAccount(false), queueUnavailable],
 	function* ({ request }) {
 		expect(yield* request("ResetPassword")).toBe("refused: EMAIL_UNAVAILABLE");
+	},
+);
+
+authEmails.it(
+	"a production host with auth emails and no PUBLIC_URL refuses to start with a configuration error naming it",
+	[production()],
+	function* ({ startup }) {
+		expect(yield* startup()).toMatch(/^configuration failed: .*PUBLIC_URL/su);
+	},
+);
+
+authEmails.it(
+	"in production, alice's confirmation link starts with the configured PUBLIC_URL",
+	[production("https://accounts.example.test"), aliceAccount(false)],
+	function* ({ nextEmail, request }) {
+		yield* request("ConfirmAccount");
+
+		expect((yield* nextEmail()).address).toBe("https://accounts.example.test/auth/confirm");
 	},
 );

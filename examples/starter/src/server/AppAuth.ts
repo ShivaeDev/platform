@@ -1,5 +1,6 @@
 import { authEmailQueue } from "@shivaedev/email/server/authEmailQueue.ts";
 import { defineAuth } from "@shivaedev/identity/server/better-auth/define.ts";
+import type { AppModule } from "@shivaedev/server/AppModule.ts";
 import { AppAccess } from "#AppAccess.ts";
 import { User } from "#roles/User.ts";
 
@@ -23,3 +24,5 @@ export const AuthEmails = authEmailQueue({
 		ResetPassword: "/reset-password",
 	},
 });
+
+export const authEmailsRegistration = AuthEmails.registration satisfies AppModule;

@@ -8,4 +8,4 @@ export const AuthEmailJob = Schema.Union([
 ]);
 export type AuthEmailJob = typeof AuthEmailJob.Type;
 
-export const authEmailJobs = { name: "identity.auth-emails", schema: AuthEmailJob } as const;
+export const authEmailJobs = { name: "email.auth-emails", schema: AuthEmailJob } as const;
