@@ -24,8 +24,8 @@ function refreshRouteQuery(router: AnyRouter, match: AnyRouteMatch): void {
 	}
 }
 
-function routeFailures(router: AnyRouter, routeId: string): FailureChoices["failures"] {
-	const options = routeOptions(router, routeId);
+function routeFailures(router: AnyRouter, routeId: string | undefined): FailureChoices["failures"] {
+	const options = routeId === undefined ? undefined : routeOptions(router, routeId);
 	return Predicate.hasProperty(options, "queryFailures") && Predicate.isObject(options.queryFailures) ? options.queryFailures : undefined;
 }
 
