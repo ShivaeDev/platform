@@ -22,7 +22,7 @@ import { inputSubject, subjectSerializationKey, withSubject } from "#subjectHead
 import { warmQueries } from "#warmQueries.ts";
 
 // `runtime.fn(api.save.run)` passes its function context as the second argument, so only an options object selects a subject.
-function runSubject(options: unknown): string | undefined {
+export function runSubject(options: unknown): string | undefined {
 	return typeof options === "object" && options !== null && "subject" in options && typeof options.subject === "string" ? options.subject : undefined;
 }
 
