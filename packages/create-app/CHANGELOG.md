@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.50.2 - 2026-11-21
+
+### Changed
+
+- `add-resource` no longer writes `client/make.ts`; the resource's story kit makes its clients with `makeClient({ bookmarks: Bookmarks }, options)`.
+
 ## 0.50.1 - 2026-11-21
 
 ### Changed
