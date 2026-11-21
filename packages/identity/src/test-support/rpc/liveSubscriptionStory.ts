@@ -40,7 +40,7 @@ export const liveSubscriptionStory = storyKit({
 		},
 		grantAliceRead: (role: "reader" | "editor" = "reader") => {
 			story.tell(`alice is assigned the ${role} role`);
-			return assignRole(DocumentRoles, engine.session.user.id, role);
+			return assignRole({ roles: DocumentRoles }, engine.session.user.id, role);
 		},
 
 		nextHint: () =>
@@ -55,7 +55,7 @@ export const liveSubscriptionStory = storyKit({
 		...revalidationClock(() => "5 seconds", engine.checked, story.tell),
 		revokeAliceRole: () => {
 			story.tell("alice is assigned the guest role without document access");
-			return assignRole(DocumentRoles, engine.session.user.id, "guest");
+			return assignRole({ roles: DocumentRoles }, engine.session.user.id, "guest");
 		},
 		sessionStoreBecomesUnavailable: () => {
 			story.tell("the session store becomes unavailable");

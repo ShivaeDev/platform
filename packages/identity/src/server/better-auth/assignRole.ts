@@ -1,12 +1,12 @@
 import { Effect, Option, Schema } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { SqlClient, SqlSchema } from "effect/sql";
-import type { AccessPolicy } from "@shivaedev/access/roleSet.ts";
 import { invalidationKeys } from "@shivaedev/changes/keys.ts";
 import { AuthUnavailable, NotFound } from "@shivaedev/errors/taxonomy.ts";
 import { invalidateOnCommit, transact } from "@shivaedev/sql/transact.ts";
 import { AssignRoles, LastRoleAssigner } from "#roles.ts";
-import { type AuthTableOptions, tables } from "#server/better-auth/tables.ts";
+import type { RoleTables } from "#server/better-auth/define.ts";
+import { tables } from "#server/better-auth/tables.ts";
 import { roleKeys, userKeys } from "#users.ts";
 
 function unavailable() {
@@ -14,13 +14,13 @@ function unavailable() {
 }
 
 export const assignRole = Effect.fn("Identity.assignRole")(function* <TRole extends string>(
-	access: Pick<AccessPolicy<TRole>, "Role" | "hasPermission">,
+	auth: RoleTables<TRole>,
 	userId: string,
 	role: NoInfer<TRole>,
-	options?: AuthTableOptions,
 ) {
+	const access = auth.roles;
 	const sql = (yield* SqlClient.SqlClient).withoutTransforms();
-	const { user } = tables(options);
+	const { user } = tables(auth.options);
 	const existing = yield* Effect.serviceOption(Reactivity.Reactivity);
 	const reactivity = Option.isSome(existing) ? existing.value : yield* Reactivity.make;
 	return yield* Effect.gen(function* () {

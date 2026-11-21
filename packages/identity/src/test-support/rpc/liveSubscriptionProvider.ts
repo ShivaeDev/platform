@@ -21,7 +21,7 @@ export const liveSubscriptionProvider = Effect.gen(function* () {
 		session: { cookieCache: { enabled: false } },
 	};
 	yield* migrateBetterAuth(options, { defaultRole: "reader" });
-	const mounted = yield* betterAuthMount(options, { defaultRole: "reader", roles: DocumentRoles }).pipe(
+	const mounted = yield* betterAuthMount({ defaultRole: "reader", options, roles: DocumentRoles }).pipe(
 		Effect.provide(memoryStore),
 		Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env: {} }))),
 	);

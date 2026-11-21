@@ -17,6 +17,7 @@ import { accountRoleSeed } from "#server/better-auth/adapters/accountRoleSeed.ts
 import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
 import { ProviderAccounts } from "#server/better-auth/allowedAccounts.ts";
 import { assertBetterAuthSchema } from "#server/better-auth/assertSchema.ts";
+import { defineAuth } from "#server/better-auth/define.ts";
 import { migrateBetterAuth } from "#server/better-auth/migrate.ts";
 import { betterAuthMount } from "#server/better-auth/mount.ts";
 import type { AuthTableOptions } from "#server/better-auth/tables.ts";
@@ -41,8 +42,9 @@ export const accountRoleHost = Effect.fnUntraced(function* (mapping: AuthTableOp
 		secret: "account-role-story-secret-at-least-32-characters",
 		socialProviders: { github: { clientId: "story-client", clientSecret: "story-secret" } },
 	};
-	yield* migrateBetterAuth(options, { defaultRole: "user" });
-	const base = yield* betterAuthMount(options, { defaultRole: "user", roles: Access }).pipe(Effect.provide(memoryStore)).pipe(Effect.provide(config));
+	const auth = defineAuth({ defaultRole: "user", options, roles: Access });
+	yield* migrateBetterAuth(options, auth);
+	const base = yield* betterAuthMount(auth).pipe(Effect.provide(memoryStore)).pipe(Effect.provide(config));
 	const baseApp = HttpRouter.toWebHandler(base.routes, { disableLogger: true });
 	yield* Effect.addFinalizer(() => Effect.promise(() => baseApp.dispose()));
 	const cookies = new Map<Person, string>();
@@ -51,10 +53,8 @@ export const accountRoleHost = Effect.fnUntraced(function* (mapping: AuthTableOp
 	let reactivity: Reactivity.Reactivity | undefined;
 	let observed: Queue.Dequeue<readonly { readonly email: string; readonly role: string | null }[], SqlError | Schema.SchemaError> | undefined;
 	const start = Effect.fnUntraced(function* () {
-		const mount = betterAuthMount(options, {
-			defaultRole: "user",
-			roleSeed: accountRoleSeed(Access, seededRole, Config.schema(ProviderAccounts, "AUTH_OPERATOR_ACCOUNTS").pipe(Config.withDefault([])), options),
-			roles: Access,
+		const mount = betterAuthMount(auth, {
+			roleSeed: accountRoleSeed(auth, seededRole, Config.schema(ProviderAccounts, "AUTH_OPERATOR_ACCOUNTS").pipe(Config.withDefault([]))),
 		})
 			.pipe(Effect.provide(memoryStore))
 			.pipe(Effect.provide(config));

@@ -33,19 +33,22 @@ export const emailChangeHost = Effect.fnUntraced(function* () {
 		user: { changeEmail: { enabled: true } },
 	};
 	yield* migrateBetterAuth(options);
-	const mounted = yield* betterAuthMount(options, {
-		bearerSessions: { origins: ["capacitor://localhost"] },
-		emails: {
-			deliver: (message) => Effect.sync(() => void messages.push(message)),
-			routes: {
-				AccountAlreadyExists: link,
-				ApproveEmailChange: link,
-				ConfirmAccount: link,
-				ConfirmNewAddress: link,
-				ResetPassword: link,
+	const mounted = yield* betterAuthMount(
+		{ options },
+		{
+			bearerSessions: { origins: ["capacitor://localhost"] },
+			emails: {
+				deliver: (message) => Effect.sync(() => void messages.push(message)),
+				routes: {
+					AccountAlreadyExists: link,
+					ApproveEmailChange: link,
+					ConfirmAccount: link,
+					ConfirmNewAddress: link,
+					ResetPassword: link,
+				},
 			},
 		},
-	})
+	)
 		.pipe(Effect.provide(memoryStore))
 		.pipe(Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env: { "AUTH_RATE_LIMIT_ENABLED": "false" } }))));
 	yield* Layer.build(HttpRouter.serve(mounted.routes, { disableLogger: true })).pipe(Effect.provideContext(context));

@@ -71,7 +71,7 @@ export const preferencesHost = Effect.fnUntraced(function* () {
 		} satisfies AppModule,
 	]);
 	yield* migratePostgres({ loader: modules.migrations.loader, lockTimeout: "5 seconds" });
-	const mounted = yield* betterAuthMount(options, { accountPreferences: true }).pipe(
+	const mounted = yield* betterAuthMount({ options }, { accountPreferences: true }).pipe(
 		Effect.provide(memoryStore),
 		Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env: { "AUTH_RATE_LIMIT_ENABLED": "false" } }))),
 	);

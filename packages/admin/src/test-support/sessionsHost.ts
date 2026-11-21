@@ -37,7 +37,7 @@ export const sessionsHost = Effect.fnUntraced(function* () {
 		user: { additionalFields: { role: { defaultValue: "user", input: false, type: "string" as const } } },
 	};
 	yield* migrateBetterAuth(options);
-	const { auth } = yield* betterAuthMount(options).pipe(Effect.provide(memoryStore));
+	const { auth } = yield* betterAuthMount({ options }).pipe(Effect.provide(memoryStore));
 	const context = yield* Effect.promise(() => auth.$context);
 	// Sessions are preconditions; the stories exercise administration rather than sign-in.
 	function mint(name: string, activity = "2026-01-04T12:00:00Z") {

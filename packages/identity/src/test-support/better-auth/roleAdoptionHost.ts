@@ -30,7 +30,7 @@ export const roleAdoptionHost = Effect.fnUntraced(function* () {
 	const storage = yield* authTestDatabase;
 	const legacy = yield* Effect.cached(Effect.sync(() => betterAuth(options)));
 	function start(defaultRole: string) {
-		return betterAuthMount(options, { defaultRole, roles: Access })
+		return betterAuthMount({ defaultRole, options, roles: Access })
 			.pipe(Effect.provide(memoryStore))
 			.pipe(Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env: { "AUTH_RATE_LIMIT_ENABLED": "false" } }))));
 	}
@@ -52,7 +52,7 @@ export const roleAdoptionHost = Effect.fnUntraced(function* () {
 		return found;
 	}
 	return {
-		assignAdmin: (name: Person) => assignRole(Access, person(name).user.id, "admin"),
+		assignAdmin: (name: Person) => assignRole({ roles: Access }, person(name).user.id, "admin"),
 		createFreshSchema: () =>
 			withIsolatedDatabase(
 				Effect.gen(function* () {

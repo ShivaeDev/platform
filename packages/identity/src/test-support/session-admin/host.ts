@@ -44,7 +44,7 @@ export const sessionAdminHost = Effect.fnUntraced(function* () {
 		session: { cookieCache: { enabled: false }, disableSessionRefresh: true },
 	};
 	yield* migrateBetterAuth(options, { defaultRole: "viewer" });
-	const mounted = yield* betterAuthMount(options, { defaultRole: "viewer", roles: Access })
+	const mounted = yield* betterAuthMount({ defaultRole: "viewer", options, roles: Access })
 		.pipe(Effect.provide(memoryStore))
 		.pipe(Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env: {} }))));
 	const sessions = { ...mounted.sessions, origin: () => true, streamRevalidationInterval: "50 millis" as const };

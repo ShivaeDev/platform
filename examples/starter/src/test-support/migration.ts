@@ -1,6 +1,5 @@
 import { testUtils } from "better-auth/plugins";
 import { DateTime, Effect } from "effect";
-import { betterAuthDatabase } from "@shivaedev/identity/server/better-auth/adapters/database.ts";
 import { assertBetterAuthSchema } from "@shivaedev/identity/server/better-auth/assertSchema.ts";
 import { betterAuthMount } from "@shivaedev/identity/server/better-auth/mount.ts";
 import { authTestDatabase } from "@shivaedev/identity/server/better-auth/testDatabase.ts";
@@ -10,8 +9,7 @@ import { migrationSteps } from "@shivaedev/test-sql/server/migrationSteps.ts";
 import { storyDatabase } from "@shivaedev/test-sql/server/storyDatabase.ts";
 import { answered } from "@shivaedev/test-story/server/answers.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { User } from "#roles/User.ts";
-import { authOptions } from "#server/authOptions.ts";
+import { AppAuth } from "#server/AppAuth.ts";
 import { migrations } from "#server/migrations.ts";
 import { configured, postgres } from "#test-support/postgres.ts";
 
@@ -30,7 +28,7 @@ export const migration = storyKit({
 	runIf: configured,
 	stages: ["database", "schema"],
 	verbs: (_engine, story) => ({
-		authSchemaCheck: () => answered(Effect.as(assertBetterAuthSchema(authOptions(), { defaultRole: User.name }), "accepted")),
+		authSchemaCheck: () => answered(Effect.as(assertBetterAuthSchema(AppAuth.options, AppAuth), "accepted")),
 		migrates: Effect.fn("AppStory.migrates")(function* () {
 			story.tell("every numbered application migration runs");
 			const steps = yield* migrationStepsWithApp();
@@ -60,12 +58,13 @@ export const legacyUser = migration.trait("schema", "alice has a user before rol
 	const steps = yield* migrationStepsWithApp();
 	yield* steps.migrateTo("0001_auth");
 	const { auth } = yield* betterAuthMount({
-		advanced: { database: { validateSchema: true } },
-		database: yield* betterAuthDatabase(),
-		emailAndPassword: { enabled: true },
-		plugins: [testUtils()],
-		secret: "migration-story-secret-at-least-32-characters",
-		session: { cookieCache: { enabled: false } },
+		options: {
+			advanced: { database: { validateSchema: true } },
+			emailAndPassword: { enabled: true },
+			plugins: [testUtils()],
+			secret: "migration-story-secret-at-least-32-characters",
+			session: { cookieCache: { enabled: false } },
+		},
 	}).pipe(Effect.provide(memoryStore));
 	yield* signedInUser(auth, { email: "alice@migration.test", name: "alice" });
 });

@@ -50,21 +50,24 @@ const makeEmailHost = Effect.fnUntraced(function* (window: Duration.Input | unde
 		user: { changeEmail: { enabled: true } },
 	};
 	yield* migrateBetterAuth(options);
-	const mounted = yield* betterAuthMount(options, {
-		emails: {
-			deliver,
-			routes: {
-				AccountAlreadyExists: "https://app.example.test/sign-in?from=email",
-				ApproveEmailChange: "https://app.example.test/approve-email-change",
-				ConfirmAccount: "https://app.example.test/confirm-account",
-				ConfirmNewAddress: "https://app.example.test/confirm-new-address",
-				ResetPassword: "https://app.example.test/reset-password?from=email",
+	const mounted = yield* betterAuthMount(
+		{ options },
+		{
+			emails: {
+				deliver,
+				routes: {
+					AccountAlreadyExists: "https://app.example.test/sign-in?from=email",
+					ApproveEmailChange: "https://app.example.test/approve-email-change",
+					ConfirmAccount: "https://app.example.test/confirm-account",
+					ConfirmNewAddress: "https://app.example.test/confirm-new-address",
+					ResetPassword: "https://app.example.test/reset-password?from=email",
+				},
+				...(window === undefined ? {} : { window }),
+				...(windows === undefined ? {} : { windows }),
 			},
-			...(window === undefined ? {} : { window }),
-			...(windows === undefined ? {} : { windows }),
+			hardening: { requirePasswordForEmailChange: false },
 		},
-		hardening: { requirePasswordForEmailChange: false },
-	})
+	)
 		.pipe(Effect.provide(recorded.layer), Effect.provide(postgresStore))
 		.pipe(Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env: { "AUTH_RATE_LIMIT_ENABLED": "false" } }))));
 	return { auth: mounted.auth, delivery, messages, recorded, release, started };

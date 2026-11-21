@@ -97,6 +97,7 @@ The Better Auth adapter is an optional edge module. Add its provider to the auth
 import { admin, jwt } from "better-auth/plugins";
 import { Effect, Layer } from "effect";
 import { HttpRouter } from "effect/http";
+import { defineAuth } from "@shivaedev/identity/server/better-auth/define.ts";
 import { betterAuthMount } from "@shivaedev/identity/server/better-auth/mount.ts";
 import { betterAuthOauthGrants } from "@shivaedev/identity/server/better-auth/adapters/oauthGrants.ts";
 import { trustedOrigins } from "@shivaedev/identity/server/trustedOrigins.ts";
@@ -108,21 +109,23 @@ import { appHost } from "@shivaedev/server/appDatabase.ts";
 const application = Effect.gen(function* () {
 	const resource = "https://app.example.com/mcp";
 	const mounted = yield* betterAuthMount(
-		{
-			baseURL: "https://app.example.com",
-			database: authPool,
-			plugins: [
-				jwt(),
-				mcpProvider({
-					resource,
-					loginPage: "/login",
-					consentPage: "/consent",
-					allowDynamicClientRegistration: true,
-					allowUnauthenticatedClientRegistration: true,
-				}),
-			],
-		},
-		{ roles: Roles },
+		defineAuth({
+			defaultRole: "user",
+			options: {
+				baseURL: "https://app.example.com",
+				plugins: [
+					jwt(),
+					mcpProvider({
+						resource,
+						loginPage: "/login",
+						consentPage: "/consent",
+						allowDynamicClientRegistration: true,
+						allowUnauthenticatedClientRegistration: true,
+					}),
+				],
+			},
+			roles: Roles,
+		}),
 	);
 	const origin = trustedOrigins({ allow: ["https://app.example.com"], missing: "allow" });
 	const grants = betterAuthOauthGrants({ auth: mounted.auth, admitsUser: mounted.admitsUser });
@@ -146,7 +149,7 @@ const application = Effect.gen(function* () {
 });
 ```
 
-`authPool`, `Api` and `Handlers` are the application's existing auth database, RPC group and handlers. Run the Better Auth migrations with the OAuth and JWT plugins included. For existing role management, keep the application's existing role plugin and `RoleSet` in this configuration.
+`Api` and `Handlers` are the application's existing RPC group and handlers; the mount opens Better Auth on the application's SQL client. Run the Better Auth migrations with the OAuth and JWT plugins included. For existing role management, keep the application's existing role plugin and `RoleSet` in this configuration.
 
 The edge adapter verifies access-token signatures, issuer, endpoint audience, `mcp` scope and the `grant_id` reference, then asks identity’s `OauthGrants` service to resolve that exact grant. The identity Better Auth Layer loads the current user and referenced consent, requires `mcp` in the consent’s current scopes and checks `mounted.admitsUser` afresh on every request. Admission changes apply to the next request with the same token. A failed admission lookup answers `503` without an OAuth challenge. Denied or banned users and clients without the referenced consent receive the same unauthorized response as invalid tokens. Identity resolves the stored role on each request. An invalid token receives `401` with a `WWW-Authenticate` protected-resource metadata pointer. The metadata names the authorization server and its discovery endpoint, so a client can start OAuth. MCP bearer credentials are separate from browser session cookies. The OAuth session policy refuses requests carrying a Cookie header, including requests that also carry a valid bearer token. Provide the OAuth policy Layer to the MCP routes before merging them with a cookie-authenticated host.
 

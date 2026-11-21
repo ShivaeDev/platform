@@ -58,11 +58,9 @@ export const startHost = Effect.fnUntraced(function* ({ inProcess, withAdmission
 		trustedOrigins: [baseUrl],
 	};
 	yield* Effect.promise(async () => (await getMigrations(options)).runMigrations());
-	const mounted = yield* betterAuthMount(options, {
-		defaultRole: "user",
-		roles: Roles,
-		...(withAdmission ? { signIn: admission.policy } : {}),
-	}).pipe(Effect.provide(memoryStore));
+	const mounted = yield* betterAuthMount({ defaultRole: "user", options, roles: Roles }, withAdmission ? { signIn: admission.policy } : {}).pipe(
+		Effect.provide(memoryStore),
+	);
 	const grants = betterAuthOauthGrants({ admitsUser: mounted.admitsUser, auth: mounted.auth });
 	const tokens = tokenSigner();
 	const jwks = jwksEndpoint(mounted.auth, tokens.jwk);

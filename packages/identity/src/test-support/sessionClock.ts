@@ -40,7 +40,7 @@ export const sessionClock = storyKit({
 			session: { cookieCache: { enabled: false }, disableSessionRefresh: true, expiresIn: 3600 },
 		};
 		yield* migrateBetterAuth(options, { defaultRole: "admin" });
-		const mounted = yield* betterAuthMount(options, { defaultRole: "admin", roles: Roles })
+		const mounted = yield* betterAuthMount({ defaultRole: "admin", options, roles: Roles })
 			.pipe(Effect.provide(memoryStore))
 			.pipe(Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env: { "AUTH_RATE_LIMIT_ENABLED": "false" } }))));
 		const alice = yield* signedInUser(mounted.auth, { email: "alice@clock.test", name: "alice" });

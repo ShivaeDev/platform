@@ -1,10 +1,11 @@
 import { DateTime, Effect, Schema } from "effect";
+import { mintUser } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { seedCookies } from "@shivaedev/test-story/server/adapters/seedCookies.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { AppAuth } from "#server/AppAuth.ts";
 import { createCookieHost } from "#test-support/createCookieHost.ts";
 import { configured, postgres } from "#test-support/postgres.ts";
-import { mintUser } from "#test-support/sessionPrecondition.ts";
 
 const decodeSession = Schema.decodeUnknownSync(Schema.NullOr(Schema.Struct({ user: Schema.Struct({ email: Schema.String }) })));
 
@@ -49,7 +50,7 @@ export const cookieApp = storyKit({
 
 export function mintedCookieSession() {
 	return cookieApp.trait("account", "alice's browser holds the session cookie the app minted for her", function* (engine) {
-		const { cookies } = yield* mintUser({ origin: engine.baseUrl }, "alice");
+		const { cookies } = yield* mintUser(AppAuth, { origin: engine.baseUrl }, "alice");
 		yield* seedCookies(cookies);
 	});
 }

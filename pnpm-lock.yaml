@@ -2091,6 +2091,9 @@ importers:
       '@shivaedev/jobs':
         specifier: workspace:*
         version: link:../jobs
+      '@shivaedev/rate-limit':
+        specifier: workspace:*
+        version: link:../rate-limit
       '@shivaedev/sql':
         specifier: workspace:*
         version: link:../sql

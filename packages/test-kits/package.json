@@ -69,6 +69,7 @@
 		"@shivaedev/errors": "workspace:*",
 		"@shivaedev/identity": "workspace:*",
 		"@shivaedev/jobs": "workspace:*",
+		"@shivaedev/rate-limit": "workspace:*",
 		"@shivaedev/sql": "workspace:*",
 		"@shivaedev/webhooks": "workspace:*",
 		"better-auth": "catalog:",

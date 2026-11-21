@@ -7,9 +7,10 @@ Reusable building blocks let application stories send real email requests, start
 Keep the application's engine running and give its local story kit the preconditions and readouts it needs.
 
 ```ts
-import { signedInUser } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
+import { mintUser } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
+import { AppAuth } from "#server/AppAuth.ts";
 
-const alice = yield* signedInUser(auth, { email: "alice@example.test", name: "alice" });
+const alice = yield* mintUser(AppAuth, { origin: host.baseUrl }, "alice", { role: "owner" });
 const response = yield* client.get("/notes", { headers: alice.headers });
 ```
 
@@ -25,7 +26,7 @@ Import `inbox`, `emailLink` and the `ReceivedEmail` type from `@shivaedev/test-k
 
 ### Signed-in identities
 
-Import `signedInUser`, `signInAgain`, `passwordUser` and `storedProviderAccounts` from `@shivaedev/test-kits/identity/adapters/betterAuth.ts`. They use Better Auth's adapter without requiring its test plugin. `signedInUser(auth, fields)` returns the user, session, headers, cookies and token. Optional `providerAccounts` attach provider identities. `signInAgain(auth, userId)` renews the same user's session on the caller's Effect Clock. `passwordUser` accepts either `password` or `passwordHash`; use an existing hash when password hashing is only a precondition. `storedProviderAccounts` reports credential-presence booleans without returning credential values.
+Import `mintUser`, `storyAuth`, `AUTH_TEST_SECRET`, `signedInUser`, `signInAgain`, `passwordUser` and `storedProviderAccounts` from `@shivaedev/test-kits/identity/adapters/betterAuth.ts`. `mintUser(declaration, host, name, { role })` takes the application's auth declaration from identity's `defineAuth` and the story host's `{ origin, secureCookies? }`, and returns `name@app.test` signed in with that role or the declaration's default role. It mounts the declaration for the test with Better Auth's `testUtils()` plugin, the host's origin and cookie choice, and the declaration's `secret` or `AUTH_TEST_SECRET`, so the host runs with `BETTER_AUTH_SECRET` set to `AUTH_TEST_SECRET`. `storyAuth(declaration, host)` returns that test-only Better Auth instance for the helpers below. The others use Better Auth's adapter without requiring its test plugin. `signedInUser(auth, fields)` returns the user, session, headers, cookies and token. Optional `providerAccounts` attach provider identities. `signInAgain(auth, userId)` renews the same user's session on the caller's Effect Clock. `passwordUser` accepts either `password` or `passwordHash`; use an existing hash when password hashing is only a precondition. `storedProviderAccounts` reports credential-presence booleans without returning credential values.
 
 ### Social sign-in
 

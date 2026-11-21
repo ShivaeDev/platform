@@ -43,7 +43,7 @@ export const roleManagementHost = Effect.fnUntraced(function* () {
 		session: { cookieCache: { enabled: false } },
 	};
 	yield* migrateBetterAuth(options, { defaultRole: "user" });
-	const mounted = yield* betterAuthMount(options, { defaultRole: "user", roles: Access })
+	const mounted = yield* betterAuthMount({ defaultRole: "user", options, roles: Access })
 		.pipe(Effect.provide(memoryStore))
 		.pipe(Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env: {} }))));
 	// Minted sessions start the story after registration and sign-in.
@@ -55,7 +55,7 @@ export const roleManagementHost = Effect.fnUntraced(function* () {
 	const handlers = hostChanges(UsersPage.contract)
 		.pipe(Layer.provideMerge(moduleHandlers(Users)))
 		.pipe(
-			Layer.provide(betterAuthUserDirectory(Access)),
+			Layer.provide(betterAuthUserDirectory({ roles: Access })),
 			Layer.provide([Layer.succeed(LiveServer, live), Layer.succeed(SqlClient.SqlClient, sql), Reactivity.layer]),
 		);
 	const rpcRoutes = RpcServer.layerHttp({ group: UsersPage.contract, path: "/rpc", protocol: "http" }).pipe(
@@ -99,7 +99,7 @@ export const roleManagementHost = Effect.fnUntraced(function* () {
 				Effect.map(({ users }) => Object.fromEntries(users.map(({ name, role }) => [name, role]))),
 			),
 		seedRole: (person: Person, role: ManagedRole) =>
-			assignRole(Access, accounts[person].user.id, role).pipe(
+			assignRole({ roles: Access }, accounts[person].user.id, role).pipe(
 				Effect.map((changed) => (changed ? "assigned" : "unchanged")),
 				Effect.catchTag("LastRoleAssigner", () => Effect.succeed("last role assigner")),
 			),

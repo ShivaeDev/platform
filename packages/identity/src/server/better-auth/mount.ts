@@ -1,6 +1,6 @@
 import type { BetterAuthOptions } from "better-auth";
 import { Effect, Layer, type Scope } from "effect";
-import type { RoleSet } from "@shivaedev/access/roleSet.ts";
+import type { SqlClient } from "effect/sql";
 import type { Store } from "@shivaedev/rate-limit/Store.ts";
 import { accountPreferencesStore } from "#server/account-preferences/store.ts";
 import { accountPreferenceOptions } from "#server/better-auth/adapters/accountPreferenceOptions.ts";
@@ -8,6 +8,7 @@ import type { AccountRoleSeed } from "#server/better-auth/adapters/accountRoleSe
 import { acquireAuth } from "#server/better-auth/adapters/acquire.ts";
 import { admittedSessions } from "#server/better-auth/adapters/admittedSessions.ts";
 import { type BearerSessionsOptions, withBearerSessions } from "#server/better-auth/adapters/bearerSessions.ts";
+import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
 import { effectHookOptions } from "#server/better-auth/adapters/effectHookOptions.ts";
 import { emailOptions } from "#server/better-auth/adapters/emailOptions.ts";
 import { type BetterAuthHardeningOptions, withHardening } from "#server/better-auth/adapters/hardening.ts";
@@ -23,16 +24,17 @@ import { signInPolicyOptions } from "#server/better-auth/adapters/signInPolicyOp
 import { changeHooks } from "#server/better-auth/changeHooks.ts";
 import { closeRoleEndpoints } from "#server/better-auth/closeRoleEndpoints.ts";
 import type { BetterAuthDatabaseHooks } from "#server/better-auth/databaseHooks.ts";
+import type { AuthDeclaration } from "#server/better-auth/define.ts";
 import type { BetterAuthEmails } from "#server/better-auth/emails.ts";
 import { AuthRouteHandler, mountRoutes } from "#server/better-auth/mountRoutes.ts";
 import { mountSettings } from "#server/better-auth/mountSettings.ts";
 import type { BetterAuthPasswordReset } from "#server/better-auth/PasswordReset.ts";
 import { authRouteHandler } from "#server/better-auth/routeHandler.ts";
-import { type StoredRoleOptions, storedRoleOptions } from "#server/better-auth/storedRoleOptions.ts";
+import { storedRoleOptions } from "#server/better-auth/storedRoleOptions.ts";
 import { UndeclaredDefaultRole } from "#server/better-auth/UndeclaredDefaultRole.ts";
 import { providerFailure } from "#server/providerFailure.ts";
 
-export type BetterAuthMountOptions<E = never, R = never> = {
+export interface BetterAuthMountOptions<E = never, R = never> {
 	readonly accountPreferences?: boolean;
 	readonly bearerSessions?: BearerSessionsOptions | undefined;
 	readonly clientIp?: "railway";
@@ -42,19 +44,22 @@ export type BetterAuthMountOptions<E = never, R = never> = {
 	readonly hardening?: BetterAuthHardeningOptions;
 	readonly onPasswordReset?: BetterAuthPasswordReset<R> | undefined;
 	readonly preset?: "provider-only";
+	readonly roleSeed?: Effect.Effect<AccountRoleSeed<E>, E, R> | undefined;
 	readonly signIn?: SignInPolicy<E, R> | undefined;
-} & (
-	| { readonly roles?: undefined; readonly roleSeed?: undefined }
-	| (StoredRoleOptions & { readonly roles: RoleSet; readonly roleSeed?: Effect.Effect<AccountRoleSeed<E>, E, R> })
-);
+}
+
+type AuthDatabase<TOptions extends BetterAuthOptions> = TOptions extends { readonly database: object } ? never : SqlClient.SqlClient;
 
 const mountAuth = Effect.fn("Identity.mountAuth")(function* <const TOptions extends BetterAuthOptions, E = never, R = never>(
-	options: TOptions,
+	declaration: AuthDeclaration<TOptions>,
 	mount: BetterAuthMountOptions<E, R> = {},
 ) {
-	if (mount.roles !== undefined) {
-		yield* mount.roles.resolve(mount.defaultRole).pipe(Effect.mapError(() => new UndeclaredDefaultRole({ role: mount.defaultRole })));
+	if (declaration.roles !== undefined) {
+		const { defaultRole } = declaration;
+		yield* declaration.roles.resolve(defaultRole).pipe(Effect.mapError(() => new UndeclaredDefaultRole({ role: defaultRole })));
 	}
+	const options =
+		declaration.options.database === undefined ? { ...declaration.options, database: yield* betterAuthDatabase() } : declaration.options;
 	const { authOptions, clientIpHeader, rateLimitEnabled, trustedProxy } = yield* mountSettings(options, mount.clientIp);
 	const policy = mount.signIn ?? {};
 	if (policy.accounts !== undefined) {
@@ -67,7 +72,7 @@ const mountAuth = Effect.fn("Identity.mountAuth")(function* <const TOptions exte
 	const reset = passwordResetOptions(preferences, mount.onPasswordReset, runtime);
 	const announced = effectHookOptions(yield* emailOptions(reset, mount.emails, runtime), changeHooks, runtime);
 	const hooked = effectHookOptions(announced, mount.databaseHooks, runtime);
-	const configured = mount.roles === undefined ? hooked : storedRoleOptions(closeRoleEndpoints(hooked), mount);
+	const configured = declaration.roles === undefined ? hooked : storedRoleOptions(closeRoleEndpoints(hooked), declaration);
 	const gated = yield* signInPolicyOptions(configured, gate, (): Promise<PolicyStorage> => auth.$context);
 	const seed = mount.roleSeed === undefined ? undefined : yield* mount.roleSeed;
 	const seeded = roleSeedOptions(gate.active ? { ...configured, ...gated } : configured, seed);
@@ -96,7 +101,7 @@ const mountAuth = Effect.fn("Identity.mountAuth")(function* <const TOptions exte
 					bearerSessions: mount.bearerSessions,
 					clientIpHeader,
 					ipv6Subnet: options.advanced?.ipAddress?.ipv6Subnet,
-					roles: mount.roles,
+					roles: declaration.roles,
 					runRequest: runtime.runRequest,
 					trustedProxy,
 				}),
@@ -114,23 +119,23 @@ const mountAuth = Effect.fn("Identity.mountAuth")(function* <const TOptions exte
 	});
 	const revoke = revokeUnadmitted(gate, () => auth.$context);
 	const lookupSession: unknown = Reflect.get(auth.api, "getSession");
-	const sessions = mountedSessions(lookupSession, admit, mount.roles);
+	const sessions = mountedSessions(lookupSession, admit, declaration.roles);
 	return { admitsUser, admittedSessions: admit, auth, profiles, revokeUnadmitted: revoke, routes: authRoutes, sessions };
 });
 
 type Mounted<TOptions extends BetterAuthOptions, E, R> = ReturnType<typeof mountAuth<TOptions, E, R>>;
 
 export function betterAuthMount<const TOptions extends BetterAuthOptions, E = never, R = never>(
-	options: TOptions,
+	auth: AuthDeclaration<TOptions>,
 	mount?: BetterAuthMountOptions<E, R> & { readonly emails?: undefined },
-): Effect.Effect<Effect.Success<Mounted<TOptions, E, R>>, Effect.Error<Mounted<TOptions, E, R>>, R | Scope.Scope | Store>;
+): Effect.Effect<Effect.Success<Mounted<TOptions, E, R>>, Effect.Error<Mounted<TOptions, E, R>>, R | Scope.Scope | Store | AuthDatabase<TOptions>>;
 export function betterAuthMount<const TOptions extends BetterAuthOptions, E = never, R = never>(
-	options: TOptions,
+	auth: AuthDeclaration<TOptions>,
 	mount: BetterAuthMountOptions<E, R>,
 ): Mounted<TOptions, E, R>;
 export function betterAuthMount<const TOptions extends BetterAuthOptions, E = never, R = never>(
-	options: TOptions,
+	auth: AuthDeclaration<TOptions>,
 	mount: BetterAuthMountOptions<E, R> = {},
 ) {
-	return mountAuth(options, mount);
+	return mountAuth(auth, mount);
 }

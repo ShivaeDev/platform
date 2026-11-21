@@ -1,14 +1,15 @@
 import { layerWebSocketConstructor } from "@effect/platform-node/NodeWS";
 import { DateTime, Effect } from "effect";
 import { JobsView } from "@shivaedev/admin/client/JobsView.ts";
+import { mintUser } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { foundation } from "#admin/foundation.ts";
 import { makeFoundationClient } from "#client/admin/foundation.ts";
+import { AppAuth } from "#server/AppAuth.ts";
 import { startHost } from "#test-support/host.ts";
 import { configured, postgres } from "#test-support/postgres.ts";
 import { acquireScreen, type ScreenSurface, screenView } from "#test-support/screenState.ts";
-import { mintUser } from "#test-support/sessionPrecondition.ts";
 import { uiScreenVerbs } from "#test-support/uiScreenVerbs.ts";
 
 export const foundationJobsScreen = storyKit({
@@ -16,7 +17,7 @@ export const foundationJobsScreen = storyKit({
 	clock: Effect.runSync(DateTime.now),
 	*create() {
 		const host = yield* startHost();
-		const { headers } = yield* mintUser(host, "operator", "admin");
+		const { headers } = yield* mintUser(AppAuth, host, "operator", { role: "admin" });
 		const client = makeFoundationClient(`${host.baseUrl}/rpc`, {
 			headers: { cookie: headers.get("cookie") ?? "", origin: host.origin },
 			webSocketConstructor: layerWebSocketConstructor,

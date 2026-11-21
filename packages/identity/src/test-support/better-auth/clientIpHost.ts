@@ -21,7 +21,7 @@ export const clientIpHost = Effect.fn("ClientIpStory.clientIpHost")(function* (e
 	} satisfies BetterAuthOptions;
 	yield* Effect.promise(async () => (await getMigrations(options)).runMigrations());
 	const context = yield* Effect.gen(function* () {
-		const mounted = yield* betterAuthMount(options);
+		const mounted = yield* betterAuthMount({ options });
 		return yield* Layer.build(
 			HttpRouter.serve(Layer.merge(mounted.routes, storyPeer)).pipe(
 				Layer.provideMerge(NodeHttpServer.layer(createServer, { host: "127.0.0.1", port: 0 })),

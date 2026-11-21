@@ -1,16 +1,17 @@
 import { DateTime, Effect } from "effect";
+import { mintUser } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { AppAuth } from "#server/AppAuth.ts";
 import { startHost } from "#test-support/host.ts";
 import { configured, postgres } from "#test-support/postgres.ts";
-import { mintUser } from "#test-support/sessionPrecondition.ts";
 
 export const browserReports = storyKit({
 	around: withIsolatedDatabase,
 	clock: Effect.runSync(DateTime.now),
 	*create() {
 		const host = yield* startHost();
-		const { headers, user } = yield* mintUser(host, "alice");
+		const { headers, user } = yield* mintUser(AppAuth, host, "alice");
 		return { headers, host, user };
 	},
 	layer: postgres,

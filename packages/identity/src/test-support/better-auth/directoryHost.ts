@@ -33,7 +33,7 @@ export const directoryHost = Effect.fnUntraced(function* (mapping: AuthTableOpti
 	const auth = betterAuth(options);
 	const { test } = yield* Effect.promise(() => auth.$context);
 	const reactivity = yield* Reactivity.Reactivity;
-	const build = Layer.build(betterAuthUserDirectory(Access, options));
+	const build = Layer.build(betterAuthUserDirectory({ options, roles: Access }));
 	const context = yield* standalone
 		? build.pipe(
 				Effect.updateContext((services: Context.Context<SqlClient.SqlClient | Scope.Scope>) => Context.omit(Reactivity.Reactivity)(services)),

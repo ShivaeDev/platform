@@ -45,9 +45,11 @@ export const authStartup = storyKit({
 			Effect.gen(function* () {
 				const database = yield* betterAuthDatabase().pipe(Effect.provideService(SqlClient.SqlClient, observed.sql));
 				return yield* betterAuthMount({
-					...options,
-					database,
-					plugins: [{ id: "held-initialization", init: initializeContext }],
+					options: {
+						...options,
+						database,
+						plugins: [{ id: "held-initialization", init: initializeContext }],
+					},
 				}).pipe(Effect.provide(memoryStore), Effect.asVoid);
 			}),
 		).pipe(Layer.provide(Logger.layer([logger])));
