@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.52.0 - 2026-11-21
+
+### Added
+
+- each `MemberScreen` from `memberScreens` carries a `cookie` header value built from the member's seeded cookies, so a client that opens a socket can sign in as that member.
+
 ## 0.51.0 - 2026-11-21
 
 ### Fixed

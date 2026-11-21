@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.16.0 - 2026-11-21
+
+### Added
+
+- `layerLiveMemoryProtocol(group, handlers)` and `liveHost(group, handlers, { protocol })` from `@shivaedev/test-kits/contract/liveMemoryProtocol.ts` serve a module's queries and commands as a live host through server's `servedGroup` and `servedHandlers`, so a story's client runs live as it does against the application host, and a `$changes` subscription over `protocol: "http"` is refused with `WebSocketRequired` as the host refuses it. Pass one `liveChannel()` as `channel` to several `liveHost` calls when their transports must share one change channel.
+- `mintUser(declaration, host, name, { role })` in `identity/adapters/betterAuth.ts` returns a signed-in user from the application's auth declaration, through a test-only mount with Better Auth's `testUtils()`, the host's origin and secure-cookie choice and the declaration's `secret` or the exported `AUTH_TEST_SECRET`. `storyAuth(declaration, host)` returns that test-only Better Auth instance. The package now declares `@shivaedev/rate-limit` as a peer.
+
 ## 0.15.0 - 2026-11-21
 
 ### Breaking
