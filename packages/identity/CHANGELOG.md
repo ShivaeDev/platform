@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.44.0 - 2026-11-21
+
+### Fixed
+
+- The account `delete` command works when the auth declaration configures `secondaryStorage`. It previously failed on the `verification` table, which Better Auth does not create there. Inside its transaction it now revokes the person's sessions in `secondaryStorage` as Better Auth does, so none of them resolves a user afterwards, with or without `storeSessionInDatabase`. It records Better Auth's revoked-before time, which alone ends a session created before the deletion, and deletes the listed sessions whether the store's client returns JSON text or parsed values. It also deletes the email codes of their exact address kept there.
+
+### Breaking
+
+- `AccountClock` is a global service that answers for any account: `logicalDay(account, instant?)` and `dayRange(account, day)` take the account id first and read that account's saved timezone on each call, and the Layer requires `AccountPreferencesStore` and `AccountDayStart` instead of `Subject`. Replace `clock.logicalDay()` with `clock.logicalDay((yield* Subject).id)` and `clock.dayRange(day)` with `clock.dayRange((yield* Subject).id, day)`, and move the clock's Layer from `requestServices` to `services`, for example `AccountClock.layer.pipe(Layer.provide(Layer.succeed(AccountDayStart, 240)), Layer.provideMerge(accountPreferencesStore))`. Both methods now fail with `AuthUnavailable` when the account's preferences cannot be read, where the old clock failed its request Layer's construction, and `dayRange` keeps its `SchemaError` for a `day` that is not an ISO calendar date. A defined module's operation, a job, and a native handler whose contract declares a subject or identity middleware carry `AuthUnavailable` with nothing to add; a native contract without either adds `rejections: { AuthUnavailable }` to the query.
+
 ## 0.43.0 - 2026-11-21
 
 ### Added
