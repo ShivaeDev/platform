@@ -35,6 +35,7 @@ export const app = storyKit({
 			hostOptions: {},
 			live: undefined,
 			sourceApi,
+			spentBudgets: [],
 			tell: () => undefined,
 			traces: undefined,
 			worker: undefined,

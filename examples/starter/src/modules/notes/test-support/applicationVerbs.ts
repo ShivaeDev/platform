@@ -154,6 +154,9 @@ export function applicationVerbs(engine: Engine, story: { tell: (line: string) =
 			return `signed up ${sessionCookieWords(response.cookies)}`;
 		}),
 		sourceRequests: () => engine.sourceApi.requests.map(({ method, path, status }) => ({ method, path, status })),
+		// A budget's key names who spends it: the auth mount prefixes its own, and a module operation chooses its key.
+		spentBudgets: () =>
+			Effect.sync(() => [...new Set(engine.spentBudgets.map((key) => (key.startsWith("identity:auth:") ? "auth mount" : key.split(":")[0])))]),
 		timePasses: (duration: Duration.Input) => {
 			story.tell(`${duration} pass`);
 			return TestClock.adjust(duration);
