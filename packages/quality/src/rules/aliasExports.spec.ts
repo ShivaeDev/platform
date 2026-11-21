@@ -1,7 +1,15 @@
 import { biome } from "#rules/biome.ts";
 import { noBarrel } from "#rules/noBarrel.ts";
 import { repositoryHas, repositoryLinks, ruleStory } from "#test/ruleStory.ts";
-import { importForms, localAliasFacade, realWrappers, secondNameFiles, typeImportForms } from "#test/secondNameFiles.ts";
+import {
+	facadeFiles,
+	importForms,
+	localAliasFacade,
+	realWrappers,
+	registrationFiles,
+	secondNameFiles,
+	typeImportForms,
+} from "#test/secondNameFiles.ts";
 import { DEFAULT_FILES, packageRoot } from "#testing/adapters/tree.ts";
 import { assertThat } from "#testing/assertThat.ts";
 
@@ -65,3 +73,17 @@ ruleStory.it(
 		);
 	},
 );
+
+for (const file of registrationFiles) {
+	ruleStory.it(`the ${file.shape} registration written satisfies AppModule is not a second name`, [repositoryHas(file)], function* ({ check }) {
+		yield* assertThat(yield* check(noBarrel), (actual) => actual.toEqual([]));
+	});
+}
+
+for (const file of facadeFiles) {
+	ruleStory.it(`an object of imports ${file.shape} is still a second name`, [repositoryHas(file)], function* ({ check }) {
+		yield* assertThat(yield* check(noBarrel), (actual, expect) =>
+			actual.toEqual([expect.objectContaining({ file: file.path, message: expect.stringContaining("Help: Import directly from") })]),
+		);
+	});
+}
