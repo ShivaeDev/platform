@@ -1,6 +1,7 @@
-import { Effect, Schema } from "effect";
+import { Context, Effect, Option, Schema } from "effect";
 import { SqlClient, SqlSchema } from "effect/sql";
 import { RepositoryModels } from "@shivaedev/sql/RepositoryModels.ts";
+import { OwnedModelsUncollected } from "#server/account-data/OwnedModelsUncollected.ts";
 
 const ResolvedTable = Schema.Struct({ name: Schema.String, schema: Schema.String, table: Schema.String });
 
@@ -14,7 +15,12 @@ function quotedName(name: string) {
 
 // Each owned model with the catalog's schema and table, keyed as "schema.table.column" for its owner column.
 export const ownedTables = Effect.fn("Identity.ownedTables")(function* () {
-	const owned = yield* (yield* RepositoryModels).owned;
+	const models = yield* RepositoryModels;
+	// Without a collector the Reference holds its default, which records nothing, so an empty list would read as "nothing owned".
+	if (Option.getOrUndefined(Context.getOption(Context.empty(), RepositoryModels)) === models) {
+		return yield* new OwnedModelsUncollected();
+	}
+	const owned = yield* models.owned;
 	const names = [...new Set(owned.map(({ table }) => table))];
 	if (names.length === 0) {
 		return [];

@@ -66,6 +66,7 @@ const models = new Map<Model.Any, string>([
 export type Built =
 	| "checklist steps through makeOrderedChildren"
 	| "co-authored notes with two owner fields"
+	| "note headings over the archived notes table"
 	| "note headings over the notes table"
 	| "notes keyed by tableName in place of their collection"
 	| "notes owned by a server-only token"
@@ -76,6 +77,7 @@ const repositories: Record<Built, () => Effect.Effect<unknown, RepositoryBuildEr
 	"checklist steps through makeOrderedChildren": () =>
 		makeOrderedChildren(Step, { parentColumn: "checklistId", parentTable: "checklists", positionColumn: "position", tableName: "checklist_steps" }),
 	"co-authored notes with two owner fields": () => makeRepository(CoAuthored, { tableName: "co_authored_notes" }),
+	"note headings over the archived notes table": () => makeRepository(NoteHeading, { tableName: "archived_notes" }),
 	"note headings over the notes table": () => makeRepository(NoteHeading, { tableName: "notes" }),
 	"notes keyed by tableName in place of their collection": () => makeRepository(Note, { tableName: "notes" }),
 	"notes owned by a server-only token": () => makeRepository(HiddenOwner, { tableName: "hidden_owner_notes" }),

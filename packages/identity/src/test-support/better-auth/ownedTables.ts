@@ -32,6 +32,38 @@ export const exportedTables = ownedData.trait(
 	},
 );
 
+export const memoTables = ownedData.trait(
+	"tables",
+	"alice and bob each have a memo in memos and in archived_memos, two tables whose repositories share one model",
+	function* (engine) {
+		const sql = yield* SqlClient.SqlClient;
+		for (const table of ["memos", "archived_memos"]) {
+			yield* sql`create table ${sql(table)} (id integer primary key, text text not null, user_id text not null)`;
+			for (const [index, name] of PEOPLE.entries()) {
+				yield* sql`insert into ${sql(table)} (id, text, user_id) values (${index}, ${`${name}'s ${table}`}, ${engine.users.get(name)})`;
+			}
+		}
+		yield* Effect.all([ownedModels.memos, ownedModels.archivedMemos]);
+	},
+);
+
+export const listEntries = ownedData.trait(
+	"tables",
+	"alice has a grocery-list entry with a generated id, a creation time, a bucket list id and no note",
+	function* (engine) {
+		const sql = yield* SqlClient.SqlClient;
+		yield* sql`create table entries (
+			id serial primary key,
+			created_at timestamptz not null,
+			list_id text not null,
+			note text,
+			user_id text not null references "user" (id) on delete cascade
+		)`;
+		yield* sql`insert into entries (created_at, list_id, user_id) values ('2026-11-04T12:00:00Z', 'groceries', ${engine.users.get("alice")})`;
+		yield* ownedModels.entries;
+	},
+);
+
 export const restrictChain = ownedData.trait(
 	"tables",
 	"alice and bob each own a project, a task in it and a comment on it, and each reference holds its row back with RESTRICT or NO ACTION",

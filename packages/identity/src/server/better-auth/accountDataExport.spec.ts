@@ -2,7 +2,7 @@ import { Effect } from "effect";
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { ownedData } from "#test/better-auth/ownedData.ts";
-import { exportedTables, forgottenTable, mappedUserTable, storedPreferences } from "#test/better-auth/ownedTables.ts";
+import { exportedTables, forgottenTable, listEntries, mappedUserTable, memoTables, storedPreferences } from "#test/better-auth/ownedTables.ts";
 
 ownedData.it(
 	"alice's export holds her notes and bookmarks through each model's JSON variant, without bob's rows, the unowned bookmark or the notes' server-only share token",
@@ -86,3 +86,27 @@ ownedData.it(
 		});
 	},
 );
+
+ownedData.it(
+	"alice's grocery entry is encoded through its JSON variant: the generated id as a number, the creation time as an ISO string, the bucket list id and the missing note as null",
+	[listEntries],
+	function* ({ exportAccount }) {
+		const { account, owned } = yield* exportAccount("alice");
+
+		expect(owned).toEqual([
+			{
+				rows: [{ createdAt: "2026-11-04T12:00:00.000Z", id: 1, listId: "groceries", note: null, userId: account.users[0]?.id }],
+				table: "entries",
+			},
+		]);
+	},
+);
+
+ownedData.it("alice's export holds her memos from both tables whose repositories share one model", [memoTables], function* ({ exportAccount }) {
+	const { owned } = yield* exportAccount("alice");
+
+	expect(owned).toMatchObject([
+		{ rows: [{ text: "alice's archived_memos" }], table: "archived_memos" },
+		{ rows: [{ text: "alice's memos" }], table: "memos" },
+	]);
+});

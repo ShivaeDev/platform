@@ -22,16 +22,17 @@ export const RepositoryModels = Context.Reference<{
 	readonly owned: Effect.Effect<readonly OwnedModel[]>;
 }>("@shivaedev/sql/RepositoryModels", { defaultValue: () => ({ declare: () => Effect.void, owned: Effect.succeed([]) }) });
 
-// Keyed by model, so building one repository twice keeps one entry while two models over one table keep both.
+// Keyed by model and table, so building one repository twice keeps one entry while two models over one table, or one
+// model over two tables, keep both.
 export const collectRepositoryModels = Layer.sync(RepositoryModels, () => {
-	const owned = new Map<Model.Any, OwnedModel>();
+	const owned = new Map<Model.Any, Map<string, OwnedModel>>();
 	return RepositoryModels.of({
 		declare: ({ model, owner, table }) =>
 			Effect.sync(() => {
 				if (owner !== undefined) {
-					owned.set(model, { model, owner, table });
+					owned.set(model, new Map(owned.get(model)).set(table, { model, owner, table }));
 				}
 			}),
-		owned: Effect.sync(() => [...owned.values()]),
+		owned: Effect.sync(() => [...owned.values()].flatMap((tables) => [...tables.values()])),
 	});
 });

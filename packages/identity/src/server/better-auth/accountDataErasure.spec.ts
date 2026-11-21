@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { ownedData } from "#test/better-auth/ownedData.ts";
-import { forgottenTable, ownedCycle, restrictChain } from "#test/better-auth/ownedTables.ts";
+import { forgottenTable, memoTables, ownedCycle, restrictChain } from "#test/better-auth/ownedTables.ts";
 
 const CHAIN = ["projects", "tasks", "comments"] as const;
 
@@ -55,6 +55,20 @@ ownedData.it(
 		yield* outcomes([
 			["erase", () => Effect.succeed(erased), { uncovered: [{ column: "owner_id", schema: "public", table: "forgotten" }] }],
 			["stored projects owners", () => storedOwners("projects"), ["alice", "bob"]],
+		]);
+	},
+);
+
+ownedData.it(
+	"one erase removes alice's memos from both tables whose repositories share one model, and keeps bob's",
+	[memoTables],
+	function* ({ erase, storedOwners }) {
+		const erased = yield* erase("alice");
+
+		yield* outcomes([
+			["erase", () => Effect.succeed(erased), "erased"],
+			["stored memos owners", () => storedOwners("memos"), ["bob"]],
+			["stored archived_memos owners", () => storedOwners("archived_memos"), ["bob"]],
 		]);
 	},
 );
