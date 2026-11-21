@@ -20,53 +20,31 @@ application.it(
 application.it(
 	"a resource name containing a parent path is refused before writing outside the module folder",
 	[generated("my-app", "--no-git", "--minimal")],
-	function* ({ addResource, exists, file }) {
-		const modules = yield* file("src/server/modules.ts");
-
+	function* ({ addResource, exists }) {
 		const answer = yield* addResource("../escaped");
 
 		expect(answer).toBe("create-app: Use a lowercase resource name with optional hyphens, at most 63 characters long.");
-		yield* outcomes([
-			["module list", () => file("src/server/modules.ts"), modules],
-			["escaped files", () => exists("src/escaped"), false],
-		]);
+		expect(yield* exists("src/escaped")).toBe(false);
 	},
 );
 
 application.it(
-	"resource generation names every existing destination and leaves the module list and files alone",
+	"resource generation names every existing destination and leaves the files alone",
 	[
 		generated("my-app", "--no-git", "--minimal"),
 		appAdds("src/modules/bookmarks/Bookmarks.ts", "custom module\n"),
 		appAdds("src/modules/bookmarks/client/make.ts", "custom client\n"),
 	],
 	function* ({ addResource, file, exists }) {
-		const modules = yield* file("src/server/modules.ts");
-
 		const answer = yield* addResource("bookmarks");
 
 		expect(answer).toBe(
 			"create-app: Refusing to overwrite existing files:\nsrc/modules/bookmarks/Bookmarks.ts\nsrc/modules/bookmarks/client/make.ts",
 		);
 		yield* outcomes([
-			["module list", () => file("src/server/modules.ts"), modules],
 			["module", () => file("src/modules/bookmarks/Bookmarks.ts"), "custom module\n"],
 			["client", () => file("src/modules/bookmarks/client/make.ts"), "custom client\n"],
 			["operation", () => exists("src/modules/bookmarks/server/Create.ts"), false],
-		]);
-	},
-);
-
-application.it(
-	"a customized module list is named and left alone when resource registration cannot be placed",
-	[generated("my-app", "--no-git"), appAdds("src/server/modules.ts", "export const customModules = [];\n")],
-	function* ({ addResource, file, exists }) {
-		const answer = yield* addResource("bookmarks");
-
-		expect(answer).toBe("create-app: Cannot register bookmarks: src/server/modules.ts must declare const modules = [...] as const;");
-		yield* outcomes([
-			["custom list", () => file("src/server/modules.ts"), "export const customModules = [];\n"],
-			["resource", () => exists("src/modules/bookmarks"), false],
 		]);
 	},
 );
@@ -76,24 +54,21 @@ application.it(
 	[generated("my-app", "--no-git", "--minimal")],
 	function* ({ addResource, file }) {
 		expect(yield* addResource("bookmarks")).toBe("added");
-		const modules = yield* file("src/server/modules.ts");
 		const module = yield* file("src/modules/bookmarks/Bookmarks.ts");
 
 		const answer = yield* addResource("bookmarks");
 
 		expect(answer).toContain("create-app: Refusing to overwrite existing files:\nsrc/modules/bookmarks/Bookmarks.ts");
-		yield* outcomes([
-			["module list", () => file("src/server/modules.ts"), modules],
-			["module", () => file("src/modules/bookmarks/Bookmarks.ts"), module],
-		]);
+		expect(yield* file("src/modules/bookmarks/Bookmarks.ts")).toBe(module);
 	},
 );
 
 application.it(
-	"a resource in a minimal app is a defined module with one file per operation under server/, registered as module:, and leaves the Quality config unchanged",
+	"a resource in a minimal app is a defined module with one file per operation under server/, registered as module: by its folder alone, and leaves the Quality config and the server's module composition unchanged",
 	[generated("my-app", "--no-git", "--minimal")],
 	function* ({ addResource, file, fileMentions, filesUnder }) {
 		const qualityConfig = yield* file("quality.config.ts");
+		const composition = yield* file("src/server/modules.ts");
 
 		yield* addResource("reading-lists");
 
@@ -115,7 +90,13 @@ application.it(
 				],
 			],
 			["registration names the module", () => fileMentions("src/modules/reading-lists/server/registration.ts", "module: ReadingLists,"), true],
+			[
+				"registration written satisfies AppModule",
+				() => fileMentions("src/modules/reading-lists/server/registration.ts", "} satisfies AppModule;"),
+				true,
+			],
 			["Quality config", () => file("quality.config.ts"), qualityConfig],
+			["server module composition", () => file("src/server/modules.ts"), composition],
 		]);
 	},
 );

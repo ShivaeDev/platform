@@ -172,3 +172,34 @@ vite.it(
 		});
 	},
 );
+
+vite.it(
+	"in the dev server, a registration created while it runs is added to the server's module list without a restart",
+	[notesApplication(), generatedOnce()],
+	function* ({ serverListRewritten, startsTheDevServer, writesTheNotesRegistration }) {
+		yield* startsTheDevServer();
+
+		yield* writesTheNotesRegistration("satisfies AppModule");
+
+		expect(yield* serverListRewritten()).toContain(
+			'import { notesRegistration } from "#modules/notes/server/registration.ts";\n\nexport const modules = [\n\tnotesRegistration,\n] as const;\n',
+		);
+	},
+);
+
+vite.it(
+	"in the dev server, a registration typed : AppModule shows the refusal naming its file in the terminal and the error overlay",
+	[notesApplication(), generatedOnce()],
+	function* ({ browserReceives, startsTheDevServer, terminalErrors, writesTheNotesRegistration }) {
+		yield* startsTheDevServer();
+
+		yield* writesTheNotesRegistration(": AppModule");
+
+		const refusal =
+			"src/modules/notes/server/registration.ts: notesRegistration is typed as AppModule, which leaves it out of the server's module list and loses its module's services; write `satisfies AppModule` after its object instead";
+		yield* outcomes([
+			["the browser", () => browserReceives(), { overlay: refusal }],
+			["the terminal", () => terminalErrors(), [refusal]],
+		]);
+	},
+);

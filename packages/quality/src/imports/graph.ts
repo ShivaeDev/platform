@@ -6,9 +6,9 @@ import type { ImportAnalysisFailure } from "#ImportAnalysisFailure.ts";
 import type { Endpoint } from "#imports/Endpoint.ts";
 import type { ImportKind } from "#imports/extract.ts";
 import { type WorkspacePackage, workspacePackages } from "#imports/workspace.ts";
+import { ignoredAmong } from "#inventory/ignoredAmong.ts";
 import { posix } from "#inventory/ignoreScope.ts";
 import { linesOf } from "#inventory/linesOf.ts";
-import { ignoredAmong } from "#inventory/trackedPaths.ts";
 import type { Findings, RuleInputs, SourceFile } from "#rule.ts";
 
 export interface ImportEdge {
@@ -51,7 +51,7 @@ const ignoredReach = Effect.fn("Imports.ignoredReach")(function* (
 	const modules: string[] = [];
 	const followed: ImportEdge[] = [];
 	for (let frontier = unlisted(listed, edges); frontier.length > 0; frontier = unlisted(listed, followed)) {
-		const ignored = (yield* ignoredAmong(inputs.root, frontier)).map((path) => posix(relative(inputs.root, path)));
+		const ignored = (yield* ignoredAmong(inputs, frontier)).map((path) => posix(relative(inputs.root, path)));
 		for (const path of frontier) {
 			listed.add(path);
 		}

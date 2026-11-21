@@ -8,10 +8,11 @@ import { untilTimer } from "@shivaedev/test-story/server/watchedClock.ts";
 import { generate } from "#generate.ts";
 import type { GenerateFailed, GenerateReport } from "#report.ts";
 import { CREDENTIAL_MODEL } from "#test/credentialModel.ts";
-import { emptyProject, fromSource, generatedOncePerFile, typeCheck, writeFiles } from "#test/fixtureProject.ts";
+import { emptyProject, fromSource, generatedOncePerFile, projectIn, typeCheck, writeFiles } from "#test/fixtureProject.ts";
 import { NOTES_PROJECT } from "#test/notesProject.ts";
 import { PUBLIC_SHAPE_PROJECT } from "#test/publicShapeProject.ts";
 import { REFUSING_PROJECT } from "#test/refusingProject.ts";
+import { REGISTRATIONS_PROJECT, type RegistrationShape, registrationOf } from "#test/registrationsProject.ts";
 import { SERVER_ONLY_PROJECT } from "#test/serverOnlyProject.ts";
 
 const NOTES_WIRE = "src/generated/modules/notes/notes.ts";
@@ -34,13 +35,13 @@ interface GenerateOutcome {
 interface GeneratorEngine {
 	readonly lock: string;
 	otherHold: Option.Option<Scope.Closeable>;
-	readonly root: string;
+	root: string;
 	running: Option.Option<Fiber.Fiber<GenerateOutcome, unknown>>;
 }
 
 function outcomeOf(report: GenerateReport, failed: GenerateFailed | undefined): GenerateOutcome {
 	return {
-		files: Object.fromEntries(report.modules.map(({ output, status }) => [output, status])),
+		files: Object.fromEntries([...report.modules, ...report.lists].map(({ output, status }) => [output, status])),
 		problems: failed?.problems ?? [],
 		programBuilt: report.programBuilt,
 		result: failed === undefined ? "succeeded" : "failed",
@@ -101,6 +102,11 @@ export const generator = storyKit({
 	name: "generator",
 	stages: ["project", "generated", "lock"],
 	verbs: (engine, story) => ({
+		addsRegistration: Effect.fn("BuildStory.addsRegistration")(function* (module: string, shape: RegistrationShape = "written satisfies AppModule") {
+			const file = `src/modules/${module.toLowerCase()}/server/registration.ts`;
+			story.tell(`the developer writes ${file}, exporting the ${module} registration ${shape}`);
+			yield* writeFiles(engine.root, { [file]: registrationOf(`${module.toLowerCase()}Registration`, module, shape) });
+		}),
 		browserKeys: (operation: string) => {
 			story.tell(`the browser asks the generated contract's ${operation} query for its keys, as a bound query does`);
 			return browserKeysOf(engine, operation);
@@ -203,6 +209,27 @@ export const generator = storyKit({
 
 export function notesProject() {
 	return generator.trait("project", "the project has the notes module", (engine) => writeFiles(engine.root, NOTES_PROJECT));
+}
+
+export function projectInsideModulesFolder() {
+	return generator.trait("project", "the project's checkout sits in a folder named modules", function* (engine) {
+		const path = yield* Path.Path;
+		engine.root = yield* projectIn(path.join(engine.root, "modules", "my-app"));
+	});
+}
+
+export function registrationsProject() {
+	return generator.trait(
+		"project",
+		"the project registers its tags, notes and archive modules and a notes kit registers a fake of its own",
+		(engine) => writeFiles(engine.root, REGISTRATIONS_PROJECT),
+	);
+}
+
+export function importsTheServerList() {
+	return generator.trait("project", "the project's src/server/modules.ts imports the generated server module list", (engine) =>
+		writeFiles(engine.root, { "src/server/modules.ts": REGISTRATIONS_PROJECT["src/server/modules.ts"] ?? "" }),
+	);
 }
 
 export function refusingProject() {
