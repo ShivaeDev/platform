@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { cachedAddressCodes, sessionsIn } from "#test/account-deletion/sessions.ts";
+import { cachedAddressCodes, lostSessionList, sessionsIn } from "#test/account-deletion/sessions.ts";
 import { accountDeletion } from "#test/account-deletion/story.ts";
 
 accountDeletion.it(
@@ -18,7 +18,7 @@ accountDeletion.it(
 	},
 );
 
-for (const storage of ["secondary storage", "secondary storage and the database"] as const) {
+for (const storage of ["secondary storage", "secondary storage and the database", "secondary storage whose client parses JSON"] as const) {
 	accountDeletion.it(
 		`with sessions in ${storage}, alice's session resolves no user once she deletes her account, and bob's still does`,
 		[sessionsIn(storage)],
@@ -45,3 +45,21 @@ accountDeletion.it(
 		yield* outcomes([["cached address codes", codes, ["bob"]]]);
 	},
 );
+
+for (const storage of ["secondary storage", "secondary storage and the database"] as const) {
+	accountDeletion.it(
+		`with sessions in ${storage} and their list lost, sixty seconds after alice signed in her deletion still ends her session through Better Auth's revoked-before time`,
+		[sessionsIn(storage), lostSessionList],
+		function* ({ deleteAccount, request, waits, writesNote }) {
+			yield* waits("60 seconds");
+
+			yield* deleteAccount("alice");
+
+			yield* outcomes([
+				["alice's protected request", () => request("alice"), "failed with unauthorized"],
+				["alice's note write", () => writesNote("alice", "written after deletion"), "failed with unauthorized"],
+				["bob's protected request", () => request("bob"), "bob"],
+			]);
+		},
+	);
+}

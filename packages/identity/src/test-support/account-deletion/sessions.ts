@@ -25,3 +25,16 @@ export const cachedAddressCodes = accountDeletion.trait(
 		}
 	},
 );
+
+export const lostSessionList = accountDeletion.trait(
+	"data",
+	"the secondary storage has lost the list of alice's sessions, so only Better Auth's revoked-before time can end hers",
+	function* (setup) {
+		const storage = setup.host?.auth.options.secondaryStorage;
+		const alice = setup.people.get("alice");
+		if (storage === undefined || alice === undefined) {
+			return yield* Effect.die("The trait needs a host with secondary storage and alice's account");
+		}
+		yield* Effect.promise(async () => await storage.delete(`active-sessions-${alice.id}`));
+	},
+);

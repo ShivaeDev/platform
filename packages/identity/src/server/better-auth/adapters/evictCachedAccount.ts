@@ -2,7 +2,9 @@ import type { BetterAuthOptions } from "better-auth";
 import { Clock, Effect, Schema } from "effect";
 import { providerFailure } from "#server/providerFailure.ts";
 
-const SessionReferences = Schema.fromJsonString(Schema.Array(Schema.Struct({ token: Schema.String })));
+const References = Schema.Array(Schema.Struct({ token: Schema.String }));
+// Better Auth reads the list through safeJSONParse, which takes a JSON string or a value the store's client already parsed.
+const StoredReferences = Schema.Union([Schema.fromJsonString(References), References]);
 const ADDRESS_CODES = ["email-verification", "sign-in", "forget-password"];
 
 // Better Auth 1.7 keeps these keys in secondary storage and revokes a user's sessions with the same writes in deleteCachedUserSessions:
@@ -26,8 +28,7 @@ export const evictCachedAccount = Effect.fn("Identity.evictCachedAccount")(funct
 	const previous = Number(yield* call(() => storage.get(revokedKey))) || 0;
 	yield* call(() => storage.set(revokedKey, String(Math.max(now, previous)), lifetime));
 	const listed = yield* call(() => storage.get(activeKey));
-	const references =
-		typeof listed === "string" ? yield* Schema.decodeUnknownEffect(SessionReferences)(listed).pipe(Effect.orElseSucceed(() => [])) : [];
+	const references = yield* Schema.decodeUnknownEffect(StoredReferences)(listed).pipe(Effect.orElseSucceed(() => []));
 	for (const { token } of references) {
 		yield* call(() => storage.delete(token));
 	}

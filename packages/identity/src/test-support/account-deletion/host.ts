@@ -1,4 +1,3 @@
-import type { SecondaryStorage } from "better-auth";
 import { testUtils } from "better-auth/plugins";
 import { admin } from "better-auth/plugins/admin";
 import { Effect, Layer, Schema } from "effect";
@@ -27,6 +26,7 @@ import { betterAuthMount } from "#server/better-auth/mount.ts";
 import { SessionPolicy } from "#server/SessionPolicy.ts";
 import { authenticatedUserLayer } from "#server/session.ts";
 import { HandOverPlan } from "#test/account-deletion/HandOverPlan.ts";
+import { memorySecondaryStorage } from "#test/account-deletion/memorySecondaryStorage.ts";
 import { ProjectHandOver } from "#test/account-deletion/service.ts";
 import { recordPublished } from "#test/recordPublished.ts";
 import { ORIGIN } from "#test/rpc/harness.ts";
@@ -36,31 +36,12 @@ const Profile = contract("profile", {
 	queries: [query("read", { readPolicy: () => Effect.succeed(true), reads: () => [], success: SessionUserSchema })],
 }).middleware(AuthenticatedUser);
 
-export type SessionStorage = "database" | "cookie cache" | "secondary storage" | "secondary storage and the database";
-
-// Better Auth keeps sessions only here when secondary storage is configured, so the map stands in for a shared cache such as Redis.
-function memorySecondaryStorage(): SecondaryStorage {
-	const entries = new Map<string, string>();
-	return {
-		delete: (key) => {
-			entries.delete(key);
-		},
-		get: (key) => entries.get(key) ?? null,
-		getAndDelete: (key) => {
-			const value = entries.get(key) ?? null;
-			entries.delete(key);
-			return value;
-		},
-		increment: (key) => {
-			const count = Number(entries.get(key) ?? 0) + 1;
-			entries.set(key, String(count));
-			return count;
-		},
-		set: (key, value) => {
-			entries.set(key, value);
-		},
-	};
-}
+export type SessionStorage =
+	| "database"
+	| "cookie cache"
+	| "secondary storage"
+	| "secondary storage and the database"
+	| "secondary storage whose client parses JSON";
 
 function sessionOptions(storage: SessionStorage) {
 	const session = {
@@ -68,7 +49,9 @@ function sessionOptions(storage: SessionStorage) {
 		disableSessionRefresh: true,
 		storeSessionInDatabase: storage === "secondary storage and the database",
 	};
-	return storage.startsWith("secondary storage") ? { secondaryStorage: memorySecondaryStorage(), session } : { session };
+	return storage.startsWith("secondary storage")
+		? { secondaryStorage: memorySecondaryStorage(storage === "secondary storage whose client parses JSON"), session }
+		: { session };
 }
 const ServedApi = Account.merge(Profile);
 const Api = AccountClient.merge(Profile);
