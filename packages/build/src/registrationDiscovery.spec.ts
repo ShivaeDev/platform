@@ -109,6 +109,7 @@ const REFUSALS = [
 	["with no annotation", NOT_SATISFIED],
 	["in the group and handlers form with no annotation", NOT_SATISFIED],
 	["naming its module and no services, with no annotation", NOT_SATISFIED],
+	["naming its module through a call, with services and no annotation", NOT_SATISFIED],
 	[
 		"built by a function call",
 		"exports no registration written `satisfies AppModule`, so the server's module list leaves its module out; export the registration as a const written `satisfies AppModule`, with AppModule imported from @shivaedev/server/AppModule.ts",

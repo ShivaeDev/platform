@@ -55,12 +55,16 @@ export function isServerPath(file: string): boolean {
 	return /(?:^|[\\/])server[\\/]/u.test(file);
 }
 
-// Services are optional, so a registration is known by what it serves: a group and its handlers, or a `module` it refers to. Browser
-// code may hold a module too, so outside a server folder the object must also carry another registration part.
+// Services are optional, so a registration is known by what it serves: a group and its handlers, or a `module` beside another
+// registration part. Browser code may hold a module too, so a `module` alone counts only as a reference in a server folder.
 function namesModule(literal: ts.ObjectLiteralExpression, inServerCode: boolean): boolean {
-	const module = initializerOf(propertyOf(literal, "module"));
+	const property = propertyOf(literal, "module");
+	if (property === undefined) {
+		return false;
+	}
+	const module = initializerOf(property);
 	const refersToModule = module !== undefined && (ts.isIdentifier(module) || ts.isPropertyAccessExpression(module));
-	return refersToModule && (inServerCode || REGISTRATION_PARTS.some((part) => propertyOf(literal, part) !== undefined));
+	return REGISTRATION_PARTS.some((part) => propertyOf(literal, part) !== undefined) || (inServerCode && refersToModule);
 }
 
 function looksLikeRegistration(expression: ts.Expression | undefined, inServerCode: boolean): boolean {

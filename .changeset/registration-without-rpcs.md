@@ -1,6 +1,6 @@
 ---
 "@shivaedev/server": minor
-"@shivaedev/email": patch
+"@shivaedev/email": minor
 "@shivaedev/build": patch
 ---
 
@@ -11,9 +11,9 @@
 
 ### Breaking
 
-- `@shivaedev/server`: `DuplicateModuleQueue`'s `firstModule` and `secondModule` are `undefined` for a registration without a name, and the new `firstAdminPage` and `secondAdminPage` hold such a registration's first admin page id. Its message names that registration by the page, or says it has no name and to give it one. Code that reads `firstModule` or `secondModule` as a `string` handles `undefined`, or reads the message.
+- `@shivaedev/server`: `DuplicateModuleQueue`'s `firstModule` and `secondModule` are `undefined` for a registration without a name, and the new `firstAdminPage` and `secondAdminPage` hold such a registration's first admin page id; they stay `undefined` for a named registration. Its message names that registration by the page, or says it has no name and to give it one. Code that reads `firstModule` or `secondModule` as a `string` handles `undefined`, or reads the message.
+- `@shivaedev/email`: `authEmailQueue`'s `registration` no longer has `group`, `handlers` or `name`; it carries only its queue, producer services and worker. It needs the `@shivaedev/server` version that ships the third `AppModule` form: an older `AppModule` refuses it in `satisfies AppModule` and `appModules([...])`. Code that read `registration.name` reads `authEmailJobs.name` from `@shivaedev/email/authEmailJobs.ts`, which holds the same value.
 
 ### Changed
 
-- `@shivaedev/email`: `authEmailQueue`'s `registration` no longer writes an empty RPC group, empty handlers or a name; it carries only its queue, producer services and worker.
-- `@shivaedev/build`: `generate` lists a registration that serves no RPCs, such as `{ admin } satisfies AppModule`, in the server's module list, and refuses an exported object without `satisfies AppModule` that names `group` and `handlers`, or names `module` by reference beside another registration part or under a `server` folder, whether or not it names `services`.
+- `@shivaedev/build`: `generate` lists a registration that serves no RPCs, such as `{ admin } satisfies AppModule`, in the server's module list, and refuses an exported object without `satisfies AppModule` that names `group` and `handlers`, names `module` beside another registration part such as `services` or `migrations`, or names a module by reference alone under a `server` folder.

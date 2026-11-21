@@ -8,7 +8,8 @@ interface QueueOwner {
 }
 
 function queueOwner(module: AppModule): QueueOwner {
-	return { adminPage: module.admin?.pages[0]?.id, name: module.module === undefined ? module.name : module.module.declaration.name };
+	const name = module.module === undefined ? module.name : module.module.declaration.name;
+	return { adminPage: name === undefined ? module.admin?.pages[0]?.id : undefined, name };
 }
 
 export const moduleQueues = Effect.fnUntraced(function* (modules: readonly AppModule[]) {

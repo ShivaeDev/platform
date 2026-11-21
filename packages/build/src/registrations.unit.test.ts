@@ -42,11 +42,13 @@ function notSatisfied(name: string) {
 	return `${name} names what it serves but is not written \`satisfies AppModule\`, so the server's module list leaves it out; write \`satisfies AppModule\` after its object, with AppModule imported from @shivaedev/server/AppModule.ts`;
 }
 
-it("refuses an exported object naming a module without satisfies AppModule beside another registration part, with or without services", () => {
+it("refuses an exported object naming a module, by reference or through a call, without satisfies AppModule beside another registration part", () => {
 	expect(
-		found("export const tags = { module: Tags, services: TagsRepository.layer };\nexport const notes = { migrations, module: Modules.Notes };\n"),
+		found(
+			"export const tags = { module: Tags, services: TagsRepository.layer };\nexport const notes = { migrations, module: Modules.Notes };\nexport const drafts = { module: served(Drafts), services };\n",
+		),
 	).toEqual({
-		refusals: [notSatisfied("tags"), notSatisfied("notes")],
+		refusals: [notSatisfied("tags"), notSatisfied("notes"), notSatisfied("drafts")],
 		registrations: [],
 	});
 });
