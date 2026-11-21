@@ -143,18 +143,29 @@ for (const reads of [
 }
 
 runtime.it(
-	"when the database stops answering after a job hits its deadline and leaves another behind, the batch has not returned ten seconds past its bound",
+	"when the database stops answering after a job hits its deadline and leaves another behind, the batch still gives up a second past the deadline with a logged settle error and logs no deadline for the job whose clock it could not read",
 	[databaseStallsAfterBatchStart, running("app", [workerBy(Reports, ({ id }) => (id === 1 ? "hangs" : "succeeds"))])],
-	function* ({ batchAnswer, clockPasses, startsDelivering }) {
+	function* ({ batchAnswer, clockPasses, deliveryFinishes, deliveryReturned, logged, startsDelivering }) {
 		yield* startsDelivering(
 			"reports",
 			{ data: { id: 1 }, expireInSeconds: 1, id: "job-1", startedMillisAgo: 900 },
 			{ data: { id: 2 }, expireInSeconds: 1, id: "job-2", startedMillisAgo: 900 },
 		);
 		yield* clockPasses(1100);
-		yield* clockPasses(10_000);
+		yield* deliveryFinishes();
 
-		expect(yield* batchAnswer()).toBe("not delivered");
+		yield* outcomes([
+			["batch", () => batchAnswer(), expect.stringMatching(/^rejected with settle reports failed with Operation timed out/u)],
+			["batch returned", () => deliveryReturned(), "1 second after the batch deadline"],
+			[
+				"logs",
+				() => logged(),
+				[
+					{ level: "Error", message: "Job attempt hit its 1s deadline" },
+					{ level: "Error", message: expect.stringMatching(/^settle reports failed with Operation timed out/u) },
+				],
+			],
+		]);
 	},
 );
 

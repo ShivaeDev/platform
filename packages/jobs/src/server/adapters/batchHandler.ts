@@ -7,7 +7,7 @@ import { deferredAttempt } from "#server/deferral.ts";
 import { type PgBossError, toPgBossError } from "#server/error.ts";
 import { failureOutput } from "#server/failureOutput.ts";
 import type { WorkerJob } from "#server/job.ts";
-import { waitForBatchExpiry } from "#server/waitForBatchExpiry.ts";
+import { settleBound, waitForBatchExpiry } from "#server/waitForBatchExpiry.ts";
 
 function settleAttempt(
 	complete: NonNullable<PgBossClient["complete"]>,
@@ -83,12 +83,18 @@ export function batchHandler<R>(
 			yield* deadlineLogged(name, job);
 		}
 	}, Effect.catch(Effect.logError));
-	const leftToExpiry = Effect.fnUntraced(function* (left: readonly WorkerJob<unknown>[], waitForExpiry: Effect.Effect<void, PgBossError>) {
+	const leftToExpiry = Effect.fnUntraced(function* (
+		left: readonly WorkerJob<unknown>[],
+		waitForExpiry: Effect.Effect<void, PgBossError>,
+		deadline: number,
+	) {
 		const released = yield* Deferred.make<void>();
 		const watchers = yield* Effect.forEach(left, (job) => Effect.forkChild(deadlineWhenReleased(job, released)));
 		const waited = yield* Effect.exit(waitForExpiry);
 		yield* Deferred.succeed(released, undefined);
-		yield* Fiber.joinAll(watchers);
+		const remaining = Math.max(0, settleBound(deadline) - (yield* Clock.currentTimeMillis));
+		yield* Fiber.joinAll(watchers).pipe(Effect.timeoutOption(remaining));
+		yield* Fiber.interruptAll(watchers);
 		return yield* waited;
 	});
 	const handle = Effect.fnUntraced(function* (job: WorkerJob<unknown>, offset: number) {
@@ -117,16 +123,13 @@ export function batchHandler<R>(
 		}
 		return "settled";
 	});
-	const handleAll = Effect.fnUntraced(function* (
-		jobs: readonly WorkerJob<unknown>[],
-		offset: number,
-		waitForExpiry: Effect.Effect<void, PgBossError>,
-	) {
+	const handleAll = Effect.fnUntraced(function* (jobs: readonly WorkerJob<unknown>[], offset: number, deadline: number) {
+		const waitForExpiry = waitForBatchExpiry(client, name, jobs, deadline).pipe(Effect.tapError(Effect.logError));
 		let expired = false;
 		for (const [index, job] of jobs.entries()) {
 			const outcome = yield* handle(job, offset);
 			if (outcome === "deadline" || outcome === "interrupted") {
-				return yield* leftToExpiry(jobs.slice(outcome === "deadline" ? index + 1 : index), waitForExpiry);
+				return yield* leftToExpiry(jobs.slice(outcome === "deadline" ? index + 1 : index), waitForExpiry, deadline);
 			}
 			expired ||= outcome === "expired";
 		}
@@ -140,8 +143,6 @@ export function batchHandler<R>(
 			for (const job of jobs) {
 				yield* validateDeadline(job);
 			}
-			const deadline = Math.max(...jobs.map((job) => deadlineOf(job) + offset));
-			const waitForExpiry = waitForBatchExpiry(client, name, jobs, deadline).pipe(Effect.tapError(Effect.logError));
-			yield* handleAll(jobs, offset, waitForExpiry);
+			yield* handleAll(jobs, offset, Math.max(...jobs.map((job) => deadlineOf(job) + offset)));
 		});
 }
