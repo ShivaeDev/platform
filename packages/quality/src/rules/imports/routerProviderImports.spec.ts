@@ -49,13 +49,21 @@ for (const content of [
 }
 
 importStory.it(
-	"imports/runtime accepts the react package's provider, type-only and other TanStack Router imports",
+	"imports/runtime accepts the react package's provider, type-only, other named and dynamically loaded TanStack Router imports",
 	[
-		repositoryHas(CLIENT, {
-			content:
-				'import { RouterProvider } from "@shivaedev/react/RouterProvider.ts";\nimport type { RouterProvider as Provider } from "@tanstack/react-router";\nimport { type RouterProviderProps, createRouter, Link } from "@tanstack/react-router";\nexport { type RouterProvider as Routes } from "@tanstack/react-router";',
-			path: "src/App.tsx",
-		}),
+		repositoryHas(
+			CLIENT,
+			{
+				content:
+					'import { RouterProvider } from "@shivaedev/react/RouterProvider.ts";\nimport type { RouterProvider as Provider } from "@tanstack/react-router";\nimport { type RouterProviderProps, createRouter, Link } from "@tanstack/react-router";\nexport { type RouterProvider as Routes } from "@tanstack/react-router";',
+				path: "src/App.tsx",
+			},
+			{
+				content:
+					'const lazy = () => import("@tanstack/react-router");\nconst Router = require("@tanstack/react-router");\nexport const provider = [lazy, Router.RouterProvider];',
+				path: "src/lazy.ts",
+			},
+		),
 	],
 	function* ({ check }) {
 		yield* assertThat(yield* check(importsRuntime), (actual) => actual.toEqual([]));

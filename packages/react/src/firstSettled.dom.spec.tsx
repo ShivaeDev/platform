@@ -6,6 +6,7 @@ import {
 	aliceReloadsWithStoredResults,
 	aliceSeesFirstResults,
 	firstSettledScreens,
+	visitorOpensSignedOutPage,
 } from "#test/first-settled/story.tsx";
 
 const WAITING = "waiting for first results";
@@ -186,5 +187,13 @@ firstSettledScreens.it(
 			["title", () => answer("title"), "waiting"],
 			["signal", () => signal(), SETTLED],
 		]);
+	},
+);
+
+firstSettledScreens.it(
+	"react's RouterProvider shows a signed-out page's route with no session, client or useFirstSettled above it",
+	[visitorOpensSignedOutPage],
+	function* ({ answer }) {
+		expect(yield* answer("sign-in")).toBe("sign-in form");
 	},
 );

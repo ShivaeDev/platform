@@ -94,10 +94,6 @@ function fileFindings(file: SourceFile, dependsOn: (name: string) => boolean): r
 	});
 }
 
-function none(): boolean {
-	return false;
-}
-
 // An application gets every framework piece through the platform shell, so it depends on each of them.
 function dependencies(manifest: unknown): (name: string) => boolean {
 	return (name) => isApplication(manifest) || DEPENDENCY_FIELDS.some((field) => dependencyNames(manifest, field).includes(name));
@@ -109,9 +105,9 @@ export const replacementImports = Effect.fn("Imports.replacementImports")(functi
 		yield* Effect.forEach(owners, (owner) =>
 			Effect.map(
 				readPackageManifest(inputs.readText, posix.join(owner.directory, "package.json")),
-				(manifest) => [owner.directory, dependencies(manifest)] as const,
+				(manifest) => [owner.directory, manifest] as const,
 			),
 		),
 	);
-	return inputs.sources.flatMap((file) => fileFindings(file, manifests.get(packageOf(packages, file.path)?.directory ?? ".") ?? none));
+	return inputs.sources.flatMap((file) => fileFindings(file, dependencies(manifests.get(packageOf(packages, file.path)?.directory ?? "."))));
 });
