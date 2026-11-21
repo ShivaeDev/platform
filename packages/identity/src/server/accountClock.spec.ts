@@ -1,6 +1,6 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { dayStartsAt, midnight, newYork, preferences } from "#test/account-preferences/story.ts";
+import { bobInTokyo, dayStartsAt, midnight, newYork, preferences } from "#test/account-preferences/story.ts";
 
 for (const [instant, day] of [
 	["2026-03-08T07:30:00Z", "2026-03-07"],
@@ -86,4 +86,26 @@ preferences.it("alice can group a supplied instant independently of the current 
 	yield* clockAt("2026-03-08T08:00:00Z");
 
 	expect(yield* dayAt("2026-03-08T07:30:00Z")).toBe("2026-03-07");
+});
+
+preferences.it(
+	"one request answers alice in New York and bob in Tokyo with their own 04:00 logical days",
+	[newYork, bobInTokyo],
+	function* ({ days }) {
+		const result = yield* days("2026-03-09T07:30:00Z");
+
+		expect(result).toEqual({ alice: "2026-03-08", bob: "2026-03-09" });
+	},
+);
+
+preferences.it("a report that declares no subject reads bob's Tokyo day", [newYork, bobInTokyo], function* ({ reportDay }) {
+	expect(yield* reportDay("bob", "2026-03-09T20:00:00Z")).toBe("2026-03-10");
+});
+
+preferences.it("a program outside any request reads bob's Tokyo day without a subject", [bobInTokyo], function* ({ backgroundDay }) {
+	expect(yield* backgroundDay("bob", "2026-03-09T20:00:00Z")).toBe("2026-03-10");
+});
+
+preferences.it("bob's day without saved preferences starts at 04:00 UTC", [newYork], function* ({ backgroundDay }) {
+	expect(yield* backgroundDay("bob", "2026-03-09T05:00:00Z")).toBe("2026-03-09");
 });
