@@ -11,8 +11,11 @@ generator.it(
 				() => runsFromSource("generate", "--check"),
 				{
 					code: 1,
-					printed: ["src/generated/modules/notes/notes.ts: missing"],
-					problems: ["src/generated/modules/notes/notes.ts is missing; run `pnpm generate`"],
+					printed: ["src/generated/modules/notes/notes.ts: missing", "src/generated/server/modules.ts: missing"],
+					problems: [
+						"src/generated/modules/notes/notes.ts is missing; run `pnpm generate`",
+						"src/generated/server/modules.ts is missing; run `pnpm generate`",
+					],
 				},
 			],
 			["the generated file", () => generatedFile("src/generated/modules/notes/notes.ts"), "missing"],

@@ -11,9 +11,7 @@ export const checkAdoption = Effect.fn("Published.checkAdoption")(function* (roo
 	const fs = yield* FileSystem.FileSystem;
 	const fixtures = path.join(root, "script/starter-published/adoption");
 	const features = (yield* fs.readDirectory(fixtures)).toSorted();
-	const modulesPath = path.join(app, "src/server/modules.ts");
 	const hostPath = path.join(app, "src/server/applicationHost.ts");
-	let modules = yield* fs.readFileString(modulesPath);
 	let host = yield* fs.readFileString(hostPath);
 	for (const [index, feature] of features.entries()) {
 		const source = path.join(fixtures, feature);
@@ -27,16 +25,13 @@ export const checkAdoption = Effect.fn("Published.checkAdoption")(function* (roo
 			yield* fs.makeDirectory(path.join(destination, ".."), { recursive: true });
 			yield* fs.copyFile(path.join(source, file), destination);
 		}
-		const registration = `import { sample as ${name} } from "#adoption/${feature}/sample.ts";\n`;
-		modules = registration + modules.replace("const modules = [", `const modules = [${name}.registration, `);
 		host =
-			registration
+			`import { sample as ${name} } from "#adoption/${feature}/sample.ts";\n`
 			+ host.replace(
 				"routes: Layer.mergeAll(",
 				`routes: Layer.mergeAll(${name}.routes(yield* SqlClient.SqlClient).pipe(Layer.provide(Layer.succeedContext(serviceContext))), `,
 			);
 	}
-	yield* fs.writeFileString(modulesPath, modules);
 	yield* fs.writeFileString(hostPath, `import { SqlClient } from "effect/sql";\n${host}`);
 	yield* command(app, "pnpm", ["exec", "quality", "fix"]);
 	yield* Effect.log(yield* command(app, "pnpm", ["run", "lint"]));

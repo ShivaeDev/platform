@@ -102,6 +102,8 @@ const hosts = Effect.gen(function* () {
 });
 ```
 
+An application built with [`@shivaedev/build`](https://github.com/ShivaeDev/platform/tree/main/packages/build#the-servers-module-list) writes no such list: its generator finds every exported registration written `satisfies AppModule` and writes them to `src/generated/server/modules.ts` in the order of their files' paths, and the application passes that list to `appModules` beside the registrations that are not module folders, such as its foundation, so a module is registered by creating its folder. Admin navigation and the order in which `appModules` composes Layers follow the list. What the merged Layers provide and the migrations do not depend on it, because migrations run by their number. An application that needs another order renames a module's folder, or composes that registration beside its foundation where the generator does not find it, such as a function that returns it.
+
 A module defined with `defineModule` from `@shivaedev/contract/defineModule.ts` registers as `module:`, and the host builds its group and its handlers with `moduleHandlers`. Its handlers need the services its operations' `run` and read policies yield, less what its middleware and subject provide per call; the registration's `services` and `ports` provide them, except the SQL client and the other services the host provides. An RPC group that is not a defined module, such as a contract served by hand-written handlers, registers as `group` plus `handlers` instead, and both kinds sit in one application's module list:
 
 ```ts

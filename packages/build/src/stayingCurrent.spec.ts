@@ -5,12 +5,18 @@ import { successOf } from "#test/generatedText.ts";
 import { generatedFileAt, generatedOnce, generator, heavyLockHeldElsewhere, notesProject, ownFileInGenerated } from "#test/generator.ts";
 
 const NOTES = "src/generated/modules/notes/notes.ts";
+const LIST = "src/generated/server/modules.ts";
 
 generator.it(
 	"a second generate with unchanged inputs builds no program and reports the module unchanged",
 	[notesProject(), generatedOnce()],
 	function* ({ generates }) {
-		expect(yield* generates()).toEqual({ files: { [NOTES]: "unchanged" }, problems: [], programBuilt: false, result: "succeeded" });
+		expect(yield* generates()).toEqual({
+			files: { [NOTES]: "unchanged", [LIST]: "current" },
+			problems: [],
+			programBuilt: false,
+			result: "succeeded",
+		});
 	},
 );
 
@@ -33,7 +39,7 @@ generator.it(
 	function* ({ generates, removesTheCache }) {
 		yield* removesTheCache();
 
-		expect(yield* generates()).toEqual({ files: { [NOTES]: "current" }, problems: [], programBuilt: true, result: "succeeded" });
+		expect(yield* generates()).toEqual({ files: { [NOTES]: "current", [LIST]: "current" }, problems: [], programBuilt: true, result: "succeeded" });
 	},
 );
 
@@ -147,7 +153,7 @@ generator.it(
 	"generate removes no file whose header names a module that still exists, even under a folder spelled in another case",
 	[notesProject(), generatedFileAt("src/generated/modules/Notes/notes.ts", "src/modules/notes/notes.ts")],
 	function* ({ generates }) {
-		expect(yield* generates()).toEqual({ files: { [NOTES]: "written" }, problems: [], programBuilt: true, result: "succeeded" });
+		expect(yield* generates()).toEqual({ files: { [NOTES]: "written", [LIST]: "written" }, problems: [], programBuilt: true, result: "succeeded" });
 	},
 );
 

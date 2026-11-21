@@ -10,19 +10,25 @@ export interface ModuleOutcome {
 	readonly status: ModuleStatus;
 }
 
+export interface ListOutcome {
+	readonly output: string;
+	readonly status: Exclude<ModuleStatus, "orphaned" | "removed" | "unchanged">;
+}
+
 export interface GenerateReport {
 	readonly inputs: readonly string[];
+	readonly lists: readonly ListOutcome[];
 	readonly modules: readonly ModuleOutcome[];
 	readonly programBuilt: boolean;
 }
 
-export function problemOf({ module, output, status }: ModuleOutcome): string | undefined {
-	switch (status) {
+export function problemOf(outcome: ModuleOutcome | ListOutcome): string | undefined {
+	switch (outcome.status) {
 		case "missing":
 		case "stale":
-			return `${output} is ${status}; run \`pnpm generate\``;
+			return `${outcome.output} is ${outcome.status}; run \`pnpm generate\``;
 		case "orphaned":
-			return `${output} is left from ${module}, which defines no module any more; run \`pnpm generate\``;
+			return `${outcome.output} is left from ${outcome.module}, which defines no module any more; run \`pnpm generate\``;
 		case "current":
 		case "refused":
 		case "removed":

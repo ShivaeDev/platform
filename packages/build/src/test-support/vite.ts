@@ -10,9 +10,12 @@ import { REFUSING_PROJECT } from "#test/refusingProject.ts";
 import { VITE_PROJECT } from "#test/viteProject.ts";
 import { appConfigBuild, type DevServer, viteBuild, viteDevServer } from "#test/viteRuns.ts";
 
+const SERVER_LIST = "src/generated/server/modules.ts";
+
 interface ViteEngine {
 	devServer: Option.Option<DevServer>;
 	readonly edited: Set<string>;
+	listBefore: string;
 	readonly lock: string;
 	readonly root: string;
 }
@@ -30,7 +33,7 @@ export const vite = storyKit({
 	*create() {
 		const root = yield* emptyProject();
 		const path = yield* Path.Path;
-		const engine: ViteEngine = { devServer: Option.none(), edited: new Set(), lock: path.join(root, "heavy-process.lock"), root };
+		const engine: ViteEngine = { devServer: Option.none(), edited: new Set(), listBefore: "", lock: path.join(root, "heavy-process.lock"), root };
 		return engine;
 	},
 	inspect: ({ root }) => ({ root }),
@@ -114,6 +117,20 @@ export const vite = storyKit({
 			story.tell("two vitest runs start on the project at once");
 			return Effect.all([vitestRun(engine.root, engine.lock), vitestRun(engine.root, engine.lock)], { concurrency: 2 });
 		},
+		serverListRewritten: Effect.fn("BuildStory.serverListRewritten")(function* () {
+			const { written } = yield* runningDevServer(engine);
+			const fs = yield* FileSystem.FileSystem;
+			const path = yield* Path.Path;
+			const list = path.join(engine.root, SERVER_LIST);
+			while (true) {
+				if ((yield* Queue.take(written)) === list) {
+					const text = yield* fs.readFileString(list);
+					if (text !== engine.listBefore) {
+						return text;
+					}
+				}
+			}
+		}),
 		startsTheDevServer: Effect.fn("BuildStory.startsTheDevServer")(function* () {
 			story.tell("the developer starts the vite dev server and the browser connects to it");
 			return yield* viteDevServer(engine.root).pipe(
@@ -133,6 +150,15 @@ export const vite = storyKit({
 				Effect.catchTag("GenerateFailed", (failed) => Effect.succeed(failed.problems.join("\n"))),
 				onlyTheStoryLock(engine),
 			),
+		writesTheNotesRegistration: Effect.fn("BuildStory.writesTheNotesRegistration")(function* (annotation: "satisfies AppModule" | ": AppModule") {
+			const { path: file, texts } = VITE_PROJECT.notesRegistration;
+			story.tell(`the developer creates ${file}, exporting the notes registration written ${annotation}`);
+			const fs = yield* FileSystem.FileSystem;
+			const path = yield* Path.Path;
+			engine.listBefore = yield* fs.readFileString(path.join(engine.root, SERVER_LIST));
+			engine.edited.add(path.join(engine.root, file));
+			yield* writeAtomically(path.join(engine.root, file), texts[annotation]);
+		}),
 	}),
 });
 

@@ -1,0 +1,12 @@
+---
+"@shivaedev/build": minor
+"@shivaedev/create-app": minor
+---
+
+### Added
+
+- `@shivaedev/build`: `shivaedev-build generate` also writes the server's module list to `src/generated/server/modules.ts`: every exported registration written `satisfies AppModule` from `@shivaedev/server/AppModule.ts`, one import each, in the order of their files' paths, as `export const modules = [...] as const`. Registrations in `test-support` folders and test files are left out. An exported registration typed `: AppModule` or cast `as AppModule`, and an exported object naming a `module` and its `services` without `satisfies AppModule`, stop `generate` with a message that names the file and the fix, and the list keeps its last content. `--check` reports the list missing or stale, and the dev server's plugin writes it again when a registration file appears or changes, so a module created while the dev server runs is served without a restart.
+
+### Breaking
+
+- `@shivaedev/create-app`: generated apps register server modules by their folder. `src/server/modules.ts` imports `modules` from `#generated/server/modules.ts` and composes `appModules([serverRegistration(modules), ...modules], { replacements })`, and `create-app add-resource` no longer edits it. To migrate an app with a hand-written list, delete `const modules = [...] as const;` and the imports of the registrations it names from `src/server/modules.ts`, add `import { modules } from "#generated/server/modules.ts";`, keep the foundation's `serverRegistration(modules)` in the composition, make sure each module's registration is exported and written `satisfies AppModule`, and run `pnpm generate`. `create-app update` makes this change itself when the app never edited its list, and leaves conflict markers in `src/server/modules.ts` when it did. The starter's `dev` script now generates before it migrates, so a new module's migrations run on the first start.

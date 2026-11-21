@@ -12,6 +12,7 @@ import { emptyProject, fromSource, generatedOncePerFile, typeCheck, writeFiles }
 import { NOTES_PROJECT } from "#test/notesProject.ts";
 import { PUBLIC_SHAPE_PROJECT } from "#test/publicShapeProject.ts";
 import { REFUSING_PROJECT } from "#test/refusingProject.ts";
+import { REGISTRATIONS_PROJECT, registrationOf } from "#test/registrationsProject.ts";
 import { SERVER_ONLY_PROJECT } from "#test/serverOnlyProject.ts";
 
 const NOTES_WIRE = "src/generated/modules/notes/notes.ts";
@@ -40,7 +41,7 @@ interface GeneratorEngine {
 
 function outcomeOf(report: GenerateReport, failed: GenerateFailed | undefined): GenerateOutcome {
 	return {
-		files: Object.fromEntries(report.modules.map(({ output, status }) => [output, status])),
+		files: Object.fromEntries([...report.modules, ...report.lists].map(({ output, status }) => [output, status])),
 		problems: failed?.problems ?? [],
 		programBuilt: report.programBuilt,
 		result: failed === undefined ? "succeeded" : "failed",
@@ -101,6 +102,16 @@ export const generator = storyKit({
 	name: "generator",
 	stages: ["project", "generated", "lock"],
 	verbs: (engine, story) => ({
+		addsRegistration: Effect.fn("BuildStory.addsRegistration")(function* (
+			module: string,
+			annotation: Parameters<typeof registrationOf>[2] = "satisfies AppModule",
+		) {
+			const file = `src/modules/${module.toLowerCase()}/server/registration.ts`;
+			story.tell(
+				`the developer writes ${file}, exporting the ${module} registration ${annotation === "none" ? "without an annotation" : `written ${annotation}`}`,
+			);
+			yield* writeFiles(engine.root, { [file]: registrationOf(`${module.toLowerCase()}Registration`, module, annotation) });
+		}),
 		browserKeys: (operation: string) => {
 			story.tell(`the browser asks the generated contract's ${operation} query for its keys, as a bound query does`);
 			return browserKeysOf(engine, operation);
@@ -203,6 +214,14 @@ export const generator = storyKit({
 
 export function notesProject() {
 	return generator.trait("project", "the project has the notes module", (engine) => writeFiles(engine.root, NOTES_PROJECT));
+}
+
+export function registrationsProject() {
+	return generator.trait(
+		"project",
+		"the project registers its tags, notes and archive modules and a notes kit registers a fake of its own",
+		(engine) => writeFiles(engine.root, REGISTRATIONS_PROJECT),
+	);
 }
 
 export function refusingProject() {
