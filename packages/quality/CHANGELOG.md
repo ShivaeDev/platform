@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.83.2 - 2026-11-21
+
+### Fixed
+
+- `files/named-after-export` now accepts a file whose one export is a `clientModule(...)` from `@shivaedev/react/client/module.ts`, such as `src/modules/notes/client/module.tsx` exporting `notesModule`, whose name repeats the `modules` folder, as it accepts an operation file.
+
 ## 0.83.1 - 2026-11-21
 
 ### Changed

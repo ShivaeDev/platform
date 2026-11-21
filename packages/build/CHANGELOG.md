@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.0 - 2026-11-21
+
+### Added
+
+- `shivaedev-build generate` also writes the client's module list to `src/generated/client/modules.ts`: every exported `clientModule(...)` call, with `clientModule` imported from `@shivaedev/react/client/module.ts` by name or through a namespace, one import each, in the order of their files' paths. Test files and `test-support` folders are left out, and an exported `clientModule(...)` under a `server` folder, or a module's `client/module.tsx` or `client/admin/module.tsx` that exports no client module, stops `generate` with the file and the fix. The dev server's plugin writes the list again when a client module file appears or changes.
+
 ## 0.5.2 - 2026-11-21
 
 ### Changed
