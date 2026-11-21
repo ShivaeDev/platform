@@ -89,7 +89,7 @@ reportApps.it(
 );
 
 reportApps.it(
-	"a route's query that fails to refresh with the app's own ReportArchived shows what the screen's handler returns",
+	"a route's query that fails to refresh with the app's own ReportArchived shows what the route's handler returns",
 	[openedAt("/report")],
 	function* ({ notices, pressRefresh, serverAnswers }) {
 		yield* serverAnswers("ReportArchived");
@@ -145,6 +145,46 @@ for (const [answer, wording, shown] of [
 		},
 	);
 }
+
+for (const [answer, declared, shown] of [
+	["ReportArchived", "a handler", "The 2024 report is archived"],
+	["ReportLocked", '"message"', "The report is locked for the audit"],
+] as const) {
+	reportApps.it(
+		`a route whose first read fails with the app's own ${answer}, declared with ${declared}, shows what its refresh notice would, without Retry`,
+		[openedAt("/report", "its default failure wording", answer)],
+		function* ({ notices, retryOffered, screenFailure }) {
+			yield* outcomes([
+				["failure screen", () => screenFailure(), [shown]],
+				["Retry offered", () => retryOffered(), false],
+				["notices", () => notices(), []],
+			]);
+		},
+	);
+}
+
+reportApps.it(
+	"a route's query that fails to refresh with the app's own ReportLocked, declared with \"message\", shows the server's message",
+	[openedAt("/report")],
+	function* ({ notices, pressRefresh, serverAnswers }) {
+		yield* serverAnswers("ReportLocked");
+
+		yield* pressRefresh();
+
+		expect(yield* notices()).toEqual(["The report is locked for the audit"]);
+	},
+);
+
+reportApps.it(
+	"an app's own failure screen shows a declared rejection on first load without Retry",
+	[openedAt("/report/edit", "its own failure screen for every route", "ReportArchived")],
+	function* ({ retryOffered, screenFailure }) {
+		yield* outcomes([
+			["failure screen", () => screenFailure(), ["The 2024 report is archived"]],
+			["Retry offered", () => retryOffered(), false],
+		]);
+	},
+);
 
 reportApps.it(
 	"a route whose first read in the browser dies shows the default failure screen without the defect",

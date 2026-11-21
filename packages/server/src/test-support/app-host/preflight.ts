@@ -3,7 +3,7 @@ import { Migrator } from "effect/sql";
 import { appDatabase, appHost } from "#appDatabase.ts";
 import type { MigrationOptions } from "#MigrationOptions.ts";
 import { Ping } from "#test/app-host/ping.ts";
-import { databaseOf } from "#test/app-host/state.ts";
+import { applicationConfig, databaseOf } from "#test/app-host/state.ts";
 import { host } from "#test/app-host/story.ts";
 
 export class AppId extends Context.Service<AppId, string>()("@shivaedev/server/test/PreflightAppId") {}
@@ -68,11 +68,17 @@ export function preflight(mode: "http" | "migrate" | "check" | "wait", deferred 
 			const application = Effect.gen(function* () {
 				yield* AppId;
 				state.lifecycle.push("constructing");
-				return options;
+				return { ...options, config: applicationConfig(state).served };
 			});
 			state.build = () =>
 				deferred
-					? appHost({ application, config, migrations, postgresSettings: {}, preflight: validation })
+					? appHost({
+							application,
+							config: { ...applicationConfig(state).listed, ...config },
+							migrations,
+							postgresSettings: {},
+							preflight: validation,
+						})
 					: appHost({ postgresSettings: {}, ...options, config: { ...state.config, ...config }, migrations, preflight: validation });
 		},
 	);

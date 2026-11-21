@@ -45,13 +45,20 @@ for (const [kit, mode] of hosts) {
 	}
 }
 
-host.it(
-	"a direct host redacts configured sensitive fields in preflight logs",
-	[preflight("http", false, "failure"), configuration({ sensitiveKeys: ["workspace"] }), startupFails],
-	function* ({ diagnosticLog, logMentions }) {
-		yield* outcomes([
-			["configured field", () => diagnosticLog("Preflight failed"), { workspace: "<redacted>" }],
-			["configured secret", () => logMentions("private-workspace"), []],
-		]);
-	},
-);
+const configuredHosts: readonly [Pick<typeof host, "it">, Parameters<typeof preflight>[0], boolean, string][] = [
+	[host, "http", false, "a direct host"],
+	[postgresHost, "check", true, "a host with deferred construction"],
+];
+
+for (const [kit, mode, deferred, label] of configuredHosts) {
+	kit.it(
+		`${label} redacts configured sensitive fields in preflight logs`,
+		[preflight(mode, deferred, "failure"), configuration({ sensitiveKeys: ["workspace"] }), startupFails],
+		function* ({ diagnosticLog, logMentions }) {
+			yield* outcomes([
+				["configured field", () => diagnosticLog("Preflight failed"), { workspace: "<redacted>" }],
+				["configured secret", () => logMentions("private-workspace"), []],
+			]);
+		},
+	);
+}

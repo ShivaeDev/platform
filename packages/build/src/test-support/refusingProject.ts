@@ -175,10 +175,17 @@ export const SkuCode = Schema.String.pipe(Schema.brand("Sku"));
 `,
 	"src/modules/refused/refused.ts": `import { defineModule } from "@shivaedev/contract/defineModule.ts";
 import {
+	ReturnsAliasedEmptyRecord,
+	ReturnsAliasedLiteralBrandRecord,
 	ReturnsBrand,
+	ReturnsEmptyOmit,
+	ReturnsEmptyReadonlyRecord,
+	ReturnsGenericMappedLiteralBrandKeys,
+	ReturnsGenericMappedNever,
 	ReturnsHandBranded,
 	ReturnsLiteralBrandKeys,
 	ReturnsMappedLiteralBrandKeys,
+	ReturnsMemberMappedLiteralBrandKeys,
 	ReturnsNumberBrandKeys,
 	ReturnsPartialMappedLiteralBrandKeys,
 	ReturnsPartialRecord,
@@ -226,6 +233,13 @@ export const Refused = defineModule({
 		ReturnsReadonlyLiteralBrandKeys,
 		ReturnsMappedLiteralBrandKeys,
 		ReturnsPartialMappedLiteralBrandKeys,
+		ReturnsGenericMappedLiteralBrandKeys,
+		ReturnsMemberMappedLiteralBrandKeys,
+		ReturnsGenericMappedNever,
+		ReturnsAliasedLiteralBrandRecord,
+		ReturnsEmptyOmit,
+		ReturnsAliasedEmptyRecord,
+		ReturnsEmptyReadonlyRecord,
 		ReturnsPartialRecord,
 		ReturnsUnknown,
 		ReturnsStringOrBigint,
@@ -242,7 +256,7 @@ export const Refused = defineModule({
 	wire: {},
 });
 `,
-	"src/modules/refused/shared.ts": `import { Brand, Data, Schema } from "effect";
+	"src/modules/refused/shared.ts": `import { Data, Schema } from "effect";
 import { collection } from "@shivaedev/changes/keys.ts";
 
 export const shared = collection("shared", Schema.Number);
@@ -252,19 +266,8 @@ export enum Level {
 	High,
 }
 
-export type NoteId = number & Brand.Brand<"NoteId">;
-
-export const noteId = Brand.nominal<NoteId>();
-
 export const Sku = Schema.String.pipe(Schema.brand("Sku"));
 export type Sku = typeof Sku.Type;
-
-export const Shelf = Schema.String.pipe(Schema.brand("Shelf"));
-export type Shelf = typeof Shelf.Type;
-
-export type UserId = string & { readonly __brand: "UserId" };
-
-export type Letter = ("a" | "b") & Brand.Brand<"Letter">;
 
 export interface Tree {
 	readonly children: readonly Tree[];

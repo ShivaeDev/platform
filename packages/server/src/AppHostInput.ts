@@ -1,6 +1,6 @@
 import type { Effect } from "effect";
 import type { Rpc } from "effect/rpc";
-import type { AppDatabaseOptions } from "#appDatabase.ts";
+import type { AppDatabaseOptions, DatabaseConfig } from "#appDatabase.ts";
 import type { AppHttpHostOptions } from "#appHost.ts";
 import type { HostCoreOptions, HostPolicy, HostRouteRequirements, HostRoutes } from "#hostOptions.ts";
 import type { HostPreflight } from "#hostPreflight.ts";
@@ -26,7 +26,9 @@ export type AppHostInput<
 	TRequestRequirements = never,
 > = HostPreflight<TPreflight, TPreflightError, TPreflightRequirements> &
 	(
-		| (AppDatabaseOptions<TMigrations, TMigrationError> & {
+		| (Omit<AppDatabaseOptions<TMigrations, TMigrationError>, "config"> & {
+				// The host masks these names from the application Effect's first line, so the options it returns cannot list them again.
+				readonly config?: DatabaseConfig & { readonly sensitiveKeys?: readonly string[] };
 				readonly application: Effect.Effect<
 					AppHttpHostOptions<
 						TRpcs,
@@ -43,7 +45,7 @@ export type AppHostInput<
 						TRouteRequirements,
 						TRequestServices,
 						TRequestRequirements
-					>,
+					> & { readonly config?: { readonly sensitiveKeys?: never } },
 					TApplicationError,
 					TApplicationRequirements
 				>;

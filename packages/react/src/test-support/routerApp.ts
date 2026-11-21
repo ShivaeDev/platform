@@ -4,7 +4,7 @@ import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { queryRoute } from "#client/adapters/queryRoute.ts";
 import type { QueryRouteRedirect, QueryRouteRedirects } from "#queryRouteFailure.ts";
 import { signInRedirect } from "#signInRedirect.ts";
-import { noteQuery } from "#test/noteQuery.ts";
+import { noteFailures, noteQuery } from "#test/noteQuery.ts";
 import type { routerClient } from "#test/routerClient.ts";
 import {
 	RouterFailure,
@@ -46,8 +46,10 @@ function noteRoute() {
 
 const customNotFoundRoute = createRoute({
 	getParentRoute: () => root,
-	...queryRoute(({ context, params }: { context: typeof root.types.allContext; params: { id: string }; search: object }) =>
-		context.client.api.get.query({ id: params.id, page: 1 }),
+	...queryRoute(
+		({ context, params }: { context: typeof root.types.allContext; params: { id: string }; search: object }) =>
+			context.client.api.get.query({ id: params.id, page: 1 }),
+		{ failures: noteFailures },
 	),
 	notFoundComponent: RouterNotFound,
 	path: "/custom-notes/$id",
@@ -65,8 +67,10 @@ const redirected = createRoute({
 	getParentRoute: () => root,
 	path: "/redirected/$id",
 	validateSearch: Schema.toStandardSchemaV1(RouterSearch),
-	...queryRoute(({ context, params, search }: { context: typeof root.types.allContext; params: { id: string }; search: typeof RouterSearch.Type }) =>
-		context.client.api.get.query({ ...params, page: search.page }),
+	...queryRoute(
+		({ context, params, search }: { context: typeof root.types.allContext; params: { id: string }; search: typeof RouterSearch.Type }) =>
+			context.client.api.get.query({ ...params, page: search.page }),
+		{ failures: noteFailures },
 	),
 });
 const members = createRoute({
@@ -75,7 +79,10 @@ const members = createRoute({
 	...queryRoute(
 		({ context, params }: { context: typeof root.types.allContext; params: { id: string }; search: object }) =>
 			context.client.api.get.query({ ...params, page: 1 }),
-		{ redirects: { signedOut: (): QueryRouteRedirect => redirect<ReturnType<typeof routerApp>, "/member-sign-in">({ to: memberSignIn.fullPath }) } },
+		{
+			failures: noteFailures,
+			redirects: { signedOut: (): QueryRouteRedirect => redirect<ReturnType<typeof routerApp>, "/member-sign-in">({ to: memberSignIn.fullPath }) },
+		},
 	),
 });
 

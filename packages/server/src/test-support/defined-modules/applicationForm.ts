@@ -22,8 +22,12 @@ export const collector = definedModulesHost.trait("configured", "the host export
 
 export const loggingApplicationEffect = definedModulesHost.trait(
 	"configured",
-	"the application Effect, after building the module services, logs a password and a member's address, forks a fiber that logs them once released and keeps its context for a service to log through later",
+	"the application Effect, after building the module services, logs a password, a member's address and badge, forks a fiber that logs them once released and keeps its context for a service to log through later",
 	(state) => {
 		state.construction.logs = true;
 	},
 );
+
+export const badgeListedInConfig = definedModulesHost.trait("configured", "the application lists badge in config.sensitiveKeys", (state) => {
+	state.sensitiveKeys = ["badge"];
+});

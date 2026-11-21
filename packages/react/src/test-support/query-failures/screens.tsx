@@ -4,13 +4,13 @@ import { useField } from "@shivaedev/form/react.ts";
 import { useEditor } from "#client/editor.ts";
 import type { FailureLayout } from "#client/QueryView.ts";
 import type { LoadedQueryState } from "#client/useLoaderQuery.ts";
-import { archivedNotice, type Reports } from "#test/query-failures/backend.ts";
+import { type Reports, reportFailures } from "#test/query-failures/backend.ts";
 
 interface Report {
 	readonly title: string;
 }
 
-// The screens write no failure handling beyond the one rejection the app declared.
+// The screens write no failure handling; the editor names the rejections the app declared, which its route declares too.
 export function ReportScreen({ report }: { readonly report: LoadedQueryState<Report, unknown> }): ReactElement {
 	return (
 		<main>
@@ -29,7 +29,7 @@ export function ReportEditor({
 	readonly reports: ContractClient<typeof Reports>;
 	readonly report: { readonly loaded: Report; readonly query: ReturnType<ContractClient<typeof Reports>["report"]["query"]> };
 }): ReactElement {
-	const editor = useEditor(reports.rename, { ...report, queryFailures: { ReportArchived: archivedNotice } });
+	const editor = useEditor(reports.rename, { ...report, queryFailures: reportFailures });
 	const title = useField(editor.form, "title");
 	return (
 		<main>
@@ -42,18 +42,25 @@ export function ReportEditor({
 	);
 }
 
-// An application's own screen for every route that could not load.
-export function OwnFailureScreen({ message, retry }: FailureLayout) {
+function RetryButton({ retry }: { readonly retry: () => void }) {
 	function handleRetry() {
 		retry();
 	}
 	return (
+		<button onClick={handleRetry} type="button">
+			Retry
+		</button>
+	);
+}
+
+// An application's own screen for every route that could not load.
+export function OwnFailureScreen({ message, retry }: FailureLayout) {
+	const action = retry === undefined ? null : <RetryButton retry={retry} />;
+	return (
 		<section>
 			<h1>This page could not load</h1>
 			<p role="alert">{message}</p>
-			<button onClick={handleRetry} type="button">
-				Retry
-			</button>
+			{action}
 		</section>
 	);
 }

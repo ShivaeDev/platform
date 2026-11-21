@@ -120,6 +120,12 @@ export function recordLog(state: HostState, entry: HostState["logs"][number]) {
 	});
 }
 
+// The application form lists its sensitive names in appHost's own config and returns the rest of the host config from its application Effect.
+export function applicationConfig(state: HostState) {
+	const { sensitiveKeys, ...served } = state.config;
+	return { listed: sensitiveKeys === undefined ? {} : { sensitiveKeys }, served };
+}
+
 export function databaseOf(state: HostState) {
 	if (state.database === undefined) {
 		throw new Error("Use the PostgreSQL host kit for database stories");
