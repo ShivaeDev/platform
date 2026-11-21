@@ -6,8 +6,8 @@ import { rerunQuery } from "@shivaedev/server/rerunQuery.ts";
 import { type HintViewer, layerMemoryProtocol, watchHints } from "@shivaedev/test-kits/contract/testing.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { until } from "@shivaedev/test-story/server/until.ts";
-import { makeClient } from "#bind.ts";
 import { changesHandlerLayer } from "#changesHandlerLayer.ts";
+import { makeClient } from "#makeClient.ts";
 import { makeLiveServer } from "#makeLiveServer.ts";
 import { querySubscription } from "#querySubscription.ts";
 import { CurrentViewer } from "#readPolicy.ts";
@@ -50,7 +50,7 @@ const memoryEngine = Effect.gen(function* () {
 	);
 	const handlers = Layer.merge(application, changes.pipe(Layer.provide(application)));
 	const transport = yield* Layer.build(layerMemoryProtocol(Notes).pipe(Layer.provide([handlers, server.guard])));
-	const connection = makeClient(Notes, { protocol: Layer.succeedContext(transport), runtime, url: "memory://notes" });
+	const connection = makeClient({ notes: Notes }, { protocol: Layer.succeedContext(transport), runtime, url: "memory://notes" });
 	const client = yield* connection.client;
 	const other = yield* connection.client;
 	const listeners = new Map<number, { readonly scope: Scope.Closeable; readonly viewer: HintViewer<unknown> }>();
@@ -58,7 +58,7 @@ const memoryEngine = Effect.gen(function* () {
 		Effect.sync(() => AtomRegistry.make()),
 		(current) => Effect.sync(() => current.dispose()),
 	);
-	const query = connection.api.get.query({ id: 1 });
+	const query = connection.api.notes.get.query({ id: 1 });
 	const marked = new Map<string, Mark>();
 	return { active, client, connection, listeners, marked, other, query, registry, server };
 });

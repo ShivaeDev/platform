@@ -8,8 +8,8 @@ import { RpcClient, RpcSerialization } from "effect/rpc";
 import { SqlClient } from "effect/sql";
 import { appHost } from "@shivaedev/server/appHost.ts";
 import { until } from "@shivaedev/test-story/server/until.ts";
-import { makeClient } from "#bind.ts";
 import { liveServerLayer } from "#live-server/layer.ts";
+import { makeClient } from "#makeClient.ts";
 import type { QueryUpdate } from "#queryUpdate.ts";
 import { CurrentViewer } from "#readPolicy.ts";
 import { Guard, TimelineData, Unavailable } from "#test/derivedReadsContract.ts";
@@ -84,7 +84,7 @@ export const evolvingReadsEngine = Effect.gen(function* () {
 		return yield* Effect.die("Expected a TCP listener");
 	}
 	const url = `http://127.0.0.1:${server.address.port}/rpc`;
-	const connection = makeClient(EvolvingTimelines, { runtime, url, webSocketConstructor: layerWebSocketConstructor });
+	const connection = makeClient({ evolvingTimelines: EvolvingTimelines }, { runtime, url, webSocketConstructor: layerWebSocketConstructor });
 	const registry = yield* Effect.acquireRelease(
 		Effect.sync(() => AtomRegistry.make()),
 		(current) => Effect.sync(() => current.dispose()),
@@ -106,5 +106,5 @@ export const evolvingReadsEngine = Effect.gen(function* () {
 	yield* until(SubscriptionRef.changes(updates), (all) => all.some((update) => update._tag === "Result" && update.query === "barrier"), {
 		name: "open timeline subscription",
 	}).pipe(Effect.raceFirst(Fiber.join(finished).pipe(Effect.andThen(Effect.die("Subscription ended before opening")))));
-	return { api: connection.api, finished, registrations, registry, rpc, sql, updates };
+	return { api: connection.api.evolvingTimelines, finished, registrations, registry, rpc, sql, updates };
 });

@@ -2,9 +2,9 @@ import { Effect, Schema } from "effect";
 import type * as Atom from "effect/reactivity/Atom";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { collection } from "@shivaedev/changes/keys.ts";
-import { makeClient } from "@shivaedev/contract/bind.ts";
 import { type ClientActivity, clientActivity } from "@shivaedev/contract/clientActivity.ts";
 import { contract } from "@shivaedev/contract/contract.ts";
+import { makeClient } from "@shivaedev/contract/makeClient.ts";
 import { command, query } from "@shivaedev/contract/operation.ts";
 import { layerLiveMemoryProtocol } from "@shivaedev/test-kits/contract/liveMemoryProtocol.ts";
 
@@ -42,12 +42,15 @@ export function bindPreferences(
 				return backend.titles.get(person) ?? "";
 			}),
 	});
-	const connection = makeClient(Preferences, {
-		protocol: layerLiveMemoryProtocol(Preferences, application),
-		registry,
-		runtime,
-		url: `memory://preferences/${person}`,
-	});
+	const connection = makeClient(
+		{ preferences: Preferences },
+		{
+			protocol: layerLiveMemoryProtocol(Preferences, application),
+			registry,
+			runtime,
+			url: `memory://preferences/${person}`,
+		},
+	);
 	activities.set(person, clientActivity(connection));
-	return { api: connection.api };
+	return { api: connection.api.preferences };
 }

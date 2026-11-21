@@ -2,15 +2,15 @@ import { layerWebSocketConstructor } from "@effect/platform-node/NodeWS";
 import { createMemoryHistory } from "@tanstack/react-router";
 import { Effect } from "effect";
 import type { RootOptions } from "react-dom/client";
-import type { ClientActivity } from "@shivaedev/contract/clientActivity.ts";
-import type { ClientOptions } from "@shivaedev/contract/clientOptions.ts";
+import type { ClientOptions } from "@shivaedev/contract/ClientOptions.ts";
+import { type ClientActivity, clientActivity } from "@shivaedev/contract/clientActivity.ts";
+import { makeClient } from "@shivaedev/contract/makeClient.ts";
 import { mintUser } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
 import { seedCookies } from "@shivaedev/test-story/server/adapters/seedCookies.ts";
 import { type BrowserReadsOptions, browserReads } from "@shivaedev/test-story/server/browserReads.ts";
 import type { AppAccess } from "#AppAccess.ts";
 import { foundation } from "#admin/foundation.ts";
 import { App } from "#client/App.tsx";
-import { makeFoundationClient } from "#client/admin/foundation.ts";
 import { foundationRegistration } from "#client/admin/foundationRegistration.tsx";
 import type { ClientRegistration } from "#client/Module.ts";
 import { clientModules } from "#client/modules.ts";
@@ -43,10 +43,13 @@ export const appScreen = Effect.fn("AppStory.appScreen")(function* (options: {
 		webSocketConstructor: layerWebSocketConstructor,
 	});
 	const clientOptions = { protocol: observed.protocol, url };
-	const foundationClient = makeFoundationClient(url, clientOptions);
+	const foundationClient = makeClient(
+		{ jobs: foundation.JobsPage.contract, sessions: foundation.SessionsPage.contract, users: foundation.UsersPage.contract },
+		clientOptions,
+	);
 	const modules = options.modules?.connect(clientOptions);
 	const surface: ScreenSurface = {
-		activities: [...(modules?.activities ?? []), foundationClient.activity],
+		activities: [...(modules?.activities ?? []), clientActivity(foundationClient)],
 		transport: host.fetch.pending,
 		view: undefined,
 	};

@@ -6,7 +6,7 @@ import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import * as Hydration from "effect/reactivity/Hydration";
 import type * as Reactivity from "effect/reactivity/Reactivity";
 import * as Socket from "effect/socket/Socket";
-import { makeClient } from "@shivaedev/contract/bind.ts";
+import { makeClient } from "@shivaedev/contract/makeClient.ts";
 import { answered, errorWords } from "@shivaedev/test-story/server/answers.ts";
 import { until } from "@shivaedev/test-story/server/until.ts";
 import { passes, untilTimer } from "@shivaedev/test-story/server/watchedClock.ts";
@@ -32,7 +32,7 @@ const browserRegistry = Effect.acquireRelease(
 export const openBrowser = Effect.fnUntraced(function* (url: string, actor: string) {
 	const opened: string[] = [];
 	const registry = yield* browserRegistry;
-	const client = makeClient(Delegated, { bearerToken: actor, url: `${url}/rpc`, webSocketConstructor: browserWebSocket(opened) });
+	const client = makeClient({ delegated: Delegated }, { bearerToken: actor, url: `${url}/rpc`, webSocketConstructor: browserWebSocket(opened) });
 	function run<A, E>(effect: Effect.Effect<A, E, Context.Service.Identifier<typeof client.Client> | Reactivity.Reactivity>) {
 		return AtomRegistry.getResult(registry, client.runtime.atom(effect).pipe(Atom.setIdleTTL(0)));
 	}
@@ -84,7 +84,7 @@ export function browserVerbs(state: { readonly url: string }, story: { readonly 
 		subject: string | undefined,
 		options: { readonly serializationKey?: string; readonly authorization?: string } = {},
 	) {
-		return opened.client.api.title.query(undefined, {
+		return opened.client.api.delegated.title.query(undefined, {
 			...(subject === undefined ? {} : { subject }),
 			...(options.serializationKey === undefined ? {} : { serializationKey: options.serializationKey }),
 			...(options.authorization === undefined ? {} : { headers: { authorization: options.authorization } }),
@@ -121,7 +121,7 @@ export function browserVerbs(state: { readonly url: string }, story: { readonly 
 			return Effect.flatMap(browser(actor), (opened) =>
 				answered(
 					opened
-						.run(opened.client.api.rename.run({ title }, subject === undefined ? {} : { subject }))
+						.run(opened.client.api.delegated.rename.run({ title }, subject === undefined ? {} : { subject }))
 						.pipe(Effect.map(({ subject: renamed, title: saved }) => `${renamed} is ${saved}`)),
 					refusalWords,
 				),
@@ -183,7 +183,7 @@ export function browserVerbs(state: { readonly url: string }, story: { readonly 
 const openCoachingBrowser = Effect.fnUntraced(function* (url: string, actor: string) {
 	const opened: string[] = [];
 	const registry = yield* browserRegistry;
-	const client = makeClient(Coaching, { bearerToken: actor, url: `${url}/rpc`, webSocketConstructor: browserWebSocket(opened) });
+	const client = makeClient({ coaching: Coaching }, { bearerToken: actor, url: `${url}/rpc`, webSocketConstructor: browserWebSocket(opened) });
 	function run<A, E>(effect: Effect.Effect<A, E, Context.Service.Identifier<typeof client.Client> | Reactivity.Reactivity>) {
 		return AtomRegistry.getResult(registry, client.runtime.atom(effect).pipe(Atom.setIdleTTL(0)));
 	}
@@ -212,7 +212,7 @@ export function coachingVerbs(state: { readonly url: string }, story: { readonly
 		return Effect.tap(openCoachingBrowser(state.url, actor), (opened) => Effect.sync(() => browsers.set(actor, opened)));
 	}
 	function view(opened: CoachingBrowser, page: "note" | "diary", subject: string | undefined) {
-		return opened.client.api[page].query(undefined, subject === undefined ? {} : { subject });
+		return opened.client.api.coaching[page].query(undefined, subject === undefined ? {} : { subject });
 	}
 	function answer(opened: CoachingBrowser, page: "note" | "diary", subject: string | undefined, answers: (text: string) => boolean) {
 		return until(AtomRegistry.toStream(opened.registry, view(opened, page, subject)), (result) => answers(noteText(result)), {
@@ -260,7 +260,7 @@ export function coachingVerbs(state: { readonly url: string }, story: { readonly
 		writesNote: (actor: string, note: string, subject?: string) => {
 			story.tell(`${actor} writes "${note}" as ${subject === undefined ? "their own" : `${subject}'s`} note from a browser`);
 			return Effect.flatMap(browser(actor), (opened) =>
-				answered(opened.run(opened.client.api.write.run({ note }, subject === undefined ? {} : { subject })), errorWords),
+				answered(opened.run(opened.client.api.coaching.write.run({ note }, subject === undefined ? {} : { subject })), errorWords),
 			);
 		},
 	};

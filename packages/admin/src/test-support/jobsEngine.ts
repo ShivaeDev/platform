@@ -99,7 +99,7 @@ export const jobsEngine = Effect.gen(function* () {
 
 	return {
 		...rpc,
-		...(yield* jobsClient(page, registry.group, rpc.protocol)),
+		...(yield* jobsClient(page, rpc.protocol)),
 		deliveries,
 		failSync: (id: string, output: object) =>
 			Effect.promise(() => {

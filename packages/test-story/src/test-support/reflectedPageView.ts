@@ -4,22 +4,25 @@ import { Effect } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { createElement, useContext, useState } from "react";
-import { makeClient } from "@shivaedev/contract/bind.ts";
+import { makeClient } from "@shivaedev/contract/makeClient.ts";
 import { ReflectedPage } from "#test/reflectedPageHost.ts";
 
 export function reflectedPageClient(url: string) {
-	return makeClient(ReflectedPage, { url, webSocketConstructor: layerWebSocketConstructor });
+	return makeClient({ reflected: ReflectedPage }, { url, webSocketConstructor: layerWebSocketConstructor });
 }
 
 type PageClient = ReturnType<typeof reflectedPageClient>;
 
 export function ReflectedPageView({ client }: { readonly client: PageClient }) {
 	const registry = useContext(RegistryContext);
-	const result = useAtomValue(client.api.title.query());
+	const result = useAtomValue(client.api.reflected.title.query());
 	const [title, setTitle] = useState("");
 	function run(name: "touch" | "write") {
 		void Effect.runPromise(
-			AtomRegistry.getResult(registry, client.runtime.atom(name === "touch" ? client.api.touch.run() : client.api.write.run({ title }))),
+			AtomRegistry.getResult(
+				registry,
+				client.runtime.atom(name === "touch" ? client.api.reflected.touch.run() : client.api.reflected.write.run({ title })),
+			),
 		);
 	}
 	return createElement(

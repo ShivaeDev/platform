@@ -256,7 +256,7 @@ For a native Node HTTP route outside RPC, read the request body with `readBounde
 
 On TCP, ordinary POST RPC uses `localRpcGuard` from `@shivaedev/identity/server/adapters/local.ts`: it requires a loopback peer and Host, same-origin or absent Origin, and the NDJSON content type. The WebSocket upgrade uses the same loopback, origin and trusted-proxy checks without an HTTP body content type. Session lookup uses the upgrade's transport headers; RPC message headers cannot replace its cookie or Origin. Session middleware revalidates authenticated streams at `streamRevalidationInterval` and ends revoked subscriptions with typed `Unauthorized`. Cookie-authenticated sockets remain open; later protected calls use the same session checks. Automatic live subscriptions reload the session before each hint and use its current roles and grants for the query policy and any pushed query result. A policy denial keeps an established subscription open; delivery resumes on the next authorized hint. POST RPC refuses `$changes` subscriptions with the contract’s typed `WebSocketRequired` error and a message saying they need the WebSocket protocol. The host applies `RequestTracing` last to every served RPC, including loopback RPC, so it wraps authentication and handlers without a per-contract tracing declaration. Existing tracing declarations run once at that outermost boundary. With a session policy, contracts declare `Authenticated` and `MaybeAuthenticated` as needed; the host supplies their implementations. For `AuthenticatedUser`, merge `authenticatedUserLayer()` from `@shivaedev/identity/server/session.ts` beside the handlers. Declared errors retain their Schema types. Applications still own resource authorization and use `rpcBoundary` when they need to map unexpected failures.
 
-Native clients that cannot set upgrade headers use `makeClient`'s `bearerToken` option from `@shivaedev/contract/bind.ts`. On session hosts, `GET /rpc?auth=frame` requires a first text frame shaped as `{"_tag":"Authenticate","token":"<credential>"}` within five seconds, with at most 8192 characters. The host consumes that frame before starting native RPC and supplies its bearer as the socket's transport Authorization header. The existing session provider, identity middleware, Origin policy and query read policies apply to every call and live read. RPC message headers cannot replace the authenticated credential. Configure bearer admission on the session provider and the WebView Origin through `nativeOrigins`. A long-lived bearer is never placed in a URL.
+Native clients that cannot set upgrade headers use `makeClient`'s `bearerToken` option from `@shivaedev/contract/makeClient.ts`. On session hosts, `GET /rpc?auth=frame` requires a first text frame shaped as `{"_tag":"Authenticate","token":"<credential>"}` within five seconds, with at most 8192 characters. The host consumes that frame before starting native RPC and supplies its bearer as the socket's transport Authorization header. The existing session provider, identity middleware, Origin policy and query read policies apply to every call and live read. RPC message headers cannot replace the authenticated credential. Configure bearer admission on the session provider and the WebView Origin through `nativeOrigins`. A long-lived bearer is never placed in a URL.
 
 Invalid, expired, malformed, oversized or missing first-frame credentials close the socket with code 1008 and reason `Authentication required`; session-provider failures close it with code 1011 and reason `Authentication unavailable`. The host checks the bearer socket's session at `streamRevalidationInterval`, including when no subscription is active, and closes it with code 1008 when the session is revoked, expires or changes identity. The session remains subject to the same per-call and per-hint checks as cookie sessions.
 
@@ -394,16 +394,14 @@ export const Server = appHost({
 
 `publicConfigLayer` reads `Config.schema` from the host's native ConfigProvider when the handler Layer builds. Missing or invalid required fields fail startup with a typed `ConfigError`. An optional second argument supplies a native Config path: `publicConfigLayer(PublicConfig, "PUBLIC")` reads `PUBLIC_INSTALL_URL` with the default environment provider. Only schema-declared fields are loaded and serialized; other server values never enter this response. The generated query has no session middleware, so it can supply public configuration before sign-in. Merge it alongside authenticated contracts rather than applying authentication to the merged group.
 
-On the client, use the same contract `makeClient` and shared WebSocket as other queries:
+On the client, put the contract in the record of the same `makeClient` as the other contracts, on the shared WebSocket:
 
 ```ts
-import { makeClient } from "@shivaedev/contract/bind.ts";
+import { makeClient } from "@shivaedev/contract/makeClient.ts";
 import { useQuery } from "@shivaedev/react/client/resultState.ts";
 import { PublicConfig } from "./public-config.ts";
 
-const { api: config } = makeClient(PublicConfig, {
-	url: new URL("/rpc", window.location.href).href,
-});
+const { config } = makeClient({ config: PublicConfig }).api;
 
 export function usePublicConfig() {
 	return useQuery(config.get.query());

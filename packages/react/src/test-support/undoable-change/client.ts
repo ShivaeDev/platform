@@ -1,8 +1,8 @@
 import { Deferred, Effect, Schema } from "effect";
 import { collection } from "@shivaedev/changes/keys.ts";
-import { makeClient } from "@shivaedev/contract/bind.ts";
 import { clientActivity } from "@shivaedev/contract/clientActivity.ts";
 import { contract } from "@shivaedev/contract/contract.ts";
+import { makeClient } from "@shivaedev/contract/makeClient.ts";
 import { command, query } from "@shivaedev/contract/operation.ts";
 import { Conflict } from "@shivaedev/errors/taxonomy.ts";
 import { layerLiveMemoryProtocol } from "@shivaedev/test-kits/contract/liveMemoryProtocol.ts";
@@ -55,14 +55,14 @@ export function changeClient() {
 		},
 		"undoableRows.list": () => Effect.sync(() => [...rows.values()]),
 	});
-	const connection = makeClient(Rows, { protocol: layerLiveMemoryProtocol(Rows, handlers), url: "memory://undoable-rows" });
+	const connection = makeClient({ rows: Rows }, { protocol: layerLiveMemoryProtocol(Rows, handlers), url: "memory://undoable-rows" });
 	const settled = settledBeside(() => ({
 		awaitingReruns: 0,
 		commands: [...held.values()].filter(({ arrived, finished }) => Deferred.isDoneUnsafe(arrived) && !Deferred.isDoneUnsafe(finished)).length,
 	}));
 	return {
 		activity: clientActivity(connection),
-		api: connection.api,
+		api: connection.api.rows,
 		forget: (id: string, removed: boolean) => held.delete(`${id}:${removed}`),
 		hold,
 		settled,

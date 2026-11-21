@@ -148,7 +148,7 @@ export const recentQueries = storyKit({
 					if (controls.registry === undefined) {
 						throw new Error("No session registry");
 					}
-					loader.done = loadQuery(controls.registry, host.client.api.get.query({ id }), { abortController: new AbortController() }).then(
+					loader.done = loadQuery(controls.registry, host.client.api.notes.get.query({ id }), { abortController: new AbortController() }).then(
 						() => undefined,
 					);
 				}),

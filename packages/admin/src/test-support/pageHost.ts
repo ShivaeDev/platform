@@ -2,7 +2,7 @@ import { Clock, Effect, Layer, Option, Predicate } from "effect";
 import { FetchHttpClient, HttpClient, HttpClientRequest, HttpServer, HttpServerResponse } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import { RpcClient, RpcSerialization } from "effect/rpc";
-import { makeClient } from "@shivaedev/contract/bind.ts";
+import { makeClient } from "@shivaedev/contract/makeClient.ts";
 import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import { permissionGuard } from "@shivaedev/react/adapters/permissionGuard.ts";
 import { signInRedirect } from "@shivaedev/react/signInRedirect.ts";
@@ -88,7 +88,7 @@ export const pageHost = storyKit({
 					transformClient: HttpClient.mapRequest(HttpClientRequest.setHeader("authorization", role)),
 					url: `${url}/rpc`,
 				}).pipe(Layer.provide([FetchHttpClient.layer, RpcSerialization.layerNdjson]));
-				const { client } = makeClient(Workspaces.contract, { headers: { authorization: role }, protocol, url: `${url}/rpc` });
+				const { client } = makeClient({ workspaces: Workspaces.contract }, { headers: { authorization: role }, protocol, url: `${url}/rpc` });
 				return yield* answered(Effect.flatMap(client, (rpc) => rpc["admin.workspaces.read"]({ id: "studio" })));
 			}),
 	}),

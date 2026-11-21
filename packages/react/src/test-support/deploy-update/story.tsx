@@ -2,7 +2,7 @@ import { layerWebSocketConstructor } from "@effect/platform-node/NodeWS";
 import { Cause, Effect, Layer, Option } from "effect";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import * as Socket from "effect/socket/Socket";
-import { makeClient } from "@shivaedev/contract/bind.ts";
+import { makeClient } from "@shivaedev/contract/makeClient.ts";
 import type { Rendered } from "@shivaedev/test-story/client/adapters/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { deployUpdate } from "#client/deployUpdate.ts";
@@ -112,7 +112,9 @@ export const deployStory = storyKit({
 					url: state.host.url,
 					webSocketConstructor,
 				});
-				const { api } = makeClient(App, { url: state.host.url, webSocketConstructor });
+				const {
+					api: { app: api },
+				} = makeClient({ app: App }, { url: state.host.url, webSocketConstructor });
 				state.view = yield* screen.open(<View read={api.read.query()} registry={registry} update={state.update} />);
 				yield* settle();
 			},

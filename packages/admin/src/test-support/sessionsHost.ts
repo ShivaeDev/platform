@@ -4,8 +4,8 @@ import * as Socket from "effect/socket/Socket";
 import { SqlClient } from "effect/sql";
 import { role } from "@shivaedev/access/role.ts";
 import { roleSet } from "@shivaedev/access/roleSet.ts";
-import { makeClient } from "@shivaedev/contract/bind.ts";
 import { clientActivity } from "@shivaedev/contract/clientActivity.ts";
+import { makeClient } from "@shivaedev/contract/makeClient.ts";
 import { moduleHandlers } from "@shivaedev/contract/moduleHandlers.ts";
 import { AuthUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import { Sessions } from "@shivaedev/identity/Sessions.ts";
@@ -78,13 +78,13 @@ export const sessionsHost = Effect.fnUntraced(function* () {
 		Layer.provide([Socket.layerWebSocket(url).pipe(Layer.provide(Socket.layerWebSocketConstructorGlobal)), RpcSerialization.layerNdjson]),
 	);
 	const runtime = yield* clientRuntime;
-	const transport = makeClient(SessionsPage.contract, { protocol, runtime, url });
+	const transport = makeClient({ sessions: SessionsPage.contract }, { protocol, runtime, url });
 	const client = yield* transport.client;
 	return {
 		accounts,
 		activity: clientActivity(transport),
 		addSessions: (names: readonly string[]) => Effect.forEach(names, (name) => mint(name), { discard: true }),
-		api: transport.api,
+		api: transport.api.sessions,
 		as: (name: string) => {
 			const account = accounts.find((candidate) => candidate.name === name);
 			if (account === undefined) {

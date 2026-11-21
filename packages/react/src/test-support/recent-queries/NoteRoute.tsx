@@ -10,7 +10,7 @@ type Client = Effect.Success<typeof openClient>["client"];
 
 const root = createRootRouteWithContext<{ readonly client: Client; readonly registry: AtomRegistry }>()();
 const noteQuery = queryRoute(({ context, params }: { context: typeof root.types.allContext; params: { id: string }; search: object }) =>
-	context.client.api.get.query({ id: params.id }),
+	context.client.api.notes.get.query({ id: params.id }),
 );
 const note = createRoute({
 	component: () => {

@@ -1,8 +1,8 @@
 import { Deferred, Effect, Exit, Schema } from "effect";
 import { collection } from "@shivaedev/changes/keys.ts";
-import { makeClient } from "@shivaedev/contract/bind.ts";
 import { activityScreenSignal, clientActivity } from "@shivaedev/contract/clientActivity.ts";
 import { contract } from "@shivaedev/contract/contract.ts";
+import { makeClient } from "@shivaedev/contract/makeClient.ts";
 import { command, query } from "@shivaedev/contract/operation.ts";
 import { layerLiveMemoryProtocol } from "@shivaedev/test-kits/contract/liveMemoryProtocol.ts";
 import { settledBeside } from "#test/settledBeside.ts";
@@ -56,11 +56,14 @@ export function pendingCommandClient(ids: readonly number[] = [1]) {
 			}),
 		),
 	);
-	const connection = makeClient(Items, {
-		protocol: layerLiveMemoryProtocol(Items, handlers),
-		url: "memory://items",
-	});
-	const { api } = connection;
+	const connection = makeClient(
+		{ items: Items },
+		{
+			protocol: layerLiveMemoryProtocol(Items, handlers),
+			url: "memory://items",
+		},
+	);
+	const api = connection.api.items;
 	const settled = settledBeside(() => ({
 		awaitingReruns: Deferred.isDoneUnsafe(list.served) && Deferred.isDoneUnsafe(count.served) ? 0 : accepted,
 		commands: 0,

@@ -1,8 +1,8 @@
 import { Deferred, Effect, Schema } from "effect";
 import { collection } from "@shivaedev/changes/keys.ts";
-import { makeClient } from "@shivaedev/contract/bind.ts";
 import { activityScreenSignal, clientActivity } from "@shivaedev/contract/clientActivity.ts";
 import { contract } from "@shivaedev/contract/contract.ts";
+import { makeClient } from "@shivaedev/contract/makeClient.ts";
 import { command, query } from "@shivaedev/contract/operation.ts";
 import { Unauthorized } from "@shivaedev/errors/taxonomy.ts";
 import { layerLiveMemoryProtocol } from "@shivaedev/test-kits/contract/liveMemoryProtocol.ts";
@@ -68,8 +68,8 @@ export function completionClient() {
 			}),
 		),
 	);
-	const connection = makeClient(Commands, { protocol: layerLiveMemoryProtocol(Commands, handlers), url: "memory://completions" });
-	const { api } = connection;
+	const connection = makeClient({ completions: Commands }, { protocol: layerLiveMemoryProtocol(Commands, handlers), url: "memory://completions" });
+	const api = connection.api.completions;
 	const settled = settledBeside(() => ({
 		awaitingReruns: Deferred.isDoneUnsafe(rereading) && !Deferred.isDoneUnsafe(refetch) ? undefined : 0,
 		commands: [...commands.values()].filter(({ arrived, ended }) => Deferred.isDoneUnsafe(arrived) && !Deferred.isDoneUnsafe(ended)).length,

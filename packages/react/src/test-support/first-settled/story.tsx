@@ -91,18 +91,13 @@ function verbs(state: State, screen: Screen) {
 		renameFinishes: () =>
 			Effect.suspend(() => {
 				const { client, container } = opened(state);
+				function unanswered() {
+					return container.querySelector("[data-command]")?.getAttribute("data-command") !== "Success";
+				}
+				const reflected = settleScreen(container, unanswered, screen.tell, activityScreenSignal(clientActivity(client.client)));
 				return screen
 					.act("the server finishes the rename", () => Effect.runPromise(Deferred.succeed(client.held.rename, undefined)))
-					.pipe(
-						Effect.andThen(
-							settleScreen(
-								container,
-								() => container.querySelector("[data-command]")?.getAttribute("data-command") !== "Success",
-								screen.tell,
-								activityScreenSignal(clientActivity(client.client)),
-							),
-						),
-					);
+					.pipe(Effect.andThen(reflected));
 			}),
 		showCount: () => click("Show count"),
 		signal: () => Effect.sync(() => opened(state).container.querySelector('[role="status"]')?.textContent ?? "no signal"),

@@ -13,15 +13,3 @@ export const ${camel}Registration = {
 } satisfies AppModule;
 `;
 }
-
-export function resourceClient({ name, pascal }: ResourceNames) {
-	return `import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
-import { makeClient } from "@shivaedev/contract/bind.ts";
-import type { ClientOptions } from "@shivaedev/contract/clientOptions.ts";
-import { ${pascal} } from "#generated/modules/${name}/${pascal}.ts";
-
-export function make${pascal}Client(url: string, options: Omit<ClientOptions, "url"> & { readonly registry?: AtomRegistry.AtomRegistry } = {}) {
-	return makeClient(${pascal}, { url, ...options });
-}
-`;
-}

@@ -1,7 +1,7 @@
 import { Effect, Option, Stream } from "effect";
 import { act } from "react";
-import { makeClient } from "@shivaedev/contract/bind.ts";
 import { activityScreenSignal, type ClientActivity, clientActivity } from "@shivaedev/contract/clientActivity.ts";
+import { makeClient } from "@shivaedev/contract/makeClient.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { render } from "@shivaedev/test-story/client/adapters/react.ts";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
@@ -104,15 +104,15 @@ export const twentyOneUsers = usersScreen.trait(
 const openView = Effect.fnUntraced(function* (engine: Engine, dates: DateDisplay) {
 	const protocol = yield* engine.protocolAs(engine.actor);
 	const runtime = yield* clientRuntime;
-	const client = makeClient(UsersPage.contract, { protocol, runtime, url: "http://localhost/rpc" });
+	const client = makeClient({ users: UsersPage.contract }, { protocol, runtime, url: "http://localhost/rpc" });
 	engine.activity = Option.some(clientActivity(client));
 	const view = yield* Effect.acquireRelease(
 		Effect.promise(() =>
 			render(
 				<UsersView
 					{...dates}
-					changeRole={client.Client.runtime.fn(client.api.changeRole.run)}
-					list={client.api.list.query}
+					changeRole={client.Client.runtime.fn(client.api.users.changeRole.run)}
+					list={client.api.users.list.query}
 					roles={Access.Role.literals}
 				/>,
 			),
