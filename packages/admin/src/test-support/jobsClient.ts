@@ -4,6 +4,7 @@ import type * as Reactivity from "effect/reactivity/Reactivity";
 import type { RpcClient } from "effect/rpc";
 import { clientActivity } from "@shivaedev/contract/clientActivity.ts";
 import { makeClient } from "@shivaedev/contract/makeClient.ts";
+import { screenSync } from "@shivaedev/contract/screenSync.ts";
 import { clientRuntime } from "#test/clientRuntime.ts";
 import type { pages } from "#test/jobsPages.ts";
 
@@ -29,5 +30,6 @@ export const jobsClient = Effect.fnUntraced(function* (page: Registry["pages"][0
 		retryAction: Client.runtime.fn(api.retry.run),
 		run,
 		runScheduleNowAction: Client.runtime.fn(api.runScheduleNow.run),
+		sync: screenSync(transport, registry),
 	};
 });
