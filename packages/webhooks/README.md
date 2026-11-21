@@ -155,6 +155,8 @@ Use stable error tags defined by application code; never derive `_tag`, source n
 
 For another sender, supply a `WebhookSource` from `registration.ts` with its own `WebhookStrategy`. Its `verify(body, headers, key)` returns an Effect that fails with `WebhookUnauthorized` from `WebhookUnauthorized.ts` for invalid signatures. Its `delivery(headers)` returns `{ id, event }`; neither field comes from the payload. The route, receipts and queue mapping stay the same.
 
+Verify a sender's own HMAC scheme with `Mac` from `effect/crypto`, as `githubStrategy` does: build the key with `Mac.key`, then check the received tag with `Mac.verify`, which compares in constant time. See [secure values](https://github.com/ShivaeDev/platform/blob/main/docs/framework/README.md#secure-invite-codes-and-tokens). `WebhookStrategy<R>` carries the services its `verify` needs, such as `Mac`, into the source and the route Layer's type; the application host provides the `effect/crypto` services through `NodeCrypto.layer`.
+
 ### Send deliveries in stories
 
 Use `deliverWebhook` from the separate testing entry point to send a signed body to your running application's real route. It resolves `source.key` through the current Effect Config provider, signs the exact UTF-8 body with GitHub's SHA-256 format by default, and posts it through the `HttpClient` in Effect's environment. It returns the native HTTP response, including refusal responses. Your kit supplies the client and configuration, waits for the application's workers, and exposes their results for the spec to assert. The helper has no test-story dependency.
