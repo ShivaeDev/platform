@@ -29,7 +29,7 @@ export const directoryHost = Effect.fnUntraced(function* (mapping: AuthTableOpti
 		},
 		{ defaultRole: "member" },
 	);
-	yield* migrateBetterAuth(options, { defaultRole: "member" });
+	yield* migrateBetterAuth({ defaultRole: "member", options });
 	const auth = betterAuth(options);
 	const { test } = yield* Effect.promise(() => auth.$context);
 	const reactivity = yield* Reactivity.Reactivity;

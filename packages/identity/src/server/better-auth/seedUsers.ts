@@ -17,7 +17,7 @@ export const seedUsers = Effect.fn("Identity.seedUsers")(function* <TRole extend
 		const access = yield* auth.roles.resolve(persona.role);
 		yield* seed.run.pipe(
 			Effect.provideService(Identity, { id: user.id }),
-			Effect.provideService(SessionUser, { ...user, ...access }),
+			Effect.provideService(SessionUser, { email: user.email, id: user.id, name: user.name, ...access }),
 			Effect.provideService(CurrentViewer, Option.some({ id: user.id })),
 			Effect.annotateLogs({ userId: user.id }),
 		);

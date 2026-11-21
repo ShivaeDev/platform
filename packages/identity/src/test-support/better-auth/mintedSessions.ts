@@ -34,7 +34,7 @@ export const mintedSessions = storyKit({
 			session: { cookieCache: { enabled: false } },
 		};
 		const auth = defineAuth({ defaultRole: "user", options, roles: TestRoles });
-		yield* migrateBetterAuth(options, auth);
+		yield* migrateBetterAuth(auth);
 		const mounted = yield* betterAuthMount(auth, {
 			roleSeed: accountRoleSeed(auth, "operator", Config.succeed([{ accountId: "alice-github", providerId: "github" }])),
 		}).pipe(Effect.provide(memoryStore));

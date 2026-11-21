@@ -12,6 +12,15 @@ export interface RoleAuthDeclaration<TRole extends string, TOptions extends Bett
 	readonly roles: AccessPolicy<TRole>;
 }
 
+export interface AuthSchemaDeclaration {
+	readonly defaultRole?: string | undefined;
+	readonly options: Omit<BetterAuthOptions, "database">;
+}
+
+export function storedRole(auth: AuthSchemaDeclaration) {
+	return auth.defaultRole === undefined ? undefined : { defaultRole: auth.defaultRole };
+}
+
 export interface RoleTables<TRole extends string> {
 	readonly options?: BetterAuthOptions | undefined;
 	readonly roles: Pick<AccessPolicy<TRole>, "Role" | "hasPermission">;

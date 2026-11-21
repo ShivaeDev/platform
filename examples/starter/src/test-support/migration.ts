@@ -28,7 +28,7 @@ export const migration = storyKit({
 	runIf: configured,
 	stages: ["database", "schema"],
 	verbs: (_engine, story) => ({
-		authSchemaCheck: () => answered(Effect.as(assertBetterAuthSchema(AppAuth.options, AppAuth), "accepted")),
+		authSchemaCheck: () => answered(Effect.as(assertBetterAuthSchema(AppAuth), "accepted")),
 		migrates: Effect.fn("AppStory.migrates")(function* () {
 			story.tell("every numbered application migration runs");
 			const steps = yield* migrationStepsWithApp();

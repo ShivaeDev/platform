@@ -32,7 +32,7 @@ export const emailChangeHost = Effect.fnUntraced(function* () {
 		secret: "email-change-story-secret-with-at-least-32-characters",
 		user: { changeEmail: { enabled: true } },
 	};
-	yield* migrateBetterAuth(options);
+	yield* migrateBetterAuth({ options });
 	const mounted = yield* betterAuthMount(
 		{ options },
 		{

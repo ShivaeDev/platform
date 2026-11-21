@@ -38,7 +38,7 @@ export const foreignMigrations = storyKit({
 		};
 		const application = yield* Effect.cached(
 			Effect.gen(function* () {
-				yield* assertBetterAuthSchema(options);
+				yield* assertBetterAuthSchema({ options });
 				const mounted = yield* betterAuthMount({ options }).pipe(
 					Effect.provide(memoryStore),
 					Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env: { "AUTH_RATE_LIMIT_ENABLED": "false" } }))),

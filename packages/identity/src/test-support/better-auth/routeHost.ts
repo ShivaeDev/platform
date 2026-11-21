@@ -30,7 +30,7 @@ export const routeHost = Effect.fnUntraced(function* (basePath: string | undefin
 		secret: "route-story-secret-with-at-least-32-characters",
 		trustedOrigins: [NATIVE_ORIGIN, "http://127.0.0.1:*"],
 	};
-	yield* migrateBetterAuth(options, { defaultRole: "operator" });
+	yield* migrateBetterAuth({ defaultRole: "operator", options });
 	const mounted = yield* betterAuthMount(
 		{ defaultRole: "operator", options, roles: TestRoles },
 		{ bearerSessions: { origins: [NATIVE_ORIGIN] } },

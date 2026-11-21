@@ -42,7 +42,7 @@ export const roleManagementHost = Effect.fnUntraced(function* () {
 		secret: "role-management-story-secret-at-least-32-characters",
 		session: { cookieCache: { enabled: false } },
 	};
-	yield* migrateBetterAuth(options, { defaultRole: "user" });
+	yield* migrateBetterAuth({ defaultRole: "user", options });
 	const mounted = yield* betterAuthMount({ defaultRole: "user", options, roles: Access })
 		.pipe(Effect.provide(memoryStore))
 		.pipe(Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env: {} }))));

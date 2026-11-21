@@ -34,7 +34,7 @@ const users = [
 	{ email: "bob@demo.test", name: "bob", password, role: "reader" },
 ] as const;
 const postgres = makePostgresTestLayer({
-	initialize: migrateBetterAuth(auth.options, auth),
+	initialize: migrateBetterAuth(auth),
 	url: Redacted.make(databaseUrl ?? "postgresql://integration-tests-disabled"),
 });
 
@@ -71,7 +71,11 @@ export const demoSeedStory = storyKit({
 						ConfigProvider.fromEnv({ env: { "ADMIN_EMAIL": email, "ADMIN_PASSWORD": adminPassword, "DATABASE_URL": Redacted.value(engine.url) } }),
 					),
 				),
-				Effect.asVoid,
+				Effect.as("provisioned"),
+				Effect.catchTags({
+					AdminPasswordLength: (refusal) => Effect.succeed(refusal.message),
+					UnverifiedAdminEmail: (refusal) => Effect.succeed(refusal.message),
+				}),
 			);
 		},
 		run: (target?: string, replacementPassword = password, nameSuffix = "") => {
@@ -95,6 +99,12 @@ export const demoSeedStory = storyKit({
 			Effect.tryPromise(() => engine.auth.api.signInEmail({ body: { email, password: signInPassword } })).pipe(
 				Effect.map(({ user }) => ({ email: user.email, name: user.name })),
 			),
+		signsUp: (email: string) => {
+			story.tell(`${email} signs up without verifying the address`);
+			return Effect.tryPromise(() =>
+				engine.auth.api.signUpEmail({ body: { email, name: email.slice(0, email.indexOf("@")), password: Redacted.value(password) } }),
+			).pipe(Effect.asVoid);
+		},
 		storedUsers: () =>
 			Effect.flatMap(UserDirectory, (directory) => directory.list({ limit: 20 })).pipe(
 				Effect.map(({ users: stored }) => [...stored].sort((a, b) => a.email.localeCompare(b.email))),

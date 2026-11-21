@@ -49,7 +49,7 @@ const makeEmailHost = Effect.fnUntraced(function* (window: Duration.Input | unde
 		secret: "email-stories-secret-with-at-least-32-characters",
 		user: { changeEmail: { enabled: true } },
 	};
-	yield* migrateBetterAuth(options);
+	yield* migrateBetterAuth({ options });
 	const mounted = yield* betterAuthMount(
 		{ options },
 		{

@@ -39,7 +39,7 @@ const auth = defineAuth({
 const viewer = { email: "admin@app.test", id: "admin", name: "admin", role: "admin" };
 
 const application = Effect.gen(function* () {
-	yield* migrateBetterAuth(auth.options, auth);
+	yield* migrateBetterAuth(auth);
 	const { routes } = yield* betterAuthMount(auth).pipe(
 		Effect.provide(memoryStore),
 		Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env: { "AUTH_RATE_LIMIT_ENABLED": "false" } }))),

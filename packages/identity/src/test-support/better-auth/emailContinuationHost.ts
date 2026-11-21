@@ -31,7 +31,7 @@ export const emailContinuationHost = Effect.fnUntraced(function* () {
 		trustedOrigins: [baseUrl, authOrigin, "https://other.example.test"],
 		user: { changeEmail: { enabled: true } },
 	};
-	yield* migrateBetterAuth(options);
+	yield* migrateBetterAuth({ options });
 	const verification = `${baseUrl}/api/auth/verify-email?from=email`;
 	const mounted = yield* betterAuthMount(
 		{ options },

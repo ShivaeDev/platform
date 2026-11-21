@@ -43,7 +43,7 @@ export const sessionAdminHost = Effect.fnUntraced(function* () {
 		secret: "session-admin-story-secret-with-at-least-32-characters",
 		session: { cookieCache: { enabled: false }, disableSessionRefresh: true },
 	};
-	yield* migrateBetterAuth(options, { defaultRole: "viewer" });
+	yield* migrateBetterAuth({ defaultRole: "viewer", options });
 	const mounted = yield* betterAuthMount({ defaultRole: "viewer", options, roles: Access })
 		.pipe(Effect.provide(memoryStore))
 		.pipe(Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env: {} }))));

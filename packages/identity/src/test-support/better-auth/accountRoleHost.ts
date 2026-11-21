@@ -43,7 +43,7 @@ export const accountRoleHost = Effect.fnUntraced(function* (mapping: AuthTableOp
 		socialProviders: { github: { clientId: "story-client", clientSecret: "story-secret" } },
 	};
 	const auth = defineAuth({ defaultRole: "user", options, roles: Access });
-	yield* migrateBetterAuth(options, auth);
+	yield* migrateBetterAuth(auth);
 	const base = yield* betterAuthMount(auth).pipe(Effect.provide(memoryStore)).pipe(Effect.provide(config));
 	const baseApp = HttpRouter.toWebHandler(base.routes, { disableLogger: true });
 	yield* Effect.addFinalizer(() => Effect.promise(() => baseApp.dispose()));
@@ -76,7 +76,7 @@ export const accountRoleHost = Effect.fnUntraced(function* (mapping: AuthTableOp
 		baseUrl = `http://127.0.0.1:${server.address.port}`;
 	});
 	return {
-		checkSchema: () => assertBetterAuthSchema(options, { defaultRole: "user" }).pipe(Effect.as("matches")),
+		checkSchema: () => assertBetterAuthSchema({ defaultRole: "user", options }).pipe(Effect.as("matches")),
 		configure: (entries: string | undefined, assignedRole: SeedRole = "operator") => {
 			env.AUTH_OPERATOR_ACCOUNTS = entries;
 			seededRole = assignedRole;

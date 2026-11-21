@@ -11,6 +11,8 @@ export interface PasswordUser {
 export class UserProvisioning extends Context.Service<
 	UserProvisioning,
 	{
-		readonly findOrCreateUser: (user: PasswordUser) => Effect.Effect<Pick<SessionUserValue, "id" | "email" | "name">, AuthUnavailable>;
+		readonly findOrCreateUser: (
+			user: PasswordUser,
+		) => Effect.Effect<Pick<SessionUserValue, "id" | "email" | "name"> & { readonly emailVerified: boolean }, AuthUnavailable>;
 	}
 >()("@shivaedev/identity/UserProvisioning") {}

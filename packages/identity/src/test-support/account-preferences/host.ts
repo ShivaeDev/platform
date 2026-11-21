@@ -53,7 +53,7 @@ export const preferencesHost = Effect.fnUntraced(function* () {
 		secret: "account-preferences-story-secret-at-least-32-characters",
 		session: { cookieCache: { enabled: false }, disableSessionRefresh: true },
 	};
-	yield* migrateBetterAuth(options);
+	yield* migrateBetterAuth({ options });
 	const modules = yield* appModules([
 		{
 			migrations: { loader: Migrator.fromRecord({ "0001_preferences": accountPreferencesMigration }) },

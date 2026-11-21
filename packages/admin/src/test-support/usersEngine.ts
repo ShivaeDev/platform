@@ -42,7 +42,7 @@ export const makeUsersEngine = Effect.fnUntraced(function* (mapping: AuthTableOp
 			additionalFields: { role: { ...mapping.user?.additionalFields?.role, defaultValue: "user", input: false, type: "string" as const } },
 		},
 	};
-	yield* migrateBetterAuth(authOptions);
+	yield* migrateBetterAuth({ options: authOptions });
 	const { auth } = yield* betterAuthMount({ options: authOptions }).pipe(Effect.provide(memoryStore));
 	const context = yield* Effect.promise(() => auth.$context);
 	function register(id: string, role: typeof Access.Role.Type, createdAt?: Date) {

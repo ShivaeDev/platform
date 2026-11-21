@@ -36,7 +36,7 @@ export const refusalHost = Effect.fnUntraced(function* (refusals: Refusals, sign
 		plugins: [testUtils()],
 		secret: "auth-refusal-stories-secret-at-least-32-characters",
 	};
-	yield* migrateBetterAuth(options, { defaultRole: "member" });
+	yield* migrateBetterAuth({ defaultRole: "member", options });
 	const host = {
 		databaseHooks: {
 			session: {

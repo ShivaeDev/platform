@@ -422,7 +422,7 @@ The seed mounts Better Auth with the declaration's options, so custom user table
 
 ### Create the first administrator
 
-`provisionAdmin(AppAuth, Owner.name)` from `@shivaedev/identity/server/better-auth/provisionAdmin.ts` is the whole create-admin command. It reads `ADMIN_EMAIL`, `ADMIN_NAME` (default `Administrator`), `ADMIN_PASSWORD` and `DATABASE_URL`, finds or creates that user through `UserProvisioning` and assigns the role through `assignRole`, and returns the user. Running it again for the same address finds the existing user, keeps its password and assigns the role again instead of failing. It accepts any PostgreSQL URL, unlike the seed, and marks the address verified.
+`provisionAdmin(AppAuth, Owner.name)` from `@shivaedev/identity/server/better-auth/provisionAdmin.ts` is the whole create-admin command. It reads `ADMIN_EMAIL`, `ADMIN_NAME` (default `Administrator`), `ADMIN_PASSWORD` and `DATABASE_URL`, finds or creates that user through `UserProvisioning` and assigns the role through `assignRole`, and returns the user. Running it again for the same address finds the existing user, keeps its password and assigns the role again instead of failing. It accepts any PostgreSQL URL, unlike the seed, and marks the address of a user it creates verified. Because it skips Better Auth's sign-up endpoint, it applies that endpoint's password limits itself: an `ADMIN_PASSWORD` shorter than the declaration's `emailAndPassword.minPasswordLength` (default 8) or longer than its `maxPasswordLength` (default 128), an empty or unset one included, fails with `AdminPasswordLength` naming the limits, before anything is stored. An existing account whose address is not verified, such as one someone else signed up with that address, fails with `UnverifiedAdminEmail` and keeps its role; an existing verified account receives the role.
 
 ```ts
 import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
@@ -804,7 +804,7 @@ const AppAuth = defineAuth({
 });
 
 const authentication = Effect.gen(function* () {
-	yield* assertBetterAuthSchema(AppAuth.options);
+	yield* assertBetterAuthSchema(AppAuth);
 	return yield* betterAuthMount(AppAuth);
 });
 ```
@@ -815,7 +815,7 @@ This is a migration step towards identity's frozen auth migrations. While Prisma
 
 ### Frozen auth migrations
 
-Generate each auth migration once, review its SQL and commit the generated module. `generateBetterAuthMigration(options, roleOptions?)` reads the current PostgreSQL schema through `SqlClient` and returns a TypeScript migration module. It does not apply the migration. The module imports only native Effect and executes fixed SQL on the migrator's transaction connection. Later auth option changes and Better Auth upgrades cannot change its SQL.
+Generate each auth migration once, review its SQL and commit the generated module. `generateBetterAuthMigration(AppAuth)` takes the auth declaration, reads the current PostgreSQL schema through `SqlClient` and returns a TypeScript migration module. It does not apply the migration. The module imports only native Effect and executes fixed SQL on the migrator's transaction connection. Later auth option changes and Better Auth upgrades cannot change its SQL.
 
 Start with a disposable PostgreSQL database containing only your previously shipped migrations. For the first auth migration that means an empty auth schema. In a scoped generation script with `postgresLayer` and Node services provided:
 
@@ -824,7 +824,7 @@ import { FileSystem } from "effect";
 import { generateBetterAuthMigration } from "@shivaedev/identity/server/better-auth/migrations/generate.ts";
 
 const fs = yield* FileSystem.FileSystem;
-const source = yield* generateBetterAuthMigration({ emailAndPassword: { enabled: true } });
+const source = yield* generateBetterAuthMigration({ options: { emailAndPassword: { enabled: true } } });
 yield* fs.writeFileString("src/server/migrations/0001_auth.ts", source, { flag: "wx" });
 ```
 
@@ -832,13 +832,15 @@ Apply `0001_auth` through `migratePostgres`. When options change, such as adding
 
 ```ts
 const source = yield* generateBetterAuthMigration({
-	emailAndPassword: { enabled: true },
-	user: { additionalFields: { role: { type: "string", required: true, defaultValue: "member" } } },
+	options: {
+		emailAndPassword: { enabled: true },
+		user: { additionalFields: { role: { type: "string", required: true, defaultValue: "member" } } },
+	},
 });
 yield* fs.writeFileString("src/server/migrations/0002_auth_roles.ts", source, { flag: "wx" });
 ```
 
-Review and commit `0002_auth_roles`, then apply it with the other numbered migrations. If the app uses Quality, register each reviewed generated file in `boundaries/auth-sql`'s `options.owners` in its `quality.config.ts`; the generated file owns auth DDL, while application queries continue to use identity. For identity-managed roles, pass `{ defaultRole: "member" }` as the second argument instead of configuring the field yourself; its generated SQL also freezes the default, null backfill and NOT NULL constraint.
+Review and commit `0002_auth_roles`, then apply it with the other numbered migrations. If the app uses Quality, register each reviewed generated file in `boundaries/auth-sql`'s `options.owners` in its `quality.config.ts`; the generated file owns auth DDL, while application queries continue to use identity. For identity-managed roles, pass the declaration with its `defaultRole` instead of configuring the field yourself; its generated SQL also freezes the default, null backfill and NOT NULL constraint.
 
 A numbered migration calling `getMigrations(authOptions)` live is **not frozen**, even if it copies the options into that file: the installed Better Auth version still decides the DDL. `migrateBetterAuth` is also live; use it for disposable test setup, not shipped migrations. It executes compiled DDL on the native SQL connection. Generated modules use a PostgreSQL `DO` block to execute the compiled statements together on that connection.
 
@@ -849,10 +851,10 @@ After applying all numbered migrations in an isolated story database, check them
 ```ts
 import { assertBetterAuthSchema } from "@shivaedev/identity/server/better-auth/assertSchema.ts";
 
-yield* assertBetterAuthSchema(authOptions, { defaultRole: "member" });
+yield* assertBetterAuthSchema(AppAuth);
 ```
 
-`assertBetterAuthSchema` fails with `BetterAuthSchemaDrift`, whose `missing` entries name missing tables, columns and configured indexes, incompatible column types and missing NOT NULL constraints. It also reports an optional field whose existing non-null column has neither a database default nor an auth field default. With identity role options it checks the role default. A newly added `user.role` reports `column user.role` until the next migration is generated **and applied**. Generation follows Better Auth's additive migration planner; type and nullability changes may require reviewed, application-authored SQL in a new migration. The check does not compare arbitrary application constraints or detect changes to default functions.
+`assertBetterAuthSchema` fails with `BetterAuthSchemaDrift`, whose `missing` entries name missing tables, columns and configured indexes, incompatible column types and missing NOT NULL constraints. It also reports an optional field whose existing non-null column has neither a database default nor an auth field default. With the declaration's `defaultRole` it checks the role default; passing a declaration without it skips that check. A newly added `user.role` reports `column user.role` until the next migration is generated **and applied**. Generation follows Better Auth's additive migration planner; type and nullability changes may require reviewed, application-authored SQL in a new migration. The check does not compare arbitrary application constraints or detect changes to default functions.
 
 The starter ships checked-in SQL for its auth migrations and checks all numbered migrations against current auth options in its PostgreSQL stories.
 
@@ -860,7 +862,7 @@ The starter ships checked-in SQL for its auth migrations and checks all numbered
 
 Identity declares `user.additionalFields.role` when the auth declaration has `roles` and `defaultRole`. Choose a default from your application's role set, such as `member`. It is a required string and cannot be supplied by sign-up input. No `additionalFields` entry or Better Auth `admin()` plugin is needed.
 
-1. Generate a new numbered application migration with `generateBetterAuthMigration(authOptions, { defaultRole: "member" })`, following the frozen workflow above. Run it before deploying the mount with roles. PostgreSQL fills existing users when the column is added; identity also fills null roles when adopting a nullable role column. Both fresh and upgraded schemas finish with a `text NOT NULL DEFAULT 'member'` column. The migration keeps existing non-null roles.
+1. Generate a new numbered application migration with `generateBetterAuthMigration({ defaultRole: "member", options: authOptions })`, following the frozen workflow above. Run it before deploying the mount with roles. PostgreSQL fills existing users when the column is added; identity also fills null roles when adopting a nullable role column. Both fresh and upgraded schemas finish with a `text NOT NULL DEFAULT 'member'` column. The migration keeps existing non-null roles.
 2. Add `roles: Access` and `defaultRole: "member"` to the auth declaration, using the same default as the migration. New users get that role. Remove any app-owned role field configuration and the admin plugin if you used it only for roles.
 3. In a trusted server-side bootstrap process, call `assignRole(AppAuth, existingUserId, "admin")` to make the first administrator. Provide the application's SQL Layer, as for other role changes. Alternatively, configure `accountRoleSeed` on the mount for named provider accounts. `Access` must declare `admin` with the permissions that administrator needs, including `AssignRoles` to manage other users. Do not expose the bootstrap process as an unauthenticated endpoint.
 
@@ -868,12 +870,12 @@ Identity declares `user.additionalFields.role` when the auth declaration has `ro
 import { assignRole } from "@shivaedev/identity/server/better-auth/assignRole.ts";
 import { generateBetterAuthMigration } from "@shivaedev/identity/server/better-auth/migrations/generate.ts";
 
-const migrationSource = yield* generateBetterAuthMigration(authOptions, { defaultRole: "member" });
+const migrationSource = yield* generateBetterAuthMigration({ defaultRole: "member", options: authOptions });
 
 const changed = yield* assignRole(AppAuth, existingUserId, "admin");
 ```
 
-Use a numbered migration for schema adoption and a separate bootstrap command for the assignment. Existing sessions read the stored role on their next request. In an isolated story database, `const storage = yield* authTestDatabase; yield* storage.migrate(authOptions)` builds the schema without a role field when the options omit it; store users through `signedInUser`, then call `storage.migrate(authOptions, { defaultRole: "member" })` to exercise adoption without writing SQL against auth tables.
+Use a numbered migration for schema adoption and a separate bootstrap command for the assignment. Existing sessions read the stored role on their next request. In an isolated story database, `const storage = yield* authTestDatabase; yield* storage.migrate({ options: authOptions })` builds the schema without a role field when the options omit it; store users through `signedInUser`, then call `storage.migrate({ defaultRole: "member", options: authOptions })` to exercise adoption without writing SQL against auth tables.
 
 ### Permission middleware
 
@@ -1050,7 +1052,7 @@ const { user, headers, cookies } = yield* mintUser(AppAuth, host, "alice", { rol
 
 `host` is `{ origin, secureCookies? }`: the origin the story's requests use and whether the host sets secure cookies, which defaults to an `https:` origin. `mintUser` builds a test-only mount from the declaration with Better Auth's `testUtils()` plugin added, that origin as `baseURL`, that cookie choice and the declaration's `secret`, or `AUTH_TEST_SECRET` from the same module when the declaration states none; run the story's host with `BETTER_AUTH_SECRET` set to `AUTH_TEST_SECRET`. It then saves `alice@app.test` named `alice` with the given role, or the declaration's default role, and mints a session as `signedInUser` below does. `storyAuth(AppAuth, host)` returns that test-only Better Auth instance for `signInAgain`, `passwordUser` or `signedInUser` with provider accounts. The test-only mount runs none of the host's hooks or role seed; mint through the host's own instance when the story needs them. Keep `testUtils()` out of the production declaration.
 
-Use `authTestDatabase` from `@shivaedev/identity/server/better-auth/testDatabase.ts` when a story needs observations or faults in the default Better Auth PostgreSQL schema. It returns Effect readouts `users` (IDs and emails) and `sessions` (IDs, user IDs and emails), plus `migrate(options, roleOptions?)`, `roleColumn` (PostgreSQL type, nullability and default), `userRoles` (emails and roles), and the test-only faults `expireSessions(userId?)`, `omitImageColumn` and `omitRole(userId)`. The last fault makes a role nullable and clears that user's role to model a partial migration. Pass a user id to expire only that user's sessions, or call `expireSessions()` to expire every session. It never returns tokens, password hashes or provider credentials. These fixtures assume the default table and column mappings and read `SqlClient` from the Effect environment; use only an isolated test database. Application stories keep their auth SQL in this provider-owned boundary.
+Use `authTestDatabase` from `@shivaedev/identity/server/better-auth/testDatabase.ts` when a story needs observations or faults in the default Better Auth PostgreSQL schema. It returns Effect readouts `users` (IDs and emails) and `sessions` (IDs, user IDs and emails), plus `migrate(declaration)`, `roleColumn` (PostgreSQL type, nullability and default), `userRoles` (emails and roles), and the test-only faults `expireSessions(userId?)`, `omitImageColumn` and `omitRole(userId)`. The last fault makes a role nullable and clears that user's role to model a partial migration. Pass a user id to expire only that user's sessions, or call `expireSessions()` to expire every session. It never returns tokens, password hashes or provider credentials. These fixtures assume the default table and column mappings and read `SqlClient` from the Effect environment; use only an isolated test database. Application stories keep their auth SQL in this provider-owned boundary.
 
 `authTestDatabase` also exposes `sessionsFor(userId)`, returning that user’s stored sessions as `{ id, expiresAt, expired }`. `expiresAt` is a native Effect UTC value; `expired` compares it with Effect’s current clock. Expired sessions remain visible until removed. Revocation deletes a session, so its id disappears from this readout; it keeps no revocation history. For expiry stories, advance `TestClock` to the minted session’s expiry instead of rewriting storage timestamps. Identity’s Better Auth session provider, session administration list and expired-session sweep use Effect’s clock. Sessions minted by `signedInUser` take their expiry from Effect’s Clock and Better Auth’s configured session lifetime. Better Auth’s own auth endpoints, direct `testUtils` calls and session refresh still use the provider’s clock.
 

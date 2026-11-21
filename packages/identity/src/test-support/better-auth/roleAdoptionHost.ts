@@ -57,11 +57,11 @@ export const roleAdoptionHost = Effect.fnUntraced(function* () {
 			withIsolatedDatabase(
 				Effect.gen(function* () {
 					const fresh = yield* authTestDatabase;
-					yield* fresh.migrate({ emailAndPassword: options.emailAndPassword }, { defaultRole: "member" });
+					yield* fresh.migrate({ defaultRole: "member", options: { emailAndPassword: options.emailAndPassword } });
 					freshColumn = yield* fresh.roleColumn;
 				}),
 			),
-		createSchema: (defaultRole?: string) => storage.migrate(options, defaultRole === undefined ? undefined : { defaultRole }),
+		createSchema: (defaultRole?: string) => storage.migrate({ defaultRole, options }),
 		freshRoleColumn: () =>
 			Effect.sync(() => {
 				if (freshColumn === undefined) {

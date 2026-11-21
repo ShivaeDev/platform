@@ -24,7 +24,7 @@ export const authStartup = storyKit({
 	clock: storyClock,
 	*create() {
 		const storage = yield* authTestDatabase;
-		yield* storage.migrate(options);
+		yield* storage.migrate({ options });
 		const initialization: { failure?: Error } = {};
 		const logs: unknown[] = [];
 		const logger = Logger.make(({ message }) => logs.push(message));

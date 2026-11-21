@@ -20,7 +20,7 @@ export const liveSubscriptionProvider = Effect.gen(function* () {
 		secret: "live-policy-story-secret-at-least-32-characters",
 		session: { cookieCache: { enabled: false } },
 	};
-	yield* migrateBetterAuth(options, { defaultRole: "reader" });
+	yield* migrateBetterAuth({ defaultRole: "reader", options });
 	const mounted = yield* betterAuthMount({ defaultRole: "reader", options, roles: DocumentRoles }).pipe(
 		Effect.provide(memoryStore),
 		Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env: {} }))),
