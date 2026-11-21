@@ -4,6 +4,7 @@ import { dirname, join } from "node:path";
 import process from "node:process";
 import { ConfigProvider, Effect, FileSystem, Option } from "effect";
 import { SecureRandom } from "effect/crypto";
+import { ChildProcess, ChildProcessSpawner } from "effect/process";
 import type { HeavyLockOptions } from "#acquire.ts";
 import { decodeHolder, type Holder } from "#holder.ts";
 import { reclaim, release, tryAcquire } from "#lockFile.ts";
@@ -84,8 +85,14 @@ function holderOf(engine: Lock, path = engine.lock): string {
 
 export const configured = Effect.fn("LockStory.configured")(function* <A, E, R>(engine: Lock, effect: Effect.Effect<A, E, R>) {
 	const provider = engine.unreadable ? yield* ConfigProvider.fromDir({ rootPath: engine.directory }) : ConfigProvider.fromEnv({ env: engine.env });
+	const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
+	const path = engine.env.PATH;
+	// The story's PATH reaches the processes the Effect API spawns, as the CLI's child gets it in its environment.
+	const spawning =
+		path === undefined ? spawner : ChildProcessSpawner.make((command) => spawner.spawn(command.pipe(ChildProcess.setEnv({ "PATH": path }))));
 	return yield* effect.pipe(
 		Effect.provideService(ConfigProvider.ConfigProvider, provider),
+		Effect.provideService(ChildProcessSpawner.ChildProcessSpawner, spawning),
 		Effect.provideService(SecureRandom.SecureRandom, engine.random),
 		Effect.provideService(FileSystem.FileSystem, engine.fileSystem),
 	);

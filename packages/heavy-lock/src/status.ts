@@ -23,3 +23,5 @@ export function waitingLine(holder: Holder, nowMs: number, mayBeHung = false): s
 export function acquiredLine(waitStartedMs: number, nowMs: number): string {
 	return `heavy-process lock: acquired after ${elapsed(waitStartedMs, nowMs)}`;
 }
+
+export const PS_MISSING_LINE = "heavy-process lock: ps is not on the PATH, so this command runs without the lock.";
