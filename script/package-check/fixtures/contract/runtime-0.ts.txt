@@ -1,8 +1,9 @@
 import { collection, invalidationKeys } from '@shivaedev/changes/keys.ts';
 import { contract } from '@shivaedev/contract/contract.ts';
 import { query } from '@shivaedev/contract/operation.ts';
-import { Effect, Schema, Stream } from 'effect';
-import { RpcTest } from 'effect/rpc';
+import { Effect, Layer, Queue, Schema, Stream } from 'effect';
+import { type Rpc, RpcClient, type RpcGroup, type RpcMessage, RpcSerialization, RpcServer, RpcTest } from 'effect/rpc';
+import { makeClient } from '@shivaedev/contract/makeClient.ts';
 const notes = collection('notes', Schema.Number);
 const Notes = contract('notes', { queries: [query('list', { readPolicy: () => Effect.succeed(true), success: Schema.Array(Schema.String), reads: () => [notes.list] })] });
 const layer = Notes.toLayer(Effect.succeed(Notes.of({ 'notes.$changes': () => Stream.never, 'notes.list': () => Effect.succeed(['written']) })));
@@ -13,19 +14,17 @@ const result = await Effect.runPromise(Effect.gen(function* () {
 if (result.join() !== 'written') throw new Error('Packed contract did not return its handler result');
 if (invalidationKeys([notes.item(1)]).join() !== 'notes:1,notes') throw new Error('Packed keys did not expand');
 const { stream } = await import('@shivaedev/contract/operation.ts');
-const { bind } = await import('@shivaedev/contract/bind.ts');
-const AtomRpc = await import('effect/reactivity/AtomRpc');
 const AtomRegistry = await import('effect/reactivity/AtomRegistry');
 class Missing extends Schema.TaggedError<Missing>()('Missing', { id: Schema.Number }) {}
 const Subscribe = stream('subscribe', { payload: { id: Schema.Number }, success: Schema.String, rejections: { Missing }, reads: ({ id }) => [notes.item(id)] });
 const Feed = contract('feed', { streams: [Subscribe] });
 const handlers = Feed.toLayer({ 'feed.$changes': () => Stream.never, 'feed.subscribe': ({ id }) => id > 0 ? Stream.make(`note:${id}`, 'done') : Stream.fromEffect(Subscribe.reject.Missing({ id })) });
-class Client extends AtomRpc.Service<Client>()('packed/Stream', { group: Feed, makeEffect: RpcTest.makeClient(Feed, { flatten: true }), protocol: handlers }) {}
-const api = bind(Feed, Client);
+const client = makeClient({ feed: Feed }, { protocol: memoryProtocol(Feed).pipe(Layer.provide(handlers)) });
+const api = client.api.feed;
 const registry = AtomRegistry.make();
-const release = registry.mount(Client.runtime);
+const release = registry.mount(client.runtime);
 try {
- const context = await Effect.runPromise(AtomRegistry.getResult(registry, Client.runtime));
+ const context = await Effect.runPromise(AtomRegistry.getResult(registry, client.runtime));
  const values = await Effect.runPromise(Stream.runCollect(api.subscribe.run({ id: 2 })).pipe(Effect.provideContext(context)));
  if (values.join() !== 'note:2,done') throw new Error('Packed bound stream did not deliver elements');
  const rejected = await Effect.runPromise(Effect.flip(Stream.runDrain(api.subscribe.run({ id: 0 }))).pipe(Effect.provideContext(context)));
@@ -33,4 +32,21 @@ try {
 } finally {
  release();
  registry.dispose();
+}
+// The packed client takes a native protocol; this one serves the handlers in the same process.
+function memoryProtocol<R extends Rpc.Any>(group: RpcGroup.RpcGroup<R>) {
+ return Layer.effect(RpcClient.Protocol, Effect.gen(function* () {
+  const requests = yield* Queue.unbounded<readonly [number, RpcMessage.FromClientEncoded]>();
+  const disconnects = yield* Queue.unbounded<number>();
+  const { codecFor } = yield* RpcSerialization.RpcSerialization;
+  return yield* RpcClient.Protocol.make((send, clientIds) => Effect.gen(function* () {
+   const server = RpcServer.Protocol.of({
+    clientIds: Effect.sync(() => clientIds), codecFor, disconnects, end: () => Effect.void, initialMessage: Effect.succeedNone,
+    run: receive => Effect.forever(Effect.flatMap(Queue.take(requests), ([id, message]) => receive(id, message))),
+    send, supportsAck: true, supportsNotifications: true, supportsSpanPropagation: true, supportsTransferables: false,
+   });
+   yield* RpcServer.make(group).pipe(Effect.provideService(RpcServer.Protocol, server), Effect.forkScoped);
+   return { codecFor, send: (clientId: number, request: RpcMessage.FromClientEncoded) => Effect.asVoid(Queue.offer(requests, [clientId, request])), supportsAck: true, supportsTransferables: false };
+  }));
+ })).pipe(Layer.provide(RpcSerialization.layerNdjson));
 }

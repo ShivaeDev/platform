@@ -1,7 +1,7 @@
 import { Context, Effect, type Layer, type Option, Schema, SchemaGetter } from "effect";
 import type { RpcGroup } from "effect/rpc";
 import { expectTypeOf } from "vitest";
-import type { Bound } from "@shivaedev/contract/bind.ts";
+import type { Bound } from "@shivaedev/contract/Bound.ts";
 import type { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import type { JobFailure } from "@shivaedev/jobs/JobFailure.ts";
 import type { JobState } from "@shivaedev/jobs/server/job.ts";

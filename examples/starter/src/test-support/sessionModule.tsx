@@ -1,12 +1,10 @@
 import { createRoute } from "@tanstack/react-router";
-import { Effect, Layer, Schema } from "effect";
+import { Effect, Schema } from "effect";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
-import * as AtomRpc from "effect/reactivity/AtomRpc";
-import { RpcTest } from "effect/rpc";
-import { bind } from "@shivaedev/contract/bind.ts";
 import { contract } from "@shivaedev/contract/contract.ts";
+import { makeClient } from "@shivaedev/contract/makeClient.ts";
 import { query } from "@shivaedev/contract/operation.ts";
-import { hostChanges } from "@shivaedev/server/hostChanges.ts";
+import { layerLiveMemoryProtocol } from "@shivaedev/test-kits/contract/liveMemoryProtocol.ts";
 import type { RouteContext } from "#client/Module.ts";
 import { SessionModuleScreen } from "#test-support/SessionModuleScreen.tsx";
 
@@ -17,12 +15,7 @@ const Api = contract("privateModule", {
 
 function sessionApi(registry: AtomRegistry.AtomRegistry, name: string, user: string) {
 	const application = Api.application.toLayer({ "privateModule.read": () => Effect.succeed(`${name} for ${user}`) });
-	class Client extends AtomRpc.Service<Client>()(`test/SessionModule/${name}`, {
-		group: Api,
-		makeEffect: RpcTest.makeClient(Api, { flatten: true }),
-		protocol: Layer.merge(application, hostChanges(Api).pipe(Layer.provide(application))),
-	}) {}
-	return bind(Api, Client, { registry });
+	return makeClient({ privateModule: Api }, { protocol: layerLiveMemoryProtocol(Api, application), registry }).api.privateModule;
 }
 
 export type SessionModuleApi = ReturnType<typeof sessionApi>;

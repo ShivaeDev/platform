@@ -9,7 +9,7 @@ import type { BindingOwner } from "#adapters/bindingOwner.ts";
 import { changesClient } from "#adapters/erasedClient.ts";
 import { aggregateLiveStatus } from "#aggregateLiveStatus.ts";
 import { automaticQuery } from "#automaticQuery.ts";
-import { clientActivities } from "#clientActivities.ts";
+import type { ActivityTracker } from "#clientActivities.ts";
 import { type LiveStatus, live } from "#live.ts";
 import { queryDelivery } from "#queryDelivery.ts";
 import { querySignals, shareQuerySignals } from "#querySignals.ts";
@@ -34,6 +34,7 @@ const pausedByRuntime = Atom.family((_runtime: object) => Atom.keepAlive(Atom.ma
 
 export function automaticLive(
 	operations: AtomRpc.AtomRpcClient<unknown, string, Rpc.Any>,
+	activity: ActivityTracker,
 	name: string,
 	owner?: BindingOwner,
 	resume?: ResumeSource,
@@ -81,20 +82,18 @@ export function automaticLive(
 			resume: signal,
 			stream: Stream.unwrap(
 				service.use((client) =>
-					Effect.map(AtomRegistry.AtomRegistry, (registry) => {
-						const reflected = followReflection(client, anchor(registry));
-						if (reflected === undefined) {
-							return delivery.stream(client(`${name}.$changes`, { queries: [reference] }, { headers }));
-						}
-						const opened = client(`${name}.$changes`, { queries: [reference] }, { headers: reflected.headers(headers) });
-						return delivery.stream(reflected.lifetime(opened), reflected.follower);
-					}),
+					Effect.flatMap(AtomRegistry.AtomRegistry, (registry) =>
+						Effect.map(followReflection(client, anchor(registry)), (reflected) => {
+							const opened = client(`${name}.$changes`, { queries: [reference] }, { headers: reflected.headers(headers) });
+							return delivery.stream(reflected.lifetime(opened), reflected.follower);
+						}),
+					),
 				),
 			),
 		});
 		const gated = automaticQuery({
 			anchor,
-			clientStatuses: clientActivities.get(service)?.statuses,
+			clientStatuses: activity.statuses,
 			equivalent,
 			ownerFailure,
 			paused,

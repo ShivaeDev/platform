@@ -19,7 +19,7 @@ export function queryDelivery<A, E>(decode: (value: unknown) => A, paused: Atom.
 	const pushed = Atom.make<AsyncResult.AsyncResult<A, E>>(AsyncResult.initial(true));
 	const deliver = Effect.fnUntraced(function* (
 		update: QueryUpdate,
-		follower: ReflectionFollower | undefined,
+		follower: ReflectionFollower,
 	): Effect.fn.Return<SubscriptionEvent | undefined, never, AtomRegistry.AtomRegistry> {
 		const registry = yield* AtomRegistry.AtomRegistry;
 		const showing = !registry.get(paused);
@@ -47,7 +47,7 @@ export function queryDelivery<A, E>(decode: (value: unknown) => A, paused: Atom.
 	});
 	return {
 		atom: pushed,
-		stream: <TError, R>(stream: Stream.Stream<QueryUpdate, TError, R>, follower?: ReflectionFollower) =>
+		stream: <TError, R>(stream: Stream.Stream<QueryUpdate, TError, R>, follower: ReflectionFollower) =>
 			stream.pipe(
 				Stream.mapEffect((update) => deliver(update, follower)),
 				Stream.filter((event) => event !== undefined),

@@ -47,7 +47,7 @@ Native mutation input can include `reactivityKeys: { notes: [id] }`, alongside i
 
 Use `publicConfig(schema)` from `@shivaedev/contract/publicConfig.ts` and `publicConfigLayer(declaration, path?)` from `@shivaedev/server/rpc-server/publicConfigLayer.ts` as the one path for public server configuration. Declare the public fields once in a shared Schema, merge the generated contract into the host's RPC group, and merge its server Layer into the handlers. The Layer loads the declared fields through native `Config.schema` during startup; missing or invalid required values fail with a typed `ConfigError`. Undeclared server configuration never enters the response.
 
-Read the generated `get` query with contract's `bind` and react's `useQuery` on the existing native atom runtime. No application-written RPC or separate client configuration store is needed. The generated query has no session middleware and can be merged alongside authenticated contracts for use before sign-in. Keep secrets outside the public Schema. The [server README](../../packages/server/README.md#public-client-configuration) shows the shared declaration, host composition and client binding.
+Read the generated `get` query through a client made with contract's `makeClient` and react's `useQuery` on the existing native atom runtime. No application-written RPC or separate client configuration store is needed. The generated query has no session middleware and can be merged alongside authenticated contracts for use before sign-in. Keep secrets outside the public Schema. The [server README](../../packages/server/README.md#public-client-configuration) shows the shared declaration, host composition and client binding.
 
 ## Application boundaries
 

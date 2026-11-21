@@ -1,14 +1,14 @@
 import { Effect, Layer, Option, Ref } from "effect";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
-import * as AtomRpc from "effect/reactivity/AtomRpc";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { RpcTest } from "effect/rpc";
-import { bind } from "@shivaedev/contract/bind.ts";
 import { liveServerLayer } from "@shivaedev/contract/live-server/layer.ts";
 import { LiveServer } from "@shivaedev/contract/live-server/service.ts";
+import { makeClient } from "@shivaedev/contract/makeClient.ts";
 import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import type { UserSessionShape } from "@shivaedev/identity/server/session.ts";
 import { hostChanges } from "@shivaedev/server/hostChanges.ts";
+import { layerMemoryProtocol } from "@shivaedev/test-kits/contract/testing.ts";
 import { Restricted as RestrictedClient } from "#generated/test-support/Restricted.ts";
 import { adminPage } from "#page.ts";
 import { UsersPermission } from "#permissions.ts";
@@ -49,16 +49,10 @@ export const adminEngine = Effect.gen(function* () {
 		.pipe(Layer.provide([Layer.succeed(SessionPolicy, policy), Layer.succeed(FailedJobs, failed)]));
 	const client = yield* RpcTest.makeClient(group).pipe(Effect.provide(protocol));
 	const runtime = yield* clientRuntime;
-	class Client extends AtomRpc.Service<Client>()("test/AdminLiveClient", {
-		group,
-		makeEffect: RpcTest.makeClient(group, { flatten: true }),
-		protocol,
-		runtime,
-	}) {}
 	const registry = yield* Effect.acquireRelease(
 		Effect.sync(() => AtomRegistry.make()),
 		(value) => Effect.sync(() => value.dispose()),
 	);
-	const api = bind(Jobs.contract, Client, { registry });
+	const api = makeClient({ jobs: Jobs.contract }, { protocol: layerMemoryProtocol(group).pipe(Layer.provide(protocol)), runtime }).api.jobs;
 	return { client, liveFailedJobs: () => AtomRegistry.getResult(registry, api.failed.query()), session };
 });
