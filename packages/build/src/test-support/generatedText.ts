@@ -13,13 +13,17 @@ export function rejectionTagsOf(text: string, operation: string): readonly strin
 	return listed === "" ? [] : listed.split(", ").map((entry) => entry.split(": ")[0] ?? entry);
 }
 
+export function importSourceOf(text: string, local: string): string {
+	const line = text.split("\n").find((each) => each.startsWith("import ") && new RegExp(`[{,] (?:\\w+ as )?${local}[,} ]`, "u").test(each));
+	return /from "(?<source>[^"]+)";$/u.exec(line ?? "")?.groups?.source ?? `no import of ${local}`;
+}
+
 // The module the generated file imports an operation's rejection class from.
 export function rejectionSourceOf(text: string, operation: string, tag: string): string {
 	const listed = /rejections: \{ (?<listed>[^}]*) \}/u.exec(wireLine(text, operation))?.groups?.listed ?? "";
 	const entry = listed.split(", ").find((each) => each === tag || each.startsWith(`${tag}: `));
 	const local = entry?.split(": ")[1] ?? entry;
-	const line = text.split("\n").find((each) => each.startsWith("import ") && new RegExp(`[{,] (?:\\w+ as )?${local}[,} ]`, "u").test(each));
-	return /from "(?<source>[^"]+)";$/u.exec(line ?? "")?.groups?.source ?? `no import of ${tag}`;
+	return local === undefined ? `no import of ${tag}` : importSourceOf(text, local);
 }
 
 export function browserContractOf(text: string): readonly string[] {

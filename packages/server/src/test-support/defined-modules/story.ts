@@ -1,4 +1,4 @@
-import { Cause, ConfigProvider, Effect, Layer, Logger, Option } from "effect";
+import { type Cause, ConfigProvider, Effect, Layer, Logger, Option } from "effect";
 import * as Base64 from "effect/encoding/Base64";
 import { HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
@@ -13,14 +13,15 @@ import { appModules } from "#appModules.ts";
 import { type Construction, constructionVerbs, logDuringConstruction, makeConstruction } from "#test/defined-modules/constructionLogs.ts";
 import { Api, draftsModule, handWrittenNotesModule, notesModule, replacedNotesModule } from "#test/defined-modules/features.ts";
 import { Greetings, greetingsModule } from "#test/defined-modules/greetings.ts";
-import { Members, membersModule, privateJoinMembersModule } from "#test/defined-modules/members.ts";
+import { maskedDiagnosticsVerbs } from "#test/defined-modules/maskedDiagnostics.ts";
+import { membersModule, privateJoinMembersModule } from "#test/defined-modules/members.ts";
 import { OwnedData, ownedDataModule } from "#test/defined-modules/ownedData.ts";
 import { ProviderTokensModule, providerTokensModule } from "#test/defined-modules/providerTokens.ts";
+import { readingsModule } from "#test/defined-modules/readings.ts";
 import { rpcClient } from "#test/defined-modules/rpcClient.ts";
 import { sessions } from "#test/defined-modules/sessions.ts";
 import { remindersModule, UsagePage, usageModule } from "#test/defined-modules/usage.ts";
 import { databaseUrl, postgres } from "#test/postgres.ts";
-import { spanAttribute } from "#test/spanAttribute.ts";
 import { workerHost } from "#workerHost.ts";
 
 type Caller = "alice" | "a visitor";
@@ -56,6 +57,7 @@ export const definedModulesHost = storyKit({
 				state.greetings,
 				ownedDataModule,
 				providerTokensModule,
+				readingsModule,
 				state.usage,
 				state.reminders,
 			]).pipe(
@@ -169,37 +171,15 @@ export const definedModulesHost = storyKit({
 		}
 		return {
 			...constructionVerbs(state.construction, state.logs, story),
-			auditMember: (id: number) => {
-				story.tell(`alice audits member ${id} through members.audit, whose handler dies holding the member's row`);
-				return answered(Effect.flatMap(rpcClient(Members, state.url, "alice"), (call) => call("members.audit", { id })));
-			},
+			...maskedDiagnosticsVerbs(state, story),
 			createNote: (title: string, caller: Caller = "alice") => {
 				story.tell(`${caller} creates the note ${title} through notes.create`);
 				return answered(Effect.flatMap(client(caller), (call) => call("notes.create", { title })));
 			},
-			exportedMemberSpan: () =>
-				Effect.gen(function* () {
-					if (state.collector === undefined) {
-						return yield* Effect.die("Give the host a collector before reading its exported spans");
-					}
-					return spanAttribute(yield* state.collector.untilSpan("Members.show"), "member");
-				}),
 			greet: (name: string) => {
 				story.tell(`alice greets ${name} through greetings.greet`);
 				return answered(Effect.flatMap(rpcClient(Greetings, state.url), (call) => call("greetings.greet", { name })));
 			},
-			joinMember: (name: string, address: string) => {
-				story.tell(`alice adds the member ${name} living at ${address} through members.join`);
-				return answered(Effect.flatMap(rpcClient(Members, state.url, "alice"), (call) => call("members.join", { address, name })));
-			},
-			loggedDefect: () =>
-				Effect.sync(
-					() =>
-						state.logs.flatMap(({ cause, message }) => (message[0] === "RPC defect" ? cause.reasons.filter(Cause.isDieReason) : []))[0]?.defect
-						?? "no RPC defect was logged",
-				),
-			loggedMember: () =>
-				Effect.sync(() => state.logs.find(({ message }) => message[0] === "member shown")?.message[1] ?? "no log mentions a shown member"),
 			ownedModels: () => {
 				story.tell("an operation served by the host reads the owned models its repositories reported");
 				return answered(
@@ -223,10 +203,6 @@ export const definedModulesHost = storyKit({
 			readUsage: () => {
 				story.tell("alice reads every note's title through the usage admin page's admin.usage.titles");
 				return answered(Effect.flatMap(rpcClient(UsagePage.contract, state.url, "alice"), (call) => call("admin.usage.titles", undefined)));
-			},
-			showMember: (id: number) => {
-				story.tell(`alice reads member ${id} through members.show, whose handler logs the member's row`);
-				return answered(Effect.flatMap(rpcClient(Members, state.url, "alice"), (call) => call("members.show", { id })));
 			},
 			startup: () => Effect.sync(() => state.startup),
 			storeProviderToken: (token: string) => {

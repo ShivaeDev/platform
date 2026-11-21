@@ -42,8 +42,12 @@ function containsSensitive(ast: SchemaAST.AST, keys: ReadonlySet<string>): boole
 		|| propertiesOf(ast).some((property) => typeof property.name === "string" && (keys.has(property.name) || isSensitiveKey(property.name)))
 	);
 }
+// A key modifier such as mutableKey copies a class's fields struct into its encoding with a new context, sharing its fields.
+function sameFields(fields: SchemaAST.AST | undefined, target: SchemaAST.AST): boolean {
+	return fields === target || (fields?._tag === "Objects" && target._tag === "Objects" && fields.propertySignatures === target.propertySignatures);
+}
 function preservesFields(source: SchemaAST.AST, target: SchemaAST.AST): boolean {
-	if (source._tag === "Declaration" && source.annotations?.["~constructor"] !== undefined && source.typeParameters[0] === target) {
+	if (source._tag === "Declaration" && source.annotations?.["~constructor"] !== undefined && sameFields(source.typeParameters[0], target)) {
 		return true;
 	}
 	return (
