@@ -53,16 +53,16 @@ export function webhookEvent<TSchema extends Schema.Constraint, R = never, E = n
 export interface WebhookSource<R = never, E = never> {
 	readonly events: Readonly<Record<string, WebhookEvent<R, E>>>;
 	readonly key: Config.Config<Redacted.Redacted<string>>;
-	readonly strategy: WebhookStrategy;
+	readonly strategy: WebhookStrategy<R>;
 }
 
-export interface WebhookStrategy {
+export interface WebhookStrategy<R = never> {
 	readonly delivery: (headers: Readonly<Record<string, string>>) => { readonly id: string | undefined; readonly event: string | undefined };
 	readonly verify: (
 		body: Uint8Array,
 		headers: Readonly<Record<string, string>>,
 		key: Redacted.Redacted<string>,
-	) => Effect.Effect<void, WebhookUnauthorized>;
+	) => Effect.Effect<void, WebhookUnauthorized, R>;
 }
 
 export function enqueueWebhookJobs<R>(requests: readonly WebhookJob<R>[]) {
