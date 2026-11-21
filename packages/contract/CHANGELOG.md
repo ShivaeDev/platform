@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.58.0 - 2026-11-21
+
+### Breaking
+
+- a browser contract built by `clientContract` carries no keys. Its definition names the module's queries and commands as lists, `queries: ["list"]` and `commands: ["create"]`, in place of records holding each query's `reads` and `readsCollections` and each command's `invalidates`, so `ClientContractDefinition`'s `queries` and `commands` are now `readonly string[]`. The host serves the module, whose keys decide which open queries a change reaches, and the browser's queries refresh from the server's announcements. An application runs `pnpm generate` and deletes nothing by hand; only a hand-written `clientContract` call changes, by replacing each record with the list of its operation names.
+- `makeClient`'s `bearerToken` is an `Effect.Effect<string | null>` that the client runs each time its socket connects, instead of a fixed string. A credential Effect that answers `null` connects without the authentication frame. Replace `bearerToken: token` with `bearerToken: Effect.succeed(token)`; a native shell passes `Effect.provide(storedCredential, credentialLayer)` from identity.
+- `authenticateSocket` from `@shivaedev/contract/socketAuthentication.ts` takes the socket URL, the credential Effect and optional upgrade headers and opens the WebSocket itself, adding `auth=frame` when a credential is sent. Replace `Layer.effect(Socket.Socket, authenticateSocket(token)).pipe(Layer.provide(Socket.layerWebSocket(framedUrl)))` with `Layer.effect(Socket.Socket, authenticateSocket(url, Effect.succeed(token)))` on the URL without `auth=frame`, provided with a `WebSocketConstructor`.
+
 ## 0.57.0 - 2026-11-21
 
 ### Fixed

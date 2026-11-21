@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.29.1 - 2026-11-21
+
+### Fixed
+
+- the document guard of `adminDocuments` and `adminPermissionGuard` recognise TanStack's brace parameters (`{$id}`, `{-$id}`) and parameters in a page's `path`, not only `$id` in its `detail`: each matches any one non-empty segment, so `/admin/invoices/42` needs the permission of a page whose detail is `/admin/invoices/{$invoiceId}`, and `/admin/teams/blue/members` that of a page whose path is `/admin/teams/$team/members`. React's root guard matches pages by the same rules.
+
 ## 0.29.0 - 2026-11-21
 
 ### Breaking

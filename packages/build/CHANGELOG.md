@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.7.0 - 2026-11-21
+
+### Added
+
+- a key may be declared in the operation's own file, beside the operation that reads or invalidates it. The generator refused such a value before, because it copied keys into the generated file.
+
+### Breaking
+
+- the generated browser contract no longer copies a query's `reads` or `readsCollections` or a command's `invalidates`, `OperationFacts` in `facts.ts` drops its `reads`, `readsCollections` and `invalidates` fields, and `PlannedOperation` in `emit.ts` drops its `members` field. A changed `reads` or `invalidates` leaves the generated file as it is, and `generate` reports it `current`.
+
 ## 0.6.0 - 2026-11-21
 
 ### Added

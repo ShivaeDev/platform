@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.52.0 - 2026-11-21
+
+### Breaking
+
+- generated apps mount their routes with react's `SessionApp`. `src/client/SessionApp.tsx`, `src/client/appRouter.tsx`, `src/client/rootRoute.ts` and `src/client/adapters/navigateTo.ts` are gone. The sign-in and password reset routes move into `src/client/accountModule.tsx`, a client module whose sign-in screen calls `useSessionRecheck()`; `src/client/routing.tsx` names the home page, shell, refused screen and search codec; `src/client/modules.ts` registers the app's auth and session types and `SessionRouter<typeof clientModules>` for typed links; `App.tsx` renders `<SessionApp {...routing} app={app} auth={auth.actions} history={history} persist={persist} recheck={auth.session.refresh} session={current} />`; `Home` reads `auth` from the root route's context; and `Shell.tsx` mounts `Notices` instead of `PermissionBoundary`. Story kits that called `appRouter` call `sessionRouter({ ...routing, auth, connection, history, registry, session })`, and a kit's `clientApp` list includes `accountModule` when it routes to sign-in. `create-app update` replaces the starter's files the app never edited and leaves conflict markers where it did.
+
 ## 0.51.0 - 2026-11-21
 
 ### Added

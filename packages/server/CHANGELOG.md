@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.42.0 - 2026-11-21
+
+### Added
+
+- `appHost` admits the origins in `SessionPolicy.nativeOrigins` through the RPC transport guard, the RPC socket upgrade and the auth routes, so an application no longer lists them for the host.
+
+### Breaking
+
+- `appHost`'s `nativeOrigins` option is removed; the host reads the list from `SessionPolicy.nativeOrigins`. Move the list to where the policy is made: with Better Auth, into `defineAuth({ nativeOrigins })` and spread `mounted.sessions` into the policy; for a local-owner host, into `localOwner({ nativeOrigins })` and use its `sessions`; for a hand-built `SessionPolicy`, set `nativeOrigins: yield* Schema.decodeUnknownEffect(NativeOrigins)(origins)` with `NativeOrigins` from `@shivaedev/identity/server/NativeOrigins.ts`. A host with `policy: "loopback"` has no session policy and admits no native origin.
+- The transport value that `hostRpcRoutes` takes (the `hostTransport` result) no longer has `nativeOrigins`, and `socketRpc(handler, policy, trustedProxy)` lost its origin list parameter. Callers drop them.
+- `NativeOrigins` from `@shivaedev/server/nativeClientOrigins.ts` moved to `@shivaedev/identity/server/NativeOrigins.ts`, and `nativeClientOrigins(trustedProxy, route, rpcPath?)` takes `"auth"` or `"rpc"` instead of an origin list and a mode.
+
 ## 0.41.2 - 2026-11-21
 
 ### Changed
