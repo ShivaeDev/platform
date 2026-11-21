@@ -3,7 +3,7 @@ import { SessionCredential } from "#client/SessionCredential.ts";
 
 // Structural copies of the Better Auth client plugin shapes: the client core must not reach the optional better-auth peer.
 interface CredentialRequest {
-	credentials?: RequestCredentials | undefined;
+	credentials?: "include" | "omit" | "same-origin" | undefined;
 	readonly headers: Headers;
 	readonly url: URL | string;
 }
