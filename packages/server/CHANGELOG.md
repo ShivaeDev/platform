@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.39.0 - 2026-11-21
+
+### Added
+
+- `appHost` and `workerHost` collect the owned models their repositories report, so an operation they serve reads them through `(yield* RepositoryModels).owned`.
+
+### Breaking
+
+- import from `@shivaedev/server/boundedOtlpResponse.ts` instead of `@shivaedev/server/adapters/boundedOtlpResponse.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/server/hostHttpServices.ts` instead of `@shivaedev/server/adapters/hostHttpServices.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/server/migrationsIn.ts` instead of `@shivaedev/server/adapters/migrationsIn.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/server/platformRuntime.ts` instead of `@shivaedev/server/adapters/platformRuntime.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/server/subscriptionSignal.ts` instead of `@shivaedev/server/adapters/subscriptionSignal.ts`, which moved out of `adapters/`.
+- import `development` and `runDevelopment` from `@shivaedev/server/adapters/development.ts` instead of `@shivaedev/server/development.ts`; it starts processes with the host's Node binary and runs `runMain` inside an exported function, so it moved into `adapters/`.
+
 ## 0.38.3 - 2026-11-20
 
 ### Changed

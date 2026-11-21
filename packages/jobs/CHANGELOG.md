@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.44.0 - 2026-11-21
+
+### Breaking
+
+- import from `@shivaedev/jobs/server/clientErrorSubscription.ts` instead of `@shivaedev/jobs/server/adapters/clientErrorSubscription.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/jobs/server/inspectionLayer.ts` instead of `@shivaedev/jobs/server/adapters/inspectionLayer.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/jobs/server/inspectionPlan.ts` instead of `@shivaedev/jobs/server/adapters/inspectionPlan.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/jobs/server/localInspectionChanges.ts` instead of `@shivaedev/jobs/server/adapters/localInspectionChanges.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/jobs/server/operationsLayer.ts` instead of `@shivaedev/jobs/server/adapters/operationsLayer.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/jobs/server/pgBossSchemaStatus.ts` instead of `@shivaedev/jobs/server/adapters/pgBossSchemaStatus.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/jobs/server/queueSignal.ts` instead of `@shivaedev/jobs/server/adapters/queueSignal.ts`, which moved out of `adapters/`.
+
 ## 0.43.2 - 2026-11-20
 
 ### Changed

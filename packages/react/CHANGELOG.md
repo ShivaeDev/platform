@@ -1,5 +1,36 @@
 # Changelog
 
+## 0.54.0 - 2026-11-21
+
+### Added
+
+- `RouterProvider` from `@shivaedev/react/RouterProvider.ts` takes TanStack's `RouterProvider` props and renders it, and holds `useFirstSettled` until the first route has rendered, so the hook reveals a routed first screen in one step wherever it is called. Swap the import of TanStack's `RouterProvider` for this one; nothing else changes.
+
+### Changed
+
+- `useFirstSettled(client)` turns `true` once the screen that calls it has rendered and nothing on the client is waiting, so a first screen that reads no query, such as a blank form or a welcome page, is revealed instead of waiting forever. A screen that reads queries is still revealed in one step after they answer, and a query that shows a stored or retained result does not hold the reveal back while it revalidates.
+
+### Breaking
+
+- import from `@shivaedev/react/Forbidden.ts` instead of `@shivaedev/react/adapters/Forbidden.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/react/PermissionContext.ts` instead of `@shivaedev/react/adapters/PermissionContext.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/react/queryRouteFailure.ts` instead of `@shivaedev/react/adapters/queryRouteFailure.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/react/screenPending.ts` instead of `@shivaedev/react/adapters/screenPending.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/react/signInRedirect.ts` instead of `@shivaedev/react/adapters/signInRedirect.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/react/useLatestCallback.ts` instead of `@shivaedev/react/adapters/useLatestCallback.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/react/client/SessionSignOut.ts` instead of `@shivaedev/react/client/adapters/SessionSignOut.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/react/client/crypto.ts` instead of `@shivaedev/react/client/adapters/crypto.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/react/client/handlerRuntime.ts` instead of `@shivaedev/react/client/adapters/handlerRuntime.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/react/client/useActionResult.ts` instead of `@shivaedev/react/client/adapters/useActionResult.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/react/client/useConnectionStatus.ts` instead of `@shivaedev/react/client/adapters/useConnectionStatus.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/react/client/useFeedback.ts` instead of `@shivaedev/react/client/adapters/useFeedback.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/react/client/useQueryNotice.ts` instead of `@shivaedev/react/client/adapters/useQueryNotice.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/react/client/useSessionRetry.ts` instead of `@shivaedev/react/client/adapters/useSessionRetry.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/react/client/useSubmissionCallbacks.ts` instead of `@shivaedev/react/client/adapters/useSubmissionCallbacks.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/react/client/useUndoableChange.ts` instead of `@shivaedev/react/client/adapters/useUndoableChange.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/react/client/useWarmQueries.ts` instead of `@shivaedev/react/client/adapters/useWarmQueries.ts`, which moved out of `adapters/`.
+- a `useFirstSettled` above TanStack's own `RouterProvider` now turns `true` at the first render, before the first route exists. Import `RouterProvider` from `@shivaedev/react/RouterProvider.ts` in place of TanStack's, with the same props, and the hook waits for the first route again.
+
 ## 0.53.0 - 2026-11-20
 
 ### Added

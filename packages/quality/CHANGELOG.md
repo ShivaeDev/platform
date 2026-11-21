@@ -1,5 +1,130 @@
 # Changelog
 
+## 0.82.0 - 2026-11-21
+
+### Added
+
+- `effect/adapter-bridges` reports each production module in an `adapters/` folder that uses nothing Quality forbids elsewhere, so `adapters/` holds only code that needs it. A module stays when `effect/boundary` in either half, `effect/adapter-imports`, `effect/context-capture`, `effect/unsafe-calls`, the hidden-cast checks of `suppressions/no-double-cast` or the runtime and browser I/O bans of the `ambient-runtime` Biome plugin would report it outside `adapters/`, and every `Effect.promise` or `Effect.tryPromise` keeps a module there too, whatever its callback returns, although `effect/boundary` reports such a bridge outside `adapters/` only when its callback calls an imported library; a dynamic `import()` of the repository's own module, Effect or a `@shivaedev` package does not count. A service folder stays whole while any of its modules does. Those rules now also read `adapters/` and the engine keeps what they find there as evidence instead of reporting it. The rule runs in CI and with `quality lint --full`. To adopt it, update imports of the moved Platform modules below, run `quality lint --full`, and move each reported `adapters/` module of the application out of `adapters/`, usually to the parent folder, or record the findings with `quality baseline write --rule effect/adapter-bridges`.
+- a `Finding` may set `unsafe: true` when it reports something `adapters/` permits; the engine then drops it in `adapters/` and `test-support/` and counts it as evidence for `effect/adapter-bridges`. A `Finding` may instead set `evidenceOnly: true`: the engine never reports it anywhere, and in `adapters/` it still counts as evidence, so a repository's own rule can keep a module in `adapters/` for something it accepts elsewhere.
+
+### Breaking
+
+- import from `@shivaedev/quality/ImportAnalysisFailure.ts` instead of `@shivaedev/quality/adapters/ImportAnalysisFailure.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/quality/TestOutput.ts` instead of `@shivaedev/quality/adapters/TestOutput.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/quality/agentLinkFindings.ts` instead of `@shivaedev/quality/adapters/agentLinkFindings.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/quality/asciiFindings.ts` instead of `@shivaedev/quality/adapters/asciiFindings.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/quality/asymmetricMatcher.ts` instead of `@shivaedev/quality/adapters/asymmetricMatcher.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/quality/biome/browserDiagnostic.ts` instead of `@shivaedev/quality/adapters/biome/browserDiagnostic.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/quality/biome/browserTargets.ts` instead of `@shivaedev/quality/adapters/biome/browserTargets.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/quality/biome/configs.ts` instead of `@shivaedev/quality/adapters/biome/configs.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/quality/biome/pluginContract.ts` instead of `@shivaedev/quality/adapters/biome/pluginContract.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/quality/biome/resolvePackage.ts` instead of `@shivaedev/quality/adapters/biome/resolvePackage.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/quality/biome/rootConfig.ts` instead of `@shivaedev/quality/adapters/biome/rootConfig.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/quality/biome/toolContractDefaults.ts` instead of `@shivaedev/quality/adapters/biome/toolContractDefaults.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/quality/biome/vitestEntry.ts` instead of `@shivaedev/quality/adapters/biome/vitestEntry.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/quality/biome/withExceptionConfig.ts` instead of `@shivaedev/quality/adapters/biome/withExceptionConfig.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/quality/bodyReference.ts` instead of `@shivaedev/quality/adapters/bodyReference.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/quality/bodyReferences.ts` instead of `@shivaedev/quality/adapters/bodyReferences.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/quality/browserLibraryType.ts` instead of `@shivaedev/quality/adapters/browserLibraryType.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/quality/buildEntryPaths.ts` instead of `@shivaedev/quality/adapters/buildEntryPaths.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/quality/buildEntryValue.ts` instead of `@shivaedev/quality/adapters/buildEntryValue.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/quality/buildHelper.ts` instead of `@shivaedev/quality/adapters/buildHelper.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/quality/bundlerExternals.ts` instead of `@shivaedev/quality/adapters/bundlerExternals.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/quality/bundlerSources.ts` instead of `@shivaedev/quality/adapters/bundlerSources.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/quality/bundlerTargets.ts` instead of `@shivaedev/quality/adapters/bundlerTargets.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/quality/callbackEscapes.ts` instead of `@shivaedev/quality/adapters/callbackEscapes.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/quality/callerContextData.ts` instead of `@shivaedev/quality/adapters/callerContextData.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/quality/catalogEntries.ts` instead of `@shivaedev/quality/adapters/catalogEntries.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/quality/catalogWorkspace.ts` instead of `@shivaedev/quality/adapters/catalogWorkspace.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/quality/changeKeyApi.ts` instead of `@shivaedev/quality/adapters/changeKeyApi.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/quality/changeKeyCheck.ts` instead of `@shivaedev/quality/adapters/changeKeyCheck.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/quality/changeKeyLiterals.ts` instead of `@shivaedev/quality/adapters/changeKeyLiterals.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/quality/clientHandle.ts` instead of `@shivaedev/quality/adapters/clientHandle.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/quality/composedContext.ts` instead of `@shivaedev/quality/adapters/composedContext.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/quality/containerDependency.ts` instead of `@shivaedev/quality/adapters/containerDependency.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/quality/contextCaptureCheck.ts` instead of `@shivaedev/quality/adapters/contextCaptureCheck.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/quality/databaseUrlFindings.ts` instead of `@shivaedev/quality/adapters/databaseUrlFindings.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/quality/databaseUrlReads.ts` instead of `@shivaedev/quality/adapters/databaseUrlReads.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/quality/declaration-files/initialize.ts` instead of `@shivaedev/quality/adapters/declaration-files/initialize.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/quality/declaration-files/parse.ts` instead of `@shivaedev/quality/adapters/declaration-files/parse.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/quality/declaration-files/reader.ts` instead of `@shivaedev/quality/adapters/declaration-files/reader.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/quality/declaration-files/service.ts` instead of `@shivaedev/quality/adapters/declaration-files/service.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/quality/declarationTagParameter.ts` instead of `@shivaedev/quality/adapters/declarationTagParameter.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/quality/engineEscapes.ts` instead of `@shivaedev/quality/adapters/engineEscapes.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/quality/fixJsxConditionals.ts` instead of `@shivaedev/quality/adapters/fixJsxConditionals.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/quality/foreignCallback.ts` instead of `@shivaedev/quality/adapters/foreignCallback.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/quality/foreignResources.ts` instead of `@shivaedev/quality/adapters/foreignResources.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/quality/frameworkCallback.ts` instead of `@shivaedev/quality/adapters/frameworkCallback.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/quality/frameworkOwner.ts` instead of `@shivaedev/quality/adapters/frameworkOwner.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/quality/freshObject.ts` instead of `@shivaedev/quality/adapters/freshObject.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/quality/ignore.ts` instead of `@shivaedev/quality/adapters/ignore.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/quality/importedCall.ts` instead of `@shivaedev/quality/adapters/importedCall.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/quality/imports/analysisFailure.ts` instead of `@shivaedev/quality/adapters/imports/analysisFailure.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/quality/imports/browserChecker.ts` instead of `@shivaedev/quality/adapters/imports/browserChecker.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/quality/imports/fakeReferences.ts` instead of `@shivaedev/quality/adapters/imports/fakeReferences.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/quality/imports/sourceGraph.ts` instead of `@shivaedev/quality/adapters/imports/graph.ts`, which moved out of `adapters/` beside the existing `imports/graph.ts`; import its function as `sourceGraph` instead of `graph`.
+- import from `@shivaedev/quality/imports/projects.ts` instead of `@shivaedev/quality/adapters/imports/projects.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/quality/indirectServiceReferences.ts` instead of `@shivaedev/quality/adapters/indirectServiceReferences.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/quality/isToolConfig.ts` instead of `@shivaedev/quality/adapters/isToolConfig.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/quality/knip/entryPointFindings.ts` instead of `@shivaedev/quality/adapters/knip/entryPointFindings.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/quality/knip/findings.ts` instead of `@shivaedev/quality/adapters/knip/findings.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/quality/knip/mockEntries.ts` instead of `@shivaedev/quality/adapters/knip/mockEntries.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/quality/knip/sourceConfig.ts` instead of `@shivaedev/quality/adapters/knip/sourceConfig.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/quality/localFunctions.ts` instead of `@shivaedev/quality/adapters/localFunctions.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/quality/manifestInventory.ts` instead of `@shivaedev/quality/adapters/manifestInventory.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/quality/manifestReader.ts` instead of `@shivaedev/quality/adapters/manifestReader.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/quality/manifestSorting.ts` instead of `@shivaedev/quality/adapters/manifestSorting.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/quality/mappedBuildBindings.ts` instead of `@shivaedev/quality/adapters/mappedBuildBindings.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/quality/moduleResolver.ts` instead of `@shivaedev/quality/adapters/moduleResolver.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/quality/nonEmptyContext.ts` instead of `@shivaedev/quality/adapters/nonEmptyContext.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/quality/outcomeAssertions.ts` instead of `@shivaedev/quality/adapters/outcomeAssertions.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/quality/outsideImportFindings.ts` instead of `@shivaedev/quality/adapters/outsideImportFindings.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/quality/ownedServiceParameters.ts` instead of `@shivaedev/quality/adapters/ownedServiceParameters.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/quality/parameterOrigins.ts` instead of `@shivaedev/quality/adapters/parameterOrigins.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/quality/plainFunction.ts` instead of `@shivaedev/quality/adapters/plainFunction.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/quality/positiveRefusalFindings.ts` instead of `@shivaedev/quality/adapters/positiveRefusalFindings.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/quality/presenceCheck.ts` instead of `@shivaedev/quality/adapters/presenceCheck.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/quality/pureReader.ts` instead of `@shivaedev/quality/adapters/pureReader.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/quality/queueReadoutFindings.ts` instead of `@shivaedev/quality/adapters/queueReadoutFindings.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/quality/queueTestingOrigin.ts` instead of `@shivaedev/quality/adapters/queueTestingOrigin.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/quality/reachableBuilds.ts` instead of `@shivaedev/quality/adapters/reachableBuilds.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/quality/reactComponent.ts` instead of `@shivaedev/quality/adapters/reactComponent.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/quality/repositoryPathFindings.ts` instead of `@shivaedev/quality/adapters/repositoryPathFindings.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/quality/scriptPaths.ts` instead of `@shivaedev/quality/adapters/scriptPaths.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/quality/serviceAccess.ts` instead of `@shivaedev/quality/adapters/serviceAccess.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/quality/serviceAssemblyImports.ts` instead of `@shivaedev/quality/adapters/serviceAssemblyImports.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/quality/serviceAssemblySyntax.ts` instead of `@shivaedev/quality/adapters/serviceAssemblySyntax.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/quality/serviceDefinitionProblems.ts` instead of `@shivaedev/quality/adapters/serviceDefinitionProblems.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/quality/serviceFolderFindings.ts` instead of `@shivaedev/quality/adapters/serviceFolderFindings.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/quality/serviceIdFindings.ts` instead of `@shivaedev/quality/adapters/serviceIdFindings.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/quality/serviceModelCheck.ts` instead of `@shivaedev/quality/adapters/serviceModelCheck.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/quality/serviceModelSyntax.ts` instead of `@shivaedev/quality/adapters/serviceModelSyntax.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/quality/serviceOperationProblems.ts` instead of `@shivaedev/quality/adapters/serviceOperationProblems.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/quality/serviceStateProblems.ts` instead of `@shivaedev/quality/adapters/serviceStateProblems.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/quality/sharedErrorCatalog.ts` instead of `@shivaedev/quality/adapters/sharedErrorCatalog.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/quality/spawnedEntries.ts` instead of `@shivaedev/quality/adapters/spawnedEntries.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/quality/specReaderSources.ts` instead of `@shivaedev/quality/adapters/specReaderSources.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/quality/standardSchema.ts` instead of `@shivaedev/quality/adapters/standardSchema.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/quality/storyProgram.ts` instead of `@shivaedev/quality/adapters/storyProgram.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/quality/typeScriptProgram.ts` instead of `@shivaedev/quality/adapters/typeScriptProgram.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/quality/units/runtime.ts` instead of `@shivaedev/quality/adapters/units/runtime.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/quality/units/runtimeImports.ts` instead of `@shivaedev/quality/adapters/units/runtimeImports.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/quality/units/runtimeOrigins.ts` instead of `@shivaedev/quality/adapters/units/runtimeOrigins.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/quality/units/runtimeUse.ts` instead of `@shivaedev/quality/adapters/units/runtimeUse.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/quality/valueType.ts` instead of `@shivaedev/quality/adapters/valueType.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/quality/vitestContractPaths.ts` instead of `@shivaedev/quality/adapters/vitestContractPaths.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/quality/naming/plainData.ts` instead of `@shivaedev/quality/naming/adapters/plainData.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/quality/rules/stories/authTables.ts` instead of `@shivaedev/quality/rules/stories/adapters/authTables.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/quality/rules/stories/eventConsumption.ts` instead of `@shivaedev/quality/rules/stories/adapters/eventConsumption.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/quality/rules/stories/failureDeadline.ts` instead of `@shivaedev/quality/rules/stories/adapters/failureDeadline.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/quality/rules/stories/outcomeShapes.ts` instead of `@shivaedev/quality/rules/stories/adapters/outcomeShapes.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/quality/rules/stories/realTime.ts` instead of `@shivaedev/quality/rules/stories/adapters/realTime.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/quality/rules/stories/sqlTables.ts` instead of `@shivaedev/quality/rules/stories/adapters/sqlTables.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/quality/rules/stories/sqlTokens.ts` instead of `@shivaedev/quality/rules/stories/adapters/sqlTokens.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/quality/testing/assertThat.ts` instead of `@shivaedev/quality/testing/adapters/assertThat.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/quality/testing/packageExports.ts` instead of `@shivaedev/quality/testing/adapters/packageExports.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/quality/testing/storySpecFiles.ts` instead of `@shivaedev/quality/testing/adapters/storySpecFiles.ts`, which moved out of `adapters/`.
+
 ## 0.81.1 - 2026-11-20
 
 ### Changed
