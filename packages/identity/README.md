@@ -1114,7 +1114,7 @@ With database-backed sessions and cookie caching disabled, revocation rejects th
 
 ### Deliver typed auth emails
 
-Give `betterAuthMount` one `emails` configuration instead of four Better Auth callbacks. The application supplies absolute route URLs and a delivery Effect; it owns the transport and message text.
+Give `betterAuthMount` one `emails` configuration instead of four Better Auth callbacks. The application supplies absolute route URLs and a delivery Effect; it owns the transport and message text. To send them through a durable job queue with default copy, declare them with `authEmailQueue` from `@shivaedev/email/server/authEmailQueue.ts`, which returns this configuration together with the queue's producer and worker Layers; see the email package's [auth email section](https://github.com/ShivaeDev/platform/blob/main/packages/email/README.md#send-better-auths-emails).
 
 ```ts
 const mounted = yield* betterAuthMount(AppAuth, {

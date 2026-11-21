@@ -54,6 +54,40 @@ const developmentWorker = Confirmation.workerLayer.pipe(Layer.provide(Mailer.lay
 
 The email worker sends its job id as Resend's idempotency key on every attempt. Ordinary failures retry with the jobs engine's exponential backoff. A Resend 429 uses `Retry-After` seconds or HTTP date as a native timed deferral without consuming an ordinary retry; a missing or invalid header uses a short timed fallback. `MailerError` keeps the provider response redacted and uses a fixed message in recorded failures.
 
+### Send Better Auth's emails
+
+An application with email and password sign-in declares its auth emails once with `authEmailQueue` from `@shivaedev/email/server/authEmailQueue.ts`, instead of writing the queue, the worker, the copy and the `emails` bridge for identity's mount by hand. `paths` names the application path each `AuthEmail` kind links to; each path resolves against `PUBLIC_URL`, which defaults to `http://127.0.0.1:5173` for Vite development. `window` and `windows` pass through to identity's per-account delivery windows.
+
+```ts
+import { authEmailQueue } from "@shivaedev/email/server/authEmailQueue.ts";
+
+export const AuthEmails = authEmailQueue({
+	paths: {
+		AccountAlreadyExists: "/sign-in",
+		ApproveEmailChange: "/auth/confirm",
+		ConfirmAccount: "/auth/confirm",
+		ConfirmNewAddress: "/auth/confirm",
+		ResetPassword: "/reset-password",
+	},
+	windows: { AccountAlreadyExists: "1 hour" },
+	copy: {
+		ResetPassword: () => ({
+			subject: "Reset your Example password",
+			lines: ["Use this link to choose a new Example password."],
+			action: "Choose a new password",
+		}),
+	},
+});
+```
+
+`AuthEmails.emails` is an Effect that reads `PUBLIC_URL` and the queue's `Jobs` service and returns identity's `BetterAuthEmails`: pass it as `emails` to `betterAuthMount(AppAuth, { emails })` from `@shivaedev/identity/server/better-auth/mount.ts`. Provide `AuthEmails.producerLayer` to the web process and `AuthEmails.workerLayer` to the worker, with a mailer Layer. `AuthEmails.queue` registers the queue with the admin Jobs page; client code lists it through `authEmailJobs` from `@shivaedev/email/authEmailJobs.ts`, which holds the queue name `identity.auth-emails` and its payload Schema without server code.
+
+Each auth message becomes one job, addressed to the new address for `ConfirmNewAddress` and to the account's address otherwise, with the link kept `Redacted` in the job payload. When the job cannot be queued, the auth request is refused with the code `EMAIL_UNAVAILABLE`. The worker renders a text body and an HTML body from the kind's copy, escapes the link in the HTML, reads the sender from `EMAIL_FROM` (default `Accounts <onboarding@resend.dev>`) and sends through the `Mailer`. Default English copy covers all five kinds; `copy` replaces a kind's copy with a function that receives the queued message (`to`, `url` and, for `ApproveEmailChange`, `newEmail`) and returns its `subject`, body `lines`, link `action` label and optional `footer`. Kinds without an entry keep the default.
+
+### Choose the mailer by environment
+
+`mailerLayer()` from `@shivaedev/email/server/mailerLayer.ts` returns the one mailer Layer every email worker of an application can share. With `NODE_ENV=production` it requires `EMAIL_FROM` and sends through `resendMailerLayer()`, which requires `RESEND_API_KEY`; a missing variable fails the worker's startup with a configuration error naming it. In any other environment it is the development log `Mailer`.
+
 ### Read email in stories
 
 Install `@shivaedev/test-kits` as a development dependency. In a scoped story setup, acquire `inbox()` from `@shivaedev/test-kits/email/adapters/inbox.ts` and provide its `mailerLayer` to the real worker. It uses the Resend SDK against a loopback fake HTTP endpoint.

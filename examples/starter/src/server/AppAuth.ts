@@ -1,3 +1,4 @@
+import { authEmailQueue } from "@shivaedev/email/server/authEmailQueue.ts";
 import { defineAuth } from "@shivaedev/identity/server/better-auth/define.ts";
 import { AppAccess } from "#AppAccess.ts";
 import { User } from "#roles/User.ts";
@@ -11,4 +12,14 @@ export const AppAuth = defineAuth({
 		user: { changeEmail: { enabled: true } },
 	},
 	roles: AppAccess,
+});
+
+export const AuthEmails = authEmailQueue({
+	paths: {
+		AccountAlreadyExists: "/sign-in",
+		ApproveEmailChange: "/auth/confirm",
+		ConfirmAccount: "/auth/confirm",
+		ConfirmNewAddress: "/auth/confirm",
+		ResetPassword: "/reset-password",
+	},
 });

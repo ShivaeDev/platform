@@ -4,12 +4,12 @@ import type { JobsEntry } from "@shivaedev/admin/jobs/entry.ts";
 import { pgBossSchema } from "@shivaedev/jobs/server/schema.ts";
 import type { AppModule } from "@shivaedev/server/AppModule.ts";
 import { migrationsIn } from "@shivaedev/server/migrationsIn.ts";
-import { AuthEmailQueue } from "#server/AuthEmailQueue.ts";
 import { foundationRegistration } from "#server/admin/foundationRegistration.ts";
+import { AuthEmails } from "#server/AppAuth.ts";
 import { foundationWorker } from "#server/foundationWorker.ts";
 
 export function serverRegistration<const TModules extends readonly AppModule[]>(modules: TModules) {
-	const queues = [AuthEmailQueue.queue, ...foundationWorker.queues] as const;
+	const queues = [AuthEmails.queue, ...foundationWorker.queues] as const;
 	const admin = foundationRegistration(...queues, ...featureQueues(modules));
 	return {
 		admin,
@@ -18,8 +18,8 @@ export function serverRegistration<const TModules extends readonly AppModule[]>(
 		migrations: { ...migrationsIn(import.meta.dirname), components: [pgBossSchema()] },
 		name: "foundation",
 		queues,
-		services: Layer.merge(AuthEmailQueue.producerLayer, admin.services),
-		workers: Layer.merge(foundationWorker.workers, AuthEmailQueue.workerLayer),
+		services: Layer.merge(AuthEmails.producerLayer, admin.services),
+		workers: Layer.merge(foundationWorker.workers, AuthEmails.workerLayer),
 	} satisfies AppModule;
 }
 

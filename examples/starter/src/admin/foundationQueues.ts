@@ -1,4 +1,4 @@
-import { authEmail } from "#authEmail.ts";
+import { authEmailJobs } from "@shivaedev/email/authEmailJobs.ts";
 import { sessionSweep } from "#sessionSweep.ts";
 
-export const foundationQueues = [authEmail, sessionSweep] as const;
+export const foundationQueues = [authEmailJobs, sessionSweep] as const;
