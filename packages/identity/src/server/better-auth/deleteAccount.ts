@@ -1,5 +1,6 @@
 import { Effect } from "effect";
 import { invalidationKeys } from "@shivaedev/changes/keys.ts";
+import { PreconditionFailed } from "@shivaedev/errors/taxonomy.ts";
 import { rateLimit } from "@shivaedev/rate-limit/rateLimit.ts";
 import { invalidateOnCommit, transact } from "@shivaedev/sql/transact.ts";
 import { SessionUser } from "#identity.ts";
@@ -14,6 +15,11 @@ import { userKeys } from "#users.ts";
 export const deleteAccount = Effect.fn("Identity.deleteAccount")(function* (password: string) {
 	const { id } = yield* SessionUser;
 	const { auth, handOver } = yield* AccountDeletionPolicy;
+	// Better Auth answers a session kept in secondary storage with the user it cached there, and only the mounted instance's internal
+	// adapter can revoke it, so a deletion there would leave the person's sessions acting for an id that no longer exists.
+	if (auth.options.secondaryStorage !== undefined) {
+		return yield* new PreconditionFailed({ message: "This app cannot delete accounts. Ask its operator to delete yours." });
+	}
 	// Better Auth's own budget for its password-checked routes such as /change-email, kept per person rather than per address.
 	yield* rateLimit({ key: `identity.account.delete:${id}`, per: 3, window: "10 seconds" });
 	yield* confirmPassword(auth.options, password);
