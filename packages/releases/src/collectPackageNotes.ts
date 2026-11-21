@@ -18,5 +18,10 @@ export const collectPackageNotes = Effect.fn("Changesets.collectPackageNotes")(f
 					section: "Changed" as const,
 					text: `- Update \`${dependency.name}\` from ${dependency.from} to ${dependency.to}.`,
 				}));
-	return renderEntries(entries.length === 0 ? dependencyNotes : entries);
+	const forwarded = changesets.flatMap((changeset) =>
+		changeset.entries
+			.filter((entry) => entry.section === "Breaking" && release.breakingDependencies?.includes(entry.package) === true)
+			.map((entry) => ({ section: "Breaking" as const, text: `- \`${entry.package}\`: ${entry.text.slice(2)}` })),
+	);
+	return renderEntries([...(entries.length === 0 ? dependencyNotes : entries), ...forwarded]);
 });

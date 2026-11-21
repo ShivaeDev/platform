@@ -11,10 +11,28 @@ const rank = { major: 2, minor: 1, patch: 0 };
 export function publishedDependencies(manifest: PackageManifest): readonly string[] {
 	return Object.keys({ ...manifest.dependencies, ...manifest.optionalDependencies, ...manifest.peerDependencies });
 }
-const requestedBumps = Effect.fn("Changesets.requestedBumps")(function* (packages: readonly WorkspacePackage[], sources: readonly Source[]) {
+function isDependencyShell({ json, manifest }: WorkspacePackage) {
+	const exports = json.exports;
+	return !manifest.private && typeof exports === "object" && exports !== null && Object.keys(exports).join() === "./package.json";
+}
+function raiseShells(packages: readonly WorkspacePackage[], changesets: readonly Changeset[], bumps: Map<string, Bump>) {
+	const breaking = new Set(
+		changesets.flatMap(({ entries }) => entries.filter((entry) => entry.section === "Breaking").map((entry) => entry.package)),
+	);
+	const breakingDependencies = new Map<string, string[]>();
+	for (const pkg of packages.filter(isDependencyShell)) {
+		const names = publishedDependencies(pkg.manifest).filter((name) => breaking.has(name));
+		const bump = bumps.get(pkg.manifest.name);
+		if (names.length > 0 && bump !== undefined) {
+			breakingDependencies.set(pkg.manifest.name, names.toSorted());
+			bumps.set(pkg.manifest.name, rank[bump] < rank.minor ? "minor" : bump);
+		}
+	}
+	return breakingDependencies;
+}
+const requestedBumps = Effect.fn("Changesets.requestedBumps")(function* (packages: readonly WorkspacePackage[], changesets: readonly Changeset[]) {
 	const bumps = new Map<string, Bump>();
-	for (const source of sources) {
-		const changeset = yield* Effect.fromResult(parseChangeset(source));
+	for (const changeset of changesets) {
 		for (const [name, bump] of Object.entries(changeset.packages)) {
 			yield* validateRequest(packages, name, bump, changeset);
 			const previous = bumps.get(name);
@@ -78,7 +96,8 @@ export const computePlan = Effect.fn("Changesets.computePlan")(function* (
 	config: ChangesetConfig = {},
 ) {
 	yield* validateDependencies(packages, previousPackages);
-	const bumps = yield* requestedBumps(packages, sources);
+	const changesets = yield* Effect.forEach(sources, (source) => Effect.fromResult(parseChangeset(source)));
+	const bumps = yield* requestedBumps(packages, changesets);
 	let changed = true;
 	while (changed) {
 		changed = false;
@@ -89,13 +108,16 @@ export const computePlan = Effect.fn("Changesets.computePlan")(function* (
 			}
 		}
 	}
+	const breakingDependencies = raiseShells(packages, changesets, bumps);
 	const releases: Release[] = [];
 	for (const [name, bump] of [...bumps].sort(([left], [right]) => left.localeCompare(right))) {
 		const pkg = packages.find((candidate) => candidate.manifest.name === name);
 		if (pkg === undefined) {
 			return yield* new ChangesetError({ message: `Package ${name} disappeared while planning.` });
 		}
+		const forwarded = breakingDependencies.get(name);
 		releases.push({
+			...(forwarded === undefined ? {} : { breakingDependencies: forwarded }),
 			bump,
 			directory: pkg.directory,
 			from: pkg.manifest.version,

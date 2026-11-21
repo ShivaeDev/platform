@@ -21,6 +21,7 @@ export interface WorkspacePackage {
 	readonly manifest: PackageManifest;
 }
 export const Release = Schema.Struct({
+	breakingDependencies: Schema.optional(Schema.Array(Schema.String)),
 	bump: Bump,
 	directory: Schema.String,
 	from: Schema.String,
