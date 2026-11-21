@@ -1,11 +1,13 @@
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { DateTime, Effect, FileSystem, Layer, Path } from "effect";
+import { mintUser } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import type { AppAccess } from "#AppAccess.ts";
+import { AppAuth } from "#server/AppAuth.ts";
 import { deployChild } from "#test-support/deployChild.ts";
 import { configured, postgres } from "#test-support/postgres.ts";
-import { mintUser } from "#test-support/sessionPrecondition.ts";
 
 const assetLayer = Layer.merge(postgres, NodeServices.layer);
 
@@ -47,9 +49,9 @@ export const assets = storyKit({
 	}),
 });
 
-export function assetAccount(name: string, role: string) {
+export function assetAccount(name: string, role: typeof AppAccess.Role.Type) {
 	return assets.trait("accounts", `${name} is signed in as ${role}`, function* (engine) {
-		const { headers } = yield* mintUser({ origin: engine.url }, name, role);
+		const { headers } = yield* mintUser(AppAuth, { origin: engine.url }, name, { role });
 		engine.cookies.set(name, headers.get("cookie") ?? "");
 	});
 }

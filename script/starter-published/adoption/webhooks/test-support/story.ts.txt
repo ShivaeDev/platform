@@ -1,4 +1,4 @@
-import { ConfigProvider, Context, Effect, Layer, Redacted, Schema } from "effect";
+import { ConfigProvider, Context, Effect, Layer, Schema } from "effect";
 import { FetchHttpClient, HttpClient, HttpServer } from "effect/http";
 import { JobsClientFactory } from "@shivaedev/jobs/server/JobsClientFactory.ts";
 import { makePgBossTesting } from "@shivaedev/test-kits/jobs/testing.ts";
@@ -12,7 +12,11 @@ import { sources } from "#adoption/webhooks/feature.ts";
 import { testPoolSizes } from "#test-support/poolSizes.ts";
 import { postgres } from "#test-support/postgres.ts";
 
-const signing = ConfigProvider.layer(ConfigProvider.fromEnv({ env: { "GITHUB_WEBHOOK_SECRET": "adoption-signing-secret" } }));
+const signing = ConfigProvider.layer(
+	ConfigProvider.fromEnv({
+		env: { "BETTER_AUTH_SECRET": "adoption-auth-secret-with-at-least-32-characters", "GITHUB_WEBHOOK_SECRET": "adoption-signing-secret" },
+	}),
+);
 
 export const webhooksStory = storyKit({
 	around: withIsolatedDatabase,
@@ -23,7 +27,6 @@ export const webhooksStory = storyKit({
 				databaseUrl: database.url,
 				poolSizes: testPoolSizes,
 				port: 0,
-				secret: Redacted.make("adoption-auth-secret-with-at-least-32-characters"),
 			}).pipe(Layer.provide(signing)),
 		);
 		const baseUrl = HttpServer.formatAddress(Context.get(context, HttpServer.HttpServer).address);

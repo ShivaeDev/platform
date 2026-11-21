@@ -13,12 +13,12 @@ export function betterAuthUserProvisioning(auth: {
 				const normalized = email.toLowerCase();
 				const existing = await context.internalAdapter.findUserByEmail(normalized);
 				if (existing !== null) {
-					return { email: existing.user.email, id: existing.user.id, name: existing.user.name };
+					return { email: existing.user.email, emailVerified: existing.user.emailVerified, id: existing.user.id, name: existing.user.name };
 				}
 				const hash = await context.password.hash(Redacted.value(password));
 				const user = await context.internalAdapter.createUser({ email: normalized, emailVerified: true, name }, { method: "seed" });
 				await context.internalAdapter.createAccount({ accountId: user.id, password: hash, providerId: "credential", userId: user.id });
-				return { email: user.email, id: user.id, name: user.name };
+				return { email: user.email, emailVerified: true, id: user.id, name: user.name };
 			}).pipe(Effect.catch((error) => providerFailure(error.cause)));
 		}),
 	});

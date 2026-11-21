@@ -202,8 +202,22 @@ export default appTestConfig(["@shivaedev/source"]);
 `,
 };
 
+const NOTES_REGISTRATION_IMPORTS = `import type { AppModule } from "@shivaedev/server/AppModule.ts";
+import { Notes } from "#modules/notes/notes.ts";
+`;
+
+const NOTES_REGISTRATIONS = {
+	": AppModule": `${NOTES_REGISTRATION_IMPORTS}
+export const notesRegistration: AppModule = { module: Notes, services: Notes.layer };
+`,
+	"satisfies AppModule": `${NOTES_REGISTRATION_IMPORTS}
+export const notesRegistration = { module: Notes, services: Notes.layer } satisfies AppModule;
+`,
+};
+
 export const VITE_PROJECT = {
 	notesPage: NOTES_PAGE,
+	notesRegistration: { path: "src/modules/notes/server/registration.ts", texts: NOTES_REGISTRATIONS },
 	notesTest: NOTES_TEST,
 	notesTestThroughTheAppConfig: NOTES_TEST_THROUGH_THE_APP_CONFIG,
 	oldFormPages: OLD_FORM_PAGES,

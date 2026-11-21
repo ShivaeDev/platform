@@ -15,7 +15,7 @@ const WORDS: Readonly<Record<ModuleStatus, string>> = {
 };
 
 const printReport = Effect.fn("Build.printReport")(function* (report: GenerateReport) {
-	for (const { output, status } of report.modules) {
+	for (const { output, status } of [...report.modules, ...report.lists]) {
 		yield* Console.log(`${output}: ${WORDS[status]}`);
 	}
 	if (report.modules.length === 0) {
@@ -35,7 +35,7 @@ export const generateCommand = Command.make("generate", { check: Flag.Boolean("c
 	}),
 ).pipe(
 	Command.withDescription(
-		"Write src/generated/<module>.ts for every defineModule call of the project in the current directory and remove each generated file whose module is gone; --check writes nothing and fails on a missing, stale or orphaned file",
+		"Write src/generated/<module>.ts for every defineModule call of the project in the current directory and src/generated/server/modules.ts listing every exported registration written satisfies AppModule, and remove each generated file whose module is gone; --check writes nothing and fails on a missing, stale or orphaned file",
 	),
 );
 

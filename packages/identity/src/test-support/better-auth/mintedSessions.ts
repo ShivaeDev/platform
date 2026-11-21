@@ -7,6 +7,7 @@ import { signedInUser } from "@shivaedev/test-kits/identity/adapters/betterAuth.
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { accountRoleSeed } from "#server/better-auth/adapters/accountRoleSeed.ts";
 import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
+import { defineAuth } from "#server/better-auth/define.ts";
 import { migrateBetterAuth } from "#server/better-auth/migrate.ts";
 import { betterAuthMount } from "#server/better-auth/mount.ts";
 import { permissionLayer } from "#server/permissionLayer.ts";
@@ -32,11 +33,10 @@ export const mintedSessions = storyKit({
 			secret: "minted-session-story-secret-with-at-least-32-characters",
 			session: { cookieCache: { enabled: false } },
 		};
-		yield* migrateBetterAuth(options, { defaultRole: "user" });
-		const mounted = yield* betterAuthMount(options, {
-			defaultRole: "user",
-			roleSeed: accountRoleSeed(TestRoles, "operator", Config.succeed([{ accountId: "alice-github", providerId: "github" }])),
-			roles: TestRoles,
+		const auth = defineAuth({ defaultRole: "user", options, roles: TestRoles });
+		yield* migrateBetterAuth(auth);
+		const mounted = yield* betterAuthMount(auth, {
+			roleSeed: accountRoleSeed(auth, "operator", Config.succeed([{ accountId: "alice-github", providerId: "github" }])),
 		}).pipe(Effect.provide(memoryStore));
 		const activity: { handlerRequests: string[] } = { handlerRequests: [] };
 		const context = yield* Layer.build(

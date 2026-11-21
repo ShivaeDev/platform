@@ -39,7 +39,7 @@ export const socialHost = Effect.fn("SocialStory.socialHost")(function* (discove
 	yield* Effect.promise(async () => {
 		await (await getMigrations(options)).runMigrations();
 	});
-	const mounted = yield* betterAuthMount(options).pipe(
+	const mounted = yield* betterAuthMount({ options }).pipe(
 		Effect.provide(memoryStore),
 		Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env: { "AUTH_RATE_LIMIT_ENABLED": "false" } }))),
 	);

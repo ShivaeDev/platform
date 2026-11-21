@@ -53,7 +53,7 @@ export const preferencesHost = Effect.fnUntraced(function* () {
 		secret: "account-preferences-story-secret-at-least-32-characters",
 		session: { cookieCache: { enabled: false }, disableSessionRefresh: true },
 	};
-	yield* migrateBetterAuth(options);
+	yield* migrateBetterAuth({ options });
 	const modules = yield* appModules([
 		{
 			migrations: { loader: Migrator.fromRecord({ "0001_preferences": accountPreferencesMigration }) },
@@ -71,7 +71,7 @@ export const preferencesHost = Effect.fnUntraced(function* () {
 		} satisfies AppModule,
 	]);
 	yield* migratePostgres({ loader: modules.migrations.loader, lockTimeout: "5 seconds" });
-	const mounted = yield* betterAuthMount(options, { accountPreferences: true }).pipe(
+	const mounted = yield* betterAuthMount({ options }, { accountPreferences: true }).pipe(
 		Effect.provide(memoryStore),
 		Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env: { "AUTH_RATE_LIMIT_ENABLED": "false" } }))),
 	);

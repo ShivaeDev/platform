@@ -1,4 +1,5 @@
 import { DateTime, Effect } from "effect";
+import { mintUser } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { notes } from "#modules/notes/model.ts";
@@ -6,8 +7,8 @@ import { appScreen } from "#modules/notes/test-support/appScreen.tsx";
 import { notesHttp } from "#modules/notes/test-support/http.ts";
 import { screenActions } from "#modules/notes/test-support/screenActions.ts";
 import { screenObservations } from "#modules/notes/test-support/screenObservations.ts";
+import { AppAuth } from "#server/AppAuth.ts";
 import { configured, postgres } from "#test-support/postgres.ts";
-import { mintUser } from "#test-support/sessionPrecondition.ts";
 import { uiScreenVerbs } from "#test-support/uiScreenVerbs.ts";
 
 export const signedInApp = storyKit({
@@ -15,7 +16,7 @@ export const signedInApp = storyKit({
 	clock: Effect.runSync(DateTime.now),
 	*create() {
 		const screen = yield* appScreen({ account: { name: "alice" }, route: "/" });
-		const bob = yield* mintUser(screen, "bob");
+		const bob = yield* mintUser(AppAuth, screen, "bob");
 		const bobClient = yield* notesHttp(screen.baseUrl, bob.headers.get("cookie") ?? "", screen.origin);
 		return { ...screen, bob, bobClient };
 	},

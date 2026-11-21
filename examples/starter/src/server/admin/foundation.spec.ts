@@ -4,7 +4,7 @@ import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { failedEmailDelivery } from "#test-support/admin/failedEmailDelivery.ts";
 import { foundationAccount, foundationAdmin } from "#test-support/admin/foundation.ts";
 
-for (const role of ["admin", "owner"]) {
+for (const role of ["admin", "owner"] as const) {
 	foundationAdmin.it(`an ${role}'s default session may manage sessions`, [foundationAccount("operator", role)], function* ({ permissions }) {
 		const granted = yield* permissions("operator");
 

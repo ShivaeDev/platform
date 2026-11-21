@@ -2,13 +2,14 @@ import { ConfigProvider, Effect, Layer, Logger, Redacted, References } from "eff
 import { HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import { JobsClientFactory } from "@shivaedev/jobs/server/JobsClientFactory.ts";
+import { AUTH_TEST_SECRET } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
 import { makePgBossTesting, type PgBossTesting } from "@shivaedev/test-kits/jobs/testing.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { forwardingProxy } from "@shivaedev/test-story/server/forwardingProxy.ts";
 import { applicationHost } from "#server/applicationHost.ts";
 import { testPoolSizes } from "#test-support/poolSizes.ts";
 
-export const secret = Redacted.make("app-test-secret-with-at-least-32-characters");
+export const secret = Redacted.make(AUTH_TEST_SECRET);
 export const PUBLIC_URL = "https://app.example";
 
 export interface HostOptions {
@@ -24,7 +25,7 @@ export const startHost = Effect.fn("AppStory.startHost")(function* (options: Hos
 	const deployed = options.deployed === true;
 	const jobsTesting = options.jobsTesting ?? makePgBossTesting();
 	const database = yield* PostgresTestDatabase;
-	const env: Record<string, string> = deployed ? { "HOST": "0.0.0.0", "PORT": "0" } : {};
+	const env: Record<string, string> = { "BETTER_AUTH_SECRET": AUTH_TEST_SECRET, ...(deployed ? { "HOST": "0.0.0.0", "PORT": "0" } : {}) };
 	if (options.ownerAccounts !== undefined) {
 		env.AUTH_OWNER_ACCOUNTS = options.ownerAccounts;
 	}
@@ -38,7 +39,6 @@ export const startHost = Effect.fn("AppStory.startHost")(function* (options: Hos
 		databaseUrl: database.url,
 		poolSizes: testPoolSizes,
 		replacements: Layer.merge(Layer.succeed(JobsClientFactory, jobsTesting.clientFactory), options.replacements ?? Layer.empty),
-		secret,
 		...(deployed ? {} : { port: 0 }),
 	}).pipe(Layer.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env }))));
 	const logs: { level: string; message: unknown; annotations: Record<string, unknown> }[] = [];

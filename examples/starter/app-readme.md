@@ -8,7 +8,7 @@ const query = useQuery(client.api.list.query());
 
 A module writes each operation once, as `payload` and `*run` in its own file under `<module>/server/`, and lists them with `defineModule` in a module file named after its export, such as `Notes.ts` in the notes example. Browser-safe schemas live in `<module>/model.ts`. `pnpm generate` derives each operation's success and rejections from `run` and writes the module's wire and browser contract to `src/generated/<module path>`; client code imports the contract from there and never an operation or module file. Server code lives in `src/server`, and the browser entry point in `src/client/main.tsx`. The application owns its UI and session policy; Effect services, transactions and native RPC connect the layers.
 
-To remove the example, delete `src/modules/notes` and remove the module’s imports and entries in `src/admin/foundation.ts`, `src/server/modules.ts` and `src/client/modules.ts`, then run `pnpm ready`. Add your app's first module under `src/modules` and register its server and client pieces in those registries. Each server module carries its queues and workers for both application processes.
+To remove the example, delete `src/modules/notes` and remove the module’s imports and entries in `src/admin/foundation.ts` and `src/client/modules.ts`, then run `pnpm ready`. Add your app's first module under `src/modules`: its `server/registration.ts`, exported and written `satisfies AppModule`, registers it on the server by its folder, because `pnpm generate` lists every such registration in `src/generated/server/modules.ts`, and its client pieces register in those registries. Each server module carries its queues and workers for both application processes.
 
 Client modules declare optional `menu` and `overlays` arrays of React nodes and a `footer` React node beside `routes` in `src/client/Module.ts`. The shared route shell renders menu entries in its Main navigation, then route content, overlays and footer content. Each slot follows the registration order in `src/client/modules.ts`, preserving array order within a module. A module without slots keeps its route output without adding navigation or footer elements. A route that sets `fullScreen: true` in its `staticData`, or sits under a parent route that does, renders without the Main navigation and footer; the shell's loading line and the overlays stay. A module's optional `warm` array names bound queries the session keeps subscribed until sign-out, such as notes' `client.api.list.query()`, so their screens open with current data; each listed query holds one subscription on the host for the whole session.
 
@@ -48,7 +48,7 @@ With a clean Git working tree, run `pnpm dlx @shivaedev/create-app@latest update
 
 ### Auth schema changes
 
-Numbered auth migrations contain frozen SQL. After changing `src/server/authOptions.ts` or the default role, follow identity's [frozen migration workflow](https://github.com/ShivaeDev/platform/tree/main/packages/identity#frozen-auth-migrations): apply the existing migrations to a disposable PostgreSQL database, generate the next module with `generateBetterAuthMigration`, then review and commit its SQL. Register the generated file in `boundaries/auth-sql`'s `options.owners` in `quality.config.ts`. Run `pnpm migrate` to apply it. Keep earlier migrations unchanged.
+Numbered auth migrations contain frozen SQL. After changing `AppAuth`'s options in `src/server/AppAuth.ts` or its default role, follow identity's [frozen migration workflow](https://github.com/ShivaeDev/platform/tree/main/packages/identity#frozen-auth-migrations): apply the existing migrations to a disposable PostgreSQL database, generate the next module with `generateBetterAuthMigration`, then review and commit its SQL. Register the generated file in `boundaries/auth-sql`'s `options.owners` in `quality.config.ts`. Run `pnpm migrate` to apply it. Keep earlier migrations unchanged.
 
 The auth migration stories call `assertBetterAuthSchema` after all numbered migrations, so missing schema changes fail with their names. A migration calling Better Auth's `getMigrations` or identity's `migrateBetterAuth` live is not frozen; option changes and Better Auth upgrades can change its DDL.
 
@@ -90,13 +90,13 @@ Railway works out of the box: `.railway/railway.ts` supplies `TRUSTED_PROXY=100.
 
 Open `/admin` or `/admin/jobs` on the app host (port 3000 locally, or through Vite on port 5173) for health, queue counts, paginated failed and dead-lettered jobs, and job detail. These app-owned views register native contracts with [`@shivaedev/admin`](https://github.com/ShivaeDev/platform/tree/main/packages/admin) and use the existing `/rpc` transport and session-owned atoms. Vite serves the React routes and proxies their RPC calls to the app host. The default Jobs registration is read-only. `/admin/notes` is an example app page with note statistics across all users. The pages require `jobs.read` and `notes.statistics.read`; client routes use the same grants with one permission fallback.
 
-After `pnpm migrate`, create an owner with a new email address:
+After `pnpm migrate`, create an owner:
 
 ```sh
 ADMIN_EMAIL=operator@example.com ADMIN_PASSWORD='a-long-unique-password' pnpm admin:create
 ```
 
-The command uses the server's `DATABASE_URL` and `BETTER_AUTH_SECRET`; `ADMIN_NAME` defaults to `Administrator`. It fails if the email already exists. Sign in with those credentials, then visit `/admin/jobs`.
+The command uses the server's `DATABASE_URL` and `BETTER_AUTH_SECRET`; `ADMIN_NAME` defaults to `Administrator`. Running it again for an existing email keeps that account and its password. Sign in with those credentials, then visit `/admin/jobs`.
 
 An `admin/` path segment marks admin-only code. Put a wholly admin-only feature under `src/modules/admin/<name>`. Admin tools for a member feature stay in that module: browser-safe declarations in `admin/`, reads and handlers in `server/admin/`, and bindings and views in `client/admin/`. Each module reads only its own tables; compose its exposed operations when another module needs its data. Permissions enforce access.
 

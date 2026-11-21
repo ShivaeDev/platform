@@ -2,7 +2,7 @@ import { Effect } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { auth, signedInWithRole } from "#test/auth/story.ts";
+import { auth, mintedWithRole, signedInWithRole } from "#test/auth/story.ts";
 
 const ADMIN_TOOLS = "Admin tools for member@example.test";
 const OWNER_TOOLS = "Owner tools for member@example.test";
@@ -26,6 +26,19 @@ auth.it(
 		]);
 	},
 );
+
+for (const [role, answer] of [
+	["admin", "Admin tools for ada@app.test"],
+	["user", "failed with forbidden"],
+] as const) {
+	auth.it(
+		`ada, minted with the ${role} role by the story kit, gets ${answer} from the admin RPC`,
+		[mintedWithRole(role)],
+		function* ({ callAdminTools }) {
+			expect(yield* callAdminTools()).toBe(answer);
+		},
+	);
+}
 
 for (const [caller, traits, refusal, status] of [
 	["a signed-in user without a role", [signedInWithRole("user")], "forbidden", HttpStatus.fromLiteral("Forbidden")],

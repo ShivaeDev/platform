@@ -9,7 +9,7 @@ import { betterAuthMount } from "#server/better-auth/mount.ts";
 class Application extends Context.Service<Application, { readonly admits: (id: string) => boolean }>()("@shivaedev/identity/typecheck/Application") {}
 
 const mounted = betterAuthMount(
-	{ secret: "typecheck-only-secret-at-least-32-characters" },
+	{ options: { secret: "typecheck-only-secret-at-least-32-characters" } },
 	{
 		databaseHooks: {
 			session: {
@@ -24,17 +24,17 @@ const mounted = betterAuthMount(
 	},
 );
 
-expectTypeOf<Effect.Services<typeof mounted>>().toEqualTypeOf<Application | Scope.Scope | Store>();
+expectTypeOf<Effect.Services<typeof mounted>>().toEqualTypeOf<Application | Scope.Scope | Store | SqlClient.SqlClient>();
 
 const resetMount = betterAuthMount(
-	{ secret: "typecheck-only-secret-at-least-32-characters" },
+	{ options: { secret: "typecheck-only-secret-at-least-32-characters" } },
 	{ onPasswordReset: ({ user }) => Effect.flatMap(Application, (app) => Effect.sync(() => void app.admits(user.id))) },
 );
 
-expectTypeOf<Effect.Services<typeof resetMount>>().toEqualTypeOf<Application | Scope.Scope | Store>();
+expectTypeOf<Effect.Services<typeof resetMount>>().toEqualTypeOf<Application | Scope.Scope | Store | SqlClient.SqlClient>();
 
 const emailMount = betterAuthMount(
-	{ secret: "typecheck-only-secret-at-least-32-characters" },
+	{ options: { secret: "typecheck-only-secret-at-least-32-characters" } },
 	{
 		emails: {
 			deliver: ({ user }) => Effect.flatMap(Application, (app) => Effect.sync(() => void app.admits(user.id))),
@@ -49,7 +49,7 @@ const emailMount = betterAuthMount(
 	},
 );
 
-expectTypeOf<Effect.Services<typeof emailMount>>().toEqualTypeOf<Application | Store | SqlClient.SqlClient | Reactivity.Reactivity>();
+expectTypeOf<Effect.Services<typeof emailMount>>().toEqualTypeOf<Application | Scope.Scope | Store | SqlClient.SqlClient | Reactivity.Reactivity>();
 
 const invalidFailure: BetterAuthDatabaseHooks = {
 	user: {

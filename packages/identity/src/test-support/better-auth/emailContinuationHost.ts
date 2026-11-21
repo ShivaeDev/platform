@@ -31,21 +31,24 @@ export const emailContinuationHost = Effect.fnUntraced(function* () {
 		trustedOrigins: [baseUrl, authOrigin, "https://other.example.test"],
 		user: { changeEmail: { enabled: true } },
 	};
-	yield* migrateBetterAuth(options);
+	yield* migrateBetterAuth({ options });
 	const verification = `${baseUrl}/api/auth/verify-email?from=email`;
-	const mounted = yield* betterAuthMount(options, {
-		emails: {
-			deliver: (message) => Effect.sync(() => void messages.push(message)),
-			routes: {
-				AccountAlreadyExists: `${baseUrl}/sign-in?from=email`,
-				ApproveEmailChange: verification,
-				ConfirmAccount: verification,
-				ConfirmNewAddress: verification,
-				ResetPassword: `${baseUrl}/reset-password?from=email`,
+	const mounted = yield* betterAuthMount(
+		{ options },
+		{
+			emails: {
+				deliver: (message) => Effect.sync(() => void messages.push(message)),
+				routes: {
+					AccountAlreadyExists: `${baseUrl}/sign-in?from=email`,
+					ApproveEmailChange: verification,
+					ConfirmAccount: verification,
+					ConfirmNewAddress: verification,
+					ResetPassword: `${baseUrl}/reset-password?from=email`,
+				},
 			},
+			hardening: { requirePasswordForEmailChange: false },
 		},
-		hardening: { requirePasswordForEmailChange: false },
-	})
+	)
 		.pipe(Effect.provide(memoryStore))
 		.pipe(Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env: { "AUTH_RATE_LIMIT_ENABLED": "false" } }))));
 	const routes = Layer.merge(mounted.routes, HttpRouter.add("GET", "/invite", Effect.succeed(HttpServerResponse.text("Continue to the invitation"))));

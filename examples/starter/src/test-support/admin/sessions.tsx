@@ -1,16 +1,17 @@
 import { DateTime, Effect, Predicate } from "effect";
 import { act } from "react";
 import { activityScreenSignal } from "@shivaedev/contract/clientActivity.ts";
+import { mintUser } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { expectNoReactWarnings } from "@shivaedev/test-story/client/adapters/react.ts";
 import { type ScreenDriver, screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import type { AppAccess } from "#AppAccess.ts";
+import { AppAuth } from "#server/AppAuth.ts";
 import { appScreen } from "#test-support/appScreen.tsx";
 import { startHost } from "#test-support/host.ts";
 import { configured, postgres } from "#test-support/postgres.ts";
 import { type ScreenSurface, screenView } from "#test-support/screenState.ts";
-import { mintUser } from "#test-support/sessionPrecondition.ts";
 
 const warnings = expectNoReactWarnings();
 
@@ -68,7 +69,7 @@ export const adminSessionsOpen = adminSessions.trait(
 	"screen",
 	"alice and bob are signed in and alice opens the Sessions page on the real app host",
 	function* (engine) {
-		yield* mintUser(engine.host, "bob");
+		yield* mintUser(AppAuth, engine.host, "bob");
 		const screen = yield* appScreen({
 			account: { name: "alice", role: engine.role },
 			host: engine.host,

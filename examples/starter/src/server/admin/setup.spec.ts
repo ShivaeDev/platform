@@ -21,11 +21,11 @@ adminSetup.it(
 	"the bootstrap command creates a first owner who signs in with the users, roles and jobs permissions",
 	[],
 	function* ({ adminCommandRuns, appStarts, signedInAccount, signsIn }) {
-		const created = yield* adminCommandRuns("first-admin@app.test", "first-admin-password-123");
+		const bootstrap = yield* adminCommandRuns("first-admin@app.test", "first-admin-password-123");
 
 		yield* appStarts();
 		yield* outcomes([
-			["bootstrap", () => Effect.succeed(created), "created"],
+			["bootstrap", () => Effect.succeed(bootstrap), "completed"],
 			["sign-in", () => signsIn("first-admin@app.test", "first-admin-password-123"), "signed in"],
 			[
 				"signed-in account",
@@ -41,10 +41,19 @@ adminSetup.it(
 	},
 );
 
-adminSetup.it("the bootstrap command refuses a second admin with the same email", [], function* ({ adminCommandRuns }) {
-	expect(yield* adminCommandRuns("first-admin@app.test", "first-admin-password-123")).toBe("created");
+adminSetup.it(
+	"running the bootstrap command again for the same email keeps the first owner and her password",
+	[],
+	function* ({ adminCommandRuns, appStarts, signedInAccount, signsIn }) {
+		expect(yield* adminCommandRuns("first-admin@app.test", "first-admin-password-123")).toBe("completed");
 
-	const again = yield* adminCommandRuns("first-admin@app.test", "another-admin-password-123");
+		const again = yield* adminCommandRuns("first-admin@app.test", "another-admin-password-123");
 
-	expect(again).toBe("refused");
-});
+		yield* appStarts();
+		yield* outcomes([
+			["second run", () => Effect.succeed(again), "completed"],
+			["sign-in with the first password", () => signsIn("first-admin@app.test", "first-admin-password-123"), "signed in"],
+			["signed-in account", () => signedInAccount(), { email: "first-admin@app.test", role: "owner" }],
+		]);
+	},
+);

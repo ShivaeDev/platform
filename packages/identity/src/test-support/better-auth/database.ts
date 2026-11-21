@@ -43,7 +43,7 @@ export const authStorage = storyKit({
 			if (!engine.hosting) {
 				return;
 			}
-			const mounted = yield* betterAuthMount(engine.options)
+			const mounted = yield* betterAuthMount({ options: engine.options })
 				.pipe(Effect.provide(memoryStore))
 				.pipe(Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env: { "AUTH_RATE_LIMIT_ENABLED": "false" } }))));
 			const context = yield* Layer.build(

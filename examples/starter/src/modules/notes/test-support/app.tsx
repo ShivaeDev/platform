@@ -4,6 +4,7 @@ import { DateTime, Effect } from "effect";
 import { SqlClient } from "effect/sql";
 import { clientActivity } from "@shivaedev/contract/clientActivity.ts";
 import { authTestDatabase } from "@shivaedev/identity/server/better-auth/testDatabase.ts";
+import { mintUser } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { seedCookies } from "@shivaedev/test-story/server/adapters/seedCookies.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
@@ -17,11 +18,11 @@ import { heldSignIn } from "#modules/notes/test-support/heldSignIn.ts";
 import { notesMemberScreens } from "#modules/notes/test-support/memberScreens.tsx";
 import { screenActions } from "#modules/notes/test-support/screenActions.ts";
 import { screenObservations } from "#modules/notes/test-support/screenObservations.ts";
+import { AppAuth } from "#server/AppAuth.ts";
 import { credentials } from "#test-support/authHttp.ts";
 import { createCookieHost } from "#test-support/createCookieHost.ts";
 import { configured, postgres } from "#test-support/postgres.ts";
 import { acquireScreen, type ScreenSurface, screenView } from "#test-support/screenState.ts";
-import { mintUser } from "#test-support/sessionPrecondition.ts";
 import { settleScreen } from "#test-support/settleScreen.ts";
 import { uiScreenVerbs } from "#test-support/uiScreenVerbs.ts";
 
@@ -166,7 +167,7 @@ export function authScreen() {
 
 export function signedInAccount() {
 	return notesApp.trait("account", "alice has a signed-in session", function* (engine) {
-		const { cookies, headers } = yield* mintUser({ origin: engine.baseUrl }, "alice");
+		const { cookies, headers } = yield* mintUser(AppAuth, { origin: engine.baseUrl }, "alice");
 		engine.headers = headers;
 		yield* seedCookies(cookies);
 	});
@@ -175,7 +176,7 @@ export function signedInAccount() {
 export function signedInMembers(...names: readonly string[]) {
 	return notesApp.trait("screen", `${names.join(" and ")} open their own signed-in notes screens`, function* (engine) {
 		for (const name of names) {
-			const { cookies } = yield* mintUser({ origin: engine.baseUrl }, name);
+			const { cookies } = yield* mintUser(AppAuth, { origin: engine.baseUrl }, name);
 			yield* engine.members.open(name, cookies);
 		}
 	});

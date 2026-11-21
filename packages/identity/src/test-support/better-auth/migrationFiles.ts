@@ -1,12 +1,11 @@
 import { fileURLToPath } from "node:url";
 import { NodeServices } from "@effect/platform-node";
-import type { BetterAuthOptions } from "better-auth";
 import { Effect, FileSystem, type Scope } from "effect";
 import type { SqlClient } from "effect/sql";
 import * as MigratorFileSystem from "effect/sql/MigratorFileSystem";
 import { migratePostgres } from "@shivaedev/sql/migrations.ts";
+import type { AuthSchemaDeclaration } from "#server/better-auth/define.ts";
 import { generateBetterAuthMigration } from "#server/better-auth/migrations/generate.ts";
-import type { StoredRoleOptions } from "#server/better-auth/storedRoleOptions.ts";
 
 export const authMigrationFiles = Effect.gen(function* () {
 	const fs = yield* FileSystem.FileSystem.pipe(Effect.provide(NodeServices.layer));
@@ -15,8 +14,8 @@ export const authMigrationFiles = Effect.gen(function* () {
 	yield* fs.makeDirectory(`${directory}/node_modules`);
 	yield* fs.symlink(fileURLToPath(new URL("../../../node_modules/effect", import.meta.url)), `${directory}/node_modules/effect`);
 	return {
-		generate: (name: string, options: Omit<BetterAuthOptions, "database">, role?: StoredRoleOptions) =>
-			Effect.flatMap(generateBetterAuthMigration(options, role), (source) => fs.writeFileString(`${directory}/${name}.ts`, source)),
+		generate: (name: string, auth: AuthSchemaDeclaration) =>
+			Effect.flatMap(generateBetterAuthMigration(auth), (source) => fs.writeFileString(`${directory}/${name}.ts`, source)),
 		migrate: (live?: Effect.Effect<unknown, unknown, SqlClient.SqlClient | Scope.Scope>) =>
 			migratePostgres({
 				loader: MigratorFileSystem.fromFileSystem(directory).pipe(

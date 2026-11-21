@@ -16,11 +16,15 @@ export const openProject = Effect.fn("Build.openProject")(function* (directory: 
 	return project;
 });
 
+export function sourceFiles(project: Project): readonly string[] {
+	return project.config.files.filter((file) => !(file.startsWith(project.generated) || file.endsWith(".d.ts"))).sort();
+}
+
 // Every file of the tsconfig that calls defineModule, so no list of modules needs keeping; each writes src/generated/<its path under src>.
 export const moduleFiles = Effect.fn("Build.moduleFiles")(function* (project: Project) {
 	const fs = yield* FileSystem.FileSystem;
 	const path = yield* Path.Path;
-	const sources = project.config.files.filter((file) => !(file.startsWith(project.generated) || file.endsWith(".d.ts"))).sort();
+	const sources = sourceFiles(project);
 	const modules = yield* Effect.filter(sources, (file) => Effect.map(fs.readFileString(file), (text) => definesModule(file, text)));
 	const source = path.join(project.root, "src");
 	return modules.map((module): ModuleFile & { readonly underSource: boolean } => {

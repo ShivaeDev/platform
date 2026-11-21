@@ -45,7 +45,7 @@ export const policyHost = Effect.fnUntraced(function* (
 	yield* Effect.promise(async () => {
 		await (await getMigrations(options)).runMigrations();
 	});
-	const mounted = yield* betterAuthMount(options, { signIn })
+	const mounted = yield* betterAuthMount({ options }, { signIn })
 		.pipe(Effect.provide(memoryStore))
 		.pipe(Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env }))));
 	let accountLookups = 0;

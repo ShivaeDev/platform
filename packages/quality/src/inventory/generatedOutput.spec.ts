@@ -33,6 +33,16 @@ repositoryStory.it(
 );
 
 repositoryStory.it(
+	"quality lint counts an export that only generated output imports as used in a checkout without Git, where the .gitignore files decide what generate writes",
+	[...LAYOUT, repositoryHas(titleLimitExported), generatorWrites("MAX_TITLE_LENGTH", "TitleTaken")],
+	function* ({ outcome, runs }) {
+		yield* runs("lint");
+
+		yield* assertThat(yield* outcome(), (actual) => actual.toBe("passed"));
+	},
+);
+
+repositoryStory.it(
 	"quality lint stops with the generator's own message when the generate script refuses the code",
 	[...LAYOUT, repositoryHas(generatorRefuses), committed()],
 	function* ({ outcome, runs, stderr }) {

@@ -1,8 +1,7 @@
-import { Config, Effect, Layer, Option, Redacted } from "effect";
+import { Config, Effect, Layer, Option, type Redacted } from "effect";
 import { HttpRouter } from "effect/http";
 import { adminDocuments } from "@shivaedev/admin/server/adminDocuments.ts";
 import { accountRoleSeed } from "@shivaedev/identity/server/better-auth/adapters/accountRoleSeed.ts";
-import { betterAuthDatabase } from "@shivaedev/identity/server/better-auth/adapters/database.ts";
 import { ProviderAccounts } from "@shivaedev/identity/server/better-auth/allowedAccounts.ts";
 import { betterAuthMount } from "@shivaedev/identity/server/better-auth/mount.ts";
 import { betterAuthUserDirectory } from "@shivaedev/identity/server/better-auth/userDirectory.ts";
@@ -12,18 +11,16 @@ import { trustedOrigins } from "@shivaedev/identity/server/trustedOrigins.ts";
 import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
 import { appHost } from "@shivaedev/server/appDatabase.ts";
 import { hostAssets } from "@shivaedev/server/hostAssets.ts";
-import { AppAccess } from "#AppAccess.ts";
 import { Owner } from "#roles/Owner.ts";
-import { User } from "#roles/User.ts";
+import { AppAuth } from "#server/AppAuth.ts";
 import { authEmailRoutes } from "#server/authEmailRoutes.ts";
 import { authEmails } from "#server/authEmails.ts";
-import { authOptions } from "#server/authOptions.ts";
 import { databaseOptions } from "#server/databaseOptions.ts";
 import { jobsLayer } from "#server/jobsLayer.ts";
 import { serverModules } from "#server/modules.ts";
 import type { PoolSizes } from "#server/PoolSizes.ts";
 
-const ownerSeed = accountRoleSeed(AppAccess, Owner.name, Config.schema(ProviderAccounts, "AUTH_OWNER_ACCOUNTS").pipe(Config.withDefault([])));
+const ownerSeed = accountRoleSeed(AppAuth, Owner.name, Config.schema(ProviderAccounts, "AUTH_OWNER_ACCOUNTS").pipe(Config.withDefault([])));
 
 function adminDocumentRoutes(admin: Parameters<typeof adminDocuments>[0]) {
 	const handler = HttpRouter.toHttpEffect(hostAssets({ root: "dist", spa: true })).pipe(
@@ -37,7 +34,6 @@ export function applicationHost<R = never, E = never, TRequirements = never>(con
 	readonly replacements?: Layer.Layer<R, E, TRequirements>;
 	readonly databaseUrl?: Redacted.Redacted<string>;
 	readonly port?: number;
-	readonly secret?: Redacted.Redacted<string>;
 }) {
 	return Layer.unwrap(
 		Effect.gen(function* () {
@@ -57,19 +53,10 @@ export function applicationHost<R = never, E = never, TRequirements = never>(con
 				...database,
 				application: Effect.gen(function* () {
 					const serviceContext = yield* Layer.build(services);
-					const { routes, sessions: authSessions } = yield* betterAuthMount(
-						{
-							...authOptions(),
-							database: yield* betterAuthDatabase(),
-							...(config?.secret === undefined ? {} : { secret: Redacted.value(config.secret) }),
-						},
-						{
-							defaultRole: User.name,
-							emails: yield* authEmails().pipe(Effect.provideContext(serviceContext)),
-							roleSeed: ownerSeed,
-							roles: AppAccess,
-						},
-					);
+					const { routes, sessions: authSessions } = yield* betterAuthMount(AppAuth, {
+						emails: yield* authEmails().pipe(Effect.provideContext(serviceContext)),
+						roleSeed: ownerSeed,
+					});
 					const sessions = {
 						...authSessions,
 						origin: trustedOrigins({
@@ -86,7 +73,7 @@ export function applicationHost<R = never, E = never, TRequirements = never>(con
 						handlers: Layer.merge(modules.handlers, authenticatedUserLayer()),
 						requestServices: modules.requestServices,
 						routes: Layer.mergeAll(routes, authEmailRoutes, hostAssets({ root: "dist", spa: true }), adminDocumentRoutes(modules.admin)),
-						services: Layer.merge(Layer.succeedContext(serviceContext), betterAuthUserDirectory(AppAccess, authOptions())),
+						services: Layer.merge(Layer.succeedContext(serviceContext), betterAuthUserDirectory(AppAuth)),
 						sessions: Layer.succeed(SessionPolicy, sessions),
 					};
 				}),

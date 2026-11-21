@@ -1,15 +1,16 @@
 import { Config, ConfigProvider, DateTime, Effect, Layer } from "effect";
 import { authTestDatabase } from "@shivaedev/identity/server/better-auth/testDatabase.ts";
 import { JobsClientFactory } from "@shivaedev/jobs/server/JobsClientFactory.ts";
+import { mintUser } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
 import { makePgBossTesting } from "@shivaedev/test-kits/jobs/testing.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { AppAuth } from "#server/AppAuth.ts";
 import { applicationWorker } from "#server/applicationWorker.ts";
 import { SweepExpiredSessions } from "#server/foundationWorker.ts";
 import { testPoolSizes } from "#test-support/poolSizes.ts";
 import { configured, postgres } from "#test-support/postgres.ts";
-import { mintUser } from "#test-support/sessionPrecondition.ts";
 
 export const worker = storyKit({
 	around: withIsolatedDatabase,
@@ -67,7 +68,7 @@ export function productionWithout(variable: "EMAIL_FROM" | "RESEND_API_KEY") {
 }
 
 export const expiredSession = worker.trait("sessions", "alice's session has expired and bob's is live", function* (engine) {
-	const { user } = yield* mintUser({ origin: "http://localhost:3000" }, "alice");
-	yield* mintUser({ origin: "http://localhost:3000" }, "bob");
+	const { user } = yield* mintUser(AppAuth, { origin: "http://localhost:3000" }, "alice");
+	yield* mintUser(AppAuth, { origin: "http://localhost:3000" }, "bob");
 	yield* engine.storage.expireSessions(user.id);
 });

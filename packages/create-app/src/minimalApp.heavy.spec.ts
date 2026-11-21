@@ -3,7 +3,7 @@ import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { application } from "#test/application.ts";
 import { fullAppToCompare } from "#test/traits.ts";
 
-const REGISTRATIONS = ["src/admin/foundation.ts", "src/server/modules.ts", "src/client/modules.ts"];
+const REGISTRATIONS = ["src/admin/foundation.ts", "src/client/modules.ts"];
 const NOTES_REFERENCE = /notes(?:Registration|Worker|Migrations)|notesModule|noteQueue|#modules\/notes/u;
 
 application.it(
@@ -23,7 +23,7 @@ application.it(
 			[
 				"different files",
 				() => filesDifferingFrom("full/my-app"),
-				[".create-app.json", ".env.local", "package.json", "src/admin/foundation.ts", "src/client/modules.ts", "src/server/modules.ts"],
+				[".create-app.json", ".env.local", "package.json", "src/admin/foundation.ts", "src/client/modules.ts"],
 			],
 			["notes dependency", () => dependsOn("@tanstack/react-table"), false],
 			["generation record", () => generationRecord(), { minimal: true, name: "my-app" }],

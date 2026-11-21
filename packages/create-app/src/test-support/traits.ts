@@ -167,6 +167,17 @@ export const databasesPrepared = application.trait(
 	},
 );
 
+export const generatedFilesWritten = application.trait(
+	"app",
+	"the app ran pnpm generate, as the prepare script of a real pnpm install does",
+	function* (engine) {
+		const result = appScript(join(engine.root, engine.app), "generate", [], ["NODE_OPTIONS=--conditions=@shivaedev/source"]);
+		if (result.status !== 0) {
+			return yield* Effect.die(new Error(`pnpm generate failed:\n${result.stdout}${result.stderr}`));
+		}
+	},
+);
+
 export function appAdds(path: string, content: string) {
 	return application.trait("app", `the app adds ${path} holding ${JSON.stringify(content)}`, (engine) =>
 		Effect.sync(() => {

@@ -2,7 +2,7 @@ import { ConfigProvider, type Duration, Effect, Exit, Layer, Predicate, Scope } 
 import * as HttpStatus from "effect/http/HttpStatus";
 import * as TestClock from "effect/testing/TestClock";
 import { JobsClientFactory } from "@shivaedev/jobs/server/JobsClientFactory.ts";
-import { signInAgain } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
+import { signInAgain, storyAuth } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
 import { makePgBossTesting } from "@shivaedev/test-kits/jobs/testing.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { makeAuth } from "#client/adapters/auth.ts";
@@ -11,10 +11,10 @@ import { CountWords } from "#modules/notes/server/jobs.ts";
 import type { Account, Engine } from "#modules/notes/test-support/Engine.ts";
 import { changeHints, noteChangesSubscription, watchedList, watchedNote } from "#modules/notes/test-support/live.ts";
 import { foreignOriginRequest, notesRequests, signOutOver } from "#modules/notes/test-support/requests.ts";
+import { AppAuth } from "#server/AppAuth.ts";
 import { applicationWorker } from "#server/applicationWorker.ts";
 import { authPost, credentials } from "#test-support/authHttp.ts";
 import { testPoolSizes } from "#test-support/poolSizes.ts";
-import { sessionPrecondition } from "#test-support/sessionPrecondition.ts";
 
 export function runningHost(engine: Engine) {
 	if (engine.host === undefined) {
@@ -58,7 +58,7 @@ export function applicationVerbs(engine: Engine, story: { tell: (line: string) =
 	engine.sourceApi.narrate(story.tell);
 	const renewSession = Effect.fn("AppStory.renewSession")(function* (name: string) {
 		const host = runningHost(engine);
-		const auth = yield* sessionPrecondition(host);
+		const auth = yield* storyAuth(AppAuth, host);
 		const { headers } = yield* signInAgain(auth, account(engine, name).userId);
 		const cookie = headers.get("cookie") ?? "";
 		engine.accounts.set(name, { ...account(engine, name), cookie, notes: yield* notesRequests(host, name, cookie, story.tell) });
