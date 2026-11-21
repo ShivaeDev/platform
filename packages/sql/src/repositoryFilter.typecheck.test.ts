@@ -6,7 +6,7 @@ import { expectTypeOf, it } from "vitest";
 import { allRows } from "#allRows.ts";
 import type { DeleteFilter } from "#deleteFilter.ts";
 import { makeRepository } from "#repository.ts";
-import type { BucketRegistrationError, ServerOnlyKeyError } from "#repositoryCollection.ts";
+import type { RepositoryBuildError } from "#repositoryCollection.ts";
 import { serverOnly } from "#serverOnly.ts";
 
 class FilterEncoding extends Context.Service<FilterEncoding, string>()("@shivaedev/sql/FilterEncoding") {}
@@ -200,9 +200,9 @@ const serverOnlyFilters = Effect.gen(function* () {
 });
 
 it("a server-only field is filtered by equality or an in list of Redacted values and takes no range or pattern", () => {
-	expectTypeOf(serverOnlyFilters).toEqualTypeOf<Effect.Effect<void, BucketRegistrationError | ServerOnlyKeyError, SqlClient.SqlClient>>();
+	expectTypeOf(serverOnlyFilters).toEqualTypeOf<Effect.Effect<void, RepositoryBuildError, SqlClient.SqlClient>>();
 });
 
 it("conflict predicates retain field encoding services and check columns and values", () => {
-	expectTypeOf(program).toEqualTypeOf<Effect.Effect<void, BucketRegistrationError | ServerOnlyKeyError, SqlClient.SqlClient>>();
+	expectTypeOf(program).toEqualTypeOf<Effect.Effect<void, RepositoryBuildError, SqlClient.SqlClient>>();
 });
