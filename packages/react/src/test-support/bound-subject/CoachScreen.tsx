@@ -10,8 +10,8 @@ export function CoachScreen({ client }: { readonly client: JournalClient }) {
 	const dana = forSubject(client.api, "dana").journal;
 	const own = useQuery(client.api.journal.entries.query());
 	const danas = useQuery(dana.entries.query());
-	const quickEntry = useAction(dana.write, { failures: { NotYourClient: "Not your client" } });
-	const create = useCreate(dana.write, { failures: { NotYourClient: "Not your client" }, initialValues: { entry: "" } });
+	const quickEntry = useAction(dana.write, { failures: { NotYourClient: "message" } });
+	const create = useCreate(dana.write, { failures: { NotYourClient: "message" }, initialValues: { entry: "" } });
 	const entry = useField(create.form, "entry");
 	return (
 		<section>

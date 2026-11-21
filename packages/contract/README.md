@@ -332,7 +332,7 @@ import { forSubject } from "@shivaedev/contract/forSubject.ts";
 
 const client = forSubject(api, clientId);
 const diary = useQuery(client.coaching.diary.query());
-const save = useAction(client.coaching.write, { failures: { NotYourClient: "Not your client" } });
+const save = useAction(client.coaching.write, { failures: { NotYourClient: "message" } });
 ``` See [identity's subject guide](https://github.com/ShivaeDev/platform/tree/main/packages/identity#declared-request-subjects) for delegated selection and refusal declarations.
 
 ### Expected failures
