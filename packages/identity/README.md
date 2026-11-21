@@ -1077,7 +1077,7 @@ const eraseOwnedRows = data.eraseOwnedRows;
 
 `exportAccount(userId)` returns `{ account, owned }`. `account` holds the person's profile fields, linked-account identifiers and session metadata from Better Auth's tables, with timestamps as native Effect UTC values; passwords, access tokens, refresh tokens and session tokens are left out by explicit field selection. `owned` holds one `{ table, rows }` entry per owned model, ordered by table, with every row whose owner field holds the user id, encoded through the model's `json` variant. A field without a JSON variant, such as a `serverOnly` field, is never read, so it cannot reach the export. A table with none of the person's rows keeps its empty entry. Identity's own account preferences are an owned model too.
 
-`eraseOwnedRows(userId)` deletes every owned row of the person. It reads PostgreSQL's foreign keys between the owned tables and deletes the rows that reference a table before the rows they reference, so `RESTRICT` and `NO ACTION` keys between owned tables need no hand-kept order. It opens no transaction of its own: run it inside the caller's `transact` from `@shivaedev/sql/transact.ts`, and a failure anywhere in that transaction leaves every row in place. When `RESTRICT` or `NO ACTION` keys between owned tables form a cycle, it fails with `OwnedTableCycle` from `server/account-data/OwnedTableCycle.ts`, naming the tables as `schema.table`, before it deletes anything. It erases owned rows only; the auth user and Better Auth's own tables stay for the account deletion that runs after it.
+`eraseOwnedRows(userId)` deletes every owned row of the person. It reads PostgreSQL's foreign keys between the owned tables and deletes the rows that reference a table before the rows they reference, so `RESTRICT` and `NO ACTION` keys between owned tables need no hand-kept order. It opens no transaction of its own: run it inside the caller's `transact` from `@shivaedev/sql/transact.ts`, and a failure anywhere in that transaction leaves every row in place. When `RESTRICT` or `NO ACTION` keys between owned tables form a cycle, it fails with `OwnedTableCycle` from `server/account-data/OwnedTableCycle.ts`, naming the tables as `schema.table`, before it deletes anything. It erases owned rows only; the auth user and Better Auth's own tables stay for the [account deletion](#delete-an-account) that runs after it.
 
 `check` fails with `UncoveredUserColumns` from `server/account-data/UncoveredUserColumns.ts` when a column refers to the person but nothing covers it. A column refers to the person when its foreign key points at the auth user's id or at an owned model's owner column. It is covered when it is an owned model's owner column, when its foreign key is `ON DELETE SET NULL` (such a row, an authored-by row for example, is not the person's: it stays without them and is not in their export), or when it belongs to one of Better Auth's tables. The error's `columns` names each `{ schema, table, column }` once, from every schema. `exportAccount` and `eraseOwnedRows` run the check first, so a new column whose foreign key points directly at the person, or at an owned model's owner column, fails them until an owner mark or a `SET NULL` key covers it. Run `check` against the migrated database in a startup check or a PostgreSQL story too, after the application's repositories are built under `collectRepositoryModels` from `@shivaedev/sql/RepositoryModels.ts`; `appHost` provides that collector, so an operation it serves sees every owned model.
 
@@ -1090,6 +1090,35 @@ Know what the check does not see before you rely on the export:
 Outside a host, a job or script must provide `collectRepositoryModels` itself and build its repositories under it. Without the collector no owned model is recorded, so `exportAccount`, `eraseOwnedRows` and `check` fail with `OwnedModelsUncollected` from `server/account-data/OwnedModelsUncollected.ts`, whose message names the missing Layer, instead of passing with nothing owned.
 
 PostgreSQL sees only foreign keys, so a table whose owner column has none is covered by its owner mark alone, and a table the application reaches only through raw SQL needs a repository on a model with an owner mark to be exported and erased. The user reference is the auth declaration's user table, so a customized `user.modelName` needs nothing more, and its `id` column in the `public` schema; when the user's id lives elsewhere, pass that `{ schema, table, column }` as the second argument to `accountData`. The account handler supplies the authorized user's id; these server APIs do not authenticate callers.
+
+### Delete an account
+
+`Account` from `@shivaedev/identity/Account.ts` is a defined module, which is server code: register it as `module: Account` with `services: accountDeletion(AppAuth)`, using `accountDeletion` from `@shivaedev/identity/server/better-auth/accountDeletion.ts`. Its `identity.account.delete({ password })` command deletes the signed-in person's account; it needs the `AuthenticatedUser` middleware, the application's `SqlClient` and the owned models the host collects. Browser code imports the client contract under the same name from `@shivaedev/identity/generated/Account.ts` and calls the command through its bound-operation hook.
+
+```ts
+import { Account } from "@shivaedev/identity/Account.ts";
+import { accountDeletion } from "@shivaedev/identity/server/better-auth/accountDeletion.ts";
+import type { AppModule } from "@shivaedev/server/AppModule.ts";
+import { AppAuth } from "#server/AppAuth.ts";
+import { handOverHouseholds } from "#server/households/handOver.ts";
+
+export const accountRegistration = {
+	module: Account,
+	services: accountDeletion(AppAuth, { handOver: handOverHouseholds }),
+} satisfies AppModule;
+```
+
+The command runs these steps in order:
+
+1. It checks the person's current password with the verifier the declaration's options configure, Better Auth's own unless `emailAndPassword.password.verify` replaces it. A missing, overlong or wrong password is refused with `BadRequest` on the `password` field, and an account without a credential password with `PreconditionFailed`; nothing is deleted.
+2. One `transact` runs the application's hand-over, then [`eraseOwnedRows`](#export-and-erase-a-persons-data), then deletes the person's auth rows: the user row, whose `ON DELETE CASCADE` keys remove their sessions and sign-in accounts, and the verification rows whose value is their id or whose identifier names their address.
+3. On commit it announces `userKeys` and `sessionKeys`, so live readers refresh. The person's next session check answers signed out, which makes a remembered session forget itself, and their next protected request is refused with `Unauthorized`.
+
+The hand-over is the application's policy for rows that other people keep, such as a shared household that passes to another member. `accountDeletion` takes it once as `handOver(userId)`, an Effect whose services the registration's Layer provides; its SQL joins the deletion's transaction, so its writes commit or roll back with the rest. Leave it out when nothing is handed over. A failing hand-over, a failing erase or a failing auth delete rolls everything back: the person keeps every row and still signs in with the same password. The command answers `InternalServerError` and the host reports the cause, because these failures are the application's to fix rather than the person's.
+
+The mount closes Better Auth's `/delete-user` and `/delete-user/callback` even when the options enable `user.deleteUser`, so this command is the one way to delete an account. Better Auth's deletion runs its steps outside any transaction, and its `user.delete.before` hooks do not run here: move such a hook's body into the hand-over.
+
+The deletion reads and writes Better Auth's tables through the application's SQL client. It removes database sessions only; sessions kept in a cookie cache or secondary storage stay valid until they expire. Accounts that sign in only through a provider have no password to confirm with and are refused.
 
 ### Signed-in story preconditions
 
@@ -1230,6 +1259,9 @@ Import the module that defines the name; there is no package-root entry. Paths b
 | `server/better-auth/adapters/revokeUnadmitted.ts` | `RevokedSessions`: the `{ users, sessions }` counts of a revocation.                                                                                                                                                                                    |
 | `server/better-auth/userProfiles.ts`              | Public profile lookups for other users.                                                                                                                                                                                                                 |
 | `server/better-auth/sweepExpiredSessions.ts`      | `sweepExpiredSessions`: delete expired sessions through the application's SQL client and return the number removed.                                                                                                                                     |
+| `Account.ts`                                      | `Account`: the defined module whose `delete` command deletes the signed-in person's account after confirming their password.                                                                                                                            |
+| `server/AccountDeletion.ts`                       | `AccountDeletion`: the port the account module's `delete` command calls.                                                                                                                                                                                |
+| `server/better-auth/accountDeletion.ts`           | `accountDeletion(declaration, { handOver? })`: the Better Auth `AccountDeletion` Layer, with the application's hand-over.                                                                                                                               |
 | `server/better-auth/accountData.ts`               | `accountData(declaration, reference?)`, returning `{ check, exportAccount, eraseOwnedRows }`: a person's account export, owned-row erasure and the coverage check, from the owned models the host reports.                                              |
 | `server/account-data/UncoveredUserColumns.ts`     | `UncoveredUserColumns`: the coverage failure naming each column that refers to a person without an owned model to cover it.                                                                                                                             |
 | `server/account-data/OwnedModelsUncollected.ts`   | `OwnedModelsUncollected`: the failure of export, erase and check when no collector records the owned models.                                                                                                                                            |

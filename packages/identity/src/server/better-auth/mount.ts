@@ -22,6 +22,7 @@ import { roleSeedOptions } from "#server/better-auth/adapters/roleSeedOptions.ts
 import { fromStorage, type PolicyStorage, type SignInPolicy, signInGate } from "#server/better-auth/adapters/signInGate.ts";
 import { signInPolicyOptions } from "#server/better-auth/adapters/signInPolicyOptions.ts";
 import { changeHooks } from "#server/better-auth/changeHooks.ts";
+import { closeAccountDeletion } from "#server/better-auth/closeAccountDeletion.ts";
 import { closeRoleEndpoints } from "#server/better-auth/closeRoleEndpoints.ts";
 import type { BetterAuthDatabaseHooks } from "#server/better-auth/databaseHooks.ts";
 import type { AuthDeclaration } from "#server/better-auth/define.ts";
@@ -73,7 +74,8 @@ const mountAuth = Effect.fn("Identity.mountAuth")(function* <const TOptions exte
 	const reset = passwordResetOptions(preferences, mount.onPasswordReset, runtime);
 	const announced = effectHookOptions(yield* emailOptions(reset, mount.emails, runtime), changeHooks, runtime);
 	const hooked = effectHookOptions(announced, mount.databaseHooks, runtime);
-	const configured = declaration.roles === undefined ? hooked : storedRoleOptions(closeRoleEndpoints(hooked), declaration);
+	const closed = closeAccountDeletion(hooked);
+	const configured = declaration.roles === undefined ? closed : storedRoleOptions(closeRoleEndpoints(closed), declaration);
 	const gated = yield* signInPolicyOptions(configured, gate, (): Promise<PolicyStorage> => auth.$context);
 	const seed = mount.roleSeed === undefined ? undefined : yield* mount.roleSeed;
 	const seeded = roleSeedOptions(gate.active ? { ...configured, ...gated } : configured, seed);
