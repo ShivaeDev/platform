@@ -4,7 +4,7 @@ import { createMemoryHistory } from "@tanstack/react-router";
 import { Effect } from "effect";
 import { act } from "react";
 import { createRoot } from "react-dom/client";
-import { activityScreenSignal, type ClientActivity, clientActivity } from "@shivaedev/contract/clientActivity.ts";
+import { activityScreenSignal, type ClientActivity, clientActivity, isClientIdle } from "@shivaedev/contract/clientActivity.ts";
 import { clientApp } from "@shivaedev/react/client/app.ts";
 import { sessionRouter } from "@shivaedev/react/client/sessionRouter.ts";
 import { RouterProvider } from "@shivaedev/react/RouterProvider.ts";
@@ -63,7 +63,8 @@ export function notesMemberScreens(baseUrl: string) {
 			if (activity === undefined) {
 				throw new Error(`No client for ${member.name}`);
 			}
-			const driver = screenDriver({ act, pending: activityScreenSignal(activity), root: member.root, tell });
+			const driver = screenDriver({ act, activity: activityScreenSignal(activity), root: member.root, tell });
+			const idle = screenDriver({ act, activity: activityScreenSignal(activity, isClientIdle), root: member.root, tell });
 			return {
 				addsNote: (title: string) =>
 					Effect.gen(function* () {
@@ -71,7 +72,7 @@ export function notesMemberScreens(baseUrl: string) {
 						yield* driver.click({ name: "Add note", role: "button" });
 						yield* driver.find({ name: title, role: "link" });
 					}),
-				refreshes: () => Effect.andThen(driver.click({ name: "Refresh", role: "button" }), driver.settle()),
+				refreshes: () => Effect.andThen(driver.click({ name: "Refresh", role: "button" }), idle.settle()),
 				savedNotes: () =>
 					Effect.andThen(
 						driver.find({ name: "New note", role: "textbox" }),
