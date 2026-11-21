@@ -1,17 +1,9 @@
 // A module whose every operation needs something the wire cannot carry exactly, each written the way an application might.
 export const REFUSING_PROJECT: Readonly<Record<string, string>> = {
-	"lib/outside.ts": `import { defineModule } from "@shivaedev/contract/defineModule.ts";
-
-export const Outside = defineModule({ name: "outside", operations: [], wire: {} });
-`,
-	"src/modules/refused/hidden.ts": `import { defineModule } from "@shivaedev/contract/defineModule.ts";
-
-const Hidden = defineModule({ name: "hidden", operations: [], wire: {} });
-`,
 	"src/modules/refused/operations.ts": `import { Effect, Schema } from "effect";
 import { query } from "@shivaedev/contract/operation.ts";
 import { RefusedDraft } from "./payloads.ts";
-import { Busy, Counter, Level, noteId, shared, type Tree } from "#modules/refused/shared.ts";
+import { Busy, Counter, Level, shared, type Tree } from "#modules/refused/shared.ts";
 
 class Hidden extends Schema.TaggedError<Hidden>()("Hidden", { message: Schema.String }) {}
 
@@ -87,10 +79,19 @@ export const ReturnsEnum = query("returnsEnum", {
 	},
 });
 
-export const ReturnsBrand = query("returnsBrand", {
+export const ReturnsUnknown = query("returnsUnknown", {
 	reads: () => [shared.list],
 	*run() {
-		return noteId(yield* Effect.succeed(1));
+		const value: unknown = yield* Effect.succeed(1);
+		return value;
+	},
+});
+
+export const ReturnsStringOrBigint = query("returnsStringOrBigint", {
+	reads: () => [shared.list],
+	*run() {
+		const count = yield* Effect.succeed(1n);
+		return count > 0n ? String(count) : count;
 	},
 });
 
@@ -169,8 +170,19 @@ export const RelativePayload = query("relativePayload", {
 	"src/modules/refused/payloads.ts": `import { Schema } from "effect";
 
 export const RefusedDraft = Schema.Struct({ body: Schema.String });
+
+export const SkuCode = Schema.String.pipe(Schema.brand("Sku"));
 `,
 	"src/modules/refused/refused.ts": `import { defineModule } from "@shivaedev/contract/defineModule.ts";
+import {
+	ReturnsBrand,
+	ReturnsHandBranded,
+	ReturnsLiteralBrandKeys,
+	ReturnsNumberBrandKeys,
+	ReturnsPartialRecord,
+	ReturnsReadonlyLiteralBrandKeys,
+	ReturnsTwiceBranded,
+} from "#modules/refused/brands.ts";
 import {
 	FailsDataTagged,
 	FailsUnexported,
@@ -178,7 +190,6 @@ import {
 	LocalPayload,
 	RelativePayload,
 	ReturnsAny,
-	ReturnsBrand,
 	ReturnsEnum,
 	ReturnsLooseOptional,
 	ReturnsMap,
@@ -186,10 +197,12 @@ import {
 	ReturnsNumberKeys,
 	ReturnsPlainClass,
 	ReturnsRecursive,
+	ReturnsStringOrBigint,
 	ReturnsStringOrNumber,
 	ReturnsTupleRest,
 	ReturnsUndefinedProperty,
 	ReturnsUnexportedClass,
+	ReturnsUnknown,
 } from "#modules/refused/operations.ts";
 
 export const Refused = defineModule({
@@ -204,6 +217,14 @@ export const Refused = defineModule({
 		ReturnsPlainClass,
 		ReturnsEnum,
 		ReturnsBrand,
+		ReturnsTwiceBranded,
+		ReturnsHandBranded,
+		ReturnsNumberBrandKeys,
+		ReturnsLiteralBrandKeys,
+		ReturnsReadonlyLiteralBrandKeys,
+		ReturnsPartialRecord,
+		ReturnsUnknown,
+		ReturnsStringOrBigint,
 		ReturnsRecursive,
 		ReturnsTupleRest,
 		ReturnsNumberKeys,
@@ -231,6 +252,16 @@ export type NoteId = number & Brand.Brand<"NoteId">;
 
 export const noteId = Brand.nominal<NoteId>();
 
+export const Sku = Schema.String.pipe(Schema.brand("Sku"));
+export type Sku = typeof Sku.Type;
+
+export const Shelf = Schema.String.pipe(Schema.brand("Shelf"));
+export type Shelf = typeof Shelf.Type;
+
+export type UserId = string & { readonly __brand: "UserId" };
+
+export type Letter = ("a" | "b") & Brand.Brand<"Letter">;
+
 export interface Tree {
 	readonly children: readonly Tree[];
 }
@@ -244,11 +275,6 @@ export class Counter {
 		this.count = count;
 	}
 }
-`,
-	"src/modules/refused/twice.ts": `import { defineModule } from "@shivaedev/contract/defineModule.ts";
-
-export const First = defineModule({ name: "first", operations: [], wire: {} });
-export const Second = defineModule({ name: "second", operations: [], wire: {} });
 `,
 	"tsconfig.json": `{
 	"compilerOptions": { "customConditions": ["@shivaedev/source"], "types": [] },

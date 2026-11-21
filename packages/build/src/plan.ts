@@ -18,7 +18,7 @@ function classesIn(form: WireForm | undefined): readonly DeclaredClass[] {
 		return [];
 	}
 	switch (form.form) {
-		case "class":
+		case "exported":
 			return [form.declared];
 		case "array":
 			return classesIn(form.item);
@@ -27,7 +27,7 @@ function classesIn(form: WireForm | undefined): readonly DeclaredClass[] {
 		case "struct":
 			return form.fields.flatMap((field) => classesIn(field.form));
 		case "record":
-			return classesIn(form.value);
+			return [...classesIn(form.key), ...classesIn(form.value)];
 		case "union":
 			return form.members.flatMap(classesIn);
 		case "nullOr":

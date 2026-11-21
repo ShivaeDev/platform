@@ -1,4 +1,5 @@
 import ts from "typescript";
+import { brandForm, dropsBrandedLiteralKeys, isBranded, isStringBrand } from "#brandForm.ts";
 import type { Field, WireForm } from "#facts.ts";
 import { isReadonlyProperty } from "#isReadonlyProperty.ts";
 import { redactedPath } from "#serverOnlyPath.ts";
@@ -19,7 +20,7 @@ export function classForm(reading: TypeReading, type: ts.Type, symbol: ts.Symbol
 	if (declared?.exportName === undefined) {
 		return reading.refuse(type, path, `export the Schema class ${symbol.name} from its module`);
 	}
-	return { declared, form: "class" };
+	return { declared, form: "exported" };
 }
 
 // An exact optional property's only undefined member is the one optionality adds: TypeScript merges a written undefined
@@ -45,16 +46,38 @@ function fieldOf(reading: TypeReading, property: ts.Symbol, exact: ReadonlySet<t
 
 function recordForm(reading: TypeReading, type: ts.Type, path: string, read: Read): WireForm | undefined {
 	const [index, ...others] = reading.checker.getIndexInfosOfType(type);
-	if (index === undefined || others.length > 0 || !(index.keyType.flags & ts.TypeFlags.String)) {
-		return reading.refuse(type, path, "use string keys only");
+	const keyType = index?.keyType;
+	if (index === undefined || keyType === undefined || others.length > 0 || !(keyType.flags & ts.TypeFlags.String || isBranded(keyType))) {
+		return reading.refuse(type, path, "use string keys, or keys of a branded string");
 	}
-	const value = read(index.type, `${path}[string]`);
-	return value === undefined ? undefined : { form: "record", mutable: !index.isReadonly, value };
+	if (index.type.isUnion() && index.type.types.some((member) => member.flags & ts.TypeFlags.Undefined)) {
+		return reading.refuse(type, path, "drop Partial and undefined from the record's values, so an absent key is the only way to leave a value out");
+	}
+	if (isBranded(keyType) && !isStringBrand(keyType)) {
+		return reading.refuse(
+			type,
+			path,
+			"key the record by string or a string brand, or return an array of entries, since JSON keys are strings and the wire cannot check them against a brand that is not a string",
+		);
+	}
+	const keyName = reading.checker.typeToString(keyType);
+	const key: WireForm | undefined = isBranded(keyType)
+		? brandForm(reading, keyType, `${path}[${keyName}]`)
+		: { form: "primitive", primitive: "String" };
+	const value = read(index.type, `${path}[${keyName}]`);
+	return key === undefined || value === undefined ? undefined : { form: "record", key, mutable: !index.isReadonly, value };
 }
 
 export function objectForm(reading: TypeReading, type: ts.Type, path: string, read: Read): WireForm | undefined {
 	if (type.getCallSignatures().length > 0 || type.getConstructSignatures().length > 0) {
 		return reading.refuse(type, path, "return data, not a function");
+	}
+	if (dropsBrandedLiteralKeys(reading, type)) {
+		return reading.refuse(
+			type,
+			path,
+			"key the record by string or a string brand, or return an array of entries, since TypeScript keeps no property for a branded literal key and the wire would drop it",
+		);
 	}
 	const symbol = type.getSymbol();
 	const builtIn =
