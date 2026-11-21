@@ -195,8 +195,8 @@ const staleClients = {
 		"staleNotes",
 		`ClientDiffersFromModule<"create", ${STALE}`,
 	],
-	"declares the module's create command as a query, naming pnpm generate": ["commandAsQueryNotes", STALE],
-	"leaves out the module's create command, naming create and pnpm generate": ["missingCommandNotes", `ClientDiffersFromModule<"create", ${STALE}`],
+	"declares the module's create command as a query, naming pnpm generate": ["queriedNotes", STALE],
+	"leaves out the module's create command, naming create and pnpm generate": ["listOnlyNotes", `ClientDiffersFromModule<"create", ${STALE}`],
 } as const;
 
 for (const [difference, [fixture, problem]] of Object.entries(staleClients)) {

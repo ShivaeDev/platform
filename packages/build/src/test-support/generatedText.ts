@@ -22,7 +22,6 @@ export function rejectionSourceOf(text: string, operation: string, tag: string):
 	return /from "(?<source>[^"]+)";$/u.exec(line ?? "")?.groups?.source ?? `no import of ${tag}`;
 }
 
-// The browser's contract as the generated file writes it, from its clientContract call to the call's end.
 export function browserContractOf(text: string): readonly string[] {
 	const lines = text.split("\n");
 	const start = lines.findIndex((line) => / = clientContract\(\{$/u.test(line));
