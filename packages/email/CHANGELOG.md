@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.10.2 - 2026-11-21
+
+### Changed
+
+- Update `@shivaedev/jobs` from 0.44.1 to 0.45.0.
+
 ## 0.10.1 - 2026-11-21
 
 ### Changed
