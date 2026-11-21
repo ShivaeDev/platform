@@ -185,7 +185,7 @@ database.it(
 );
 
 database.it(
-	"an attempt that pg-boss stops for its timeout before the runtime clock reaches the deadline logs no attempt line",
+	"an attempt that pg-boss stops for its timeout before the runtime clock reaches the deadline logs one deadline line, and no second one when the runtime clock catches up",
 	[running("app", [worker(Reports, "hangs")]), enqueued(Reports, {}, { as: "overdue report" })],
 	function* ({ pgBossClockPasses, recordedJobLog, runtimeClockCatchesUp, timePasses, untilAttempts, untilJob }) {
 		yield* untilAttempts(Reports, 1);
@@ -195,7 +195,14 @@ database.it(
 		yield* runtimeClockCatchesUp("1 second");
 		yield* timePasses("500 millis");
 
-		expect(yield* recordedJobLog("overdue report")).toEqual([]);
+		expect(yield* recordedJobLog("overdue report")).toEqual([
+			{
+				annotations: { "job.attempt": 1, "job.id": "overdue report", "job.outcome": "deadline", "job.queue": "attempt-log-reports" },
+				failure: "none",
+				level: "Error",
+				message: "Job attempt hit its 1s deadline",
+			},
+		]);
 	},
 );
 
@@ -207,7 +214,7 @@ const LeftBehind = defineQueue({
 });
 
 database.it(
-	"a job its batch leaves behind at another job's deadline logs no attempt line when pg-boss fails it for the timeout and it spends a retry",
+	"a job its batch leaves behind at another job's deadline logs its own deadline line when pg-boss fails it for the timeout, and neither job logs a second line or one for its successful retry",
 	[
 		storedTogether(LeftBehind, [
 			{ as: "first job", data: { id: 0 }, expireInSeconds: 1, priority: 10 },
@@ -229,7 +236,16 @@ database.it(
 		yield* outcomes([
 			["attempts", () => attemptCounts(LeftBehind), { "first job": 2, "second job": 1 }],
 			["second job", () => job("second job"), expect.objectContaining({ retryCount: 1, state: "completed" })],
-			["second job log", () => recordedJobLog("second job"), []],
+			[
+				"first job log",
+				() => recordedJobLog("first job"),
+				[{ annotations: { "job.attempt": 1, "job.id": "first job", "job.outcome": "deadline" }, message: "Job attempt hit its 1s deadline" }],
+			],
+			[
+				"second job log",
+				() => recordedJobLog("second job"),
+				[{ annotations: { "job.attempt": 1, "job.id": "second job", "job.outcome": "deadline" }, message: "Job attempt hit its 4s deadline" }],
+			],
 		]);
 	},
 );
