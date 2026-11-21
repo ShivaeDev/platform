@@ -225,19 +225,23 @@ import { SessionApp } from "@shivaedev/react/client/SessionApp.ts";
 
 `SessionApp` renders a [`SessionBoundary`](#own-the-registry-and-the-session) with the app's `connect` and `warm`, identifies each generation by `session.user.id`, signs out through `auth.signOut`, and passes `recheck` and `persist` through. A signed-out visitor gets the app connected with no session and the same routes, so public routes read their contracts; a route that declares `staticData: { signedIn: true }` or a `permission` sends them to sign-in with the requested location in `returnTo`. The sign-in route is `/sign-in`. Its screen calls `useSessionRecheck()` from `@shivaedev/react/client/sessionBoundary.ts` once the auth owner has signed in; when the session arrives at the sign-in path, the boundary continues to `returnTo`, or `/`. A signed-in session that lacks a route's permission sees `forbidden` at the requested URL, and so does one that lacks the permission of a module's admin page at a location that matches the page's path or detail path, whatever route renders it there; the bare `/admin` needs the first admin page's permission. The root route's context, typed through `Register`, carries `adminPages`, `auth`, `modules`, `navigate(path)`, `redirects.signedOut`, the session's `registry` and `session()`, which reads the current session. The router keeps the current route on screen while the next one loads (`defaultPendingMs: Infinity`), shows a refused route's `forbidden` screen and a failed loader's failure screen from its default error component, and lets an error thrown while a route renders reach the application (`disableGlobalCatchBoundary`).
 
-A route whose loader fails with anything the router does not already route elsewhere (the signed-out redirect, a refusal, `NotFound`) shows the failure screen without declaring `errorComponent`. Its message is worded as a notice would be: the server's `message` for a shared request rejection, the notice host's `failure` wording for a server outage, an `InternalServerError`, a defect or an untagged failure, and that wording's `"unexpected"` words for a rejection the app declared. Its Retry reruns the route's own query when the route spreads a `queryRoute`, and its loader in any case. The default screen is the same paragraph and Retry button as `QueryView`'s default failure. Pass `loadFailure` once to replace it for every route; it receives `{ message, retry, retrying }`, the props `FailureLayout` from `client/QueryView.ts` names:
+A route whose loader fails with anything the router does not already route elsewhere (the signed-out redirect, a refusal, `NotFound`) shows the failure screen without declaring `errorComponent`. Its message is worded as a notice would be: the server's `message` for a shared request rejection, the notice host's `failure` wording for a server outage, an `InternalServerError`, a defect or an untagged failure, and, for a rejection the app declared, what the route's own `failures` handlers return for its refresh notice, as [Failures of loaded queries](#failures-of-loaded-queries) describes. A declared rejection without a handler that returns a notice, such as one from a loader not written with `queryRoute`, gets that wording's `"unexpected"` words. Retry is offered for every failure except a rejection the app declared: the server chose that answer, so reading again brings the same one. Retry reruns the route's own query when the route spreads a `queryRoute`, and its loader in any case. The default screen is the same paragraph and Retry button as `QueryView`'s default failure, without the button when there is no Retry. Pass `loadFailure` once to replace it for every route; it receives `{ message, retry, retrying }`, the props `FailureLayout` from `client/QueryView.ts` names, with `retry` left out where reading again cannot help:
 
 ```tsx
 import type { FailureLayout } from "@shivaedev/react/client/QueryView.ts";
 
 function LoadFailure({ message, retry, retrying }: FailureLayout) {
+	const action =
+		retry === undefined ? null : (
+			<button disabled={retrying} onClick={retry} type="button">
+				Retry
+			</button>
+		);
 	return (
 		<main>
 			<h1>This page could not load</h1>
 			<p role="alert">{message}</p>
-			<button disabled={retrying} onClick={retry} type="button">
-				Retry
-			</button>
+			{action}
 		</main>
 	);
 }
@@ -601,20 +605,22 @@ A missing handler is a compile error that names the tag. `useAction(api.retitle)
 
 A route's `useQuery()`, `useLoaderQuery` and an editor given the route's loaded row (`useEditor(api.save, { ...route.useLoaded(), ... })`) always have data on screen, so they have no failure slot to render. When their query fails to refresh, the last data and the draft stay, and the failure goes to the mounted `NoticeHost` with the words a command's failure gets: the server's `message` for a shared request rejection, the host's `failure` wording for a server outage, an `InternalServerError`, a defect or an untagged failure. The notice carries a Retry action that refreshes that query. A query shows one such notice at a time, and it goes when the query next succeeds. A lost connection publishes nothing, because the live query reads again once the socket returns, and a refused read is the query's `denied` state.
 
-A rejection the app declared for itself needs a handler, as a command's does, and the call does not compile without it: pass `failures` to the route's `useQuery({ failures })` or `useLoaderQuery(atom, loaded, { failures })`, and `queryFailures` to the editor. A handler keyed by the tag receives the error and returns a notice descriptor or `"silent"`; `"message"` shows the error's own message. Declare it outside the component:
+A rejection the app declared for itself needs a handler, as a command's does, and the declaration does not compile without it: pass `failures` to the route's `queryRoute(buildQuery, { failures })` or to `useLoaderQuery(atom, loaded, { failures })`, and `queryFailures` to the editor. A handler keyed by the tag receives the error and returns a notice descriptor or `"silent"`; `"message"` shows the error's own message. The route's handlers word both its refresh notices and its [failure screen](#mount-a-sessions-routes) when the first load fails, so the same rejection reads the same wherever it arrives, and the screen's `useQuery()` names none:
 
 ```tsx
 function archivedNotice(error: ReportArchived) {
 	return { message: `The ${error.year} report is archived` };
 }
 
+const reportQuery = queryRoute(() => reports.report.query(), { failures: { ReportArchived: archivedNotice } });
+
 function Report() {
-	const report = reportQuery.useQuery({ failures: { ReportArchived: archivedNotice } });
+	const report = reportQuery.useQuery();
 	return <h1>{report.data.title}</h1>;
 }
 ```
 
-Here `reportQuery` is the route's `queryRoute(...)` and `ReportArchived` is the app's tagged rejection. An editor that loads its own row, without `loaded`, publishes nothing for its query: render its `query` through `QueryView`, which shows the failure in place and checks the app's rejections. A route's first load that fails shows the router's failure screen, as [Mount a session's routes](#mount-a-sessions-routes) describes.
+Here `reports` is the module's contract client and `ReportArchived` is the app's tagged rejection. An editor that loads its own row, without `loaded`, publishes nothing for its query: render its `query` through `QueryView`, which shows the failure in place and checks the app's rejections. A route's first load that fails shows the router's failure screen, worded by the same handlers, as [Mount a session's routes](#mount-a-sessions-routes) describes.
 
 #### Query, command and form feedback
 
@@ -787,7 +793,7 @@ With native `RpcClient.layerProtocolHttp` and `FetchHttpClient.layer` as the bro
 
 #### Route loaders with TanStack Router
 
-TanStack Router owns routes, navigation, search validation, loader data and screen components. [`SessionApp`](#mount-a-sessions-routes) builds the application's router and mounts it; the examples in this section build a router by hand to show each piece alone. Mount a router with `RouterProvider` from `@shivaedev/react/RouterProvider.ts` in place of TanStack's: it renders TanStack's provider unchanged and tells the session's `useFirstSettled` when the first route has rendered. Declare a route's query once with `queryRoute(buildQuery)` from `@shivaedev/react/client/adapters/queryRoute.ts`, spread the result into `createRoute`, and call its `useQuery()` in the route's component. The spread derives loader dependencies from validated search and loads the contract query atom in the router context’s registry; `useQuery()` reads the same atom, so the component names neither the operation nor its arguments. A `NotFound` instance from `@shivaedev/errors/taxonomy.ts` or a `QueryReadDenied` refusal enters TanStack's not-found handling with the original rejection in the not-found component's `data` prop, preserving its message. One root `notFoundComponent` can show that message for all query routes; a route's own `notFoundComponent` takes precedence. Other typed failures reach `errorComponent` unchanged; under `SessionApp`, a route that declares none shows the router's [failure screen](#mount-a-sessions-routes). The atom runs through its native RPC runtime and shares its execution with React. The factory receives `{ context, params, search }`: `context` is the loader’s router context, including parent `beforeLoad` contributions. Annotate it with `typeof root.types.allContext` (or the parent route’s `types.allContext`) to keep client and viewer access checked against the route’s declaration.
+TanStack Router owns routes, navigation, search validation, loader data and screen components. [`SessionApp`](#mount-a-sessions-routes) builds the application's router and mounts it; the examples in this section build a router by hand to show each piece alone. Mount a router with `RouterProvider` from `@shivaedev/react/RouterProvider.ts` in place of TanStack's: it renders TanStack's provider unchanged and tells the session's `useFirstSettled` when the first route has rendered. Declare a route's query once with `queryRoute(buildQuery)` from `@shivaedev/react/client/adapters/queryRoute.ts`, with `{ failures }` when the query can fail with a rejection the app declared, spread the result into `createRoute`, and call its `useQuery()` in the route's component. The spread derives loader dependencies from validated search and loads the contract query atom in the router context’s registry; `useQuery()` reads the same atom, so the component names neither the operation nor its arguments. A `NotFound` instance from `@shivaedev/errors/taxonomy.ts` or a `QueryReadDenied` refusal enters TanStack's not-found handling with the original rejection in the not-found component's `data` prop, preserving its message. One root `notFoundComponent` can show that message for all query routes; a route's own `notFoundComponent` takes precedence. Other typed failures reach `errorComponent` unchanged; under `SessionApp`, a route that declares none shows the router's [failure screen](#mount-a-sessions-routes). The atom runs through its native RPC runtime and shares its execution with React. The factory receives `{ context, params, search }`: `context` is the loader’s router context, including parent `beforeLoad` contributions. Annotate it with `typeof root.types.allContext` (or the parent route’s `types.allContext`) to keep client and viewer access checked against the route’s declaration.
 
 This example assumes an application-owned `api.get.query({ id, page })` returning `{ id, title }`, with declared `NotFound` and `NoteMissing` rejections:
 
@@ -813,9 +819,11 @@ const Search = Schema.Struct({
 		Schema.withDecodingDefaultKey(Effect.succeed(1)),
 	),
 });
+const noteFailures = { NoteMissing: () => ({ message: "Note missing" }) };
 const noteQuery = queryRoute(
 	({ context, params, search }: { context: typeof root.types.allContext; params: { id: string }; search: typeof Search.Type }) =>
 		context.api.get.query({ id: params.id, page: search.page }),
+	{ failures: noteFailures },
 );
 const note = createRoute({
 	getParentRoute: () => root,
@@ -892,13 +900,14 @@ import { api } from "./notes-client.ts";
 
 const registry = AtomRegistry.make();
 const root = createRootRouteWithContext<{ registry: AtomRegistry.AtomRegistry; api: typeof api; redirects: QueryRouteRedirects }>()();
+const noteFailures = { NoteMissing: () => ({ message: "Note missing" }) };
 const memberNote = createRoute({
 	getParentRoute: () => root,
 	path: "/members/$id",
 	...queryRoute(
 		({ context, params }: { context: typeof root.types.allContext; params: { id: string }; search: object }) =>
 			context.api.get.query({ id: params.id, page: 1 }),
-		{ redirects: { signedOut: signInRedirect("/members/sign-in") } },
+		{ failures: noteFailures, redirects: { signedOut: signInRedirect("/members/sign-in") } },
 	),
 });
 const router = createRouter({
@@ -913,7 +922,7 @@ For a loader that coordinates more work, use `loadQuery(registry, atom, loaderCo
 
 `defaultPendingMs: Infinity` keeps the current route's data visible during navigation; the shell reads TanStack's `isLoading` to display pending state. The new route commits when its loader settles. This is TanStack's pending policy, separate from `useQuery`'s retained display. The loader hands its query over to the route's component: the first render has the loaded value, and the query handler runs once even when the route mounts after the registry’s idle window.
 
-`useQuery()` reads the current match's params, decoded search, context and loader value, and exposes `data` as the query's success type, with no `Option` or Initial result. It takes `keepPreviousData` and the `failures` handlers that [Failures of loaded queries](#failures-of-loaded-queries) describes. Call it inside the route's component or a component it renders. Refetches keep the last value visible. `useQuery`, a route's `useQuery()` and a loader-backed editor’s `query` expose `denied: true` for `QueryReadDenied`, alongside the typed `cause`. Use this state to replace retained content with the application’s not-found screen after access is revoked. Refused live queries stay refused through change notifications until their input or viewer changes. For a loader-backed editor, spread the route's `useLoaded()`, which returns its atom as `query` and the loader value as `loaded`: `useEditor(api.save, { ...noteQuery.useLoaded(), fixed: { id } })`. Its form is defined on the first render and `editor.query.data` is the row directly. A loader written with `loadQuery` reads its atom with `useLoaderQuery(atom, route.useLoaderData())` from `@shivaedev/react/client/useLoaderQuery.ts`, which `useQuery()` uses underneath.
+`useQuery()` reads the current match's params, decoded search, context and loader value, and exposes `data` as the query's success type, with no `Option` or Initial result. It takes `keepPreviousData`; its failed refreshes use the `failures` handlers the route's `queryRoute` declares, as [Failures of loaded queries](#failures-of-loaded-queries) describes. Call it inside the route's component or a component it renders. Refetches keep the last value visible. `useQuery`, a route's `useQuery()` and a loader-backed editor’s `query` expose `denied: true` for `QueryReadDenied`, alongside the typed `cause`. Use this state to replace retained content with the application’s not-found screen after access is revoked. Refused live queries stay refused through change notifications until their input or viewer changes. For a loader-backed editor, spread the route's `useLoaded()`, which returns its atom as `query` and the loader value as `loaded`: `useEditor(api.save, { ...noteQuery.useLoaded(), fixed: { id } })`. Its form is defined on the first render and `editor.query.data` is the row directly. A loader written with `loadQuery` reads its atom with `useLoaderQuery(atom, route.useLoaderData())` from `@shivaedev/react/client/useLoaderQuery.ts`, which `useQuery()` uses underneath.
 
 `loadQuery` mounts its query while the loader runs and, once it succeeds, for a five-second hand-over window measured on the bound query's atom runtime `Clock`. A component that mounts within the window continues the loader's subscription and its first result instead of opening another. A route that is left or never mounts releases the query when the window passes; from then on the bound query uses the same retention policy as component reads, including its expiry, capacity and session ownership. A route that mounts after the window shows that kept value while a new subscription revalidates it. A returning route whose bound query still has a kept result renders it immediately as stale. Readers without data suspend until their active loader completes. Failed loaders also release execution; the route keeps its error visible and Retry starts a new load. Already mounted readers keep their data during refreshes.
 

@@ -4,7 +4,11 @@ import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { expectTypeOf } from "vitest";
 import { queryRoute } from "#client/adapters/queryRoute.ts";
 import { RouterSearch } from "#test/routerApp.ts";
-import type { routerClient } from "#test/routerClient.ts";
+import type { NoteMissing, routerClient } from "#test/routerClient.ts";
+
+function missingNotice(error: NoteMissing) {
+	return { message: error.id };
+}
 
 export function typedQueryRoute() {
 	const root = createRootRouteWithContext<{
@@ -33,18 +37,32 @@ export function typedQueryRoute() {
 				expectTypeOf(params.missing);
 				return context.client.api.get.query({ id: String(params.id), page: search.page });
 			},
+			{ failures: { NoteMissing: missingNotice } },
 		),
 	});
 	expectTypeOf<typeof route.types.loaderData>().toEqualTypeOf<{ readonly id: string; readonly title: string }>();
 	expectTypeOf<typeof route.types.fullSearchSchema>().toEqualTypeOf<{ readonly page: number }>();
 	expectTypeOf<typeof route.types.allParams>().toEqualTypeOf<{ id: number }>();
-	const firstNote = queryRoute(({ context }: { context: typeof root.types.allContext; params: object; search: object }) =>
+	const firstNote = queryRoute(
+		({ context }: { context: typeof root.types.allContext; params: object; search: object }) =>
+			context.client.api.get.query({ id: "first", page: 1 }),
+		{ failures: { NoteMissing: "message" } },
+	);
+	// @ts-expect-error The query can fail with NoteMissing, which the app declared: the route must say what it shows.
+	queryRoute(({ context }: { context: typeof root.types.allContext; params: object; search: object }) =>
 		context.client.api.get.query({ id: "first", page: 1 }),
+	);
+	queryRoute(
+		({ context }: { context: typeof root.types.allContext; params: object; search: object }) =>
+			context.client.api.get.query({ id: "first", page: 1 }),
+		// @ts-expect-error `failures` must name NoteMissing.
+		{ failures: {} },
 	);
 	expectTypeOf<ReturnType<typeof firstNote.useQuery>["data"]>().toEqualTypeOf<{ readonly id: string; readonly title: string }>();
 	expectTypeOf<ReturnType<typeof firstNote.useLoaded>["loaded"]>().toEqualTypeOf<{ readonly id: string; readonly title: string }>();
-	const requiresSession = queryRoute(({ context }: { context: typeof root.types.allContext & { session: string } }) =>
-		context.client.api.get.query({ id: context.session, page: 1 }),
+	const requiresSession = queryRoute(
+		({ context }: { context: typeof root.types.allContext & { session: string } }) => context.client.api.get.query({ id: context.session, page: 1 }),
+		{ failures: { NoteMissing: missingNotice } },
 	);
 	// @ts-expect-error The query factory requires a session the router does not provide.
 	createRoute({

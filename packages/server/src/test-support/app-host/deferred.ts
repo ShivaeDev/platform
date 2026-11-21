@@ -2,7 +2,7 @@ import { Effect, Layer } from "effect";
 import { Migrator, SqlClient } from "effect/sql";
 import { appDatabase, appHost } from "#appDatabase.ts";
 import { Ping, pingHandlers } from "#test/app-host/ping.ts";
-import { databaseOf, type HostState } from "#test/app-host/state.ts";
+import { applicationConfig, databaseOf, type HostState } from "#test/app-host/state.ts";
 import { postgresHost } from "#test/app-host/story.ts";
 
 export function deferred(mode: "migrate" | "check", fails = false) {
@@ -18,7 +18,12 @@ export function deferred(mode: "migrate" | "check", fails = false) {
 			yield* Layer.build(appDatabase({ config, migrations, postgresSettings: {} })).pipe(Effect.scoped);
 		}
 		function build() {
-			return appHost({ application: application(state, table), config, migrations: { ...migrations, mode }, postgresSettings: {} });
+			return appHost({
+				application: application(state, table),
+				config: { ...applicationConfig(state).listed, ...config },
+				migrations: { ...migrations, mode },
+				postgresSettings: {},
+			});
 		}
 		state.build = build;
 	});
@@ -50,5 +55,5 @@ const application = Effect.fnUntraced(function* (state: HostState, table: string
 				state.lifecycle.push("released");
 			}),
 	);
-	return { config: state.config, group: Ping, handlers: pingHandlers, policy: "loopback" as const };
+	return { config: applicationConfig(state).served, group: Ping, handlers: pingHandlers, policy: "loopback" as const };
 });

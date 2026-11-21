@@ -5,7 +5,7 @@ import { Migrator, SqlClient } from "effect/sql";
 import { liveServerLayer } from "@shivaedev/contract/live-server/layer.ts";
 import { appHost } from "#appDatabase.ts";
 import { AbortApi, abortHandlers, CHANGED_KEY, type ClientAbortState, changed } from "#test/app-host/clientAbortFixture.ts";
-import { databaseOf } from "#test/app-host/state.ts";
+import { applicationConfig, databaseOf } from "#test/app-host/state.ts";
 import { postgresHost } from "#test/app-host/story.ts";
 
 export function abortableRpc(mode: "transaction" | "subscription") {
@@ -50,7 +50,7 @@ export function abortableRpc(mode: "transaction" | "subscription") {
 				},
 			});
 			return {
-				config: state.config,
+				config: applicationConfig(state).served,
 				group: AbortApi,
 				handlers: abortHandlers(probe),
 				policy: "loopback" as const,
