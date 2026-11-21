@@ -46,7 +46,7 @@ export function appHostHttp<
 		Layer.unwrap(
 			Effect.gen(function* () {
 				const transport = yield* hostTransport(options);
-				const { bodySize, host, trustedProxy, nativeOrigins } = transport;
+				const { bodySize, host, trustedProxy } = transport;
 				const routes = options.group === undefined ? Layer.empty : hostRpcRoutes(options, transport, sensitive);
 				const application = Layer.mergeAll(options.services ?? Layer.empty);
 				const sessions = Layer.mergeAll(Layer.empty, ...(options.sessions === undefined ? [] : [options.sessions]));
@@ -59,8 +59,8 @@ export function appHostHttp<
 					assets,
 					applicationRoutes,
 				).pipe(
-					Layer.provide(options.group === undefined ? Layer.empty : nativeClientOrigins(nativeOrigins, trustedProxy, false, options.rpcPath)),
-					Layer.provide(nativeClientOrigins(nativeOrigins, trustedProxy, options.nativeOrigins === undefined ? "preflight" : true)),
+					Layer.provide(options.group === undefined ? Layer.empty : nativeClientOrigins(trustedProxy, "rpc", options.rpcPath)),
+					Layer.provide(nativeClientOrigins(trustedProxy, "auth")),
 				);
 				return Layer.unwrap(
 					HttpRouter.toHttpEffect(httpRoutes).pipe(

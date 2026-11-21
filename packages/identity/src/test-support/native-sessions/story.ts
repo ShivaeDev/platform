@@ -3,7 +3,7 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { storyClock, withIdentityDatabase } from "#test/clock.ts";
 import { callers } from "#test/native-sessions/callers.ts";
 import { diagnosticVerbs } from "#test/native-sessions/diagnosticVerbs.ts";
-import { type Host, NATIVE_ORIGIN, startHost } from "#test/native-sessions/host.ts";
+import { ANDROID_ORIGIN, type Host, NATIVE_ORIGIN, startHost } from "#test/native-sessions/host.ts";
 import { mintAccounts } from "#test/native-sessions/mintAccounts.ts";
 import type { Account } from "#test/native-sessions/requests.ts";
 import { requestVerbs } from "#test/native-sessions/requestVerbs.ts";
@@ -16,13 +16,12 @@ interface State {
 	readonly accounts: Map<string, Account>;
 	enabled: boolean;
 	host?: Host;
-	nativeOrigins?: readonly string[];
 }
 
 export const nativeSessions = storyKit({
 	after: {
 		*configured(state) {
-			state.host = yield* startHost(state.enabled, state.nativeOrigins);
+			state.host = yield* startHost(state.enabled ? [NATIVE_ORIGIN, ANDROID_ORIGIN] : undefined);
 		},
 	},
 	around: withIdentityDatabase,
@@ -66,7 +65,3 @@ function accounts(names: readonly string[], password: boolean) {
 		yield* mintAccounts(state.host, state.enabled, state.accounts, names, password);
 	});
 }
-
-export const nativeTransport = nativeSessions.trait("configured", "the host admits the bundled WebView origin", (state) => {
-	state.nativeOrigins = [NATIVE_ORIGIN];
-});

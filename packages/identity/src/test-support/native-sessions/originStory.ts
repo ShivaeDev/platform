@@ -2,6 +2,7 @@ import { Effect } from "effect";
 import { forwardingProxy } from "@shivaedev/test-story/server/forwardingProxy.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { storyClock, withIdentityDatabase } from "#test/clock.ts";
+import { admissionVerbs } from "#test/native-sessions/admissionVerbs.ts";
 import { ANDROID_ORIGIN, type Host, NATIVE_ORIGIN, startHost } from "#test/native-sessions/host.ts";
 import { originVerbs } from "#test/native-sessions/originVerbs.ts";
 import { databaseUrl, postgres } from "#test/postgres.ts";
@@ -15,7 +16,7 @@ interface State {
 export const origins = storyKit({
 	after: {
 		*configured(state) {
-			state.host = yield* startHost(true, state.nativeOrigins, state.trustedProxy, state.siblingOrigins);
+			state.host = yield* startHost(state.nativeOrigins, state.trustedProxy, state.siblingOrigins);
 		},
 	},
 	around: withIdentityDatabase,
@@ -30,10 +31,10 @@ export const origins = storyKit({
 		if (state.host === undefined) {
 			throw new Error("The host has not started");
 		}
-		return originVerbs(state.host, story.tell);
+		return { ...admissionVerbs(state.host, story.tell), ...originVerbs(state.host, story.tell) };
 	},
 });
-export const withoutNativeOrigins = origins.trait("configured", "native origins are not configured", (state) => {
+export const withoutNativeOrigins = origins.trait("configured", "the auth declaration names no native origins", (state) => {
 	state.nativeOrigins = undefined;
 });
 export function proxyTrust(address: string) {

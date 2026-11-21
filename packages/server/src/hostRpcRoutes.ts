@@ -67,7 +67,7 @@ export function hostRpcRoutes<TRpcs extends Rpc.Any, THandlers, TError, TRequire
 
 function buildRpcRoutes<TRpcs extends Rpc.Any, THandlers, TError, TRequirements, TRequestServices = never, TRequestRequirements = never>(
 	options: RouteOptions<TRpcs, THandlers, TError, TRequirements, TRequestServices, TRequestRequirements>,
-	{ bodySize, trustedProxy, nativeOrigins }: Effect.Success<ReturnType<typeof hostTransport>>,
+	{ bodySize, trustedProxy }: Effect.Success<ReturnType<typeof hostTransport>>,
 	sensitive: Effect.Success<ReturnType<typeof schemaSensitiveKeys>>,
 ) {
 	const middleware = Layer.merge(
@@ -94,7 +94,7 @@ function buildRpcRoutes<TRpcs extends Rpc.Any, THandlers, TError, TRequirements,
 			};
 			const group = options.group;
 			const handler = yield* hostRpc(group, false, options.requestServices).pipe(Effect.provideService(RpcSerialization.RpcSerialization, httpWire));
-			const guarded = Effect.flatMap(UnixSocketRequest, (unix) => (unix ? handler : localRpcGuard(handler, trustedProxy, nativeOrigins)));
+			const guarded = Effect.flatMap(UnixSocketRequest, (unix) => (unix ? handler : localRpcGuard(handler, trustedProxy)));
 			const websocket = yield* hostRpc(group, true, options.requestServices).pipe(Effect.provideService(RpcSerialization.RpcSerialization, wire));
 			yield* router.add(
 				"OPTIONS",
@@ -106,7 +106,7 @@ function buildRpcRoutes<TRpcs extends Rpc.Any, THandlers, TError, TRequirements,
 			yield* router.add("GET", options.rpcPath ?? "/rpc", () =>
 				boundedRpcSocket(bodySize, options.rpcPath ?? "/rpc").pipe(
 					Effect.flatMap((request) =>
-						socketRpc(websocket, options, trustedProxy, nativeOrigins).pipe(
+						socketRpc(websocket, options, trustedProxy).pipe(
 							Effect.provideService(HttpServerRequest.HttpServerRequest, request),
 							Effect.provideService(RpcSerialization.RpcSerialization, wire),
 						),
