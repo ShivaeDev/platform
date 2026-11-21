@@ -40,14 +40,6 @@ function SessionContent({ app = clientModules, auth, history, persist }: AppProp
 		);
 	}
 	return (
-		<SessionApp
-			{...routing}
-			app={app}
-			auth={auth.actions}
-			history={history}
-			persist={persist}
-			recheck={auth.session.refresh}
-			session={current}
-		/>
+		<SessionApp {...routing} app={app} auth={auth.actions} history={history} persist={persist} recheck={auth.session.refresh} session={current} />
 	);
 }
