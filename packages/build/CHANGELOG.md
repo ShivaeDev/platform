@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.9.1 - 2026-11-21
+
+### Changed
+
+- `generate` lists a registration that serves no RPCs, such as `{ admin } satisfies AppModule`, in the server's module list, and refuses an exported object without `satisfies AppModule` that names `group` and `handlers`, names `module` beside another registration part such as `services` or `migrations`, or names a module by reference alone under a `server` folder.
+
 ## 0.9.0 - 2026-11-21
 
 ### Fixed
