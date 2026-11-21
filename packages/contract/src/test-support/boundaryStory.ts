@@ -97,8 +97,10 @@ export const boundaryStory = storyKit({
 		run: (operation: "read" | "save", result: Outcome) => {
 			story.tell(`a client made from the contract over HTTP runs ${operation} with a ${result} outcome`);
 			const { boundary } = made.api;
-			const run = operation === "read" ? boundary.read.run({ outcome: result }) : boundary.save.run({ outcome: result });
-			return answered(AtomRegistry.getResult(registry, made.runtime.atom(run)), (value) => value);
+			if (operation === "read") {
+				return answered(AtomRegistry.getResult(registry, made.runtime.atom(boundary.read.run({ outcome: result }))), (value) => value);
+			}
+			return answered(AtomRegistry.getResult(registry, made.runtime.atom(boundary.save.run({ outcome: result }))), (value) => value);
 		},
 		subscribeOverHttp: () => {
 			story.tell("the HTTP client subscribes to changes to its note query");
