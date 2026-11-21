@@ -12,10 +12,10 @@ import {
 	APP_TOKEN,
 	appJwtOf,
 	INVALID_PRIVATE_KEY,
+	PKCS1_PRIVATE_KEY,
 	PRIVATE_KEY,
 	unencodableScope,
 	WEBHOOK_SECRET,
-	WORKFLOW_BODY,
 	WRONG_SECRET,
 	webhookSignature,
 } from "#test/appFixture.ts";
@@ -27,6 +27,7 @@ import { answered } from "#test/outcome.ts";
 import { pooledApp } from "#test/pooledApp.ts";
 import { telemetry } from "#test/telemetry.ts";
 import { seenIn } from "#test/telemetryReadouts.ts";
+import { type Delivery, deliveries } from "#test/webhookDeliveries.ts";
 import { verifyWebhook } from "#verifyWebhook.ts";
 
 const App = Schema.Struct({ appId: Schema.Number, slug: Schema.String }).pipe(Schema.encodeKeys({ appId: "id" }));
@@ -43,15 +44,6 @@ const scopes = {
 	contents: { permissions: { contents: "read" }, repositories: ["widgets"] },
 } satisfies Record<string, InstallationScope | undefined>;
 export type Scope = keyof typeof scopes;
-
-export type Delivery = "a signed delivery" | "a tampered body" | "the wrong secret" | "a missing signature header" | "a malformed signature header";
-const deliveries: Record<Delivery, { body: Uint8Array; secret: string; signature: string | undefined }> = {
-	"a malformed signature header": { body: WORKFLOW_BODY, secret: WEBHOOK_SECRET, signature: "sha256=abc123" },
-	"a missing signature header": { body: WORKFLOW_BODY, secret: WEBHOOK_SECRET, signature: undefined },
-	"a signed delivery": { body: WORKFLOW_BODY, secret: WEBHOOK_SECRET, signature: webhookSignature() },
-	"a tampered body": { body: Buffer.from('{"action":"requested"}'), secret: WEBHOOK_SECRET, signature: webhookSignature() },
-	"the wrong secret": { body: WORKFLOW_BODY, secret: WRONG_SECRET, signature: webhookSignature() },
-};
 
 export const appGithub = storyKit({
 	*create() {
@@ -233,6 +225,11 @@ export const appGithub = storyKit({
 				attempt(
 					"a client with an invalid private key reads pull request 1",
 					read(PULL, PullRequest).pipe(Effect.provide(layer({ installationId: 7 }, INVALID_PRIVATE_KEY))),
+				),
+			readWithPkcs1Key: () =>
+				attempt(
+					"a client with the App key in GitHub's PKCS#1 PEM reads pull request 1",
+					read(PULL, PullRequest).pipe(Effect.provide(layer({ installationId: 7 }, PKCS1_PRIVATE_KEY))),
 				),
 			readWithUnencodableScope: () =>
 				attempt(

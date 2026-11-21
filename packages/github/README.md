@@ -160,6 +160,8 @@ These reads share the client's authentication, conditional representations and b
 
 Provide `githubApp` as the `GitHubToken` Layer. With just the App ID and a PEM private key wrapped in `Redacted`, the client signs App JWTs for App-level requests. Add an installation ID for installation requests. Both use the same Schema-aware `read` and paginated `list` functions.
 
+The Layer signs with `Signature` from `effect/crypto`, so it requires that service. The application host provides it through `NodeCrypto.layer`; elsewhere, such as a CLI or script, provide `NodeCrypto.layerSignature` from `@effect/platform-node/NodeCrypto`. The private key is the PKCS#1 PEM that GitHub issues, or the same key as PKCS#8.
+
 ```ts
 import { Layer, Redacted, Schema, Stream } from "effect";
 import { FetchHttpClient } from "effect/http";
@@ -235,7 +237,7 @@ Successful results are cached for 60 seconds, across at most 100 account keys, e
 
 `scope` accepts `repositoryIds` or `repositories` (repository names), and a `permissions` record of GitHub permission names to `"read"`, `"write"` or `"admin"`. Omit `scope` for the installation's full access. Explicit `{ permissions: { metadata: "read" } }` requests a metadata-only token for access checks. GitHub decides whether the requested scope is allowed.
 
-Alternatively, pass `{ appId, privateKey, owner: "acme", repository: "widgets", scope? }`. The Layer resolves the installation through `GET /repos/{owner}/{repo}/installation` before exchanging the App JWT for an installation token. Signing uses Node's built-in crypto. The RS256 JWT carries the App ID as `iss`, `iat` 60 seconds before the current time, and `exp` ten minutes ahead.
+Alternatively, pass `{ appId, privateKey, owner: "acme", repository: "widgets", scope? }`. The Layer resolves the installation through `GET /repos/{owner}/{repo}/installation` before exchanging the App JWT for an installation token. The RS256 JWT carries the App ID as `iss`, `iat` 60 seconds before the current time, and `exp` ten minutes ahead.
 
 `GitHubToken` accepts a static Option or a lazy Effect returning one; the client resolves it on each request. Code that reads the service directly must evaluate an Effect value before inspecting the Option, using `Effect.isEffect(value) ? yield* value : value`. Custom injection keeps the caller's token lifecycle.
 
@@ -293,7 +295,7 @@ A missing (404) or expired (410) artifact fails with `GitHubArtifactError({ stag
 
 Use [`@shivaedev/webhooks`](https://github.com/ShivaeDev/platform/tree/main/packages/webhooks#readme) to receive deliveries through the application host with receipts, deduplication and transactional job enqueueing. This package owns signature verification only.
 
-Pass the raw request bytes and the `X-Hub-Signature-256` header to `verifyWebhook` before parsing the body. It checks HMAC SHA-256 with a constant-time comparison, then decodes JSON with your Schema. A missing header, tampered body or wrong secret fails with `GitHubWebhookSignatureError` before Schema decoding.
+Pass the raw request bytes and the `X-Hub-Signature-256` header to `verifyWebhook` before parsing the body. It checks the HMAC SHA-256 tag with `Mac.verify` from `effect/crypto`, which compares in constant time, then decodes JSON with your Schema. A missing or malformed header, tampered body, wrong or empty secret fails with `GitHubWebhookSignatureError` before Schema decoding. The Effect requires `Mac`: the application host provides it through `NodeCrypto.layer`, and code outside a host provides `NodeCrypto.layerMac` from `@effect/platform-node/NodeCrypto`.
 
 ```ts
 import { Redacted, Schema } from "effect";
