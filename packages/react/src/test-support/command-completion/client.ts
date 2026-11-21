@@ -1,11 +1,12 @@
 import { Deferred, Effect, Schema } from "effect";
-import * as AtomRpc from "effect/reactivity/AtomRpc";
 import { collection } from "@shivaedev/changes/keys.ts";
-import { bind } from "@shivaedev/contract/bind.ts";
+import { makeClient } from "@shivaedev/contract/bind.ts";
+import { activityScreenSignal, clientActivity } from "@shivaedev/contract/clientActivity.ts";
 import { contract } from "@shivaedev/contract/contract.ts";
 import { command, query } from "@shivaedev/contract/operation.ts";
 import { Unauthorized } from "@shivaedev/errors/taxonomy.ts";
 import { layerLiveMemoryProtocol } from "@shivaedev/test-kits/contract/liveMemoryProtocol.ts";
+import { settledBeside } from "#test/settledBeside.ts";
 
 export class Rejected extends Schema.TaggedError<Rejected>()("Rejected", { reason: Schema.String }) {}
 const rows = collection("completion-rows", Schema.String);
@@ -20,6 +21,7 @@ const Commands = contract("completions", { commands: [Rename], queries: [List] }
 
 interface Command {
 	readonly arrived: Deferred.Deferred<void>;
+	readonly ended: Deferred.Deferred<void>;
 	readonly finished: Deferred.Deferred<void>;
 	readonly gate: Deferred.Deferred<string, Rejected | Unauthorized>;
 }
@@ -33,6 +35,7 @@ export function completionClient() {
 		}
 		const created: Command = {
 			arrived: Deferred.makeUnsafe<void>(),
+			ended: Deferred.makeUnsafe<void>(),
 			finished: Deferred.makeUnsafe<void>(),
 			gate: Deferred.makeUnsafe<string, Rejected | Unauthorized>(),
 		};
@@ -42,37 +45,44 @@ export function completionClient() {
 	const finished: string[] = [];
 	const refetch = Effect.runSync(Deferred.make<string>());
 	const refetched = Deferred.makeUnsafe<void>();
+	const rereading = Deferred.makeUnsafe<void>();
 	const reads: string[] = [];
 	const handlers = Commands.application.toLayer(
 		Effect.succeed(
 			Commands.application.of({
 				"completions.list": () => {
 					reads.push(reads.length === 0 ? "first read" : "read after a change");
-					return reads.length === 1
-						? Effect.succeed("initial")
-						: Deferred.await(refetch).pipe(Effect.tap(() => Deferred.succeed(refetched, undefined)));
+					if (reads.length === 1) {
+						return Effect.succeed("initial");
+					}
+					Deferred.doneUnsafe(rereading, Effect.void);
+					return Deferred.await(refetch).pipe(Effect.tap(() => Deferred.succeed(refetched, undefined)));
 				},
-				"completions.rename": ({ title }) =>
-					Effect.gen(function* () {
-						const { arrived, gate } = commandFor(title);
+				"completions.rename": ({ title }) => {
+					const { arrived, ended, gate } = commandFor(title);
+					return Effect.gen(function* () {
 						Deferred.doneUnsafe(arrived, Effect.void);
 						return yield* Deferred.await(gate);
-					}),
+					}).pipe(Effect.ensuring(Effect.sync(() => Deferred.doneUnsafe(ended, Effect.void))));
+				},
 			}),
 		),
 	);
-	class Client extends AtomRpc.Service<Client>()("test/CompletionCommands", {
-		group: Commands,
-		protocol: layerLiveMemoryProtocol(Commands, handlers),
-	}) {}
-	const api = bind(Commands, Client);
+	const connection = makeClient(Commands, { protocol: layerLiveMemoryProtocol(Commands, handlers), url: "memory://completions" });
+	const { api } = connection;
+	const settled = settledBeside(() => ({
+		awaitingReruns: Deferred.isDoneUnsafe(rereading) && !Deferred.isDoneUnsafe(refetch) ? undefined : 0,
+		commands: [...commands.values()].filter(({ arrived, ended }) => Deferred.isDoneUnsafe(arrived) && !Deferred.isDoneUnsafe(ended)).length,
+	}));
 	return {
+		activity: activityScreenSignal(clientActivity(connection), settled),
 		command: commandFor,
 		finished,
 		list: api.list.query(),
 		reads: () => [...reads],
 		refetch,
 		refetched,
+		rereading,
 		run: (input: { readonly title: string }) =>
 			api.rename.run(input).pipe(
 				Effect.onExit(() =>
@@ -82,7 +92,7 @@ export function completionClient() {
 					}),
 				),
 			),
-		runtime: Client.runtime,
+		runtime: connection.Client.runtime,
 	};
 }
 export type CompletionClient = ReturnType<typeof completionClient>;
