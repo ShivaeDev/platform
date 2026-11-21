@@ -17,12 +17,29 @@ export const exchangeOversized = appGithub.trait("github", "GitHub answers the t
 	yield* server.scriptFault("token", { kind: "status", reply: { body: "x".repeat(65 * 1024) } });
 });
 
+export const exchangeBadCredentials = appGithub.trait(
+	"github",
+	"GitHub refuses the next token exchange with 401 Bad credentials",
+	function* ({ server }) {
+		yield* server.scriptFault("token", {
+			kind: "status",
+			reply: {
+				body: { "documentation_url": "https://docs.github.com/rest", message: "Bad credentials", status: "401" },
+				status: HttpStatus.fromLiteral("Unauthorized"),
+			},
+		});
+	},
+);
+
 export const lookupDropped = appGithub.trait("github", "GitHub drops installation-lookup connections", function* ({ server }) {
 	yield* server.scriptFault("installation", { kind: "drop" }, { repeat: true });
 });
 
-export const lookupRefused = appGithub.trait("github", "GitHub refuses the installation lookup with 401", function* ({ server }) {
-	yield* server.scriptFault("installation", { kind: "status", reply: { status: 401 } });
+export const lookupRefused = appGithub.trait("github", "GitHub refuses the installation lookup with 401 Bad credentials", function* ({ server }) {
+	yield* server.scriptFault("installation", {
+		kind: "status",
+		reply: { body: { message: "Bad credentials" }, status: HttpStatus.fromLiteral("Unauthorized") },
+	});
 });
 
 export function rejectsNext(target: "pull request 1" | "the archive", times: number) {
@@ -40,3 +57,17 @@ export function rejectsNext(target: "pull request 1" | "the archive", times: num
 		},
 	);
 }
+
+export const exchangeRefused = appGithub.trait(
+	"github",
+	"GitHub refuses the next token exchange with 401 and a message that echoes the App JWT it received, with and without its scheme",
+	function* ({ server }) {
+		yield* server.scriptFault("token", {
+			kind: "status",
+			reply: (request) => ({
+				body: { message: `${request.headers.authorization} ${request.headers.authorization?.replace(/^Bearer /u, "")}` },
+				status: HttpStatus.fromLiteral("Unauthorized"),
+			}),
+		});
+	},
+);

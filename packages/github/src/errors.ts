@@ -50,6 +50,7 @@ export class GitHubTokenError extends Schema.TaggedError<GitHubTokenError>()("Gi
 }
 
 const AppFailure = Schema.Struct({
+	detail: Schema.optional(Schema.String),
 	reason: Schema.Literals(["sign", "encode", "transport", "status", "response"]),
 	status: Schema.optional(Schema.Number),
 });
@@ -58,6 +59,17 @@ export class GitHubAppError extends Schema.TaggedError<GitHubAppError>()("GitHub
 	constructor(fields: typeof AppFailure.Type, options?: ErrorOptions) {
 		super(fields);
 		Object.defineProperty(this, "cause", { value: options?.cause });
+	}
+
+	override get message() {
+		if (this.reason === "sign") {
+			return "GitHub App JWT signing failed";
+		}
+		if (this.reason !== "status") {
+			return `GitHub App request ${this.reason} failed`;
+		}
+		const refused = `GitHub refused the App request with HTTP ${this.status}`;
+		return this.detail === undefined ? refused : `${refused}: ${this.detail}`;
 	}
 }
 

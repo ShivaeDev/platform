@@ -34,10 +34,12 @@ export const checkStatus = Effect.fnUntraced(function* (response: HttpClientResp
 
 const Message = Schema.fromJsonString(Schema.Struct({ message: Schema.String }));
 
+export function githubMessage(text: string | undefined) {
+	return text === undefined ? undefined : Option.getOrUndefined(Option.map(Schema.decodeUnknownOption(Message)(text), (body) => body.message));
+}
+
 const responseMessage = Effect.fnUntraced(function* (response: HttpClientResponse.HttpClientResponse) {
-	const text = yield* readBoundedText(response, 64 * 1024);
-	const body = Schema.decodeUnknownOption(Message)(text);
-	return Option.isSome(body) ? body.value.message : undefined;
+	return githubMessage(yield* readBoundedText(response, 64 * 1024));
 });
 
 function githubRefusal(message: string | undefined, path: string) {
