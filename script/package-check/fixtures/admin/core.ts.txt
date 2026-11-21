@@ -31,7 +31,12 @@ const Viewer = query("viewer", {
   },
 });
 // A consumer without the generator writes the wire by hand and lets the module stand in for its browser contract.
-const Packed = defineModule({ name: "admin.packed", operations: [Viewer], wire: { viewer: { rejections: {}, success: Schema.String } } });
+const Packed = defineModule({
+  middleware: JobsPermission,
+  name: "admin.packed",
+  operations: [Viewer],
+  wire: { viewer: { rejections: {}, success: Schema.String } },
+});
 const page = adminPage({
   contract: Packed,
   id: "packed",
