@@ -23,7 +23,7 @@ export const applicationAuthTransactions = storyKit({
 	clock: storyClock,
 	*create() {
 		const sql = yield* SqlClient.SqlClient;
-		yield* migrateBetterAuth(compositionOptions);
+		yield* migrateBetterAuth({ options: compositionOptions });
 		yield* sql`create table registrations (email text primary key)`;
 		yield* sql`create table registration_notes (kind text primary key)`;
 		const announced: unknown[] = [];

@@ -5,16 +5,13 @@ import { Rpc, RpcClient, RpcGroup, RpcSerialization } from "effect/rpc";
 import { AuthUnavailable, Unauthorized } from "@shivaedev/errors/taxonomy.ts";
 import { SessionUserWithProviderAccounts } from "@shivaedev/identity/identity.ts";
 import { AuthenticatedUserWithProviderAccounts } from "@shivaedev/identity/middleware.ts";
-import { betterAuthDatabase } from "@shivaedev/identity/server/better-auth/adapters/database.ts";
 import { allowedAccounts } from "@shivaedev/identity/server/better-auth/allowedAccounts.ts";
 import { betterAuthMount } from "@shivaedev/identity/server/better-auth/mount.ts";
 import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import { authenticatedUserWithProviderAccountsLayer } from "@shivaedev/identity/server/session.ts";
 import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
 import { appHost } from "@shivaedev/server/appHost.ts";
-import { AppAccess } from "#AppAccess.ts";
-import { User } from "#roles/User.ts";
-import { authOptions } from "#server/authOptions.ts";
+import { AppAuth } from "#server/AppAuth.ts";
 import { secret } from "#test-support/host.ts";
 
 const Api = RpcGroup.make(
@@ -26,15 +23,16 @@ const Api = RpcGroup.make(
 const handlers = Api.toLayer({ Accounts: () => Effect.flatMap(SessionUserWithProviderAccounts, (user) => user.providerAccounts) });
 
 export const admittedHost = Effect.fn("AdmittedStory.admittedHost")(function* (env: Record<string, string>) {
-	const pool = yield* betterAuthDatabase();
 	const mounted = yield* betterAuthMount(
 		{
-			...authOptions(),
-			database: pool,
-			secret: Redacted.value(secret),
-			socialProviders: { github: { clientId: "story-client", clientSecret: "story-secret" } },
+			...AppAuth,
+			options: {
+				...AppAuth.options,
+				secret: Redacted.value(secret),
+				socialProviders: { github: { clientId: "story-client", clientSecret: "story-secret" } },
+			},
 		},
-		{ defaultRole: User.name, roles: AppAccess, signIn: { accounts: allowedAccounts } },
+		{ signIn: { accounts: allowedAccounts } },
 	).pipe(Effect.provide(memoryStore));
 	const sessions = {
 		...mounted.sessions,

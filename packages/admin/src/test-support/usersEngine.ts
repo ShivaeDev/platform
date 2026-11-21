@@ -39,8 +39,8 @@ export const makeUsersEngine = Effect.fnUntraced(function* (mapping: AuthTableOp
 			additionalFields: { role: { ...mapping.user?.additionalFields?.role, defaultValue: "user", input: false, type: "string" as const } },
 		},
 	};
-	yield* migrateBetterAuth(authOptions);
-	const { auth } = yield* betterAuthMount(authOptions).pipe(Effect.provide(memoryStore));
+	yield* migrateBetterAuth({ options: authOptions });
+	const { auth } = yield* betterAuthMount({ options: authOptions }).pipe(Effect.provide(memoryStore));
 	const context = yield* Effect.promise(() => auth.$context);
 	function register(id: string, role: typeof Access.Role.Type, createdAt?: Date) {
 		return Effect.promise(() =>
@@ -78,7 +78,7 @@ export const makeUsersEngine = Effect.fnUntraced(function* (mapping: AuthTableOp
 	const host = yield* liveHost(
 		registration.group,
 		registration.handlers.pipe(
-			Layer.provide(betterAuthUserDirectory(Access, authOptions)),
+			Layer.provide(betterAuthUserDirectory({ options: authOptions, roles: Access })),
 			Layer.provide(Layer.succeed(SqlClient.SqlClient, sql)),
 			Layer.provide(logger),
 		),

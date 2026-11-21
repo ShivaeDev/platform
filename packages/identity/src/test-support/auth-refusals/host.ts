@@ -36,8 +36,8 @@ export const refusalHost = Effect.fnUntraced(function* (refusals: Refusals, sign
 		plugins: [testUtils()],
 		secret: "auth-refusal-stories-secret-at-least-32-characters",
 	};
-	yield* migrateBetterAuth(options, { defaultRole: "member" });
-	const mounted = yield* betterAuthMount(options, {
+	yield* migrateBetterAuth({ defaultRole: "member", options });
+	const host = {
 		databaseHooks: {
 			session: {
 				create: {
@@ -45,7 +45,6 @@ export const refusalHost = Effect.fnUntraced(function* (refusals: Refusals, sign
 				},
 			},
 		},
-		defaultRole: "member",
 		emails: {
 			deliver: () => (refusals.delivery ? Effect.fail({ code: "MAIL_UNAVAILABLE", message: "Mail is unavailable" }) : Effect.void),
 			routes: {
@@ -57,7 +56,6 @@ export const refusalHost = Effect.fnUntraced(function* (refusals: Refusals, sign
 			},
 		},
 		roleSeed: Effect.succeed({ onSignIn: () => (refusals.seed ? Effect.fail("Role storage is unavailable") : Effect.void) }),
-		roles: Access,
 		...(signInPolicy
 			? {
 					signIn: {
@@ -66,7 +64,8 @@ export const refusalHost = Effect.fnUntraced(function* (refusals: Refusals, sign
 					},
 				}
 			: {}),
-	})
+	};
+	const mounted = yield* betterAuthMount({ defaultRole: "member", options, roles: Access }, host)
 		.pipe(Effect.provide(memoryStore))
 		.pipe(Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env: { "AUTH_RATE_LIMIT_ENABLED": "false" } }))));
 	const context = yield* Layer.build(

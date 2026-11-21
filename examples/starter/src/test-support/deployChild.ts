@@ -2,6 +2,7 @@ import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { Deferred, Duration, Effect, Fiber, Option, Queue, Redacted, Stream } from "effect";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
+import { AUTH_TEST_SECRET } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
 
 export const deployChild = Effect.fn("Test.deployChild")(function* (
 	kind: "worker" | "web" | "migrate",
@@ -27,7 +28,7 @@ export const deployChild = Effect.fn("Test.deployChild")(function* (
 				env: {
 					"DATABASE_URL": target.toString(),
 					...env,
-					...(kind === "web" ? { "BETTER_AUTH_SECRET": "app-test-secret-with-at-least-32-characters", "PORT": String(port) } : {}),
+					...(kind === "web" ? { "BETTER_AUTH_SECRET": AUTH_TEST_SECRET, "PORT": String(port) } : {}),
 				},
 				extendEnv: false,
 				stdin: Stream.fromQueue(commands),

@@ -1,6 +1,9 @@
-import type { AuthContext } from "better-auth";
-import type { testUtils } from "better-auth/plugins";
+import type { AuthContext, BetterAuthOptions } from "better-auth";
+import { testUtils } from "better-auth/plugins";
 import { Clock, Effect } from "effect";
+import type { AuthDeclaration } from "@shivaedev/identity/server/better-auth/define.ts";
+import { betterAuthMount } from "@shivaedev/identity/server/better-auth/mount.ts";
+import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
 import { signedSessionToken, testUserEmail } from "#identity/adapters/testingCredentials.ts";
 
 type TestContext = ReturnType<ReturnType<typeof testUtils>["init"]>["context"];
@@ -106,4 +109,41 @@ export const passwordUser = Effect.fnUntraced(function* (
 		context.internalAdapter.createAccount({ accountId: user.id, password: hash, providerId: "credential", userId: user.id }),
 	);
 	return user;
+});
+
+export const AUTH_TEST_SECRET = "story-auth-secret-with-at-least-32-characters";
+
+export interface StoryAuthHost {
+	readonly origin: string;
+	readonly secureCookies?: boolean | undefined;
+}
+
+type DeclaredRole<TAuth> = TAuth extends { readonly defaultRole: infer TRole extends string } ? TRole : never;
+
+export const storyAuth = Effect.fnUntraced(function* <const TOptions extends BetterAuthOptions>(
+	declaration: AuthDeclaration<TOptions>,
+	host: StoryAuthHost,
+) {
+	const { options } = declaration;
+	const { auth } = yield* betterAuthMount({
+		...declaration,
+		options: {
+			...options,
+			advanced: { ...options.advanced, useSecureCookies: host.secureCookies ?? host.origin.startsWith("https:") },
+			"baseURL": host.origin,
+			plugins: [...(options.plugins ?? []), testUtils()],
+			secret: options.secret ?? AUTH_TEST_SECRET,
+		},
+	}).pipe(Effect.provide(memoryStore));
+	return auth;
+});
+
+export const mintUser = Effect.fnUntraced(function* <TAuth extends AuthDeclaration>(
+	declaration: TAuth,
+	host: StoryAuthHost,
+	name: string,
+	{ role }: { readonly role?: DeclaredRole<TAuth> | undefined } = {},
+) {
+	const auth = yield* storyAuth(declaration, host);
+	return yield* signedInUser(auth, { email: `${name}@app.test`, name, ...(role === undefined ? {} : { role }) });
 });

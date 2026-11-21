@@ -1,6 +1,7 @@
 import { layerWebSocketConstructor } from "@effect/platform-node/NodeWS";
 import { DateTime, Effect } from "effect";
 import { act } from "react";
+import { mintUser } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
@@ -8,10 +9,10 @@ import type { AppAccess } from "#AppAccess.ts";
 import { makeFoundationClient } from "#client/admin/foundation.ts";
 import { openScreen } from "#modules/notes/test-support/admin/openScreen.tsx";
 import { notesHttp } from "#modules/notes/test-support/http.ts";
+import { AppAuth } from "#server/AppAuth.ts";
 import { startHost } from "#test-support/host.ts";
 import { configured, postgres } from "#test-support/postgres.ts";
 import { type ScreenSurface, screenView } from "#test-support/screenState.ts";
-import { mintUser } from "#test-support/sessionPrecondition.ts";
 import { uiScreenVerbs } from "#test-support/uiScreenVerbs.ts";
 
 type Account = Effect.Success<ReturnType<typeof mintUser>>;
@@ -89,12 +90,12 @@ export function adminScreen(path = "/admin/jobs", role: typeof AppAccess.Role.Ty
 
 export function adminScreenAccount(name: string, role: typeof AppAccess.Role.Type = "user") {
 	return adminScreens.trait("accounts", `${name} has a signed-in ${role} account`, function* (engine) {
-		engine.accounts.set(name, yield* mintUser(engine.host, name, role));
+		engine.accounts.set(name, yield* mintUser(AppAuth, engine.host, name, { role }));
 	});
 }
 
 export const pendingNote = adminScreens.trait("notes", "bob creates a note whose word count is pending", function* (engine) {
-	const bob = yield* mintUser(engine.host, "bob");
+	const bob = yield* mintUser(AppAuth, engine.host, "bob");
 	const client = yield* notesHttp(engine.host.baseUrl, bob.headers.get("cookie") ?? "", engine.host.origin);
 	yield* client["notes.create"]({ title: "A note awaiting word count" });
 });

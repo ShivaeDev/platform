@@ -38,7 +38,7 @@ export const startHost = Effect.fn("NativeSessions.startHost")(function* (
 		trustedOrigins: [NATIVE_ORIGIN, ANDROID_ORIGIN, "http://127.0.0.1:*", ...siblingOrigins],
 	} satisfies BetterAuthOptions;
 	yield* Effect.promise(async () => (await getMigrations(options)).runMigrations());
-	const mounted = yield* betterAuthMount(options, enabled ? { bearerSessions: { origins: [NATIVE_ORIGIN, ANDROID_ORIGIN] } } : {}).pipe(
+	const mounted = yield* betterAuthMount({ options }, enabled ? { bearerSessions: { origins: [NATIVE_ORIGIN, ANDROID_ORIGIN] } } : {}).pipe(
 		Effect.provide(memoryStore),
 	);
 	const activity = { available: true, lookups: 0 };

@@ -5,7 +5,7 @@ import { act } from "react";
 import { JobsClientFactory } from "@shivaedev/jobs/server/JobsClientFactory.ts";
 import { RouterProvider } from "@shivaedev/react/RouterProvider.ts";
 import { emailLink, inbox } from "@shivaedev/test-kits/email/adapters/inbox.ts";
-import { signedInUser } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
+import { signedInUser, storyAuth } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
 import { makePgBossTesting } from "@shivaedev/test-kits/jobs/testing.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
@@ -13,12 +13,12 @@ import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { makeAuth } from "#client/adapters/auth.ts";
 import { appRouter } from "#client/appRouter.tsx";
+import { AppAuth } from "#server/AppAuth.ts";
 import { applicationWorker } from "#server/applicationWorker.ts";
 import { startHost } from "#test-support/host.ts";
 import { testPoolSizes } from "#test-support/poolSizes.ts";
 import { configured, postgres } from "#test-support/postgres.ts";
 import { acquireScreen, type ScreenSurface, screenView } from "#test-support/screenState.ts";
-import { sessionPrecondition } from "#test-support/sessionPrecondition.ts";
 
 const decodeSession = Schema.decodeUnknownSync(Schema.Struct({ user: Schema.Struct({ emailVerified: Schema.Boolean }) }));
 
@@ -46,7 +46,7 @@ export const authEmailApp = storyKit({
 				replacements: Layer.succeed(JobsClientFactory, testing.clientFactory),
 			}).pipe(Layer.provide(workerConfig)),
 		);
-		const precondition = yield* sessionPrecondition(host);
+		const precondition = yield* storyAuth(AppAuth, host);
 		const alice = yield* signedInUser(precondition, { email: "alice@app.test", emailVerified: false, name: "alice" });
 		const auth = makeAuth({ baseUrl: host.baseUrl });
 		const surface: ScreenSurface = { view: undefined };

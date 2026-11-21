@@ -1,19 +1,13 @@
 import { fileURLToPath } from "node:url";
 import * as NodeServices from "@effect/platform-node/NodeServices";
-import { testUtils } from "better-auth/plugins";
 import { ConfigProvider, DateTime, Effect, Redacted } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
-import { betterAuthDatabase } from "@shivaedev/identity/server/better-auth/adapters/database.ts";
-import { betterAuthMount } from "@shivaedev/identity/server/better-auth/mount.ts";
-import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
-import { signedInUser } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
+import { signedInUser, storyAuth } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { AppAccess } from "#AppAccess.ts";
-import { User } from "#roles/User.ts";
-import { authOptions } from "#server/authOptions.ts";
+import { AppAuth } from "#server/AppAuth.ts";
 import { adminCommand } from "#test-support/admin/command.ts";
 import { signedInAccount } from "#test-support/admin/session.ts";
 import { type RunningHost, secret, startHost } from "#test-support/host.ts";
@@ -44,7 +38,7 @@ export const adminSetup = storyKit({
 			adminCommandRuns: Effect.fn("AdminSetup.adminCommandRuns")(function* (email: string, password: string) {
 				story.tell(`the admin bootstrap command runs for ${email}`);
 				const { code } = yield* adminCommand(email, password);
-				return code === 0 ? "created" : "refused";
+				return code === 0 ? "completed" : "failed";
 			}),
 			appStarts: Effect.fn("AdminSetup.appStarts")(function* (ownerAccounts?: string) {
 				story.tell(ownerAccounts === undefined ? "the app starts" : `the app starts with ${ownerAccounts} configured as owner`);
@@ -91,12 +85,9 @@ export const aliceSignedInWithGitHub = adminSetup.trait(
 	"accounts",
 	"alice signed in with GitHub account 1001 before any owner was configured",
 	function* (engine) {
-		const { auth } = yield* betterAuthMount(
-			{ ...authOptions(), database: yield* betterAuthDatabase(), plugins: [testUtils()], secret: Redacted.value(secret) },
-			{ defaultRole: User.name, roles: AppAccess },
-		)
-			.pipe(Effect.provide(memoryStore))
-			.pipe(Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env: {} }))));
+		const auth = yield* storyAuth(AppAuth, { origin: "http://127.0.0.1" }).pipe(
+			Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env: {} }))),
+		);
 		const session = yield* signedInUser(auth, {
 			email: "alice@github.test",
 			name: "alice",

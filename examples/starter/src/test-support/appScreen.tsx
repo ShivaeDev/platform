@@ -4,6 +4,7 @@ import { Effect } from "effect";
 import type { RootOptions } from "react-dom/client";
 import type { ClientActivity } from "@shivaedev/contract/clientActivity.ts";
 import type { ClientOptions } from "@shivaedev/contract/clientOptions.ts";
+import { mintUser } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
 import { seedCookies } from "@shivaedev/test-story/server/adapters/seedCookies.ts";
 import { type BrowserReadsOptions, browserReads } from "@shivaedev/test-story/server/browserReads.ts";
 import type { AppAccess } from "#AppAccess.ts";
@@ -13,10 +14,10 @@ import { makeFoundationClient } from "#client/admin/foundation.ts";
 import { foundationRegistration } from "#client/admin/foundationRegistration.tsx";
 import type { ClientRegistration } from "#client/Module.ts";
 import { clientModules } from "#client/modules.ts";
+import { AppAuth } from "#server/AppAuth.ts";
 import { createCookieHost } from "#test-support/createCookieHost.ts";
 import type { RunningHost } from "#test-support/host.ts";
 import { acquireScreen, type ScreenSurface } from "#test-support/screenState.ts";
-import { mintUser } from "#test-support/sessionPrecondition.ts";
 
 export const appScreen = Effect.fn("AppStory.appScreen")(function* (options: {
 	readonly account: { readonly name: string; readonly role?: typeof AppAccess.Role.Type };
@@ -32,7 +33,7 @@ export const appScreen = Effect.fn("AppStory.appScreen")(function* (options: {
 	};
 }) {
 	const host = yield* createCookieHost(options.host);
-	const account = yield* mintUser(host, options.account.name, options.account.role);
+	const account = yield* mintUser(AppAuth, host, options.account.name, { role: options.account.role });
 	yield* seedCookies(account.cookies);
 	const url = `${host.baseUrl}/rpc`;
 	const observed = yield* browserReads({

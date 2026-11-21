@@ -32,7 +32,7 @@ export function adminVerbs(engine: Engine, tell: (line: string) => void) {
 		stepsDown: (name: string) =>
 			Effect.suspend(() => {
 				tell(`${name} steps down from admin to user through identity’s operator verb`);
-				return assignRole(Roles, person(engine, name).id, "user").pipe(Effect.asVoid);
+				return assignRole({ roles: Roles }, person(engine, name).id, "user").pipe(Effect.asVoid);
 			}),
 	};
 }
