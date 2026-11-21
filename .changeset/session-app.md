@@ -1,6 +1,7 @@
 ---
 "@shivaedev/react": minor
 "@shivaedev/create-app": minor
+"@shivaedev/admin": patch
 ---
 
 ### Added
@@ -12,6 +13,10 @@
 ### Changed
 
 - `@shivaedev/react`: a `useQuery` or `useAction` result that fails with `Unauthorized` in `SessionBoundary`'s signed-out tree now asks for one session check, as it does signed in; a check that answers signed out asks no second time.
+
+### Fixed
+
+- `@shivaedev/admin`: the document guard of `adminDocuments` and `adminPermissionGuard` recognise TanStack's brace parameters (`{$id}`, `{-$id}`) and parameters in a page's `path`, not only `$id` in its `detail`: each matches any one non-empty segment, so `/admin/invoices/42` needs the permission of a page whose detail is `/admin/invoices/{$invoiceId}`, and `/admin/teams/blue/members` that of a page whose path is `/admin/teams/$team/members`. React's root guard matches pages by the same rules.
 
 ### Breaking
 

@@ -1,6 +1,7 @@
 import { createRootRouteWithContext, type NotFoundRouteComponent } from "@tanstack/react-router";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { type PermissionGuardOptions, permissionGuard } from "#adapters/permissionGuard.ts";
+import { matchAdminPage } from "#client/matchAdminPage.ts";
 import type { AdminNavigation, ModuleParts, RegisteredAuth, RegisteredSession } from "#client/module.ts";
 
 export interface SessionRouteContext {
@@ -14,30 +15,9 @@ export interface SessionRouteContext {
 	readonly session: () => RegisteredSession | null | undefined;
 }
 
-function segments(path: string): readonly string[] {
-	return path.replace(/\/$/u, "").split("/");
-}
-
-function isParameter(segment: string): boolean {
-	return segment.startsWith("$") || /^\{-?\$[^}]*\}$/u.test(segment);
-}
-
-function matchesPath(declared: string, pathname: readonly string[]): boolean {
-	const expected = segments(declared);
-	return (
-		expected.length === pathname.length
-		&& expected.every((segment, index) => (isParameter(segment) ? pathname[index] !== "" : segment === pathname[index]))
-	);
-}
-
-// Pages are matched against the location, not the matched route, so a literal or dispatcher route under a page's path still needs the page's permission; the bare admin index needs the first page's, as the admin document guard does.
+// Pages are matched against the location, not the matched route, so a literal or dispatcher route under a page's path still needs the page's permission.
 function adminPagePermission(pages: readonly AdminNavigation[], pathname: string) {
-	const actual = segments(pathname);
-	const page =
-		actual.join("/") === "/admin"
-			? pages[0]
-			: (pages.find(({ route }) => matchesPath(route.path, actual))
-				?? pages.find(({ route }) => route.detail !== undefined && matchesPath(route.detail, actual)));
+	const page = matchAdminPage(pages, pathname);
 	return page === undefined ? [] : [{ staticData: { permission: page.route.permission } }];
 }
 
