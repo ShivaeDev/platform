@@ -23,13 +23,22 @@ export const coordinateWorkerRelease = Effect.fn("EffectSql.coordinateWorkerRele
 	const retries = Schedule.spaced(Duration.toMillis(pollInterval) / 4).pipe(Schedule.upTo({ times: 3 }));
 	const rows = yield* releaseWorkers(release, Duration.toMillis(pollInterval) * 5, table);
 	let claimed = false;
+	let registered = false;
+	const remove = Effect.suspend(() => (claimed ? rows.remove : Effect.void)).pipe(
+		Effect.andThen(
+			Effect.sync(() => {
+				claimed = false;
+			}),
+		),
+	);
+	const heartbeat = Effect.suspend(() => (claimed ? rows.heartbeat : Effect.void));
+	// A process claims a row only once a worker registers, so a host without workers never holds back another release's takeover.
 	const poll = Effect.gen(function* () {
 		const owner = yield* readPostgresRelease(table);
 		if (owner?.release !== release) {
 			yield* gate.setActive(false).pipe(Effect.orDie);
-			yield* rows.remove;
-			claimed = false;
-		} else if (!claimed) {
+			yield* remove;
+		} else if (!claimed && registered) {
 			claimed = yield* rows.claim;
 			if (claimed) {
 				yield* gate.setActive(true).pipe(Effect.orDie);
@@ -42,8 +51,8 @@ export const coordinateWorkerRelease = Effect.fn("EffectSql.coordinateWorkerRele
 			Effect.retry({ schedule: retries, while: isSqlError }),
 		);
 	}
-	function loop<E, R>(name: string, effect: Effect.Effect<unknown, E, R>) {
-		return Effect.forever(Effect.sleep(pollInterval).pipe(Effect.andThen(tick(name, effect)))).pipe(
+	function closeOnFailure<E, R>(name: string, effect: Effect.Effect<unknown, E, R>) {
+		return effect.pipe(
 			Effect.catchCause((cause) =>
 				Effect.logError(`Worker release ${name} stopped; closing worker scope`, cause).pipe(
 					Effect.andThen(Scope.close(scope, Exit.failCause(cause))),
@@ -53,19 +62,32 @@ export const coordinateWorkerRelease = Effect.fn("EffectSql.coordinateWorkerRele
 			Effect.forkIn(scope),
 		);
 	}
+	function loop<E, R>(name: string, effect: Effect.Effect<unknown, E, R>) {
+		return closeOnFailure(name, Effect.forever(Effect.sleep(pollInterval).pipe(Effect.andThen(tick(name, effect)))));
+	}
 	yield* Scope.addFinalizer(
 		scope,
 		gate.setActive(false).pipe(
 			Effect.orDie,
-			Effect.andThen(rows.remove),
+			Effect.andThen(remove),
 			Effect.tapCause((cause) => Effect.logError("Worker release cleanup failed", cause)),
 			Effect.orDie,
 		),
 	);
 	// Heartbeats continue while offWork waits for active jobs to finish.
-	yield* loop("heartbeat", rows.heartbeat);
-	yield* tick("poll", poll).pipe(Scope.provide(scope));
+	yield* loop("heartbeat", heartbeat);
+	yield* closeOnFailure(
+		"poll",
+		gate.service.awaitRegistration().pipe(
+			Effect.andThen(
+				Effect.sync(() => {
+					registered = true;
+				}),
+			),
+			Effect.andThen(tick("poll", poll)),
+		),
+	);
 	yield* loop("poll", poll);
-	yield* registerClock({ heartbeat: rows.heartbeat, poll }).pipe(Scope.provide(scope));
+	yield* registerClock({ heartbeat, poll }).pipe(Scope.provide(scope));
 	return gate.service;
 });

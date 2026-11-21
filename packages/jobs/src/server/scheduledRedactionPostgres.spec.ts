@@ -20,6 +20,7 @@ for (const { failure, logged } of [
 			yield* untilIdle("app");
 
 			expect(yield* logLines("app")).toEqual([
+				{ level: "Info", message: "Worker ready to take jobs" },
 				{ level: "Error", message: logged },
 				{ level: "Error", message: "Job attempt failed" },
 			]);

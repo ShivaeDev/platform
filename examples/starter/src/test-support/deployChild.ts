@@ -35,7 +35,7 @@ export const deployChild = Effect.fn("Test.deployChild")(function* (
 			},
 		),
 	);
-	const started = yield* Deferred.make<string, Error>();
+	const takingJobs = yield* Deferred.make<void, Error>();
 	const waitingForSchema = yield* Deferred.make<void, Error>();
 	const paused = yield* Deferred.make<void, Error>();
 	const resumed = yield* Deferred.make<void, Error>();
@@ -60,7 +60,7 @@ export const deployChild = Effect.fn("Test.deployChild")(function* (
 					yield* Deferred.succeed(waitingForSchema, undefined);
 				}
 				if (line.includes("Worker ready to take jobs")) {
-					yield* Deferred.succeed(started, "worker");
+					yield* Deferred.succeed(takingJobs, undefined);
 				}
 			}),
 		),
@@ -76,7 +76,7 @@ export const deployChild = Effect.fn("Test.deployChild")(function* (
 	const failedToStart = exited.pipe(
 		Effect.andThen(Effect.suspend(() => Effect.fail(new Error(`${kind} exited before starting\n${[...logs, ...errors].join("\n")}`)))),
 	);
-	const listening = child.getOutputFd(3).pipe(
+	const reported = child.getOutputFd(3).pipe(
 		Stream.decodeText(),
 		Stream.splitLines,
 		Stream.runHead,
@@ -88,8 +88,9 @@ export const deployChild = Effect.fn("Test.deployChild")(function* (
 		exitCode: exited.pipe(Effect.map(([code]) => Number(code))),
 		logs,
 		paused: Deferred.await(paused).pipe(Effect.timeout("20 seconds")),
-		ready: Effect.raceFirst(kind === "web" ? listening : Deferred.await(started), failedToStart).pipe(Effect.timeout("20 seconds")),
+		ready: Effect.raceFirst(reported, failedToStart).pipe(Effect.timeout("20 seconds")),
 		resumed: Deferred.await(resumed).pipe(Effect.timeout("20 seconds")),
+		takingJobs: Effect.raceFirst(Deferred.await(takingJobs), failedToStart).pipe(Effect.timeout("20 seconds")),
 		timePasses: (duration: Duration.Input, options?: { readonly poll?: boolean }) =>
 			Queue.offer(
 				commands,

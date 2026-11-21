@@ -121,7 +121,7 @@ export function deploymentVerbs(engine: DeploymentEngine, tell: (line: string) =
 			engine.address = yield* web.ready;
 		}),
 		workerBecomesReady: Effect.fn("DeploymentStory.workerBecomesReady")(function* (release: string) {
-			yield* processOf(`${release} worker`).ready;
+			yield* processOf(`${release} worker`).takingJobs;
 			return "ready";
 		}),
 		workerStarts: Effect.fn("DeploymentStory.workerStarts")(function* (release: string) {
