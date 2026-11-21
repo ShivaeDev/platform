@@ -1,26 +1,25 @@
 import { createRootRouteWithContext } from "@tanstack/react-router";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import type { Permission } from "@shivaedev/access/permission.ts";
-import { permissionGuard } from "#adapters/permissionGuard.ts";
+import { type PermissionGuardOptions, permissionGuard } from "#adapters/permissionGuard.ts";
 import type { AdminNavigation, ModuleParts, RegisteredAuth, RegisteredSession } from "#client/module.ts";
-import type { QueryRouteRedirects } from "#queryRouteFailure.ts";
 
 export interface SessionRouteContext {
 	readonly adminPages: readonly AdminNavigation[];
 	readonly auth: RegisteredAuth;
 	readonly modules: readonly ModuleParts[];
 	readonly navigate: (path: string) => void;
-	readonly redirects: Required<Pick<QueryRouteRedirects, "signedOut">>;
+	// Naming the guard's type here carries its staticData augmentation into every app that reads the root route's type.
+	readonly redirects: { readonly signedOut: PermissionGuardOptions["signedOut"] };
 	readonly registry: AtomRegistry.AtomRegistry;
 	readonly session: () => RegisteredSession | null | undefined;
 }
 
-// Parameter names may differ between a page's declared detail path and the app's route, so only the parameter positions are compared.
 function template(path: string): string {
 	return path.replace(/\/\$[^/]+/gu, "/$").replace(/\/$/u, "");
 }
 
-// The router has already matched the location, so an admin page's permission applies to the matched route with its path or detail path.
+// The router has already matched the location, so an admin page's permission applies to the matched route with its path or detail path, whatever its parameters are named.
 function adminPagePermissions(pages: readonly AdminNavigation[], matches: readonly { readonly fullPath: string }[]) {
 	const permissions = new Map<string, Permission>(
 		pages.flatMap(({ route }) =>
