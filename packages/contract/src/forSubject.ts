@@ -5,18 +5,32 @@ import { runSubject } from "#clientOperations.ts";
 interface Operation {
 	readonly query?: (payload: unknown, options?: QueryOptions) => unknown;
 	readonly run: (payload: unknown, options?: RunOptions | Atom.FnContext) => unknown;
+	readonly runtime: unknown;
 }
 
-// React's action hooks take `run` as the action's identity, so each operation and record is bound once per subject.
-const bindings = new WeakMap<object, Map<string, object>>();
+interface BindableRecord {
+	readonly [name: string]: Bindable;
+}
+
+type Bindable = Operation | BindableRecord;
+
+// A bound operation, or a record whose string-keyed members are bound operations or such records. Anything else, such as
+// the Layer `makeClient` returns or a function beside the operations, is refused, because a call through it would silently
+// act for the caller's own account.
+export type SubjectBindable<TClient> = TClient extends { readonly run: (...args: never) => unknown; readonly runtime: unknown }
+	? unknown
+	: TClient extends (...args: never) => unknown
+		? never
+		: TClient extends object
+			? { readonly [TKey in keyof TClient]: TKey extends string ? SubjectBindable<TClient[TKey]> : TClient[TKey] }
+			: never;
+
+// React's action hooks take `run` as the action's identity, so each operation and record is bound once per subject, and a
+// record is cached before its members so one that refers back to itself binds to its own copy.
+const bindings = new WeakMap<object, Map<string, Bindable>>();
 
 function isOperation(value: object): value is Operation {
 	return "runtime" in value && "run" in value && typeof value.run === "function";
-}
-
-function isRecord(value: object): value is Readonly<Record<string, unknown>> {
-	const prototype: unknown = Object.getPrototypeOf(value);
-	return prototype === Object.prototype || prototype === null;
 }
 
 function boundOperation(operation: Operation, subject: string): Operation {
@@ -28,11 +42,8 @@ function boundOperation(operation: Operation, subject: string): Operation {
 	};
 }
 
-function bind(value: unknown, subject: string): unknown {
-	if (typeof value !== "object" || value === null || !(isOperation(value) || isRecord(value))) {
-		return value;
-	}
-	const bySubject = bindings.get(value) ?? new Map<string, object>();
+function bind(value: Bindable, subject: string): Bindable {
+	const bySubject = bindings.get(value) ?? new Map<string, Bindable>();
 	bindings.set(value, bySubject);
 	const existing = bySubject.get(subject);
 	if (existing !== undefined) {
@@ -43,8 +54,7 @@ function bind(value: unknown, subject: string): unknown {
 		bySubject.set(subject, bound);
 		return bound;
 	}
-	// A record is cached before its members are bound, so a record that refers back to itself binds to its own copy.
-	const bound: Record<string, unknown> = { ...value };
+	const bound: Record<string, Bindable> = { ...value };
 	bySubject.set(subject, bound);
 	for (const [name, member] of Object.entries(value)) {
 		bound[name] = bind(member, subject);
@@ -52,7 +62,7 @@ function bind(value: unknown, subject: string): unknown {
 	return bound;
 }
 
-export function forSubject<TClient extends object>(client: TClient, subject: string): TClient;
-export function forSubject(client: object, subject: string): unknown {
+export function forSubject<TClient extends object>(client: TClient & SubjectBindable<TClient>, subject: string): TClient;
+export function forSubject(client: Bindable, subject: string): Bindable {
 	return bind(client, subject);
 }

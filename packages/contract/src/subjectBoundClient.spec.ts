@@ -52,6 +52,19 @@ recordClientStory.it("a query through the client bound to dana that names erin r
 });
 
 recordClientStory.it(
+	"a write through the client bound to dana that names erin lands in erin's journal and not in dana's",
+	[],
+	function* ({ boundWrite, journal }) {
+		yield* boundWrite("Lifted", "erin");
+
+		yield* outcomes([
+			["erin's journal", () => journal("erin"), "erin: Lifted"],
+			["dana's journal", () => journal("dana"), "dana: "],
+		]);
+	},
+);
+
+recordClientStory.it(
 	"a query through the client bound to dana is the per-call query for dana, and binding the client again gives the same write",
 	[],
 	function* ({ identities }) {

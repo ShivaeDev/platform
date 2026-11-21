@@ -58,9 +58,9 @@ export const recordClientStory = storyKit({
 					Option.getOrElse(() => "nothing"),
 				),
 			),
-		boundWrite: (entry: string) => {
-			story.tell(`the coach writes ${entry} through the client bound to dana`);
-			return reflected(engine, forDana(engine).journal.write.run({ entry }));
+		boundWrite: (entry: string, subject?: string) => {
+			story.tell(`the coach writes ${entry} through the client bound to dana${subject === undefined ? "" : ` in a call that names ${subject}`}`);
+			return reflected(engine, forDana(engine).journal.write.run({ entry }, subject === undefined ? {} : { subject }));
 		},
 		bump: () => {
 			story.tell("the tab bumps the tally");

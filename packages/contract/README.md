@@ -323,17 +323,17 @@ const Save = command("save", {
 export const Account = defineModule({ name: "account", operations: [Save], subject: selfSubject, wire: accountWire });
 ```
 
-`PreferenceFields` is `Schema.Struct({ title: Schema.String })` and `Profiles` an application service whose `rename` takes the account's `SubjectId`. Contracts with declared subjects can be exported from published packages with TypeScript declaration output. The client calls `account.save` with only its title. For a delegated subject, the client names the account per call: a bound query takes `subject` in its options and a query's, command's or stream's `run` takes `{ subject }` as its second argument, as in `api.title.query(undefined, { subject: "bob" })` and `api.rename.run({ title }, { subject: "bob" })`. The option sets the call's `x-platform-subject` message header, so one client and its one socket serve the actor's own data and any number of subjects, each live query keeping its own subject on its changes stream. Queries with different subjects are different atoms, keep separate retained results, and serialize under separate keys when they share a `serializationKey`. The session host installs the resolver; operations read `Subject` from the request environment.
+`PreferenceFields` is `Schema.Struct({ title: Schema.String })` and `Profiles` an application service whose `rename` takes the account's `SubjectId`. Contracts with declared subjects can be exported from published packages with TypeScript declaration output. The client calls `account.save` with only its title. For a delegated subject, the client names the account per call: a bound query takes `subject` in its options and a query's, command's or stream's `run` takes `{ subject }` as its second argument, as in `api.title.query(undefined, { subject: "bob" })` and `api.rename.run({ title }, { subject: "bob" })`. The option sets the call's `x-platform-subject` message header, so one client and its one socket serve the actor's own data and any number of subjects, each live query keeping its own subject on its changes stream. Queries with different subjects are different atoms, keep separate retained results, and serialize under separate keys when they share a `serializationKey`. The session host installs the resolver; operations read `Subject` from the request environment. See [identity's subject guide](https://github.com/ShivaeDev/platform/tree/main/packages/identity#declared-request-subjects) for delegated selection and refusal declarations.
 
-A screen tree that acts for one other account binds its client once instead of naming the account on every call. `forSubject(client, subject)` from `@shivaedev/contract/forSubject.ts` takes a client's `api`, one contract's client from it, or any record of them, and returns the same shape with every query's, command's and stream's subject defaulted to `subject`. A subject named on a call still wins. A query made through the bound client is the same atom, with the same serialization key and live-update keys, as the query that names the subject per call, so a screen that mixes both forms reads one cache entry. The bound client shares the original's socket, so the plain client beside it still reads the actor's own data. Binding the same client to the same subject again returns the same operations, so React's action and form hooks keep their action across renders when a component binds its client while rendering:
+A screen tree that acts for one other account binds its client once instead of naming the account on every call. `forSubject(client, subject)` from `@shivaedev/contract/forSubject.ts` takes a client's `api`, one contract's client from it, or any record of them, and returns the same shape with every query's, command's and stream's subject defaulted to `subject`. A subject named on a call still wins. It refuses at compile time anything else, such as the value `makeClient` returns or a function or Effect beside the operations, because a call through it would act for the actor's own account. A query made through the bound client is the same atom, with the same serialization key and live-update keys, as the query that names the subject per call, so a screen that mixes both forms reads one cache entry. The bound client shares the original's socket, so the plain client beside it still reads the actor's own data. Binding the same client to the same subject again returns the same operations, so React's action and form hooks keep their action across renders when a component binds its client while rendering:
 
-````ts
+```ts
 import { forSubject } from "@shivaedev/contract/forSubject.ts";
 
 const client = forSubject(api, clientId);
 const diary = useQuery(client.coaching.diary.query());
 const save = useAction(client.coaching.write, { failures: { NotYourClient: "message" } });
-``` See [identity's subject guide](https://github.com/ShivaeDev/platform/tree/main/packages/identity#declared-request-subjects) for delegated selection and refusal declarations.
+```
 
 ### Expected failures
 
@@ -349,7 +349,7 @@ export const Rename = Rpc.make("Rename", {
 	payload: { name: Schema.String },
 	success: Schema.String,
 });
-````
+```
 
 A handler fails with `new Conflict({ field: "name", message: "Name is taken" })`. Native RPC JSON decodes the rejection back to the error instance with its field. Taxonomy errors can be declared on an RPC with no authentication middleware. [`@shivaedev/errors`](https://github.com/ShivaeDev/platform/tree/main/packages/errors#readme) also exports `rejectedField`, which reads the field and message of a rejection on the client.
 
