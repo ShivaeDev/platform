@@ -1,5 +1,6 @@
 import ts from "typescript";
 import { byText } from "#byText.ts";
+import { type ExportedVariable, exportedVariables, exportsAnything } from "#exportedVariables.ts";
 import { propertyOf } from "#moduleCalls.ts";
 
 const APP_MODULE = "@shivaedev/server/AppModule.ts";
@@ -10,59 +11,67 @@ export interface FileRegistrations {
 	readonly registrations: readonly string[];
 }
 
-function appModuleImports(statement: ts.Statement): readonly ts.ImportSpecifier[] {
-	if (!(ts.isImportDeclaration(statement) && ts.isStringLiteral(statement.moduleSpecifier) && statement.moduleSpecifier.text === APP_MODULE)) {
-		return [];
+interface AppModuleNames {
+	readonly named: ReadonlySet<string>;
+	readonly namespaces: ReadonlySet<string>;
+}
+
+function appModuleImport(statement: ts.Statement): ts.NamedImportBindings | undefined {
+	return ts.isImportDeclaration(statement) && ts.isStringLiteral(statement.moduleSpecifier) && statement.moduleSpecifier.text === APP_MODULE
+		? statement.importClause?.namedBindings
+		: undefined;
+}
+
+function appModuleNames(source: ts.SourceFile): AppModuleNames {
+	const bindings = source.statements.flatMap((statement) => appModuleImport(statement) ?? []);
+	return {
+		named: new Set(
+			bindings
+				.flatMap((binding) => (ts.isNamedImports(binding) ? binding.elements : []))
+				.filter((element) => (element.propertyName ?? element.name).text === "AppModule")
+				.map((element) => element.name.text),
+		),
+		namespaces: new Set(bindings.flatMap((binding) => (ts.isNamespaceImport(binding) ? [binding.name.text] : []))),
+	};
+}
+
+function namesAppModule(type: ts.TypeNode | undefined, names: AppModuleNames): boolean {
+	if (type === undefined || !ts.isTypeReferenceNode(type)) {
+		return false;
 	}
-	const bindings = statement.importClause?.namedBindings;
-	return bindings !== undefined && ts.isNamedImports(bindings) ? bindings.elements : [];
-}
-
-function appModuleNames(source: ts.SourceFile): ReadonlySet<string> {
-	return new Set(
-		source.statements
-			.flatMap(appModuleImports)
-			.filter((element) => (element.propertyName ?? element.name).text === "AppModule")
-			.map((element) => element.name.text),
-	);
-}
-
-function namesAppModule(type: ts.TypeNode | undefined, locals: ReadonlySet<string>): boolean {
-	return type !== undefined && ts.isTypeReferenceNode(type) && ts.isIdentifier(type.typeName) && locals.has(type.typeName.text);
+	const { typeName } = type;
+	return ts.isIdentifier(typeName)
+		? names.named.has(typeName.text)
+		: ts.isIdentifier(typeName.left) && names.namespaces.has(typeName.left.text) && typeName.right.text === "AppModule";
 }
 
 function withoutParentheses(expression: ts.Expression | undefined): ts.Expression | undefined {
 	return expression !== undefined && ts.isParenthesizedExpression(expression) ? withoutParentheses(expression.expression) : expression;
 }
 
-// A registration names the module it serves and its services, so an object with both that is not written `satisfies AppModule`
-// is one the list would leave out without a word.
+function servesSomething(literal: ts.ObjectLiteralExpression): boolean {
+	return propertyOf(literal, "module") !== undefined || (propertyOf(literal, "group") !== undefined && propertyOf(literal, "handlers") !== undefined);
+}
+
+// A registration names what it serves and its services, so an object with both that is not written `satisfies AppModule` is one
+// the list would leave out without a word.
 function looksLikeRegistration(expression: ts.Expression | undefined): boolean {
 	const inner = withoutParentheses(expression);
 	if (inner !== undefined && ts.isAsExpression(inner)) {
 		return looksLikeRegistration(inner.expression);
 	}
-	return (
-		inner !== undefined
-		&& ts.isObjectLiteralExpression(inner)
-		&& propertyOf(inner, "module") !== undefined
-		&& propertyOf(inner, "services") !== undefined
-	);
+	return inner !== undefined && ts.isObjectLiteralExpression(inner) && servesSomething(inner) && propertyOf(inner, "services") !== undefined;
 }
 
 type Found = { readonly refusal: string } | { readonly registration: string };
 
-function foundIn(variable: ts.VariableDeclaration, locals: ReadonlySet<string>): readonly Found[] {
+function foundIn({ name, variable }: ExportedVariable, names: AppModuleNames): readonly Found[] {
 	const initializer = withoutParentheses(variable.initializer);
-	if (!ts.isIdentifier(variable.name)) {
-		return [];
-	}
-	const name = variable.name.text;
 	if (initializer !== undefined && ts.isSatisfiesExpression(initializer)) {
-		return namesAppModule(initializer.type, locals) ? [{ registration: name }] : [];
+		return namesAppModule(initializer.type, names) ? [{ registration: name }] : [];
 	}
-	const cast = initializer !== undefined && ts.isAsExpression(initializer) && namesAppModule(initializer.type, locals);
-	if (namesAppModule(variable.type, locals) || cast) {
+	const cast = initializer !== undefined && ts.isAsExpression(initializer) && namesAppModule(initializer.type, names);
+	if (namesAppModule(variable.type, names) || cast) {
 		return [
 			{
 				refusal: `${name} is typed as AppModule, which leaves it out of the server's module list and loses its module's services; write \`satisfies AppModule\` after its object instead`,
@@ -72,24 +81,29 @@ function foundIn(variable: ts.VariableDeclaration, locals: ReadonlySet<string>):
 	return looksLikeRegistration(initializer)
 		? [
 				{
-					refusal: `${name} names a module and its services but is not written \`satisfies AppModule\`, so the server's module list leaves it out; write \`satisfies AppModule\` after its object, with AppModule imported from ${APP_MODULE}`,
+					refusal: `${name} names what it serves and its services but is not written \`satisfies AppModule\`, so the server's module list leaves it out; write \`satisfies AppModule\` after its object, with AppModule imported from ${APP_MODULE}`,
 				},
 			]
 		: [];
 }
 
-function exportedVariables(statement: ts.Statement): readonly ts.VariableDeclaration[] {
-	const exported =
-		ts.isVariableStatement(statement) && statement.modifiers?.some((modifier) => modifier.kind === ts.SyntaxKind.ExportKeyword) === true;
-	return exported ? statement.declarationList.declarations : [];
+export function isModuleRegistrationFile(file: string): boolean {
+	return /[\\/]modules[\\/].+[\\/]server[\\/]registration\.tsx?$/u.test(file);
 }
 
 export function registrationsIn(source: ts.SourceFile): Omit<FileRegistrations, "file"> {
-	const locals = appModuleNames(source);
-	const found = source.statements.flatMap(exportedVariables).flatMap((variable) => foundIn(variable, locals));
+	const names = appModuleNames(source);
+	const found = exportedVariables(source).flatMap((exported) => foundIn(exported, names));
+	const refusals = found.flatMap((each) => ("refusal" in each ? [each.refusal] : []));
+	const registrations = found.flatMap((each) => ("registration" in each ? [each.registration] : []));
+	const unfound = found.length === 0 && isModuleRegistrationFile(source.fileName) && exportsAnything(source);
 	return {
-		refusals: found.flatMap((each) => ("refusal" in each ? [each.refusal] : [])),
-		registrations: found.flatMap((each) => ("registration" in each ? [each.registration] : [])),
+		refusals: unfound
+			? [
+					`exports no registration written \`satisfies AppModule\`, so the server's module list leaves its module out; export the registration as a const written \`satisfies AppModule\`, with AppModule imported from ${APP_MODULE}`,
+				]
+			: refusals,
+		registrations,
 	};
 }
 

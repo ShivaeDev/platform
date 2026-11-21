@@ -5,7 +5,7 @@ import ts from "typescript";
 import { BuildFailure } from "#BuildFailure.ts";
 import { moduleCalls } from "#moduleCalls.ts";
 import { moduleFacts } from "#moduleFacts.ts";
-import { registrationsIn } from "#registrations.ts";
+import { isModuleRegistrationFile, registrationsIn } from "#registrations.ts";
 
 export interface ProjectConfig {
 	// The tsconfig and every file it extends, which decide how the project's types read.
@@ -48,7 +48,7 @@ export function definesModule(file: string, text: string): boolean {
 }
 
 export function registrationsOf(file: string, text: string) {
-	return text.includes("AppModule") || /\bmodule\s*:/u.test(text)
+	return text.includes("AppModule") || /\b(?:module|group)\s*:/u.test(text) || isModuleRegistrationFile(file)
 		? registrationsIn(ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true))
 		: { refusals: [], registrations: [] };
 }

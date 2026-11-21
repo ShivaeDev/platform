@@ -67,25 +67,49 @@ generator.it(
 	},
 );
 
+for (const shape of ["through a separate export list", "typed through a namespace import"] as const) {
+	generator.it(
+		`generate lists a registration ${shape} under its exported name`,
+		[registrationsProject(), generatedOnce()],
+		function* ({ addsRegistration, generatedFile, generates }) {
+			yield* addsRegistration("Labels", shape);
+
+			yield* outcomes([
+				["generate", () => generates(), { files: { [LIST]: "written" }, problems: [], result: "succeeded" }],
+				[
+					"the list",
+					() => generatedFile(LIST),
+					expect.stringContaining('import { labelsRegistration } from "#modules/labels/server/registration.ts";'),
+				],
+			]);
+		},
+	);
+}
+
+const NOT_SATISFIED =
+	"labelsRegistration names what it serves and its services but is not written `satisfies AppModule`, so the server's module list leaves it out; write `satisfies AppModule` after its object, with AppModule imported from @shivaedev/server/AppModule.ts";
+
 const REFUSALS = [
 	[
-		": AppModule",
+		"typed : AppModule",
 		"labelsRegistration is typed as AppModule, which leaves it out of the server's module list and loses its module's services; write `satisfies AppModule` after its object instead",
 	],
+	["with no annotation", NOT_SATISFIED],
+	["in the group and handlers form with no annotation", NOT_SATISFIED],
 	[
-		"none",
-		"labelsRegistration names a module and its services but is not written `satisfies AppModule`, so the server's module list leaves it out; write `satisfies AppModule` after its object, with AppModule imported from @shivaedev/server/AppModule.ts",
+		"built by a function call",
+		"exports no registration written `satisfies AppModule`, so the server's module list leaves its module out; export the registration as a const written `satisfies AppModule`, with AppModule imported from @shivaedev/server/AppModule.ts",
 	],
 ] as const;
 
-for (const [annotation, refusal] of REFUSALS) {
+for (const [shape, refusal] of REFUSALS) {
 	generator.it(
-		`a registration ${annotation === "none" ? "without an annotation" : `typed ${annotation}`} stops generate with a message naming its file and satisfies AppModule, and the list stays as it was`,
+		`a registration ${shape} stops generate with a message naming its file and satisfies AppModule, and the list stays as it was`,
 		[registrationsProject(), generatedOnce()],
 		function* ({ addsRegistration, generatedFile, generates }) {
 			const before = yield* generatedFile(LIST);
 
-			yield* addsRegistration("Labels", annotation);
+			yield* addsRegistration("Labels", shape);
 
 			yield* outcomes([
 				[
