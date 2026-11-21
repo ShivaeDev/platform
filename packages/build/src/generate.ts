@@ -8,6 +8,7 @@ import { inputKey } from "#inputs.ts";
 import { LIST_SOURCES, moduleList } from "#moduleList.ts";
 import { plan } from "#plan.ts";
 import { moduleFiles, openProject } from "#project.ts";
+import { registrationPartsOf } from "#registrationParts.ts";
 import { GenerateFailed, type GenerateReport, type ModuleOutcome, problemOf } from "#report.ts";
 import { settle } from "#settle.ts";
 import { settleOrphans } from "#settleOrphans.ts";
@@ -65,7 +66,8 @@ export const generate = Effect.fn("Build.generate")(function* (directory: string
 		outcomes.push({ ...relative, status });
 	}
 	outcomes.push(...(yield* settleOrphans(project, options.check)));
-	const lists = yield* Effect.forEach(LIST_SOURCES, (source) => moduleList(project, options.check, source));
+	const parts = yield* registrationPartsOf(project.config, project.root);
+	const lists = yield* Effect.forEach(LIST_SOURCES, (source) => moduleList(project, options.check, source, parts));
 	refusals.push(...lists.flatMap((list) => list.refusals));
 	const listed = lists.flatMap((list) => list.outcomes);
 	const inputs = [...new Set([...keyed.flatMap((file) => file.inputs), ...lists.flatMap((list) => list.inputs)])].sort(byText);

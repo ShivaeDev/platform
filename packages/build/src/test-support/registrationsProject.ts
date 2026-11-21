@@ -43,6 +43,17 @@ export function registrationOf(name: string, module: string, shape: Registration
 	}
 }
 
+export type PartsMark = "satisfies AppModule" | "no mark";
+
+// An exported object that carries registration parts and nothing else, each taken from a module of its own.
+export function partsOnlyOf(name: string, parts: readonly string[], mark: PartsMark) {
+	const values = parts.map((part) => `${part}: ${name}Parts.${part}`).join(", ");
+	const imported = `import { ${name}Parts } from "#server/${name}Parts.ts";\n`;
+	return mark === "no mark"
+		? `${imported}\nexport const ${name} = { ${values} };\n`
+		: `${APP_MODULE}\n${imported}\nexport const ${name} = { ${values} } satisfies AppModule;\n`;
+}
+
 export const REGISTRATIONS_PROJECT: Readonly<Record<string, string>> = {
 	"src/modules/archive/server/registration.ts": registrationOf("archiveRegistration", "Archive"),
 	"src/modules/notes/server/registration.ts": registrationOf("notesRegistration", "Notes"),

@@ -1,12 +1,12 @@
 import { createHash } from "node:crypto";
-import { dirname } from "node:path";
-import { Effect } from "effect";
+import { dirname, join } from "node:path";
+import { Effect, Option } from "effect";
 import ts from "typescript";
 import { BuildFailure } from "#BuildFailure.ts";
 import { clientModulesIn, isClientModuleFile } from "#clientModules.ts";
 import { moduleCalls } from "#moduleCalls.ts";
 import { moduleFacts } from "#moduleFacts.ts";
-import { isModuleRegistrationFile, registrationsIn } from "#registrations.ts";
+import { isModuleRegistrationFile, isServerPath, registrationsIn } from "#registrations.ts";
 
 export interface ProjectConfig {
 	// The tsconfig and every file it extends, which decide how the project's types read.
@@ -50,11 +50,20 @@ export function definesModule(file: string, text: string): boolean {
 	return text.includes("defineModule") && moduleCalls(ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true)).length > 0;
 }
 
-export function registrationsOf(relative: string, text: string) {
-	return text.includes("AppModule") || /\b(?:module|group)\s*:/u.test(text) || isModuleRegistrationFile(relative)
-		? registrationsIn(ts.createSourceFile(relative, text, ts.ScriptTarget.Latest, true))
+export function registrationsOf(relative: string, text: string, parts: readonly string[]) {
+	return text.includes("AppModule")
+		|| /\b(?:module|group)\s*:/u.test(text)
+		|| isModuleRegistrationFile(relative)
+		|| (isServerPath(relative) && parts.some((part) => text.includes(part)))
+		? registrationsIn(ts.createSourceFile(relative, text, ts.ScriptTarget.Latest, true), parts)
 		: { refusals: [], registrations: [] };
 }
+
+export const resolvedModule = Effect.fn("Build.resolvedModule")(function* (config: ProjectConfig, root: string, specifier: string) {
+	return yield* Effect.sync(() =>
+		Option.fromUndefinedOr(ts.resolveModuleName(specifier, join(root, "tsconfig.json"), config.options, ts.sys).resolvedModule?.resolvedFileName),
+	);
+});
 
 export function clientModulesOf(relative: string, text: string) {
 	return text.includes("clientModule") || isClientModuleFile(relative)

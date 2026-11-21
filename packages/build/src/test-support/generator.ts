@@ -16,7 +16,7 @@ import { NOTES_PROJECT } from "#test/notesProject.ts";
 import { PUBLIC_SHAPE_PROJECT } from "#test/publicShapeProject.ts";
 import { REFUSED_BRANDS } from "#test/refusedBrands.ts";
 import { REFUSING_PROJECT } from "#test/refusingProject.ts";
-import { REGISTRATIONS_PROJECT, type RegistrationShape, registrationOf } from "#test/registrationsProject.ts";
+import { type PartsMark, partsOnlyOf, REGISTRATIONS_PROJECT, type RegistrationShape, registrationOf } from "#test/registrationsProject.ts";
 import { SERVER_ONLY_PROJECT } from "#test/serverOnlyProject.ts";
 
 const NOTES_MODEL = "src/modules/notes/model.ts";
@@ -95,8 +95,16 @@ export const generator = storyKit({
 			story.tell(`the developer writes ${file}, exporting the ${module} client module ${shape}`);
 			yield* writeFiles(engine.root, { [file]: clientModuleFile(module, shape) });
 		}),
+		addsPartsOnly: Effect.fn("BuildStory.addsPartsOnly")(function* (file: string, name: string, parts: readonly string[], mark: PartsMark) {
+			story.tell(`the developer writes ${file}, exporting ${name} with only ${parts.join(" and ")}, written with ${mark}`);
+			yield* writeFiles(engine.root, { [file]: partsOnlyOf(name, parts, mark) });
+		}),
 		addsRegistration: Effect.fn("BuildStory.addsRegistration")(function* (module: string, shape: RegistrationShape = "written satisfies AppModule") {
 			const file = `src/modules/${module.toLowerCase()}/server/registration.ts`;
+			story.tell(`the developer writes ${file}, exporting the ${module} registration ${shape}`);
+			yield* writeFiles(engine.root, { [file]: registrationOf(`${module.toLowerCase()}Registration`, module, shape) });
+		}),
+		addsRegistrationAt: Effect.fn("BuildStory.addsRegistrationAt")(function* (file: string, module: string, shape: RegistrationShape) {
 			story.tell(`the developer writes ${file}, exporting the ${module} registration ${shape}`);
 			yield* writeFiles(engine.root, { [file]: registrationOf(`${module.toLowerCase()}Registration`, module, shape) });
 		}),

@@ -1,9 +1,10 @@
 import { Effect, FileSystem, Option, Path, Ref, Semaphore } from "effect";
-import { definesModule } from "#adapters/typeScript.ts";
+import { definesModule, readConfig } from "#adapters/typeScript.ts";
 import { readIfPresent } from "#files.ts";
 import { generate } from "#generate.ts";
 import { listsSomething } from "#moduleList.ts";
 import { projectFolder } from "#project.ts";
+import { registrationPartsOf } from "#registrationParts.ts";
 import type { GenerateReport } from "#report.ts";
 
 export interface GenerateRound {
@@ -41,6 +42,7 @@ export const watchedGeneration = Effect.fn("Build.watchedGeneration")(function* 
 	const fs = yield* FileSystem.FileSystem;
 	const path = yield* Path.Path;
 	const root = yield* projectFolder(directory);
+	const { names: parts } = yield* registrationPartsOf(yield* readConfig(path.join(root, "tsconfig.json")), root);
 	const sources = `${path.join(root, "src")}${path.sep}`;
 	const generated = `${path.join(sources, "generated")}${path.sep}`;
 	const inputs = yield* Ref.make<ReadonlySet<string>>(new Set());
@@ -50,7 +52,7 @@ export const watchedGeneration = Effect.fn("Build.watchedGeneration")(function* 
 		if (!(file.startsWith(sources) && (file.endsWith(".ts") || file.endsWith(".tsx"))) || file.startsWith(generated)) {
 			return false;
 		}
-		return Option.exists(yield* readIfPresent(file), (text) => definesModule(file, text) || listsSomething(path.relative(root, file), text));
+		return Option.exists(yield* readIfPresent(file), (text) => definesModule(file, text) || listsSomething(path.relative(root, file), text, parts));
 	});
 	const changed = Effect.fn("Build.changed")(function* (file: string) {
 		const real = yield* fs.realPath(file).pipe(Effect.catchReason("PlatformError", "NotFound", () => Effect.succeed(file)));
