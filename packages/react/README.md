@@ -642,7 +642,7 @@ const rename = useAction(api.rename, {
 
 The command's identity is the native action atom, or the operation's `run` function and `runtime`. A bound command such as `api.rename` keeps both; memoize a custom `run` in `{ run, runtime }` with `useCallback` or `useMemo`. A `run` written inline in the component is a new function on every render: its next render fails with an error that names `useAction`, says `run` must stay the same function and gives this fix, where React alone reports only `Too many re-renders`. Changing the command on a mounted control keeps `pending` true until its outgoing request settles. Its result, data and cause stay with the outgoing command: a refusal or success from Launch never appears on a replacement Resume control. Resume dispatches its own function and input. Completion callbacks for the outgoing runtime command stop when it is replaced; callbacks for the same command still use the latest committed props.
 
-The hook calls the supplied Effect once. A bound contract command still owns invalidation, and completion does not wait for server query reruns and their pushed results. Undo payloads, expected versions and presentation text stay in the application.
+The hook calls the supplied Effect once. Completion comes with the command's reply and does not wait for the live queries it changed to show the server's state; [`usePendingCommand`](#commands-with-a-pending-display-value) holds its value until they do. Undo payloads, expected versions and presentation text stay in the application.
 
 A newer dispatch interrupts the earlier command by default. Interrupted work produces no completion feedback. Pass `{ concurrent: true, onSuccess, onFailure }` to let invocations overlap and report their own outcomes. `result`, `data`, `cause` and `pending` remain the native action atom's aggregate state, including its native result selection during concurrent execution; they do not identify an invocation. Use notice descriptors for per-invocation messages and completion callbacks for application work. Keep the runtime and concurrency policy stable for the same owner.
 
@@ -1306,7 +1306,7 @@ pnpm add @tanstack/react-router
 
 The package needs Node 24 or newer.
 
-- Query identity, TTL, invalidation and action concurrency remain native atom policies. Put the registry at the lifetime boundary those policies need.
+- Query identity and action concurrency remain native atom policies. Put the registry at the lifetime boundary those policies need.
 - The package has no SSR registry/hydration adapter, offline write queue or optimistic reconciliation policy.
 
 ## Browser errors

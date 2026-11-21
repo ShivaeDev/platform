@@ -34,14 +34,7 @@ Keep domain authorization in services and server middleware. A client-selected q
 
 ## Client state
 
-Once a host provides an `AtomRpc.Service` named `NotesApi`, consumers can pass its atoms to the React hooks of `react`:
-
-```ts
-const note = useQuery(NotesApi.query("get", { id }, { reactivityKeys: [`notes:${id}`] }));
-const rename = useAction(NotesApi.mutation("rename"));
-```
-
-Native mutation input can include `reactivityKeys: { notes: [id] }`, alongside its payload. AtomRpc invalidates those keys on successful mutation completion. Native Reactivity expands a record key into both `"notes"` and `"notes:<id>"`, on registration as well as invalidation. Register item queries with the precise array key ``[`notes:${id}`]`` and list queries with `["notes"]`; an item query registered with `{ notes: [id] }` also refreshes whenever any other note is invalidated. Invalidation does not automatically broadcast changes to other clients.
+The browser reaches a module through a client from `makeClient` in `@shivaedev/contract/makeClient.ts`, made over the module's generated browser contract, and React's hooks read its bound queries and commands. A bound query is live: it reruns on the server when a write announces a key it reads, and the server pushes its new result over the client's shared WebSocket. The browser keeps no reactivity keys and refreshes no query itself, so an application builds no `AtomRpc.Service` of its own. The [contract guide](../../packages/contract/README.md#build-a-shared-websocket-client) shows the client, and the [live-update guide](./live-updates.md) shows the keys a query reads.
 
 ## Public client configuration
 
