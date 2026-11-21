@@ -35,8 +35,8 @@ export const generateRound = Effect.fn("Build.generateRound")(function* (directo
 });
 
 // A dev server's generator: one run at a time, and a changed file starts a run only when the last run read it or it is a module
-// file, a registration or a client module under src that no run has seen yet. The watcher needs src, which a bundler root
-// inside the project does not cover.
+// file, a registration or a client module under src that no run has seen yet. Vite watches only its root, so a dev server
+// whose root lies inside the project adds src to its watcher before the first run.
 export const watchedGeneration = Effect.fn("Build.watchedGeneration")(function* (directory: string) {
 	const fs = yield* FileSystem.FileSystem;
 	const path = yield* Path.Path;

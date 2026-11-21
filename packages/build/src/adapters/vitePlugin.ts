@@ -32,14 +32,13 @@ function generateFiles(): Plugin {
 	let generation: Promise<WatchedGeneration> | undefined;
 	let started: Promise<GenerateRound> | undefined;
 	let outputs = new Set<string>();
-	let sources: readonly string[] = [];
 	// One change reaches hotUpdate once per environment; they share one run.
 	const shared = new Map<string, SharedRound>();
 	function remember(round: GenerateRound) {
 		outputs = new Set([...outputs, ...round.outputs]);
 		if (server !== undefined) {
 			const root = server.config.root;
-			server.watcher.add([...sources, ...round.inputs].filter((file) => !file.startsWith(root)));
+			server.watcher.add(round.inputs.filter((file) => !file.startsWith(root)));
 		}
 		return round;
 	}
@@ -56,9 +55,8 @@ function generateFiles(): Plugin {
 	return {
 		async buildStart(this: Rollup.PluginContext) {
 			generation ??= runNode(watchedGeneration(config?.root ?? "."));
-			const watched = await generation;
-			sources = [watched.sources];
-			started ??= runNode(watched.run);
+			const { run } = await generation;
+			started ??= runNode(run);
 			const round = remember(await started);
 			if (Option.isSome(round.refusal)) {
 				this.error(round.refusal.value);
@@ -67,8 +65,13 @@ function generateFiles(): Plugin {
 		configResolved(resolved) {
 			config = resolved;
 		},
-		configureServer(devServer) {
+		async configureServer(devServer) {
 			server = devServer;
+			generation ??= runNode(watchedGeneration(devServer.config.root));
+			const { sources } = await generation;
+			if (!sources.startsWith(devServer.config.root)) {
+				devServer.watcher.add(sources);
+			}
 		},
 		enforce: "pre",
 		async hotUpdate(this: HotUpdateContext, { file, modules, server: devServer, timestamp }) {
