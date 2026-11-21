@@ -1,5 +1,5 @@
 import ts from "typescript";
-import { brandForm, dropsBrandedLiteralKeys, isBranded, isStringBrand } from "#brandForm.ts";
+import { brandForm, droppedKeysFix, isBranded, isStringBrand } from "#brandForm.ts";
 import type { Field, WireForm } from "#facts.ts";
 import { isReadonlyProperty } from "#isReadonlyProperty.ts";
 import { redactedPath } from "#serverOnlyPath.ts";
@@ -72,12 +72,9 @@ export function objectForm(reading: TypeReading, type: ts.Type, path: string, re
 	if (type.getCallSignatures().length > 0 || type.getConstructSignatures().length > 0) {
 		return reading.refuse(type, path, "return data, not a function");
 	}
-	if (dropsBrandedLiteralKeys(reading, type)) {
-		return reading.refuse(
-			type,
-			path,
-			"key the record by string or a string brand, or return an array of entries, since TypeScript keeps no property for a branded literal key and the wire would drop it",
-		);
+	const droppedKeys = droppedKeysFix(reading, type);
+	if (droppedKeys !== undefined) {
+		return reading.refuse(type, path, droppedKeys);
 	}
 	const symbol = type.getSymbol();
 	const builtIn =

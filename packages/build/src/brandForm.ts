@@ -25,34 +25,39 @@ function hasBrandedLiteral(keys: ts.Type): boolean {
 	);
 }
 
-function writesBrandedLiteralKeys(reading: TypeReading, type: ts.Type): boolean {
-	return (
-		type
-			.getSymbol()
-			?.declarations?.some(
-				(declaration) =>
-					ts.isMappedTypeNode(declaration)
-					&& declaration.typeParameter.constraint !== undefined
-					&& hasBrandedLiteral(reading.checker.getTypeFromTypeNode(declaration.typeParameter.constraint)),
-			) === true
+function writtenKeys(reading: TypeReading, type: ts.Type): readonly ts.Type[] {
+	return (type.getSymbol()?.declarations ?? []).flatMap((declaration) =>
+		ts.isMappedTypeNode(declaration) && declaration.typeParameter.constraint !== undefined
+			? [reading.checker.getTypeFromTypeNode(declaration.typeParameter.constraint)]
+			: [],
 	);
 }
 
+const BRANDED_LITERAL_KEYS =
+	"key the record by string or a string brand, or return an array of entries, since TypeScript keeps no property for a branded literal key and the wire would drop it";
+const TYPE_PARAMETER_KEYS =
+	"return a record keyed by string or a string brand, or an array of entries, since a mapped type whose keys come through a type parameter and that ends with no properties may have dropped branded literal keys, and write {} for an object meant to be empty";
+
 // TypeScript makes neither a property nor an index signature of a branded literal key, so a Record or mapped type over one loses that key.
 // The public API has no getter for a mapped type's keys, so they are read from what its declaration writes after `in`; keys written
-// through a type parameter, as Record and Partial write theirs, read as that parameter and are left to the alias checks.
-export function dropsBrandedLiteralKeys(reading: TypeReading, type: ts.Type): boolean {
-	if (writesBrandedLiteralKeys(reading, type)) {
-		return true;
+// through a type parameter read as that parameter, so such a type that ends empty is refused unless it is a Record whose arguments say why.
+export function droppedKeysFix(reading: TypeReading, type: ts.Type): string | undefined {
+	const keys = writtenKeys(reading, type);
+	if (keys.some(hasBrandedLiteral)) {
+		return BRANDED_LITERAL_KEYS;
 	}
 	const [argument] = type.aliasTypeArguments ?? [];
-	if (argument === undefined) {
-		return false;
+	if (isLibraryAlias(reading, type, RECORD)) {
+		return argument !== undefined && hasBrandedLiteral(argument) ? BRANDED_LITERAL_KEYS : undefined;
 	}
-	if (isLibraryAlias(reading, type, HOMOMORPHIC)) {
-		return dropsBrandedLiteralKeys(reading, argument);
+	if (
+		keys.some((key) => key.flags & ts.TypeFlags.TypeParameter)
+		&& reading.checker.getPropertiesOfType(type).length === 0
+		&& reading.checker.getIndexInfosOfType(type).length === 0
+	) {
+		return TYPE_PARAMETER_KEYS;
 	}
-	return isLibraryAlias(reading, type, RECORD) && hasBrandedLiteral(argument);
+	return argument !== undefined && isLibraryAlias(reading, type, HOMOMORPHIC) ? droppedKeysFix(reading, argument) : undefined;
 }
 
 export function isStringBrand(type: ts.IntersectionType): boolean {

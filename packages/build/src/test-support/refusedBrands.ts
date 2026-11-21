@@ -2,7 +2,8 @@
 export const REFUSED_BRANDS: Readonly<Record<string, string>> = {
 	"src/modules/refused/brands.ts": `import { Effect } from "effect";
 import { query } from "@shivaedev/contract/operation.ts";
-import { type Letter, type NoteId, noteId, type Shelf, type Sku, shared, type UserId } from "#modules/refused/shared.ts";
+import type { Box, Counts, Letter, LetterRecord } from "#modules/refused/keys.ts";
+import { type NoteId, noteId, type Shelf, type Sku, shared, type UserId } from "#modules/refused/shared.ts";
 
 export const ReturnsBrand = query("returnsBrand", {
 	reads: () => [shared.list],
@@ -63,6 +64,38 @@ export const ReturnsPartialMappedLiteralBrandKeys = query("returnsPartialMappedL
 	},
 });
 
+export const ReturnsGenericMappedLiteralBrandKeys = query("returnsGenericMappedLiteralBrandKeys", {
+	reads: () => [shared.list],
+	*run() {
+		const counts: Counts<Letter> = yield* Effect.succeed({} as Counts<Letter>);
+		return counts;
+	},
+});
+
+export const ReturnsMemberMappedLiteralBrandKeys = query("returnsMemberMappedLiteralBrandKeys", {
+	reads: () => [shared.list],
+	*run() {
+		const counts: Box<Letter>["counts"] = yield* Effect.succeed({} as Box<Letter>["counts"]);
+		return counts;
+	},
+});
+
+export const ReturnsGenericMappedNever = query("returnsGenericMappedNever", {
+	reads: () => [shared.list],
+	*run() {
+		const counts: Counts<never> = yield* Effect.succeed({});
+		return counts;
+	},
+});
+
+export const ReturnsAliasedLiteralBrandRecord = query("returnsAliasedLiteralBrandRecord", {
+	reads: () => [shared.list],
+	*run() {
+		const counts: LetterRecord = yield* Effect.succeed({} as LetterRecord);
+		return counts;
+	},
+});
+
 export const ReturnsPartialRecord = query("returnsPartialRecord", {
 	reads: () => [shared.list],
 	*run() {
@@ -70,5 +103,17 @@ export const ReturnsPartialRecord = query("returnsPartialRecord", {
 		return counts;
 	},
 });
+`,
+	"src/modules/refused/keys.ts": `import type { Brand } from "effect";
+
+export type Letter = ("a" | "b") & Brand.Brand<"Letter">;
+
+export type Counts<K extends string> = { [P in K]: number };
+
+export interface Box<K extends string> {
+	readonly counts: { [P in K]: number };
+}
+
+export type LetterRecord = Record<Letter, number>;
 `,
 };
