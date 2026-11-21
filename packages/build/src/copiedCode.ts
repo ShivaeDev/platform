@@ -3,7 +3,7 @@ import type { CodePart, ImportFact } from "#facts.ts";
 
 export interface Copying {
 	readonly checker: ts.TypeChecker;
-	// Names the copied part in a refusal, such as "notes.get reads".
+	// Names the copied part in a refusal, such as "notes.get payload".
 	readonly label: string;
 	readonly refuse: (message: string) => void;
 }

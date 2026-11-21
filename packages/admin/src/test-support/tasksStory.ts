@@ -5,8 +5,8 @@ import { invalidationKeys } from "@shivaedev/changes/keys.ts";
 import { LiveConnection } from "@shivaedev/contract/automaticLive.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { until } from "@shivaedev/test-story/server/until.ts";
-import { adminTasks } from "#test/adminTasks.ts";
 import { answered } from "#test/answers.ts";
+import { adminTasks } from "#test/Tasks.ts";
 import { tasksEngine } from "#test/tasksEngine.ts";
 
 export const tasksStory = storyKit({
