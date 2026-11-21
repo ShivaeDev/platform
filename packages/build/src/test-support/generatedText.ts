@@ -21,3 +21,11 @@ export function rejectionSourceOf(text: string, operation: string, tag: string):
 	const line = text.split("\n").find((each) => each.startsWith("import ") && new RegExp(`[{,] (?:\\w+ as )?${local}[,} ]`, "u").test(each));
 	return /from "(?<source>[^"]+)";$/u.exec(line ?? "")?.groups?.source ?? `no import of ${tag}`;
 }
+
+// The browser's contract as the generated file writes it, from its clientContract call to the call's end.
+export function browserContractOf(text: string): readonly string[] {
+	const lines = text.split("\n");
+	const start = lines.findIndex((line) => / = clientContract\(\{$/u.test(line));
+	const end = lines.findIndex((line, index) => index > start && line === "});");
+	return start === -1 || end === -1 ? ["no browser contract"] : lines.slice(start, end + 1);
+}

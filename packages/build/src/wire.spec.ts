@@ -1,7 +1,7 @@
 import { DateTime, Effect, Option } from "effect";
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { rejectionSourceOf, rejectionTagsOf, successOf } from "#test/generatedText.ts";
+import { browserContractOf, rejectionSourceOf, rejectionTagsOf, successOf } from "#test/generatedText.ts";
 import { generatedOnce, generator, notesProject, refusingProject } from "#test/generator.ts";
 
 const NOTES = "src/generated/modules/notes/notes.ts";
@@ -77,15 +77,31 @@ generator.it(
 );
 
 generator.it(
-	"recent, a module query that declares no keys, reaches the browser contract with reads that returns no keys",
+	"the browser's contract names the notes module's queries and commands and carries their payloads, but none of their reads or invalidates",
 	[notesProject(), generatedOnce()],
-	function* ({ browserKeys }) {
-		expect(yield* browserKeys("recent")).toEqual([]);
+	function* ({ generatedFile }) {
+		expect(browserContractOf(yield* generatedFile(NOTES))).toEqual([
+			"export const Notes = clientContract({",
+			'\tcommands: ["create", "pin", "remove", "rename"],',
+			"\tmiddleware: NotesCaller,",
+			'\tname: "notes",',
+			"\tpayloads: {",
+			"\t\tcreate: NoteFields,",
+			"\t\tget: { id: Schema.Number },",
+			"\t\tpin: { id: Schema.Number },",
+			"\t\tremove: { id: Schema.Number },",
+			"\t\trename: { id: Schema.Number, title: Schema.String, version: Schema.Number },",
+			"\t\tsummary: { id: Schema.Number },",
+			"\t},",
+			'\tqueries: ["get", "list", "recent", "stats", "summary"],',
+			"\twire: notesWire,",
+			"});",
+		]);
 	},
 );
 
 generator.it(
-	"generate writes the notes module's file under src/generated, headed as generated from its module, and tsc compiles the project with it",
+	"generate writes the notes module's file under src/generated, headed as generated from its module, without refusing pin's key declared in pin's own file, and tsc compiles the project with it",
 	[notesProject()],
 	function* ({ compiles, generatedFile, generates }) {
 		expect(yield* generatedFile(NOTES)).toBe("missing");
@@ -191,7 +207,7 @@ const REFUSALS = {
 		"refused.failsUnexported: run fails with Hidden (Hidden), which is not an exported class; export its class so the browser can decode it",
 	failsUntagged: "refused.failsUntagged: run fails with string, which has no _tag; fail with an exported tagged error class instead",
 	localPayload: `refused.localPayload payload uses Draft, which is declared in ${OPERATIONS}; move it to a module the operation imports it from, such as the module's model file`,
-	relativeReads: `refused.relativeReads reads imports refusedKeys by the relative path "./keys.ts" in ${OPERATIONS}; import it through a package import, such as a # specifier, so the generated file can import it too`,
+	relativePayload: `refused.relativePayload payload imports RefusedDraft by the relative path "./payloads.ts" in ${OPERATIONS}; import it through a package import, such as a # specifier, so the generated file can import it too`,
 	returnsAny: "refused.returnsAny: run returns any at success, which has no exact wire form; decode the value with a schema, or give it a type",
 	returnsBrand:
 		"refused.returnsBrand: run returns NoteId at success, which has no exact wire form; return the unbranded type, or wrap the value in an exported Schema class",
