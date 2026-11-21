@@ -9,6 +9,7 @@ import type { AppModule } from "#AppModule.ts";
 import { Reading } from "#test/defined-modules/src/Reading.ts";
 
 const readings = collection("readings", Schema.String);
+export class PulseOutOfRange extends Schema.TaggedError<PulseOutOfRange>()("PulseOutOfRange", { pulse: Schema.Number }) {}
 const decodeReadings = Schema.decodeUnknownEffect(Schema.Array(Reading));
 
 // A raw read has no repository model, so only the class it decodes into can mark pulse sensitive.
@@ -31,6 +32,10 @@ const Record = command("record", {
 	invalidates: ({ day }) => [readings.item(day)],
 	payload: { day: Schema.String, pulse: Schema.Number },
 	*run({ day, pulse }) {
+		yield* Effect.logInfo("reading recorded", { day, pulse });
+		if (pulse > 250) {
+			return yield* new PulseOutOfRange({ pulse });
+		}
 		const stored = (yield* readAll()).find((reading) => reading.day === day);
 		if (stored !== undefined) {
 			return yield* Effect.die({ reading: stored });
@@ -38,6 +43,18 @@ const Record = command("record", {
 		const sql = yield* SqlClient.SqlClient;
 		yield* Effect.orDie(sql`insert into readings (day, pulse) values (${day}, ${pulse})`);
 		return new Reading({ day, pulse });
+	},
+});
+
+const Check = query("check", {
+	payload: { day: Schema.String },
+	reads: ({ day }) => [readings.item(day)],
+	*run({ day }) {
+		const stored = (yield* readAll()).find((reading) => reading.day === day);
+		if (stored !== undefined && stored.pulse > 100) {
+			return yield* new PulseOutOfRange({ pulse: stored.pulse });
+		}
+		return day;
 	},
 });
 
@@ -55,11 +72,12 @@ const Goal = command("goal", {
 export const Readings = defineModule({
 	middleware: MaybeAuthenticated,
 	name: "readings",
-	operations: [Latest, Record, Goal],
+	operations: [Latest, Check, Record, Goal],
 	wire: {
+		check: { rejections: { PulseOutOfRange }, success: Schema.String },
 		goal: { rejections: {}, success: Schema.Struct({ pulse: Schema.Number }) },
 		latest: { rejections: {}, success: Schema.Array(Reading) },
-		record: { rejections: {}, success: Reading },
+		record: { rejections: { PulseOutOfRange }, success: Reading },
 	},
 });
 

@@ -41,3 +41,27 @@ definedModulesHost.it(
 		expect(yield* loggedGoal()).toEqual({ pulse: 60 });
 	},
 );
+
+definedModulesHost.it(
+	"a declared rejection of readings.record carries pulse, a name the Reading class of its success marks, so it reaches alice with pulse masked to 0, and the record's log masks pulse",
+	[],
+	function* ({ loggedRecord, recordReading }) {
+		yield* outcomes([
+			["recording a pulse of 300", () => recordReading("Monday", 300), "failed with pulse out of range at 0"],
+			["logged record", () => loggedRecord(), { day: "Monday", pulse: "<redacted>" }],
+		]);
+	},
+);
+
+definedModulesHost.it(
+	"readings.check rejects a stored pulse of 180 with the pulse, which reaches alice whole from readings.check, whose own success marks nothing, and masked to 0 through readings.$changes, whose updates also carry readings.latest's Reading",
+	[],
+	function* ({ checkReading, checkThroughChanges, recordReading }) {
+		yield* recordReading("Monday", 180);
+
+		yield* outcomes([
+			["readings.check", () => checkReading("Monday"), "failed with pulse out of range at 180"],
+			["readings.check through readings.$changes", () => checkThroughChanges("Monday"), "failed with pulse out of range at 0"],
+		]);
+	},
+);
