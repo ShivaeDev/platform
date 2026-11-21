@@ -1,10 +1,12 @@
+import { Effect } from "effect";
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { sessionLoading, sessionReady, sessions } from "#test/auth-session/story.tsx";
 
 sessions.it("the initial session read makes the screen busy until it answers", [sessionLoading()], function* ({ answer, shown }) {
 	expect(shown().busy).toBe("true");
 	yield* answer();
-	expect(shown()).toMatchObject({ busy: "false", text: expect.stringContaining("Alice") });
+	expect(shown()).toMatchObject({ busy: "false", text: expect.stringContaining("AliceUnverifiedReadyRename") });
 });
 
 sessions.it(
@@ -31,11 +33,11 @@ sessions.it("email verification awaits the refreshed session", [sessionReady()],
 });
 
 for (const failure of ["refuse", "reject"] as const) {
-	sessions.it(`a ${failure} during refresh retains the session and fails the mutation`, [sessionReady()], function* (story) {
+	sessions.it(`a ${failure} during refresh retains the session, fails the mutation and keeps checking`, [sessionReady()], function* (story) {
 		yield* story.press("Rename");
 		yield* story[failure]();
 		yield* story.waitForMutation();
-		expect(story.shown()).toMatchObject({ busy: "false", text: expect.stringContaining("AliceUnverifiedReadySession unavailable") });
+		expect(story.shown()).toMatchObject({ busy: "true", text: expect.stringContaining("AliceUnverifiedReadySession unavailable") });
 		expect(story.completedFrames()).toEqual([]);
 	});
 }
@@ -47,11 +49,50 @@ sessions.it("a refresh can settle with a signed-out session", [sessionReady()], 
 	expect(shown()).toMatchObject({ busy: "false", text: expect.stringContaining("Signed out") });
 });
 
-sessions.it("malformed permissions make the session unavailable", [sessionLoading()], function* ({ malformPermissions, shown }) {
-	yield* malformPermissions();
+sessions.it(
+	"malformed permissions make the session unavailable while it checks again",
+	[sessionLoading()],
+	function* ({ malformPermissions, shown }) {
+		yield* malformPermissions();
 
-	expect(shown()).toMatchObject({ busy: "false", text: expect.stringContaining("Session unavailable") });
-});
+		expect(shown()).toMatchObject({ busy: "true", text: expect.stringContaining("Session unavailable") });
+	},
+);
+
+sessions.it(
+	"a launch check that fails twice reads as pending, retries after 1 and 2 seconds and then shows alice's session",
+	[sessionLoading()],
+	function* ({ answer, passes, reject, sessionRequests, shown }) {
+		yield* reject();
+		expect(shown()).toMatchObject({ busy: "true", text: expect.stringContaining("Session unavailable") });
+		yield* passes("999 millis");
+		expect(yield* sessionRequests()).toEqual(["get-session"]);
+		yield* passes("1 millis");
+		yield* reject();
+		yield* passes("2 seconds");
+
+		yield* answer();
+
+		yield* outcomes([
+			["screen", () => Effect.sync(shown), { busy: "false", text: expect.stringContaining("AliceUnverifiedReadyRename") }],
+			["session requests", sessionRequests, ["get-session", "get-session", "get-session"]],
+		]);
+	},
+);
+
+sessions.it(
+	"online after a failed launch check asks again at once and shows alice's session",
+	[sessionLoading()],
+	function* ({ answer, online, reject, sessionRequests, shown }) {
+		yield* reject();
+
+		yield* online();
+
+		expect(yield* sessionRequests()).toEqual(["get-session", "get-session"]);
+		yield* answer();
+		expect(shown()).toMatchObject({ busy: "false", text: expect.stringContaining("AliceUnverifiedReadyRename") });
+	},
+);
 
 sessions.it(
 	"the client session read exposes typed permission grants without an application decoder",

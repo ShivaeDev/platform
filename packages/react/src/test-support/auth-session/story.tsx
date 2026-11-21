@@ -1,5 +1,7 @@
-import { Effect } from "effect";
+import { Clock, type Duration, Effect, Layer } from "effect";
+import * as Atom from "effect/reactivity/Atom";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
+import { TestClock } from "effect/testing";
 import type { Rendered } from "@shivaedev/test-story/client/adapters/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { sessionClient } from "#test/auth-session/client.ts";
@@ -8,6 +10,7 @@ import { screenKit } from "#test/screenKit.ts";
 
 interface State {
 	readonly client: ReturnType<typeof sessionClient>;
+	readonly clock: Clock.Clock;
 	readonly frames: Frame[];
 	view?: Rendered;
 }
@@ -20,14 +23,18 @@ function view(state: State) {
 export const sessions = storyKit(
 	screenKit(
 		"auth session",
-		(): State => ({ client: sessionClient(), frames: [] }),
+		(clock): State => ({ client: sessionClient(Atom.runtime(Layer.succeed(Clock.Clock, clock))), clock, frames: [] }),
 		(state, screen) => ({
 			answer: () => screen.act("the session read answers from stored user data", state.client.answer),
 			completedFrames: () => state.frames.filter((frame) => frame.completed),
 			malformPermissions: () => screen.act("the session answers with malformed permission grants", state.client.malformPermissions),
+			online: () => screen.act("the browser emits online", () => window.dispatchEvent(new Event("online"))),
+			passes: (interval: Duration.Input) =>
+				screen.act(`${interval} pass`, () => Effect.runPromise(TestClock.adjust(interval).pipe(Effect.provideService(Clock.Clock, state.clock)))),
 			press: (label: "Rename" | "Verify" | "Refresh") => screen.driver(view(state).container).click({ name: label, role: "button" }),
 			refuse: () => screen.act("the session read is refused", state.client.refuse),
 			reject: () => screen.act("the session connection rejects", state.client.reject),
+			sessionRequests: () => Effect.sync(state.client.reads),
 			shown: () => ({
 				busy: view(state).container.querySelector("section")?.getAttribute("aria-busy"),
 				grants: view(state).container.querySelector("section")?.getAttribute("data-grants"),

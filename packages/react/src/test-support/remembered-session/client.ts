@@ -1,4 +1,5 @@
 import { Clock, Effect, Layer } from "effect";
+import * as Atom from "effect/reactivity/Atom";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import type { Permission } from "@shivaedev/access/permission.ts";
 import { authSession as readSession } from "@shivaedev/identity/client/adapters/authSession.ts";
@@ -40,6 +41,7 @@ export function providerSession(user: User, grants: readonly string[], expiresAt
 export function rememberedClient(clock: Clock.Clock) {
 	const queries = memoryQueryStorage();
 	const memory = Layer.mergeAll(browserSessionMemory, Layer.succeed(Clock.Clock, clock), queries.layer);
+	const runtime = Atom.runtime(Layer.succeed(Clock.Clock, clock));
 	const reads: Read[] = [];
 	const generations: Generation[] = [];
 	const signOuts: (() => void)[] = [];
@@ -65,7 +67,7 @@ export function rememberedClient(clock: Clock.Clock) {
 					(_signal) =>
 						new Promise<{ readonly data: ProviderSession | null; readonly error: null }>((resolve, reject) => reads.push({ reject, resolve })),
 				),
-				{ remember: memory },
+				{ remember: memory, runtime },
 			),
 		signOutRequest: Effect.promise(() => new Promise<void>((resolve) => signOuts.push(resolve))),
 		stored: Effect.gen(function* () {

@@ -1,4 +1,5 @@
 import * as HttpStatus from "effect/http/HttpStatus";
+import type { SessionRuntime } from "@shivaedev/react/client/authSession.ts";
 import { makeAuth } from "#client/adapters/auth.ts";
 
 export function appAuth(options: {
@@ -9,6 +10,7 @@ export function appAuth(options: {
 	readonly malformedSession?: boolean;
 	readonly signOutFailure?: string;
 	readonly onSessionChange?: (signedIn: boolean) => void;
+	readonly runtime?: SessionRuntime;
 }) {
 	let sessionFailure = options.sessionFailure ?? false;
 	const requests: URL[] = [];
@@ -70,6 +72,7 @@ export function appAuth(options: {
 			},
 			retry: 0,
 		},
+		runtime: options.runtime,
 	});
 	return {
 		auth,

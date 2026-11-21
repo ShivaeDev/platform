@@ -4,7 +4,7 @@ import { Screen } from "#test/Screen.ts";
 
 export function screenKit<TState, TVerbs extends object>(
 	name: string,
-	create: () => TState,
+	create: (clock: Clock.Clock) => TState,
 	verbs: (state: TState, screen: Screen, now: () => number) => TVerbs,
 ) {
 	return {
@@ -12,7 +12,7 @@ export function screenKit<TState, TVerbs extends object>(
 		*create() {
 			const clock = yield* Clock.Clock;
 			const screen = new Screen(() => undefined);
-			return { now: () => clock.currentTimeMillisUnsafe(), screen, state: create() };
+			return { now: () => clock.currentTimeMillisUnsafe(), screen, state: create(clock) };
 		},
 		inspect: ({ screen }: { screen: Screen; state: TState }) => screen.inspect(),
 		name,

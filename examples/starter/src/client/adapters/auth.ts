@@ -8,7 +8,7 @@ import { authSession as readSession } from "@shivaedev/identity/client/adapters/
 import { browserSessionMemory } from "@shivaedev/identity/client/adapters/browserSessionMemory.ts";
 import type { PermissionSession } from "@shivaedev/identity/PermissionSession.ts";
 import { authAction } from "@shivaedev/react/client/authAction.ts";
-import { authSession } from "@shivaedev/react/client/authSession.ts";
+import { authSession, type SessionRuntime } from "@shivaedev/react/client/authSession.ts";
 import type { Credentials } from "#client/Credentials.ts";
 
 export type AppSession = PermissionSession & { readonly user: { readonly id: string }; readonly session?: { readonly id: string } };
@@ -25,11 +25,12 @@ export const deviceStorage = Layer.merge(browserSessionMemory, browserQueryStora
 export function makeAuth(options: {
 	readonly baseUrl: string;
 	readonly fetchOptions?: NonNullable<Parameters<typeof createAuthClient>[0]>["fetchOptions"];
+	readonly runtime?: SessionRuntime;
 }) {
 	const client = createAuthClient({ "baseURL": options.baseUrl, ...("fetchOptions" in options ? { fetchOptions: options.fetchOptions } : {}) });
 	const session = authSession(
 		readSession((signal) => client.getSession({ fetchOptions: { signal }, query: { disableCookieCache: true } })),
-		{ remember: deviceStorage },
+		{ remember: deviceStorage, runtime: options.runtime },
 	);
 	const actions: AuthActions = {
 		resetPassword: authAction(authCall((body, signal) => client.resetPassword({ ...body, fetchOptions: { signal } }))),
