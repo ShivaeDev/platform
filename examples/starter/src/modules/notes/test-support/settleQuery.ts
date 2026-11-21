@@ -1,8 +1,8 @@
 import { Effect } from "effect";
 import { act } from "react";
-import { activityScreenSignal, clientActivity, isClientIdle } from "@shivaedev/contract/clientActivity.ts";
+import { activityScreenSignal, isClientIdle } from "@shivaedev/contract/clientActivity.ts";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
-import type { Screen } from "#modules/notes/test-support/screenState.ts";
+import { connected, type Screen } from "#modules/notes/test-support/screenState.ts";
 import { screenView } from "#test-support/screenState.ts";
 
 export const settleQuery = Effect.fnUntraced(function* (engine: Screen) {
@@ -13,7 +13,7 @@ export const settleQuery = Effect.fnUntraced(function* (engine: Screen) {
 	const view = screenView(engine);
 	yield* screenDriver({
 		act,
-		activity: activityScreenSignal(clientActivity(engine.client), isClientIdle),
+		activity: activityScreenSignal(connected(engine).activity, isClientIdle),
 		root: view.container,
 		tell: () => undefined,
 	}).settle();

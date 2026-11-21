@@ -27,7 +27,7 @@ src/generated/modules/notes/Notes.ts: written
 
 ### How to think about it
 
-`generate` finds every file of the project's tsconfig that calls `defineModule`, builds one TypeScript program for them and writes one file per module at `src/generated/<the module file's path under src>`. It also finds every exported registration written `satisfies AppModule` and writes the server's module list to `src/generated/server/modules.ts`. There is no list of modules to keep: a module is registered by its folder. The generated files are not committed, so a project runs `generate` before anything that reads them; a run whose inputs have not changed is cheap. Inside Vite and Vitest the plugin and the global setup run it; the command line covers everything else, such as a type check.
+`generate` finds every file of the project's tsconfig that calls `defineModule`, builds one TypeScript program for them and writes one file per module at `src/generated/<the module file's path under src>`. It also finds every exported registration written `satisfies AppModule` and writes the server's module list to `src/generated/server/modules.ts`, and every exported `clientModule(...)` outside server code and writes the client's module list to `src/generated/client/modules.ts`. There is no list of modules to keep: a module is registered by its folder. The generated files are not committed, so a project runs `generate` before anything that reads them; a run whose inputs have not changed is cheap. Inside Vite and Vitest the plugin and the global setup run it; the command line covers everything else, such as a type check.
 
 The generator never guesses. Each type `run` returns maps to the one schema whose `Type` is exactly that type, or the run stops with a refusal that says what to write instead. The compiler then checks the generated wire against `run` on every type check, through [`@shivaedev/contract`'s module checks](https://github.com/ShivaeDev/platform/tree/main/packages/contract#the-wire-and-the-browsers-contract), so a file that went stale is usually a compile error on the module that names the operation, including a success type that gains or loses an optional property at any struct position the check walks. One change is not: an optional property that only one side has on a `Schema.Struct` behind another schema, such as a transformation, a brand or `Schema.suspend`, still type-checks and is dropped on the wire or never sent. `generate --check` is the guard against it.
 
@@ -104,7 +104,7 @@ export default {
 };
 ```
 
-`buildPlugin` generates when `vite build` or the dev server starts, in the folder Vite runs in. A refusal stops the build, or keeps the dev server from starting, with the generator's message. While the dev server runs, a change to a file that went into any module's last run, such as an operation's `run`, generates again: each rewritten file's importers are invalidated in Vite's module graph and the browser reloads. A file under `src` that calls `defineModule` or exports a registration and no run has read yet, such as a module file or a `server/registration.ts` created while the dev server runs, generates too, so a registration created while the dev server runs joins the server's module list without a restart, and when the run writes a generated file that did not exist the browser reloads, so a page that failed to resolve its `#generated/...` import loads without a restart. A refusal then prints the generator's message in the terminal and shows it in the browser's error overlay, and the module's last file stays in place until the next run succeeds.
+`buildPlugin` generates when `vite build` or the dev server starts, in the folder Vite runs in. A refusal stops the build, or keeps the dev server from starting, with the generator's message. While the dev server runs, a change to a file that went into any module's last run, such as an operation's `run`, generates again: each rewritten file's importers are invalidated in Vite's module graph and the browser reloads. A file under `src` that calls `defineModule`, exports a registration or exports a client module and no run has read yet, such as a module file, a `server/registration.ts` or a `client/module.tsx` created while the dev server runs, generates too, so a registration or client module created while the dev server runs joins its module list without a restart, and when the run writes a generated file that did not exist the browser reloads, so a page that failed to resolve its `#generated/...` import loads without a restart. A refusal then prints the generator's message in the terminal and shows it in the browser's error overlay, and the module's last file stays in place until the next run succeeds.
 
 The global setup generates once before Vitest loads any test file, and a refusal stops the run before a test starts. Runs that start at once, such as two Vitest processes on one project, each generate and leave the files correct, because every file is written whole through a rename.
 
@@ -211,6 +211,28 @@ src/modules/tags/server/registration.ts: tagsRegistration is typed as AppModule,
 ```
 
 The list follows the path order, so admin navigation and the order in which `appModules` composes Layers follow it. What the merged Layers provide and the migrations do not depend on it: migrations run by their number. An application that needs another order renames a module's folder, or composes that registration in its fixed file beside the foundation, written where the list does not find it, such as a function that returns it the way the starter's `serverRegistration` returns the foundation. A project whose sources import the list and that registers nothing yet gets an empty list; one that does neither, such as a library of defined modules, gets none. The list needs no program, so every run writes it again from the sources, and `--check` reports it missing or stale like any generated file.
+
+### The client's module list
+
+Each module's `client/module.tsx` exports its client module, built by `clientModule` from `@shivaedev/react/client/module.ts`, and the generator lists every exported `clientModule(...)` call in `src/generated/client/modules.ts`, one import each, in the order of their files' paths, exactly as it writes the server's list:
+
+```ts
+import { notesModule } from "#modules/notes/client/module.tsx";
+import { tagsModule } from "#modules/tags/client/module.tsx";
+
+export const modules = [notesModule, tagsModule] as const;
+```
+
+The application passes it to `clientApp` from `@shivaedev/react/client/app.ts` once, and that file does not change when a module is added:
+
+```ts
+import { clientApp } from "@shivaedev/react/client/app.ts";
+import { modules } from "#generated/client/modules.ts";
+
+export const clientModules = clientApp(modules);
+```
+
+A call is found when its `clientModule` is imported by name, renamed or not, or through a namespace import, and its `const` is exported as `export const` or through a separate `export { ... }`. The list skips test files and `test-support` folders, as the server's does, and never imports a file under a `server` folder, which the browser bundle must not reach: an exported `clientModule(...)` there is refused with the fix, moving it to the module's `client/module.tsx`. A `client/module.tsx` or `client/admin/module.tsx` under a `modules` folder that exports something but no client module the list finds is refused too. Menu entries, overlays, footers and admin navigation follow the list's path order. A project that imports the list and has no client module yet gets an empty list.
 
 ### What `run` may return
 

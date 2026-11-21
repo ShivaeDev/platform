@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { useCan } from "@shivaedev/react/adapters/permissionBoundary.ts";
-import type { AdminNavigation } from "#client/AdminNavigation.ts";
+import type { AdminNavigation } from "@shivaedev/react/client/module.ts";
 
 export function AdminShell({
 	pages,
