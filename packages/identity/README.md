@@ -698,7 +698,7 @@ export const AccountHandlers = Account.toLayer({
 export const AccountServer = Layer.merge(AccountHandlers, authenticatedUserLayer());
 ```
 
-Here `sessions` is the application's policy Layer from the previous example, with a Better Auth lookup that returns all three user fields. The host provides it once to middleware and routes; custom hosts provide it with `Layer.provide(sessions)`. Merge `authenticatedUserLayer()` alongside the handler Layer when using `appHost`; the host continues to supply its id-only and optional middleware. A missing session fails with typed `Unauthorized`; rejected origins fail with `Forbidden`, and provider failures remain `AuthUnavailable`. The profile contains id, name and email, plus an optional role when the provider supplies it, without exposing the rest of the provider's user record. Handlers do not query the provider's user table.
+Here `sessions` is the application's policy Layer from the previous example, with a Better Auth lookup that returns all four user fields. The host provides it once to middleware and routes; custom hosts provide it with `Layer.provide(sessions)`. Merge `authenticatedUserLayer()` alongside the handler Layer when using `appHost`; the host continues to supply its id-only and optional middleware. A missing session fails with typed `Unauthorized`; rejected origins fail with `Forbidden`, and provider failures remain `AuthUnavailable`. The profile contains id, name, email and `emailVerified`, plus an optional role and permissions when the provider supplies them, without exposing the rest of the provider's user record. Handlers do not query the provider's user table.
 
 #### Reading provider account IDs
 
