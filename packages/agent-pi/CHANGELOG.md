@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.7.0 - 2026-11-21
+
+### Breaking
+
+- import from `@shivaedev/agent-pi/failure.ts` instead of `@shivaedev/agent-pi/adapters/failure.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/agent-pi/mapping.ts` instead of `@shivaedev/agent-pi/adapters/mapping.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/agent-pi/messageEvents.ts` instead of `@shivaedev/agent-pi/adapters/messageEvents.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/agent-pi/textOf.ts` instead of `@shivaedev/agent-pi/adapters/textOf.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/agent-pi/thinkingLevel.ts` instead of `@shivaedev/agent-pi/adapters/thinkingLevel.ts`, which moved out of `adapters/`.
+
 ## 0.6.3 - 2026-11-20
 
 ### Changed

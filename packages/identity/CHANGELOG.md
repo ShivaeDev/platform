@@ -1,5 +1,33 @@
 # Changelog
 
+## 0.37.0 - 2026-11-21
+
+### Breaking
+
+- import from `@shivaedev/identity/client/changeEmail.ts` instead of `@shivaedev/identity/client/adapters/changeEmail.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/identity/server/accountPreferencesMigration.ts` instead of `@shivaedev/identity/server/adapters/accountPreferencesMigration.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/identity/server/currentSessionContext.ts` instead of `@shivaedev/identity/server/adapters/currentSessionContext.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/identity/server/machineTokenMigration.ts` instead of `@shivaedev/identity/server/adapters/machineTokenMigration.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/identity/server/trustedOrigins.ts` instead of `@shivaedev/identity/server/adapters/trustedOrigins.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/identity/server/trustedProxyRanges.ts` instead of `@shivaedev/identity/server/adapters/trustedProxyRanges.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/identity/server/better-auth/SeedOptions.ts` instead of `@shivaedev/identity/server/better-auth/adapters/SeedOptions.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/identity/server/better-auth/assertSchema.ts` instead of `@shivaedev/identity/server/better-auth/adapters/assertSchema.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/identity/server/better-auth/assertSeedDatabase.ts` instead of `@shivaedev/identity/server/better-auth/adapters/assertSeedDatabase.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/identity/server/better-auth/clientIpHeaders.ts` instead of `@shivaedev/identity/server/better-auth/adapters/clientIpHeaders.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/identity/server/better-auth/closeRoleEndpoints.ts` instead of `@shivaedev/identity/server/better-auth/adapters/closeRoleEndpoints.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/identity/server/better-auth/columnDrift.ts` instead of `@shivaedev/identity/server/better-auth/adapters/columnDrift.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/identity/server/better-auth/defineSeed.ts` instead of `@shivaedev/identity/server/better-auth/adapters/defineSeed.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/identity/server/better-auth/migrate.ts` instead of `@shivaedev/identity/server/better-auth/adapters/migrate.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/identity/server/better-auth/migrations/generate.ts` instead of `@shivaedev/identity/server/better-auth/adapters/migrations/generate.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/identity/server/better-auth/mount.ts` instead of `@shivaedev/identity/server/better-auth/adapters/mount.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/identity/server/better-auth/mountSettings.ts` instead of `@shivaedev/identity/server/better-auth/adapters/mountSettings.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/identity/server/better-auth/preferencesClient.ts` instead of `@shivaedev/identity/server/better-auth/adapters/preferencesClient.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/identity/server/better-auth/routeHandler.ts` instead of `@shivaedev/identity/server/better-auth/adapters/routeHandler.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/identity/server/better-auth/storedRoleOptions.ts` instead of `@shivaedev/identity/server/better-auth/adapters/storedRoleOptions.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/identity/server/better-auth/tables.ts` instead of `@shivaedev/identity/server/better-auth/adapters/tables.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/identity/server/better-auth/userDataExport.ts` instead of `@shivaedev/identity/server/better-auth/adapters/userDataExport.ts`, which moved out of `adapters/`.
+- import from `@shivaedev/identity/server/better-auth/userDirectory.ts` instead of `@shivaedev/identity/server/better-auth/adapters/userDirectory.ts`, which moved out of `adapters/`.
+
 ## 0.36.0 - 2026-11-20
 
 ### Added

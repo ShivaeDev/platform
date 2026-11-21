@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.0 - 2026-11-21
+
+### Breaking
+
+- import from `@shivaedev/supervisor/spawn.ts` instead of `@shivaedev/supervisor/adapters/spawn.ts`, which moved out of `adapters/`.
+
 ## 0.4.3 - 2026-11-20
 
 ### Changed

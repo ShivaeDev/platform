@@ -3,7 +3,7 @@ import { Model } from "effect/schema";
 import { expectTypeOf, it } from "vitest";
 import type { UpsertResult } from "#conditionalUpsert.ts";
 import { makeRepository } from "#repository.ts";
-import type { BucketRegistrationError, ServerOnlyKeyError } from "#repositoryCollection.ts";
+import type { RepositoryBuildError } from "#repositoryCollection.ts";
 import { PullRequest, pull, syncOptions } from "#test/pullRequests.ts";
 
 class Prefix extends Context.Service<Prefix, string>()("@shivaedev/sql/conditional/Prefix") {}
@@ -40,5 +40,5 @@ const program = Effect.gen(function* () {
 	expectTypeOf<Effect.Services<typeof written>>().toEqualTypeOf<Prefix>();
 });
 it("conditional upserts type incoming columns, decoded literals, outcomes and codec services", () => {
-	expectTypeOf(program).toExtend<Effect.Effect<void, BucketRegistrationError | ServerOnlyKeyError, unknown>>();
+	expectTypeOf(program).toExtend<Effect.Effect<void, RepositoryBuildError, unknown>>();
 });

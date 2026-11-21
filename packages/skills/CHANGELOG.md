@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.9.5 - 2026-11-21
+
+### Changed
+
+- the story-testing skill names `@shivaedev/test-story/server/outcomeMatchers.ts`, the module's new path.
+
 ## 0.9.4 - 2026-11-20
 
 ### Changed
