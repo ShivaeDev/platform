@@ -2,6 +2,7 @@ import { pathToFileURL } from "node:url";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { ConfigProvider, Effect, Exit, Fiber, FileSystem, Option, Path, Predicate, Schema, Scope } from "effect";
 import { TestClock } from "effect/testing";
+import { schemaFieldKeys } from "@shivaedev/errors/schemaFieldScope.ts";
 import { acquireHeavyLock } from "@shivaedev/heavy-lock/acquire.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { untilTimer } from "@shivaedev/test-story/server/watchedClock.ts";
@@ -14,6 +15,7 @@ import { emptyProject, fromSource, generatedOncePerFile, projectIn, typeCheck, w
 import { MISPLACED_MODULES } from "#test/misplacedModules.ts";
 import { NOTES_PROJECT } from "#test/notesProject.ts";
 import { PUBLIC_SHAPE_PROJECT } from "#test/publicShapeProject.ts";
+import { READINGS_PROJECT } from "#test/readingsProject.ts";
 import { REFUSED_BRANDS } from "#test/refusedBrands.ts";
 import { REFUSING_PROJECT } from "#test/refusingProject.ts";
 import { REGISTRATIONS_PROJECT, type RegistrationShape, registrationOf } from "#test/registrationsProject.ts";
@@ -138,6 +140,9 @@ export const generator = storyKit({
 			yield* TestClock.adjust("1 second");
 			return Option.isSome(engine.running) ? yield* Fiber.join(engine.running.value) : yield* Effect.die(new Error("no generate is running"));
 		}),
+		marksOf: Effect.fn("BuildStory.marksOf")(function* (module: string, operation: string) {
+			return [...schemaFieldKeys((yield* successSchema(engine, module, operation)).ast, [])].toSorted((left, right) => left.localeCompare(right));
+		}),
 		noteCard: Effect.fn("BuildStory.noteCard")(function* (id: number, title: string) {
 			const model = yield* importedFrom(engine, NOTES_MODEL);
 			const NoteCard = Predicate.hasProperty(model, "NoteCard") ? model.NoteCard : undefined;
@@ -198,6 +203,14 @@ export const generator = storyKit({
 
 export function notesProject() {
 	return generator.trait("project", "the project has the notes module", (engine) => writeFiles(engine.root, NOTES_PROJECT));
+}
+
+export function readingsProject() {
+	return generator.trait(
+		"project",
+		"the project has the readings module, whose latest query decodes a raw SQL read with the Reading class that marks pulse sensitive and returns it in an object and an array",
+		(engine) => writeFiles(engine.root, READINGS_PROJECT),
+	);
 }
 
 export function catalogProject() {

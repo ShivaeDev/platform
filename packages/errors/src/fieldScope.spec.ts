@@ -67,6 +67,16 @@ fieldScope.it(
 	},
 );
 
+for (const carrier of ["a generated success that holds Visit under mutable keys in an object and in an array", "a stream of Visit"] as const) {
+	fieldScope.it(
+		`an RPC whose payload shows state and whose success is ${carrier}, a class marking state, registers and masks state while day stays visible`,
+		[],
+		function* ({ carriedMasks }) {
+			expect(yield* carriedMasks(carrier, ["state", "day"])).toEqual(["state"]);
+		},
+	);
+}
+
 fieldScope.it(
 	"an RPC whose success holds a Redacted refresh inside a union with null masks the refresh name and leaves scope visible",
 	[],
