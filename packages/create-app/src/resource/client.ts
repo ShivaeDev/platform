@@ -7,10 +7,10 @@ import { clientModule } from "@shivaedev/react/client/module.ts";
 import { ${pascal} } from "#generated/modules/${name}/${pascal}.ts";
 import { ${pascal}Screen } from "#modules/${name}/client/Screen.tsx";
 
-export const ${camel}Module = clientModule({ ${camel}: ${pascal} }, ({ ${camel} }) => ({
+export const ${camel}Module = clientModule({ ${camel}: ${pascal} }, (clients) => ({
 	routes: (root) => [
 		createRoute({
-			component: (): ReactElement => <${pascal}Screen client={${camel}} />,
+			component: (): ReactElement => <${pascal}Screen client={clients.${camel}} />,
 			getParentRoute: () => root,
 			path: "/${name}",
 			staticData: { signedIn: true },
@@ -40,7 +40,11 @@ function listOf(items: readonly { readonly id: number; readonly title: string }[
 	);
 }
 
-export function ${pascal}Screen({ client }: { readonly client: ContractClient<typeof ${pascal}> }): ReactElement {
+interface ScreenProps {
+	readonly client: ContractClient<typeof ${pascal}>;
+}
+
+export function ${pascal}Screen({ client }: ScreenProps): ReactElement {
 	const items = useQuery(client.list.query());
 	return (
 		<main className="space-y-4 p-8">
@@ -78,7 +82,7 @@ export function resourceScreenStory({ name, pascal }: ResourceNames) {
 	return `import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { screen } from "#modules/${name}/test-support/screen.ts";
 
-screen.it("signed-in alice opens /${name}, which the module's folder adds to the app, and sees her empty list", [], function* ({ controlTexts, heading, settle }) {
+screen.it("signed-in alice opens the list route and sees her empty list", [], function* ({ controlTexts, heading, settle }) {
 	yield* settle();
 
 	yield* outcomes([
