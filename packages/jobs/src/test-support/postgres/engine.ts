@@ -42,6 +42,7 @@ export function provided<A, E, R>(engine: DatabaseEngine, runtime: string, effec
 		const span = Context.getOption(fiber.context, Tracer.ParentSpan);
 		engine.logs.push({
 			annotations: fiber.getRef(References.CurrentLogAnnotations),
+			cause,
 			level: logLevel,
 			message: logged,
 			runtime,
@@ -185,7 +186,7 @@ export const admin = Effect.fnUntraced(function* (engine: DatabaseEngine, schema
 	}
 	const client = new PgBoss({ clock: engine.clock, connectionString: Redacted.value(engine.url), schedule: false, schema, supervise: false });
 	client.on("error", (error) =>
-		engine.logs.push({ annotations: {}, level: "Error", message: error.message, runtime: "administrator", spanId: undefined }),
+		engine.logs.push({ annotations: {}, cause: Cause.empty, level: "Error", message: error.message, runtime: "administrator", spanId: undefined }),
 	);
 	engine.admins.set(schema, client);
 	yield* Effect.acquireRelease(

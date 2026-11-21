@@ -47,6 +47,8 @@ export class FakeClient implements PgBossClient {
 	creationAttempts = 0;
 	claimReads = 0;
 	stallsClaimReads = false;
+	stallsLaterClockReads = false;
+	clockReads = 0;
 	startFailure: unknown;
 	stopFailure: unknown;
 	starting: Promise<void> | undefined;
@@ -54,7 +56,17 @@ export class FakeClient implements PgBossClient {
 	duringStop: (() => void) | undefined;
 
 	getDb() {
-		return { executeSql: async () => ({ rows: [{ count: "0", now: this.databaseNow ?? this.now() }] }) };
+		return {
+			executeSql: (text = "") => {
+				if (text.includes("job_now()")) {
+					this.clockReads += 1;
+					if (this.stallsLaterClockReads && this.clockReads > 1) {
+						return new Promise<never>(() => undefined);
+					}
+				}
+				return Promise.resolve({ rows: [{ count: "0", now: this.databaseNow ?? this.now() }] });
+			},
+		};
 	}
 	complete(name: string, target: JobAttempt | string | JobAttempt[] | string[]) {
 		for (const id of idsOf(target)) {

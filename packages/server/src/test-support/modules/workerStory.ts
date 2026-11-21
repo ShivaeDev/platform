@@ -129,6 +129,10 @@ export const moduleWorkers = storyKit({
 				story.tell(`a visitor bills member ${id}, whose job logs the member's computed customerReference`);
 				return Effect.flatMap(members(), (api) => api.bill({ id }));
 			},
+			chargeMember: (id: number) => {
+				story.tell(`a visitor charges member ${id}, whose job fails with the member's computed customerReference`);
+				return Effect.flatMap(members(), (api) => api.charge({ id }));
+			},
 			complete: () => state.testing.waitForIdle,
 			exportedCardSpan: () =>
 				Effect.gen(function* () {
@@ -159,6 +163,11 @@ export const moduleWorkers = storyKit({
 			queueConflict: () => Effect.sync(() => state.failure),
 			recordedWorkerDefect: (message: string) =>
 				Effect.sync(() => workerLog(message)?.cause.reasons.find(Cause.isDieReason)?.defect ?? `no worker log ${message} holds a defect`),
+			recordedWorkerFailure: (message: string) =>
+				Effect.sync(() => {
+					const cause = workerLog(message)?.cause;
+					return cause === undefined || cause.reasons.length === 0 ? `no worker log ${message} holds a failure` : Cause.squash(cause);
+				}),
 			recordedWorkerLog: (message: string) => Effect.sync(() => workerLog(message)?.message[1] ?? `no worker log ${message}`),
 			reportedWorkerDefect: () =>
 				Effect.sync(() => state.reported.flatMap((cause) => cause.reasons.filter(Cause.isDieReason))[0]?.defect ?? "no defect was reported"),
