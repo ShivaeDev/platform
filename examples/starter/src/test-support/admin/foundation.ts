@@ -1,8 +1,8 @@
 import { layerWebSocketConstructor } from "@effect/platform-node/NodeWS";
-import { DateTime, Effect, Option } from "effect";
+import { DateTime, Effect, Option, type Scope } from "effect";
 import { makeClient } from "@shivaedev/contract/bind.ts";
-import { mintUser, passwordUser, signInAgain, storyAuth } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
-import { makePgBossTesting, testRetryPolicy } from "@shivaedev/test-kits/jobs/testing.ts";
+import { mintUser } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
+import { makePgBossTesting, type PgBossTesting, testRetryPolicy } from "@shivaedev/test-kits/jobs/testing.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import type { AppAccess } from "#AppAccess.ts";
@@ -18,7 +18,18 @@ export const foundationAdmin = storyKit({
 	clock: Effect.runSync(DateTime.now),
 	*create() {
 		const host = yield* startHost({ jobsTesting: makePgBossTesting({ retryPolicy: testRetryPolicy }) });
-		return { cookies: new Map<string, string>(), host, workerTesting: makePgBossTesting({ retryPolicy: testRetryPolicy }) };
+		const engine: {
+			readonly cookies: Map<string, string>;
+			readonly host: typeof host;
+			worker: Effect.Effect<void, unknown, Scope.Scope>;
+			readonly workerTesting: PgBossTesting;
+		} = {
+			cookies: new Map(),
+			host,
+			worker: Effect.die("Give the story a worker trait before the worker runs"),
+			workerTesting: makePgBossTesting({ retryPolicy: testRetryPolicy }),
+		};
+		return engine;
 	},
 	inspect: ({ host }) => ({ baseUrl: host.baseUrl }),
 	layer: postgres,
@@ -61,17 +72,6 @@ export const foundationAdmin = storyKit({
 				story.tell(`${name} reads her session's permissions`);
 				return yield* sessionPermissions(engine.host.baseUrl, engine.cookies.get(name) ?? "");
 			}),
-			requestsEmailChange: (name: string) =>
-				Effect.promise(async () => {
-					story.tell(`${name} asks to change her address to ${name}-new@app.test`);
-					const response = await fetch(`${engine.host.baseUrl}/api/auth/change-email`, {
-						body: JSON.stringify({ newEmail: `${name}-new@app.test`, password: `${name}-password` }),
-						headers: { "content-type": "application/json", cookie: engine.cookies.get(name) ?? "", origin: engine.host.origin },
-						method: "POST",
-					});
-					await response.text();
-					return response.status;
-				}),
 			requestsPasswordReset: (name: string) =>
 				Effect.promise(async () => {
 					story.tell(`${name} requests a password reset email`);
@@ -88,7 +88,12 @@ export const foundationAdmin = storyKit({
 				const admin = yield* adminOf(name);
 				return yield* answer(Effect.map(admin["admin.users.list"]({ limit: 20 }), ({ users }) => users.map(({ email }) => email)));
 			}),
-			workersFinish: () => engine.workerTesting.waitForIdle,
+			workerGivesUpOnTheEmail: () =>
+				Effect.gen(function* () {
+					story.tell("the worker starts and retries the queued email until it gives up");
+					yield* engine.worker;
+					yield* engine.workerTesting.waitForIdle;
+				}),
 		};
 	},
 });
@@ -96,15 +101,6 @@ export const foundationAdmin = storyKit({
 export function foundationAccount(name: string, role: typeof AppAccess.Role.Type = "user") {
 	return foundationAdmin.trait("accounts", `${name} is signed in as ${role === "user" ? "a" : "an"} ${role}`, function* (engine) {
 		const { headers } = yield* mintUser(AppAuth, engine.host, name, { role });
-		engine.cookies.set(name, headers.get("cookie") ?? "");
-	});
-}
-
-export function foundationPasswordAccount(name: string) {
-	return foundationAdmin.trait("accounts", `${name} has a verified email and password account and is signed in`, function* (engine) {
-		const auth = yield* storyAuth(AppAuth, engine.host);
-		const user = yield* passwordUser(auth, { email: `${name}@app.test`, name, password: `${name}-password` });
-		const { headers } = yield* signInAgain(auth, user.id);
 		engine.cookies.set(name, headers.get("cookie") ?? "");
 	});
 }

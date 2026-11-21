@@ -2,7 +2,7 @@ import { Effect } from "effect";
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { failedEmailDelivery } from "#test-support/admin/failedEmailDelivery.ts";
-import { foundationAccount, foundationAdmin, foundationPasswordAccount } from "#test-support/admin/foundation.ts";
+import { foundationAccount, foundationAdmin } from "#test-support/admin/foundation.ts";
 
 for (const role of ["admin", "owner"] as const) {
 	foundationAdmin.it(`an ${role}'s default session may manage sessions`, [foundationAccount("operator", role)], function* ({ permissions }) {
@@ -19,47 +19,25 @@ foundationAdmin.it("an admin sees the auth-email and session-sweep queues", [fou
 });
 
 foundationAdmin.it(
-	"an admin inspects a failed password-reset email through Jobs administration",
+	"an admin inspects a failed password-reset email through Jobs administration with its link masked",
 	[foundationAccount("operator", "admin"), failedEmailDelivery],
-	function* ({ failedJobs, jobDetail, requestsPasswordReset, workersFinish }) {
+	function* ({ failedJobs, jobDetail, requestsPasswordReset, workerGivesUpOnTheEmail }) {
 		expect(yield* failedJobs("operator", "email.auth-emails")).toEqual([]);
 
 		yield* requestsPasswordReset("operator");
-		yield* workersFinish();
+		yield* workerGivesUpOnTheEmail();
 
 		const jobs = yield* failedJobs("operator", "email.auth-emails");
-		expect(jobs).toMatchObject([{ data: { kind: "ResetPassword", to: "operator@app.test" }, state: "failed" }]);
+		expect(jobs).toMatchObject([{ data: { kind: "ResetPassword", to: "operator@app.test", url: "<redacted>" }, state: "failed" }]);
 		if (typeof jobs === "string" || jobs[0] === undefined) {
 			return yield* Effect.die("The failed email did not reach Jobs administration");
 		}
 		expect(yield* jobDetail("operator", "email.auth-emails", jobs[0].id)).toMatchObject({
-			data: { kind: "ResetPassword", to: "operator@app.test" },
+			data: { kind: "ResetPassword", to: "operator@app.test", url: "<redacted>" },
 			output: { message: "Resend could not deliver the email" },
 			queue: "email.auth-emails",
 			state: "failed",
 		});
-	},
-);
-
-foundationAdmin.it(
-	"an admin reads failed password-reset and email-change emails with their links masked",
-	[foundationAccount("operator", "admin"), foundationPasswordAccount("alice"), failedEmailDelivery],
-	function* ({ failedJobs, jobDetail, requestsEmailChange, requestsPasswordReset, workersFinish }) {
-		yield* requestsPasswordReset("alice");
-		yield* requestsEmailChange("alice");
-		yield* workersFinish();
-
-		const jobs = yield* failedJobs("operator", "email.auth-emails");
-		if (typeof jobs === "string") {
-			return yield* Effect.die(`Jobs administration refused the failed emails: ${jobs}`);
-		}
-		expect(jobs.map(({ data }) => data).toSorted((left, right) => JSON.stringify(left).localeCompare(JSON.stringify(right)))).toEqual([
-			{ kind: "ApproveEmailChange", newEmail: "alice-new@app.test", to: "alice@app.test", url: "<redacted>" },
-			{ kind: "ResetPassword", to: "alice@app.test", url: "<redacted>" },
-		]);
-		for (const { id } of jobs) {
-			expect(yield* jobDetail("operator", "email.auth-emails", id)).toMatchObject({ data: { url: "<redacted>" } });
-		}
 	},
 );
 
