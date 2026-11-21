@@ -73,7 +73,7 @@ The command writes a defined module with an authenticated list query and create 
 
 The server registration names `module:`, its migration loader and its repository in `services`, and is exported written `satisfies AppModule`, so the generated server module list finds it by its folder; the command edits no file outside the new module's folder. Existing destination files are named and left intact. Resource names use lowercase letters and digits with optional hyphens; `reading-lists` produces a `reading_lists` table and a `ReadingLists` module. Both full and minimal apps accept resources.
 
-The generated module has no admin pages or jobs. Add those fields to its server registration when needed. Its browser-safe client is available from `src/modules/bookmarks/client/make.ts`; use it in your own route and screen, following the [resource guide](https://github.com/ShivaeDev/platform/blob/main/docs/framework/add-a-feature.md).
+The generated module has no admin pages or jobs. Add those fields to its server registration when needed. Its browser-safe contract is generated at `src/generated/modules/bookmarks/Bookmarks.ts`; make its client with `makeClient({ bookmarks: Bookmarks })` from `@shivaedev/contract/makeClient.ts` in your own module registration, following the [resource guide](https://github.com/ShivaeDev/platform/blob/main/docs/framework/add-a-feature.md).
 
 ### Take starter updates
 

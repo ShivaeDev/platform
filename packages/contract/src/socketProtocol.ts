@@ -3,7 +3,7 @@ import * as Atom from "effect/reactivity/Atom";
 import { RpcClient, RpcSerialization } from "effect/rpc";
 import * as Socket from "effect/socket/Socket";
 import { resumeSocket } from "#adapters/resumeSocket.ts";
-import type { ClientOptions } from "#clientOptions.ts";
+import type { ClientOptions } from "#ClientOptions.ts";
 import { connectionProtocol } from "#connectionProtocol.ts";
 import type { ResumeWindow } from "#resume.ts";
 import { SocketClock } from "#SocketClock.ts";

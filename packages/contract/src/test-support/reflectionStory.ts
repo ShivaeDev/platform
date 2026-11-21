@@ -59,7 +59,7 @@ export const reflectionStory = storyKit({
 					yield* until(engine.activity, (state) => state.commands === 0 && state.unreflectedCommands === 1, { name: "accepted screen sync" });
 				}),
 			beginSync: () => begin("the tab starts a sync", tab.sync),
-			beginWrite: (value: string) => begin(`the tab starts writing ${value}`, tab.api.write.run({ value })),
+			beginWrite: (value: string) => begin(`the tab starts writing ${value}`, tab.api.board.write.run({ value })),
 			dropSocket: () =>
 				Effect.gen(function* () {
 					story.tell("the tab's socket drops and connects again");
@@ -98,7 +98,7 @@ export const reflectionStory = storyKit({
 			},
 			pause: () => {
 				story.tell("the tab pauses its live queries");
-				registry.set(tab.api[LiveConnection].paused, true);
+				registry.set(tab.api.board[LiveConnection].paused, true);
 			},
 			recoverListener: () => {
 				story.tell("the host's change listener recovers and resyncs every stream");
@@ -120,19 +120,19 @@ export const reflectionStory = storyKit({
 			shown: () => Effect.sync(() => shown(registry.get(engine.view), (value) => value)),
 			signals: flights.signals,
 			sync: () => complete("the tab syncs", tab.sync),
-			touch: () => complete("the tab sends a command that changes nothing", tab.api.touch.run()),
+			touch: () => complete("the tab sends a command that changes nothing", tab.api.board.touch.run()),
 			unpause: () => {
 				story.tell("the tab resumes its live queries");
-				registry.set(tab.api[LiveConnection].paused, false);
+				registry.set(tab.api.board[LiveConnection].paused, false);
 			},
 			untilAccepted: flights.untilAccepted,
 			untilHeldBack: (count: number) =>
-				until(AtomRegistry.toStream(registry, tab.api[LiveConnection].status), (status) => status.pending >= count, {
+				until(AtomRegistry.toStream(registry, tab.api.board[LiveConnection].status), (status) => status.pending >= count, {
 					name: `${count} updates held back by the pause`,
 				}),
 			untilReadBegins: () => Queue.take(reads.reached),
 			untilWriteArrives: () => Queue.take(writes.reached),
-			write: (value: string) => complete(`the tab writes ${value}`, tab.api.write.run({ value })),
+			write: (value: string) => complete(`the tab writes ${value}`, tab.api.board.write.run({ value })),
 		};
 	},
 });

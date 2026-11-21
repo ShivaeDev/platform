@@ -20,7 +20,7 @@ export function independentVerbs(engine: Engine) {
 					}
 					await Effect.runPromise(
 						until(
-							AtomRegistry.toStreamResult(screen.registry, engine.client.api.independent.query()),
+							AtomRegistry.toStreamResult(screen.registry, engine.client.api.api.independent.query()),
 							(rows) => rows.some((note) => note.title === title),
 							{ name: "independent subscription result" },
 						),
@@ -35,7 +35,7 @@ export function independentVerbs(engine: Engine) {
 				);
 				engine.other.screen = screen;
 				yield* Effect.promise(() =>
-					act(async () => void (await Effect.runPromise(AtomRegistry.getResult(screen.registry, engine.client.api.independent.query())))),
+					act(async () => void (await Effect.runPromise(AtomRegistry.getResult(screen.registry, engine.client.api.api.independent.query())))),
 				);
 			}),
 	};

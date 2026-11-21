@@ -25,7 +25,7 @@ export function notesRefreshVerbs(engine: Screen, tell: (line: string) => void) 
 			Effect.promise(async () => {
 				tell("release the held notes list request");
 				const { registry } = screenView(engine);
-				const signals = querySignals(engine.client.api.list.query());
+				const signals = querySignals(engine.client.api.notes.list.query());
 				const before = registry.get(signals).completed;
 				await act(async () => {
 					engine.client.releaseList();

@@ -21,10 +21,10 @@ export const reflectedPostgres = storyKit({
 		return {
 			activity: flights.activity,
 			add: (...titles: readonly string[]) =>
-				flights.complete(`the tab adds ${titles.join(" and ")}, each in its own transaction`, tab.api.add.run({ reject: false, titles })),
+				flights.complete(`the tab adds ${titles.join(" and ")}, each in its own transaction`, tab.api.entries.add.run({ reject: false, titles })),
 			addRefused: (title: string) =>
-				flights.complete(`the tab adds ${title} in a transaction that rolls back`, tab.api.add.run({ reject: true, titles: [title] })),
-			beginStamp: (title: string) => flights.begin(`the tab starts stamping ${title}`, tab.api.stamp.run({ title })),
+				flights.complete(`the tab adds ${title} in a transaction that rolls back`, tab.api.entries.add.run({ reject: true, titles: [title] })),
+			beginStamp: (title: string) => flights.begin(`the tab starts stamping ${title}`, tab.api.entries.stamp.run({ title })),
 			beginSync: () => flights.begin("the tab starts a sync", tab.sync),
 			finished: flights.finished,
 			holdReads: () =>
@@ -46,7 +46,7 @@ export const reflectedPostgres = storyKit({
 				}),
 			shown: () => Effect.sync(() => shown(registry.get(current.view), (titles) => titles.join(", "))),
 			signals: flights.signals,
-			touch: () => flights.complete("the tab sends a command that changes nothing", tab.api.touch.run()),
+			touch: () => flights.complete("the tab sends a command that changes nothing", tab.api.entries.touch.run()),
 			untilAccepted: flights.untilAccepted,
 			untilReadBegins: () => Queue.take(reads.reached),
 		};

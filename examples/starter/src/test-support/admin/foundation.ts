@@ -1,6 +1,6 @@
 import { layerWebSocketConstructor } from "@effect/platform-node/NodeWS";
 import { DateTime, Effect, Option, type Scope } from "effect";
-import { makeClient } from "@shivaedev/contract/bind.ts";
+import { makeClient } from "@shivaedev/contract/makeClient.ts";
 import { mintUser } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
 import { makePgBossTesting, type PgBossTesting, testRetryPolicy } from "@shivaedev/test-kits/jobs/testing.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
@@ -38,12 +38,14 @@ export const foundationAdmin = storyKit({
 	stages: ["accounts", "worker"],
 	verbs: (engine, story) => {
 		const adminOf = Effect.fn("FoundationAdmin.adminOf")(function* (name: string) {
-			return yield* makeClient(foundation.UsersPage.contract, {
-				group: foundation.admin.group,
-				headers: { cookie: engine.cookies.get(name) ?? "", origin: engine.host.origin },
-				url: `${engine.host.baseUrl}/rpc`,
-				webSocketConstructor: layerWebSocketConstructor,
-			}).client;
+			return yield* makeClient(
+				{ jobs: foundation.JobsPage.contract, users: foundation.UsersPage.contract },
+				{
+					headers: { cookie: engine.cookies.get(name) ?? "", origin: engine.host.origin },
+					url: `${engine.host.baseUrl}/rpc`,
+					webSocketConstructor: layerWebSocketConstructor,
+				},
+			).client;
 		});
 		return {
 			failedJobs: Effect.fn("FoundationAdmin.failedJobs")(function* (name: string, queue: string) {

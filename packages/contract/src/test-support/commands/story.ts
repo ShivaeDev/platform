@@ -19,7 +19,7 @@ export const commands = storyKit({
 			Effect.gen(function* () {
 				story.tell(`the client adds ${amount}`);
 				const { client, run } = engine.connection();
-				engine.state.command = yield* run(client.api.add.run({ amount })).pipe(Effect.forkScoped);
+				engine.state.command = yield* run(client.api.counter.add.run({ amount })).pipe(Effect.forkScoped);
 			}),
 		answer: () =>
 			Effect.gen(function* () {
@@ -79,7 +79,9 @@ export const commands = storyKit({
 		},
 		settlement: () => Effect.map(engine.connection().activity.current, (state) => (isClientSettled(state) ? "settled" : "pending")),
 		shownValue: () =>
-			Effect.map(settled(engine.registry, engine.connection().client.api.value.query()), (result) => shown(result, (value) => `counter: ${value}`)),
+			Effect.map(settled(engine.registry, engine.connection().client.api.counter.value.query()), (result) =>
+				shown(result, (value) => `counter: ${value}`),
+			),
 		silence: () => {
 			story.tell("the network silently stops delivering frames on the open socket");
 			return engine.host.pause;
@@ -93,7 +95,7 @@ export const commands = storyKit({
 		untilWaiting: () => until(engine.connection().activity, (state) => state.connectionStatus === "waiting-for-connection", { name: "held command" }),
 		value: () => {
 			const { client, run } = engine.connection();
-			return Effect.map(run(client.api.value.run()), (value) => `counter: ${value}`);
+			return Effect.map(run(client.api.counter.value.run()), (value) => `counter: ${value}`);
 		},
 	}),
 });
@@ -107,20 +109,20 @@ function connection(line: string, custom: boolean, shared: boolean) {
 		engine.state.connection = engine.connect(custom);
 		const { client, run } = engine.connection();
 		engine.registry.mount(client.runtime);
-		yield* run(client.api.value.run());
+		yield* run(client.api.counter.value.run());
 		yield* Queue.take(engine.events);
 		if (shared) {
 			engine.state.connection = engine.connect(true, engine.connection().protocol);
 			const peer = engine.connection();
 			engine.registry.mount(peer.client.runtime);
-			yield* peer.run(peer.client.api.value.run());
+			yield* peer.run(peer.client.api.counter.value.run());
 		}
 	});
 }
 
 export function showingValue() {
 	return commands.trait("view", "the client shows the counter's value query", function* (engine) {
-		const view = engine.connection().client.api.value.query();
+		const view = engine.connection().client.api.counter.value.query();
 		engine.registry.mount(view);
 		yield* settled(engine.registry, view);
 	});

@@ -1,6 +1,6 @@
 import { Deferred, Effect } from "effect";
-import { makeClient } from "@shivaedev/contract/bind.ts";
 import { clientActivity } from "@shivaedev/contract/clientActivity.ts";
+import { makeClient } from "@shivaedev/contract/makeClient.ts";
 import { Conflict } from "@shivaedev/errors/taxonomy.ts";
 import { layerLiveMemoryProtocol } from "@shivaedev/test-kits/contract/liveMemoryProtocol.ts";
 import { Api, Rejected, type Removed, TitleRejected } from "#test/notices/Api.ts";
@@ -127,10 +127,10 @@ export function noticeClient(options: { readonly holdReads?: boolean } = {}) {
 			}),
 		),
 	);
-	const connection = makeClient(Api, { protocol: layerLiveMemoryProtocol(Api, handlers), url: "memory://notices" });
+	const connection = makeClient({ api: Api }, { protocol: layerLiveMemoryProtocol(Api, handlers), url: "memory://notices" });
 	return {
 		activity: clientActivity(connection),
-		api: connection.api,
+		api: connection.api.api,
 		arrivals,
 		calls,
 		hold,

@@ -5,8 +5,8 @@ import { RpcClient } from "effect/rpc";
 import { SqlClient } from "effect/sql";
 import { rerunQuery } from "@shivaedev/server/rerunQuery.ts";
 import { layerMemoryProtocol } from "@shivaedev/test-kits/contract/testing.ts";
-import { makeClient } from "#bind.ts";
 import { changesHandlerLayer } from "#changesHandlerLayer.ts";
+import { makeClient } from "#makeClient.ts";
 import { makeLiveServer } from "#makeLiveServer.ts";
 import { querySubscription } from "#querySubscription.ts";
 import { CurrentViewer } from "#readPolicy.ts";
@@ -47,8 +47,8 @@ export const derivedReadsEngine = Effect.gen(function* () {
 		Effect.sync(() => AtomRegistry.make()),
 		(value) => Effect.sync(() => value.dispose()),
 	);
-	const connection = makeClient(Timelines, { protocol: Layer.succeedContext(transport), runtime, url: "memory://timelines" });
+	const connection = makeClient({ timelines: Timelines }, { protocol: Layer.succeedContext(transport), runtime, url: "memory://timelines" });
 	const client = yield* RpcClient.make(Timelines, { flatten: true }).pipe(Effect.provideContext(transport));
-	const query = connection.api.timeline.query({ scope: "alice" });
+	const query = connection.api.timelines.timeline.query({ scope: "alice" });
 	return { client, query, registry, sql };
 });

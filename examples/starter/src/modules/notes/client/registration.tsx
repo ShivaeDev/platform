@@ -2,53 +2,48 @@ import { createRoute } from "@tanstack/react-router";
 import { Effect, Schema } from "effect";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import type { ReactElement } from "react";
+import { type MadeClient, makeClient } from "@shivaedev/contract/makeClient.ts";
 import { queryRoute } from "@shivaedev/react/client/adapters/queryRoute.ts";
 import type { RouteContext } from "#client/Module.ts";
-import { Admin } from "#modules/notes/admin/pages.ts";
-import { type AdminClient, makeAdminClient } from "#modules/notes/client/admin/make.ts";
+import { Notes } from "#generated/modules/notes/Notes.ts";
+import { Admin, StatisticsPage } from "#modules/notes/admin/pages.ts";
 import { adminRegistration } from "#modules/notes/client/admin/registration.tsx";
 import { NoteEdit } from "#modules/notes/client/Edit.tsx";
-import { makeNotesClient, type NotesClient } from "#modules/notes/client/make.ts";
 import { NotFound } from "#modules/notes/client/NotFound.tsx";
 import { RouteFailure } from "#modules/notes/client/RouteFailure.tsx";
 import { NotesScreen } from "#modules/notes/client/Screen.tsx";
 
-export function notesRegistration(client?: NotesClient, admin?: AdminClient) {
-	return Effect.map(AtomRegistry.AtomRegistry, (registry) =>
-		notesModule(
-			client ?? makeNotesClient(new URL("/rpc", window.location.href).href, { registry }),
-			admin ?? makeAdminClient(new URL("/rpc", window.location.href).href, { registry }),
-		),
-	);
+const notesContracts = { notes: Notes, statistics: StatisticsPage.contract };
+
+export function notesRegistration(client?: Pick<MadeClient<typeof notesContracts>, "api">) {
+	return Effect.map(AtomRegistry.AtomRegistry, (registry) => notesModule(client ?? makeClient(notesContracts, { registry })));
 }
 
-function notesModule(client: NotesClient, admin: AdminClient) {
+function notesModule({ api }: Pick<MadeClient<typeof notesContracts>, "api">) {
+	const { notes: client, statistics } = api;
 	return {
 		admin: Admin,
-		api: client.api,
-		bindings: [client.api, admin.statistics],
+		api,
 		routes: (routeContext: RouteContext) => {
 			const { getParentRoute } = routeContext;
-			const parent = createRoute({ context: () => ({ client }), getParentRoute, id: "notes", staticData: { signedIn: true } });
-			const list = queryRoute(({ context }: { context: typeof parent.types.allContext }) => context.client.api.list.query());
+			const parent = createRoute({ getParentRoute, id: "notes", staticData: { signedIn: true } });
+			const list = queryRoute(() => client.list.query());
 			const notes = createRoute({
 				component: (): ReactElement => {
-					const { client: routeClient, auth } = notes.useRouteContext();
-					return <NotesScreen client={routeClient} query={list.useQuery()} signOut={auth.signOut} />;
+					const { auth } = notes.useRouteContext();
+					return <NotesScreen client={client} query={list.useQuery()} signOut={auth.signOut} />;
 				},
 				errorComponent: RouteFailure,
 				getParentRoute: () => parent,
 				...list,
 				path: "/",
 			});
-			const noteQuery = queryRoute(({ context, params }: { context: typeof parent.types.allContext; params: { noteId: number } }) =>
-				context.client.api.get.query({ id: params.noteId }),
-			);
+			const noteQuery = queryRoute(({ params }: { params: { noteId: number } }) => client.get.query({ id: params.noteId }));
 			const note = createRoute({
 				component: (): ReactElement => {
-					const { client: routeClient, navigate } = note.useRouteContext();
+					const { navigate } = note.useRouteContext();
 					const loaded = noteQuery.useLoaded();
-					return <NoteEdit client={routeClient} key={loaded.loaded.id} note={loaded} onDeleted={() => navigate("/")} />;
+					return <NoteEdit client={client} key={loaded.loaded.id} note={loaded} onDeleted={() => navigate("/")} />;
 				},
 				errorComponent: RouteFailure,
 				getParentRoute: () => parent,
@@ -62,8 +57,8 @@ function notesModule(client: NotesClient, admin: AdminClient) {
 				},
 				path: "/notes/$noteId",
 			});
-			return [parent.addChildren([notes, note]), ...adminRegistration(admin).routes(routeContext)];
+			return [parent.addChildren([notes, note]), ...adminRegistration(statistics).routes(routeContext)];
 		},
-		warm: [client.api.list.query()],
+		warm: [client.list.query()],
 	};
 }

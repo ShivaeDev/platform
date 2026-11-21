@@ -24,7 +24,7 @@ State belongs to an **atom in a registry**. A query hook reads that atom's nativ
 
 An **editor** joins a query atom, a form field schema and a save Effect. The query provides the row; `values(row)` converts it to input values; the schema decodes those values before the save runs. form owns the draft and the per-field merge. A **create form** uses the same submission rules without a query and starts a fresh form after success.
 
-Use `useConnectionStatus(client)` from `@shivaedev/react/client/useConnectionStatus.ts` with the client returned by contract's `makeClient`. It returns one `"live" | "reconnecting" | "waiting-for-connection"` value across mounted queries from every binding on that client's `Client` service. Live subscription status changes debounce for 300 ms on the client runtime's Clock. A bound command held for reconnection reports `"waiting-for-connection"` immediately, so the application can show Reconnecting while keeping the action pending. Contract holds unsent commands for up to 10 seconds and returns a typed `RpcClientError` on timeout; commands already sent are never replayed. The default socket probes Ping/Pong on browser or native resume and reconnects after 2.5 seconds without a Pong. A query refusal is separate from connectivity. Visible browser `online` and `visibilitychange` signals interrupt the live retry delay and reconnect immediately with a fresh backoff schedule.
+Use `useConnectionStatus(client)` from `@shivaedev/react/client/useConnectionStatus.ts` with the client returned by contract's `makeClient`. It returns one `"live" | "reconnecting" | "waiting-for-connection"` value across mounted queries from every binding of that client. Live subscription status changes debounce for 300 ms on the client runtime's Clock. A bound command held for reconnection reports `"waiting-for-connection"` immediately, so the application can show Reconnecting while keeping the action pending. Contract holds unsent commands for up to 10 seconds and returns a typed `RpcClientError` on timeout; commands already sent are never replayed. The default socket probes Ping/Pong on browser or native resume and reconnects after 2.5 seconds without a Pong. A query refusal is separate from connectivity. Visible browser `online` and `visibilitychange` signals interrupt the live retry delay and reconnect immediately with a fresh backoff schedule.
 
 Use `useFirstSettled(client)` from `@shivaedev/react/client/adapters/useFirstSettled.ts` with the same client to reveal a session's first screen in one step instead of one loading state per query. It returns `false` until the screen that calls it has rendered once and, with that, no query mounted on the client awaits a first result and no command is in flight, so a first screen that reads no query, such as a blank form, turns it `true` as soon as it has rendered. From then on it returns `true` for that client: a later command or a newly mounted query does not turn it back. A query the screen mounts only after its first render, from an effect or a state change, is not waited for: the reveal shows that query's own loading state. Render TanStack routes with `RouterProvider` from `@shivaedev/react/RouterProvider.ts`, which takes TanStack's props and renders TanStack's provider: it holds `useFirstSettled` until the first route has rendered, so the hook gives the right answer above the router too. Above TanStack's own `RouterProvider` the hook turns `true` before the first route exists. The signal belongs to the client, so a new session generation whose `connect` makes a new client starts at `false` again. A query that only the session's [warm list](#keep-queries-warm-for-the-session) mounts does not hold it back while it awaits its first result, and a query that shows a [stored](#keep-query-results-across-a-reload) or retained result does not hold it back while it revalidates, so a reload with stored results is revealed at once.
 
@@ -145,13 +145,13 @@ What this means for the person using the application: their data rests on the de
 A contract declared with `keyScope: "session"` binds to the registry that owns the session's queries. Its queries, commands and streams run in that registry. The server's subscriptions and committed writes use plain keys, and each query's read policy decides what a viewer receives. The [contract guide](https://github.com/ShivaeDev/platform/blob/main/packages/contract/README.md#session-owned-keys) describes the declaration and its handlers. `SessionBoundary` passes that registry to `connect` as its second argument:
 
 ```tsx
-import { bind } from "@shivaedev/contract/bind.ts";
+import { makeClient } from "@shivaedev/contract/makeClient.ts";
 import { SessionBoundary } from "@shivaedev/react/client/sessionBoundary.ts";
 
 <SessionBoundary
 	session={session}
 	identify={(current) => current.user.id}
-	connect={(_, registry) => bind(Preferences, makePreferencesClient(), { registry })}
+	connect={(_, registry) => makeClient({ preferences: Preferences }, { registry }).api.preferences}
 	recheck={recheck}
 	signedOut={<p>Signed out</p>}
 >
@@ -159,7 +159,7 @@ import { SessionBoundary } from "@shivaedev/react/client/sessionBoundary.ts";
 </SessionBoundary>;
 ```
 
-`Preferences` is the application's session-scoped contract, and `makePreferencesClient()` creates its native AtomRpc service using the current session cookie. A one-argument `connect` callback also works. The boundary allocates the registry before calling `connect`; an unchanged generation keeps its binding and state. Account replacement, sign-out and same-account re-entry dispose the old registry, private query tracking, live registrations and pending refreshes. Use the user id for cookie-based clients so session rotation keeps state. A sign-out followed by sign-in creates a new registry even for the same user.
+`Preferences` is the application's session-scoped contract; the browser's client connects to `/rpc` beside the page and sends the current session cookie. A one-argument `connect` callback also works. The boundary allocates the registry before calling `connect`; an unchanged generation keeps its binding and state. Account replacement, sign-out and same-account re-entry dispose the old registry, private query tracking, live registrations and pending refreshes. Use the user id for cookie-based clients so session rotation keeps state. A sign-out followed by sign-in creates a new registry even for the same user.
 
 #### Connections with several modules
 
@@ -177,14 +177,14 @@ function connect(session: Session, registry: AtomRegistry.AtomRegistry) {
 }
 ```
 
-`Session`, `notesModule` and `tasksModule` belong to the application; each module binds its contract with the supplied registry. Import `AtomRegistry` from `effect/reactivity/AtomRegistry`. Return the resulting connection from `SessionBoundary`'s `connect` callback and render `client.modules` in its child.
+`Session`, `notesModule` and `tasksModule` belong to the application; each module makes its client from its record of contracts with the supplied registry. Import `AtomRegistry` from `effect/reactivity/AtomRegistry`. Return the resulting connection from `SessionBoundary`'s `connect` callback and render `client.modules` in its child.
 
 #### Resume from a native shell
 
-For a native shell, pass its resume source when binding the API returned by `connect`:
+For a native shell, pass its resume source when making the client whose bindings `connect` returns:
 
 ```ts
-import { bind } from "@shivaedev/contract/bind.ts";
+import { makeClient } from "@shivaedev/contract/makeClient.ts";
 import type { ResumeSource } from "@shivaedev/contract/resume.ts";
 import { onAppResume, onNetworkReturn } from "./native-lifecycle.ts";
 
@@ -196,10 +196,10 @@ const resume: ResumeSource = (notify) => {
 		stopNetwork();
 	};
 };
-const connect = () => bind(Notes, Client, { resume });
+const connect = () => makeClient({ notes: Notes }, { resume }).api.notes;
 ```
 
-`Notes` and `Client` are the application's contract and native AtomRpc client. The application implements `onAppResume` and `onNetworkReturn`, each returning its unsubscribe function. `SessionBoundary` mounts the bound connection, and native notifications reopen the subscription and reconcile its tracked queries alongside the browser visibility and online defaults. Disposing the session's registry releases the native listeners. Omitting `resume` keeps the browser defaults.
+`Notes` is the application's contract. The application implements `onAppResume` and `onNetworkReturn`, each returning its unsubscribe function. `SessionBoundary` mounts the bound connection, and native notifications reopen the subscription and reconcile its tracked queries alongside the browser visibility and online defaults. Disposing the session's registry releases the native listeners. Omitting `resume` keeps the browser defaults.
 
 #### Detect a deployment and activate a staged update
 
@@ -334,7 +334,7 @@ const add = useAction(api.add);
 add.dispatch({ title: "Morning walk" });
 ```
 
-`api` comes from `makeClient` over the module's generated contract, as the [contract guide](https://github.com/ShivaeDev/platform/blob/main/packages/contract/README.md#the-wire-and-the-browsers-contract) describes, with a `list` query and an `add` command that takes `{ title }`. The server reruns the queries that read the command's keys and pushes their new results.
+`api` is the module's binding from `makeClient({ notes: Notes }).api.notes` over the module's generated contract, as the [contract guide](https://github.com/ShivaeDev/platform/blob/main/packages/contract/README.md#the-wire-and-the-browsers-contract) describes, with a `list` query and an `add` command that takes `{ title }`. The server reruns the queries that read the command's keys and pushes their new results.
 
 An action's `dispatch(input)` returns `void`. Read the atom's latest result from `data`, `cause` or `result`. With the default `Atom.fn` action, a later dispatch interrupts the earlier work and the shared state reports the later result.
 
@@ -1166,7 +1166,7 @@ export const Notes = defineModule({ middleware: Authenticated, name: "notes", op
 ```tsx
 import { Effect, Layer, Option, Ref } from "effect";
 import { act, createElement } from "react";
-import { makeClient } from "@shivaedev/contract/bind.ts";
+import { makeClient } from "@shivaedev/contract/makeClient.ts";
 import { activityScreenSignal, clientActivity } from "@shivaedev/contract/clientActivity.ts";
 import { moduleHandlers } from "@shivaedev/contract/moduleHandlers.ts";
 import { CurrentViewer } from "@shivaedev/contract/readPolicy.ts";
@@ -1194,11 +1194,11 @@ export const notesScreen = storyKit({
 			effect.pipe(Effect.provideService(CurrentViewer, Option.some({ id: "alice" })), Effect.provideService(Identity, { id: "alice" })),
 		);
 		const handlers = moduleHandlers(NotesModule).pipe(Layer.provide(titles));
-		const connection = makeClient(Notes, {
-			protocol: layerLiveMemoryProtocol(NotesModule, Layer.merge(handlers, signedIn)),
-			url: "memory://notes",
-		});
-		const { api } = connection;
+		const connection = makeClient(
+			{ notes: Notes },
+			{ protocol: layerLiveMemoryProtocol(NotesModule, Layer.merge(handlers, signedIn)), url: "memory://notes" },
+		);
+		const api = connection.api.notes;
 		function NotesView() {
 			const list = useQuery(api.list.query());
 			const add = useAction(api.add);

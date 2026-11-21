@@ -1,7 +1,7 @@
 import { Deferred, Effect, Exit, Schema } from "effect";
 import { collection } from "@shivaedev/changes/keys.ts";
-import { makeClient } from "@shivaedev/contract/bind.ts";
 import { contract } from "@shivaedev/contract/contract.ts";
+import { makeClient } from "@shivaedev/contract/makeClient.ts";
 import { command, query } from "@shivaedev/contract/operation.ts";
 import { layerLiveMemoryProtocol } from "@shivaedev/test-kits/contract/liveMemoryProtocol.ts";
 
@@ -52,10 +52,15 @@ export function pendingCommandClient(ids: readonly number[] = [1]) {
 			}),
 		),
 	);
-	const { api } = makeClient(Items, {
-		protocol: layerLiveMemoryProtocol(Items, handlers),
-		url: "memory://items",
-	});
+	const {
+		api: { items: api },
+	} = makeClient(
+		{ items: Items },
+		{
+			protocol: layerLiveMemoryProtocol(Items, handlers),
+			url: "memory://items",
+		},
+	);
 	const listed = api.list.query();
 	const counted = api.count.query();
 	return {

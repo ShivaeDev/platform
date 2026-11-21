@@ -1,20 +1,26 @@
 import type { ResourceNames } from "#resource/names.ts";
 
-export function resourceKit({ name, pascal, table }: ResourceNames) {
+export function resourceKit({ camel, name, pascal, table }: ResourceNames) {
 	return `import { layerWebSocketConstructor } from "@effect/platform-node/NodeWS";
 import { DateTime, Effect, Queue, Schema, Stream } from "effect";
 import { SqlClient } from "effect/sql";
+import type { ClientOptions } from "@shivaedev/contract/ClientOptions.ts";
+import { makeClient } from "@shivaedev/contract/makeClient.ts";
 import type { QueryUpdate } from "@shivaedev/contract/queryUpdate.ts";
 import { mintUser } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { make${pascal}Client } from "#modules/${name}/client/make.ts";
+import { ${pascal} as Browser${pascal} } from "#generated/modules/${name}/${pascal}.ts";
 import { Item } from "#modules/${name}/model.ts";
 import { AppAuth } from "#server/AppAuth.ts";
 import { startHost } from "#test-support/host.ts";
 import { postgres } from "#test-support/postgres.ts";
 
-type Client = Effect.Success<ReturnType<typeof make${pascal}Client>["client"]>;
+function connect(baseUrl: string, options: ClientOptions) {
+	return makeClient({ ${camel}: Browser${pascal} }, { ...options, url: \`\${baseUrl}/rpc\` }).client;
+}
+
+type Client = Effect.Success<ReturnType<typeof connect>>;
 
 const decodeItems = Schema.decodeUnknownSync(Schema.toType(Schema.Array(Item.json)));
 
@@ -64,7 +70,7 @@ export const app = storyKit({
 					const rows = yield* sql<{ title: string }>\`select title from \${sql("${table}")} order by id desc\`;
 					return rows.map((row) => row.title);
 				}),
-			visitorClient: () => make${pascal}Client(\`\${engine.host.baseUrl}/rpc\`, { webSocketConstructor: layerWebSocketConstructor }).client,
+			visitorClient: () => connect(engine.host.baseUrl, { webSocketConstructor: layerWebSocketConstructor }),
 			watchesList: (name: string) =>
 				Effect.gen(function* () {
 					story.tell(\`\${name} keeps the ${name} list open\`);
@@ -83,10 +89,10 @@ export const app = storyKit({
 export function signedIn(name: string) {
 	return app.trait("accounts", \`\${name} is signed in\`, function* (engine) {
 		const { headers } = yield* mintUser(AppAuth, engine.host, name);
-		const client = yield* make${pascal}Client(\`\${engine.host.baseUrl}/rpc\`, {
+		const client = yield* connect(engine.host.baseUrl, {
 			headers: { cookie: headers.get("cookie") ?? "", origin: engine.host.origin },
 			webSocketConstructor: layerWebSocketConstructor,
-		}).client;
+		});
 		engine.accounts.set(name, client);
 	});
 }

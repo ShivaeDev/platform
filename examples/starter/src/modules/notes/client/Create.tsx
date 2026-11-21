@@ -1,15 +1,16 @@
 import { Option } from "effect";
 import { useId } from "react";
+import type { ContractClient } from "@shivaedev/contract/makeClient.ts";
 import { useField } from "@shivaedev/form/react.ts";
 import { useCreate } from "@shivaedev/react/client/create.ts";
 import { Button } from "#client/ui/button.tsx";
 import { Input } from "#client/ui/input.tsx";
-import type { NotesClient } from "#modules/notes/client/make.ts";
+import type { Notes } from "#generated/modules/notes/Notes.ts";
 
-export function NoteCreate({ client }: { readonly client: NotesClient }) {
+export function NoteCreate({ client }: { readonly client: ContractClient<typeof Notes> }) {
 	const titleId = useId();
 	const errorId = useId();
-	const create = useCreate(client.api.create, { initialValues: { title: "" } });
+	const create = useCreate(client.create, { initialValues: { title: "" } });
 	const title = useField(create.form, "title");
 	const titleError = Boolean(title.error) && (
 		<p className="text-destructive text-sm" id={errorId} role="alert">

@@ -1,9 +1,9 @@
 import { Effect, Schedule, Stream } from "effect";
 import * as Atom from "effect/reactivity/Atom";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
-import { makeClient } from "@shivaedev/contract/bind.ts";
-import type { ClientOptions } from "@shivaedev/contract/clientOptions.ts";
+import type { ClientOptions } from "@shivaedev/contract/ClientOptions.ts";
 import { HostVersion } from "@shivaedev/contract/HostVersion.ts";
+import { makeClient } from "@shivaedev/contract/makeClient.ts";
 import { pageHidden } from "#client/pageHidden.ts";
 
 export function deployUpdate<E = never>(
@@ -13,7 +13,7 @@ export function deployUpdate<E = never>(
 		readonly reload: () => void;
 	},
 ) {
-	const client = makeClient(HostVersion, options);
+	const client = makeClient({ hostVersion: HostVersion }, options);
 	const version = Atom.make<string | undefined>(undefined);
 	const activated = Atom.make<string | undefined>(undefined);
 	const blockers = Atom.make<ReadonlySet<object>>(new Set<object>());
@@ -21,7 +21,7 @@ export function deployUpdate<E = never>(
 		(options.activate ?? Effect.void).pipe(Effect.tap(() => Effect.sync(() => get.set(activated, next)))),
 	);
 	const connection = client.runtime.atom((get) =>
-		client.api.watch.run().pipe(
+		client.api.hostVersion.watch.run().pipe(
 			Stream.retry(Schedule.spaced("500 millis")),
 			Stream.runForEach((next) => Effect.sync(() => get.set(version, next))),
 		),

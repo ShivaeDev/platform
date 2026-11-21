@@ -4,7 +4,7 @@ import { resourceKit } from "#resource/kit.ts";
 import type { ResourceNames } from "#resource/names.ts";
 import { resourceCreate, resourceList } from "#resource/operations.ts";
 import { resourceMigration, resourceRepository } from "#resource/persistence.ts";
-import { resourceClient, resourceRegistration } from "#resource/registration.ts";
+import { resourceRegistration } from "#resource/registration.ts";
 import { resourceStory } from "#resource/story.ts";
 
 export function resourceFiles(names: ResourceNames, migration: string) {
@@ -12,7 +12,6 @@ export function resourceFiles(names: ResourceNames, migration: string) {
 	return {
 		[`${root}/${names.pascal}.ts`]: resourceModule(names),
 		[`${root}/model.ts`]: resourceModel(names),
-		[`${root}/client/make.ts`]: resourceClient(names),
 		[`${root}/server/Create.ts`]: resourceCreate(names),
 		[`${root}/server/List.ts`]: resourceList(names),
 		[`${root}/server/Repository.ts`]: resourceRepository(names),

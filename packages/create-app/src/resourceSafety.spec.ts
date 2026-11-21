@@ -33,17 +33,15 @@ application.it(
 	[
 		generated("my-app", "--no-git", "--minimal"),
 		appAdds("src/modules/bookmarks/Bookmarks.ts", "custom module\n"),
-		appAdds("src/modules/bookmarks/client/make.ts", "custom client\n"),
+		appAdds("src/modules/bookmarks/model.ts", "custom model\n"),
 	],
 	function* ({ addResource, file, exists }) {
 		const answer = yield* addResource("bookmarks");
 
-		expect(answer).toBe(
-			"create-app: Refusing to overwrite existing files:\nsrc/modules/bookmarks/Bookmarks.ts\nsrc/modules/bookmarks/client/make.ts",
-		);
+		expect(answer).toBe("create-app: Refusing to overwrite existing files:\nsrc/modules/bookmarks/Bookmarks.ts\nsrc/modules/bookmarks/model.ts");
 		yield* outcomes([
 			["module", () => file("src/modules/bookmarks/Bookmarks.ts"), "custom module\n"],
-			["client", () => file("src/modules/bookmarks/client/make.ts"), "custom client\n"],
+			["model", () => file("src/modules/bookmarks/model.ts"), "custom model\n"],
 			["operation", () => exists("src/modules/bookmarks/server/Create.ts"), false],
 		]);
 	},
@@ -78,7 +76,6 @@ application.it(
 				() => filesUnder("src/modules/reading-lists"),
 				[
 					"ReadingLists.ts",
-					"client/make.ts",
 					"model.ts",
 					"server/Create.ts",
 					"server/List.ts",
