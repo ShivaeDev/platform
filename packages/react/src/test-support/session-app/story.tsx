@@ -62,6 +62,7 @@ export const sessionApps = storyKit(
 			returnTo: () => Effect.sync(() => new URLSearchParams(opened(state).history.location.search).get("returnTo") ?? "none"),
 			sessionChecks: () => Effect.sync(() => state.checks),
 			shellHeading: () => Effect.sync(() => opened(state).container.querySelector("[data-shell] h1")?.textContent ?? "no heading in the shell"),
+			shellText: () => Effect.sync(() => opened(state).container.querySelector("[data-shell]")?.textContent ?? "no shell"),
 			signIn: () => settled(state, screen, () => driver(state, screen).click({ name: "Sign in", role: "button" })),
 		}),
 	),
@@ -71,6 +72,7 @@ const ROUTINGS = {
 	"its own not-found page": { notFound: NotFound },
 	"no routing options": {},
 	"refused routes hidden behind its not-found page": { hidden: true, notFound: NotFound },
+	"refused routes hidden with no not-found page of its own": { hidden: true },
 	"route errors reported to the app": {},
 } satisfies Record<string, SessionRouting>;
 

@@ -107,6 +107,29 @@ sessionApps.it(
 );
 
 sessionApps.it(
+	"with refused routes hidden, a signed-out visitor to a guarded admin page still goes to sign-in with the page to return to",
+	[openedAt("/admin/reports", undefined, { routing: "refused routes hidden behind its not-found page" })],
+	function* ({ heading, path, returnTo }) {
+		yield* outcomes([
+			["heading", () => heading(), "Sign in"],
+			["path", () => path(), "/sign-in"],
+			["return to", () => returnTo(), "/admin/reports"],
+		]);
+	},
+);
+
+sessionApps.it(
+	"with refused routes hidden and no not-found page of the app's own, a refusal renders the router's default not-found screen",
+	[openedAt("/admin/reports", "alice", { routing: "refused routes hidden with no not-found page of its own" })],
+	function* ({ location, shellText }) {
+		yield* outcomes([
+			["shell", () => shellText(), "Not Found"],
+			["location", () => location(), "/admin/reports"],
+		]);
+	},
+);
+
+sessionApps.it(
 	"a route's error reaches the app's error report once, beside the route's error screen",
 	[openedAt("/broken", undefined, { caught: "a broken screen", routing: "route errors reported to the app" })],
 	function* ({ caughtByApp, heading }) {
