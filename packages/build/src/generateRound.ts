@@ -34,9 +34,9 @@ export const generateRound = Effect.fn("Build.generateRound")(function* (directo
 	);
 });
 
-function registers(file: string, text: string) {
-	const { registrations, refusals } = registrationsOf(file, text);
-	return mayRegister(file) && registrations.length + refusals.length > 0;
+function registers(relative: string, text: string) {
+	const { registrations, refusals } = registrationsOf(relative, text);
+	return mayRegister(relative) && registrations.length + refusals.length > 0;
 }
 
 // A dev server's generator: one run at a time, and a changed file starts a run only when the last run read it or it is a module
@@ -54,7 +54,7 @@ export const watchedGeneration = Effect.fn("Build.watchedGeneration")(function* 
 		if (!(file.startsWith(sources) && (file.endsWith(".ts") || file.endsWith(".tsx"))) || file.startsWith(generated)) {
 			return false;
 		}
-		return Option.exists(yield* readIfPresent(file), (text) => definesModule(file, text) || registers(file, text));
+		return Option.exists(yield* readIfPresent(file), (text) => definesModule(file, text) || registers(path.relative(root, file), text));
 	});
 	const changed = Effect.fn("Build.changed")(function* (file: string) {
 		const real = yield* fs.realPath(file).pipe(Effect.catchReason("PlatformError", "NotFound", () => Effect.succeed(file)));

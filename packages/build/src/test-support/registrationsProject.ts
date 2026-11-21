@@ -43,4 +43,10 @@ export const REGISTRATIONS_PROJECT: Readonly<Record<string, string>> = {
 
 export const served = modules;
 `,
+	"src/server/registration.ts": `${APP_MODULE}
+
+export function serverRegistration(modules: readonly AppModule[]) {
+	return { group: Foundation, handlers: Foundation.handlers, name: "foundation", services: Foundation.layer(modules) } satisfies AppModule;
+}
+`,
 };

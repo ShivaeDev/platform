@@ -16,9 +16,13 @@ export const serverList = Effect.fn("Build.serverList")(function* (project: Proj
 	const fs = yield* FileSystem.FileSystem;
 	const path = yield* Path.Path;
 	const output = path.join(project.generated, "server", "modules.ts");
-	const candidates = sourceFiles(project).filter(mayRegister);
+	const candidates = sourceFiles(project).filter((file) => mayRegister(path.relative(project.root, file)));
 	const read = yield* Effect.forEach(candidates, (file) =>
-		Effect.map(fs.readFileString(file), (text) => ({ file, imports: text.includes(IMPORTED_AS), ...registrationsOf(file, text) })),
+		Effect.map(fs.readFileString(file), (text) => ({
+			file,
+			imports: text.includes(IMPORTED_AS),
+			...registrationsOf(path.relative(project.root, file), text),
+		})),
 	);
 	const found = read.filter((each) => each.registrations.length + each.refusals.length > 0);
 	const inputs = read.filter((each) => each.imports || each.registrations.length + each.refusals.length > 0).map(({ file }) => file);

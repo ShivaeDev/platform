@@ -107,7 +107,8 @@ export function registrationsIn(source: ts.SourceFile): Omit<FileRegistrations, 
 	};
 }
 
-// Test files and kits may build registrations of their own; the server's list must never serve them.
+// Takes the path under the project, as isModuleRegistrationFile does, so no folder the checkout sits in decides. Test files and
+// kits may build registrations of their own, which the server's list must never serve.
 export function mayRegister(file: string): boolean {
 	return !(/[\\/]test-support[\\/]/u.test(file) || /\.(?:test|spec)\.tsx?$/u.test(file));
 }

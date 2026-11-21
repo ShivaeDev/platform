@@ -1,6 +1,6 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { generatedOnce, generator, importsTheServerList, notesProject, registrationsProject } from "#test/generator.ts";
+import { generatedOnce, generator, importsTheServerList, notesProject, projectInsideModulesFolder, registrationsProject } from "#test/generator.ts";
 
 const LIST = "src/generated/server/modules.ts";
 const HEADER =
@@ -30,6 +30,14 @@ generator.it(
 				].join("\n"),
 			],
 		]);
+	},
+);
+
+generator.it(
+	"a checkout inside a folder named modules generates its list, and its foundation's registration function in src/server is no module's registration file",
+	[projectInsideModulesFolder(), registrationsProject()],
+	function* ({ generates }) {
+		expect(yield* generates()).toEqual({ files: { [LIST]: "written" }, problems: [], programBuilt: false, result: "succeeded" });
 	},
 );
 

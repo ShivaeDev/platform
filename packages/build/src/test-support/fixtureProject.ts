@@ -28,8 +28,13 @@ const TSCONFIG = {
 
 export const emptyProject = Effect.fn("BuildStory.emptyProject")(function* () {
 	const fs = yield* FileSystem.FileSystem;
+	return yield* projectIn(yield* fs.realPath(yield* fs.makeTempDirectoryScoped({ prefix: "build-story-" })));
+});
+
+export const projectIn = Effect.fn("BuildStory.projectIn")(function* (root: string) {
+	const fs = yield* FileSystem.FileSystem;
 	const path = yield* Path.Path;
-	const root = yield* fs.realPath(yield* fs.makeTempDirectoryScoped({ prefix: "build-story-" }));
+	yield* fs.makeDirectory(root, { recursive: true });
 	yield* fs.writeFileString(path.join(root, "package.json"), `${JSON.stringify(MANIFEST, undefined, "\t")}\n`);
 	yield* fs.writeFileString(path.join(root, "tsconfig.json"), `${JSON.stringify(TSCONFIG, undefined, "\t")}\n`);
 	for (const [name, manifest] of LINKED) {

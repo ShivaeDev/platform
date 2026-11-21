@@ -47,9 +47,9 @@ export function definesModule(file: string, text: string): boolean {
 	return text.includes("defineModule") && moduleCalls(ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true)).length > 0;
 }
 
-export function registrationsOf(file: string, text: string) {
-	return text.includes("AppModule") || /\b(?:module|group)\s*:/u.test(text) || isModuleRegistrationFile(file)
-		? registrationsIn(ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true))
+export function registrationsOf(relative: string, text: string) {
+	return text.includes("AppModule") || /\b(?:module|group)\s*:/u.test(text) || isModuleRegistrationFile(relative)
+		? registrationsIn(ts.createSourceFile(relative, text, ts.ScriptTarget.Latest, true))
 		: { refusals: [], registrations: [] };
 }
 

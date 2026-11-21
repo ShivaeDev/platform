@@ -8,7 +8,7 @@ import { untilTimer } from "@shivaedev/test-story/server/watchedClock.ts";
 import { generate } from "#generate.ts";
 import type { GenerateFailed, GenerateReport } from "#report.ts";
 import { CREDENTIAL_MODEL } from "#test/credentialModel.ts";
-import { emptyProject, fromSource, generatedOncePerFile, typeCheck, writeFiles } from "#test/fixtureProject.ts";
+import { emptyProject, fromSource, generatedOncePerFile, projectIn, typeCheck, writeFiles } from "#test/fixtureProject.ts";
 import { NOTES_PROJECT } from "#test/notesProject.ts";
 import { PUBLIC_SHAPE_PROJECT } from "#test/publicShapeProject.ts";
 import { REFUSING_PROJECT } from "#test/refusingProject.ts";
@@ -35,7 +35,7 @@ interface GenerateOutcome {
 interface GeneratorEngine {
 	readonly lock: string;
 	otherHold: Option.Option<Scope.Closeable>;
-	readonly root: string;
+	root: string;
 	running: Option.Option<Fiber.Fiber<GenerateOutcome, unknown>>;
 }
 
@@ -209,6 +209,13 @@ export const generator = storyKit({
 
 export function notesProject() {
 	return generator.trait("project", "the project has the notes module", (engine) => writeFiles(engine.root, NOTES_PROJECT));
+}
+
+export function projectInsideModulesFolder() {
+	return generator.trait("project", "the project's checkout sits in a folder named modules", function* (engine) {
+		const path = yield* Path.Path;
+		engine.root = yield* projectIn(path.join(engine.root, "modules", "my-app"));
+	});
 }
 
 export function registrationsProject() {
