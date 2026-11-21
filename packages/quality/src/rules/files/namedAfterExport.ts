@@ -7,6 +7,7 @@ import { routeFiles } from "#inventory/routeFiles.ts";
 import { isToolConfig } from "#isToolConfig.ts";
 import { constantModule } from "#naming/constantModule.ts";
 import { exportFits } from "#naming/exportFits.ts";
+import { isClientModuleFile } from "#naming/isClientModuleFile.ts";
 import { isMigrationFile } from "#naming/isMigrationFile.ts";
 import { isOperationFile } from "#naming/isOperationFile.ts";
 import { mainExport } from "#naming/mainExport.ts";
@@ -102,7 +103,7 @@ function findingsOf(file: SourceFile, layout: PackageLayout): readonly Finding[]
 	const root = moduleRoot(file.path);
 	const admin = root === undefined ? undefined : /^(?:client|server)\/(?<path>admin\/.+)$/u.exec(file.path.slice(root.length + 1))?.groups?.path;
 	const folder =
-		source !== undefined && isOperationFile(source)
+		source !== undefined && (isOperationFile(source) || isClientModuleFile(source))
 			? undefined
 			: repeatedFolder(stem, admin === undefined ? folders : posix.dirname(admin).split("/"));
 	const messages = [
@@ -135,7 +136,7 @@ export const namedAfterExport = defineRule({
 				.flatMap((file) => findingsOf(file, layout));
 		}),
 	description:
-		"A file is named after its main runtime export, ignoring private constants and plain-data constants beside it, with its folders as the prefix, including in test-support; module client/admin and server/admin files may repeat names from above the admin folder. A file named like its own folder, ignoring case and separators, does not repeat it: notes/Notes.ts exports Notes and reading-lists/ReadingLists.ts exports ReadingLists. A file whose one export is a query or command from @shivaedev/contract/operation.ts may repeat words of the folders above it: reading-lists/server/List.ts exports List. defineService declarations use service.ts; TanStack Router configuration owns route filenames; programmatic bundler entries and tool configs keep their role names. A constants module holds only plain data and derived types, in a camelCase file named for words every constant shares (timeouts.ts), limits for max/min/limit constants, or defaults for default constants. Split unrelated constants. A file of several non-constant exports is a camelCase topic file, and a script is kebab-case. Rename the file or the export; nothing renames them for you.",
+		"A file is named after its main runtime export, ignoring private constants and plain-data constants beside it, with its folders as the prefix, including in test-support; module client/admin and server/admin files may repeat names from above the admin folder. A file named like its own folder, ignoring case and separators, does not repeat it: notes/Notes.ts exports Notes and reading-lists/ReadingLists.ts exports ReadingLists. A file whose one export is a query or command from @shivaedev/contract/operation.ts may repeat words of the folders above it: reading-lists/server/List.ts exports List, and so may a file whose one export is a clientModule(...) from @shivaedev/react/client/module.ts: notes/client/module.tsx exports notesModule. defineService declarations use service.ts; TanStack Router configuration owns route filenames; programmatic bundler entries and tool configs keep their role names. A constants module holds only plain data and derived types, in a camelCase file named for words every constant shares (timeouts.ts), limits for max/min/limit constants, or defaults for default constants. Split unrelated constants. A file of several non-constant exports is a camelCase topic file, and a script is kebab-case. Rename the file or the export; nothing renames them for you.",
 	id: "files/named-after-export",
 	options: Schema.toStandardSchemaV1(NamedAfterExportOptions, {
 		parseOptions: { errors: "all", onExcessProperty: "error" },
