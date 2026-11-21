@@ -156,24 +156,35 @@ export const auth = createAuthClient({ plugins: [preferencesPlugin()] });
 
 The client sends its `Intl.DateTimeFormat` timezone and locale to the auth mount in the `x-platform-account-timezone` and `x-platform-account-locale` headers, whose names `accountPreferenceHeaders` from `@shivaedev/identity/accountPreferenceHeaders.ts` exports. It sends them only where a global `window` exists, as in a browser, a WebView or React Native, so a server-side auth call does not report the server's zone. A successful first sign-in captures those values with metric units. After redirect-based sign-in, the client's first `getSession` captures them. Missing or invalid timezone data leaves preferences uncaptured; a later session can capture them. A bundled native shell installs the same plugin (see [Bundled native clients](#bundled-native-clients)). Clients without a Better Auth client can call the `capture` contract with their own defaults.
 
-`AccountClock` from `@shivaedev/identity/server/account-clock/service.ts` is a per-request service. Its Layer requires `Subject`, and its initializer captures that subject's saved timezone. Register that Layer in the host's `requestServices` slot and `accountPreferencesStore` in global `services`. Each new request sees the current saved timezone. Configure `AccountDayStart` from `@shivaedev/identity/server/account-clock/settings.ts` in minutes after local midnight; it defaults to zero and accepts integers from 0 through 1439. The same module exports `LogicalDay`.
+`AccountClock` from `@shivaedev/identity/server/account-clock/service.ts` answers which logical day it is for any account. It is a global service: its Layer requires `AccountPreferencesStore` and `AccountDayStart`, not `Subject`, and each call reads the named account's saved timezone, so a request, a roster of many accounts, an RPC without a subject and a worker job use the same clock. Register its Layer once in global `services`, beside the store it reads. Configure `AccountDayStart` from `@shivaedev/identity/server/account-clock/settings.ts` in minutes after local midnight; it defaults to zero and accepts integers from 0 through 1439. The same module exports `LogicalDay`.
 
 ```ts
-import { DateTime, Effect, Layer } from "effect";
+import { Effect, Layer } from "effect";
+import { Migrator } from "effect/sql";
+import { AccountPreferences } from "@shivaedev/identity/AccountPreferences.ts";
 import { AccountClock } from "@shivaedev/identity/server/account-clock/service.ts";
 import { AccountDayStart } from "@shivaedev/identity/server/account-clock/settings.ts";
+import { accountPreferencesStore } from "@shivaedev/identity/server/account-preferences/store.ts";
+import { accountPreferencesMigration } from "@shivaedev/identity/server/accountPreferencesMigration.ts";
+import { Subject } from "@shivaedev/identity/subject.ts";
+import type { AppModule } from "@shivaedev/server/AppModule.ts";
 
-export const requestServices = AccountClock.layer.pipe(Layer.provide(Layer.succeed(AccountDayStart, 240)), Layer.orDie);
+export const preferencesModule = {
+	migrations: { loader: Migrator.fromRecord({ "0005_account_preferences": accountPreferencesMigration }) },
+	module: AccountPreferences,
+	services: AccountClock.layer.pipe(Layer.provide(Layer.succeed(AccountDayStart, 240)), Layer.provideMerge(accountPreferencesStore)),
+} satisfies AppModule;
+
 const today = Effect.gen(function* () {
 	const clock = yield* AccountClock;
-	const day = yield* clock.logicalDay(yield* DateTime.now);
-	return yield* clock.dayRange(day);
+	const account = (yield* Subject).id;
+	return yield* clock.dayRange(account, yield* clock.logicalDay(account));
 });
 ```
 
-Pass `requestServices` beside `services` and `handlers` to `appHost`, or put it on the feature's `AppModule`. The example chooses defects for clock initialization failures; handlers use the registered clock without rebuilding its Layer.
+The registration provides the store to the clock and to the module's operations at once. A self read passes `(yield* Subject).id`, a read that already takes its owner passes that id, and a roster asks once per account. Each call that cannot read the account's preferences fails with `AuthUnavailable`, in the call's own error channel.
 
-`logicalDay(instant)` returns an ISO calendar date; omitting the instant uses Effect's current clock. `dayRange(day)` returns UTC `DateTime` values `{ start, end }`, with an inclusive start and exclusive end. Endpoints are constructed separately in local calendar time: a 04:00 New York day spanning spring DST lasts 23 hours, and one spanning autumn DST lasts 25 hours. The exact boundary belongs to the new logical day. Applications use `timestamp >= start && timestamp < end` when grouping records. Day starts within a DST gap use Effect's compatible disambiguation (later in a gap, earlier in an overlap).
+`logicalDay(account, instant)` returns the account's ISO calendar date; omitting the instant uses Effect's current clock. An account without saved preferences reads `UTC`. `dayRange(account, day)` returns UTC `DateTime` values `{ start, end }`, with an inclusive start and exclusive end. Endpoints are constructed separately in local calendar time: a 04:00 New York day spanning spring DST lasts 23 hours, and one spanning autumn DST lasts 25 hours. The exact boundary belongs to the new logical day. Applications use `timestamp >= start && timestamp < end` when grouping records. Day starts within a DST gap use Effect's compatible disambiguation (later in a gap, earlier in an overlap).
 
 ### Once per application: contracts and session policy
 
