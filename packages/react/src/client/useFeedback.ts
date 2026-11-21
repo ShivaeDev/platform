@@ -37,7 +37,7 @@ export function useFeedback<R, E>(runtime: Atom.AtomRuntime<R, E> | undefined) {
 				const error = Cause.findErrorOption(cause);
 				if (Option.isNone(error)) {
 					if (Cause.hasDies(cause) && !choices.silent) {
-						track(host?.(unexpectedFailure(cause)));
+						track(host?.report(unexpectedFailure(cause)));
 					}
 					return nothing;
 				}
@@ -45,7 +45,7 @@ export function useFeedback<R, E>(runtime: Atom.AtomRuntime<R, E> | undefined) {
 				if (decision._tag === "notice" && runtime) {
 					track(publishNotice(store, runtime, decision.descriptor, "rejection"));
 				} else if (decision._tag === "unexpected") {
-					track(host?.(unexpectedFailure(cause)));
+					track(host?.report(unexpectedFailure(cause)));
 				}
 				return decision;
 			},
