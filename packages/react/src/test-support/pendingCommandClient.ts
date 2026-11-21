@@ -1,9 +1,11 @@
 import { Deferred, Effect, Exit, Schema } from "effect";
 import { collection } from "@shivaedev/changes/keys.ts";
+import { activityScreenSignal, clientActivity } from "@shivaedev/contract/clientActivity.ts";
 import { contract } from "@shivaedev/contract/contract.ts";
 import { makeClient } from "@shivaedev/contract/makeClient.ts";
 import { command, query } from "@shivaedev/contract/operation.ts";
 import { layerLiveMemoryProtocol } from "@shivaedev/test-kits/contract/liveMemoryProtocol.ts";
+import { settledBeside } from "#test/settledBeside.ts";
 
 export class ToggleRejected extends Schema.TaggedError<ToggleRejected>()("ToggleRejected", { reason: Schema.String }) {}
 const items = collection("items", Schema.Number);
@@ -32,12 +34,14 @@ export function pendingCommandClient(ids: readonly number[] = [1]) {
 		return Deferred.await(held.gate).pipe(Effect.ensuring(Deferred.done(held.served, Exit.void)));
 	}
 	let written = false;
+	let accepted = 0;
 	function toggle({ id }: typeof Row.Type) {
 		const held = commandFor(id);
 		return Deferred.await(held.gate).pipe(
 			Effect.tap(() =>
 				Effect.sync(() => {
 					written = true;
+					accepted += 1;
 				}),
 			),
 			Effect.ensuring(Deferred.done(held.finished, Exit.void)),
@@ -52,18 +56,22 @@ export function pendingCommandClient(ids: readonly number[] = [1]) {
 			}),
 		),
 	);
-	const {
-		api: { items: api },
-	} = makeClient(
+	const connection = makeClient(
 		{ items: Items },
 		{
 			protocol: layerLiveMemoryProtocol(Items, handlers),
 			url: "memory://items",
 		},
 	);
+	const api = connection.api.items;
+	const settled = settledBeside(() => ({
+		awaitingReruns: Deferred.isDoneUnsafe(list.served) && Deferred.isDoneUnsafe(count.served) ? 0 : accepted,
+		commands: 0,
+	}));
 	const listed = api.list.query();
 	const counted = api.count.query();
 	return {
+		activity: activityScreenSignal(clientActivity(connection), settled),
 		command: api.toggle,
 		commands: commandFor,
 		count: counted,

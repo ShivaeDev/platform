@@ -1,6 +1,6 @@
 import { Deferred, Effect, type Layer } from "effect";
 import { StrictMode } from "react";
-import { clientActivity } from "@shivaedev/contract/clientActivity.ts";
+import { activityScreenSignal, clientActivity } from "@shivaedev/contract/clientActivity.ts";
 import type { QueryStorageProvider } from "@shivaedev/contract/QueryStorage.ts";
 import type { Rendered } from "@shivaedev/test-story/client/adapters/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
@@ -91,13 +91,13 @@ function verbs(state: State, screen: Screen) {
 		renameFinishes: () =>
 			Effect.suspend(() => {
 				const { client, container } = opened(state);
+				function unanswered() {
+					return container.querySelector("[data-command]")?.getAttribute("data-command") !== "Success";
+				}
+				const reflected = settleScreen(container, unanswered, screen.tell, activityScreenSignal(clientActivity(client.client)));
 				return screen
 					.act("the server finishes the rename", () => Effect.runPromise(Deferred.succeed(client.held.rename, undefined)))
-					.pipe(
-						Effect.andThen(
-							settleScreen(container, () => container.querySelector("[data-command]")?.getAttribute("data-command") !== "Success", screen.tell),
-						),
-					);
+					.pipe(Effect.andThen(reflected));
 			}),
 		showCount: () => click("Show count"),
 		signal: () => Effect.sync(() => opened(state).container.querySelector('[role="status"]')?.textContent ?? "no signal"),

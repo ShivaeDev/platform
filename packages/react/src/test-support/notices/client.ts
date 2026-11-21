@@ -4,6 +4,7 @@ import { makeClient } from "@shivaedev/contract/makeClient.ts";
 import { Conflict } from "@shivaedev/errors/taxonomy.ts";
 import { layerLiveMemoryProtocol } from "@shivaedev/test-kits/contract/liveMemoryProtocol.ts";
 import { Api, Rejected, type Removed, TitleRejected } from "#test/notices/Api.ts";
+import { settledBeside } from "#test/settledBeside.ts";
 
 export type HeldKind = "remove" | "restore" | "save";
 
@@ -128,6 +129,10 @@ export function noticeClient(options: { readonly holdReads?: boolean } = {}) {
 		),
 	);
 	const connection = makeClient({ api: Api }, { protocol: layerLiveMemoryProtocol(Api, handlers), url: "memory://notices" });
+	const settled = settledBeside(() => ({
+		awaitingReruns: reads.some((read) => !Deferred.isDoneUnsafe(read)) ? undefined : 0,
+		commands: [...held.values()].filter(({ arrived, finished }) => Deferred.isDoneUnsafe(arrived) && !Deferred.isDoneUnsafe(finished)).length,
+	}));
 	return {
 		activity: clientActivity(connection),
 		api: connection.api.api,
@@ -138,6 +143,7 @@ export function noticeClient(options: { readonly holdReads?: boolean } = {}) {
 		reads,
 		released,
 		runtime: connection.Client.runtime,
+		settled,
 	};
 }
 export type NoticeClient = ReturnType<typeof noticeClient>;
