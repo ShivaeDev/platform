@@ -43,11 +43,14 @@ origins.it(
 	},
 );
 
-for (const path of ["/rpc", "/api/auth/get-session"]) {
-	origins.it(`a declared sibling gets a credentialed preflight at ${path}`, traits, function* ({ preflight }) {
+for (const [path, allowHeaders] of [
+	["/rpc", "Authorization,Content-Type"],
+	["/api/auth/get-session", "Authorization,Content-Type,x-platform-account-locale,x-platform-account-timezone"],
+] as const) {
+	origins.it(`a declared sibling gets a credentialed preflight at ${path} allowing ${allowHeaders}`, traits, function* ({ preflight }) {
 		const answer = yield* preflight(path, SIBLING_ORIGIN);
 
-		expect(answer).toMatchObject({ allowHeaders: "Authorization,Content-Type", allowOrigin: SIBLING_ORIGIN, credentials: "allowed", status: 204 });
+		expect(answer).toMatchObject({ allowHeaders, allowOrigin: SIBLING_ORIGIN, credentials: "allowed", status: 204 });
 	});
 }
 

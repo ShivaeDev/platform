@@ -98,17 +98,36 @@ or {
 		register_diagnostic(span=$match, message=$message)
 	},
 	or {
-		JsIdentifierExpression(name=$name) as $match where {
+		or {
+			JsIdentifierExpression(name=$name) as $match,
+			JsShorthandPropertyObjectMember(name=$name) as $match,
+			JsExportNamedShorthandSpecifier(name=$name) as $match,
+			JsExportNamedSpecifier(local_name=$name) as $match
+		} where {
 			$name <: r"^(?:fetch|localStorage|sessionStorage|indexedDB|WebSocket|EventSource|Worker|SharedWorker)$",
 			! $program <: contains JsIdentifierBinding() as $binding where { $binding <: $name }
 		},
-		`$global.$name` as $match where {
+		or {
+			JsStaticMemberExpression(object=$global, member=$member) as $match where {
+				$member <: r"^(?:fetch|localStorage|sessionStorage|indexedDB|WebSocket|EventSource|Worker|SharedWorker)$"
+			},
+			JsComputedMemberExpression(object=$global, member=$member) as $match where {
+				$member <: JsStringLiteralExpression(),
+				$member <: r"^.(?:fetch|localStorage|sessionStorage|indexedDB|WebSocket|EventSource|Worker|SharedWorker).$"
+			},
+			JsVariableDeclarator(id=JsObjectBindingPattern(properties=$properties), initializer=JsInitializerClause(expression=$global)) as $match where {
+				$properties <: some or {
+					JsObjectBindingPatternShorthandProperty(identifier=$member),
+					JsObjectBindingPatternProperty(member=$member)
+				} where { $member <: r"^(?:fetch|localStorage|sessionStorage|indexedDB|WebSocket|EventSource|Worker|SharedWorker)$" }
+			}
+		} where {
 			$global <: or {
 				`globalThis`,
 				`window`,
 				`self`
 			},
-			$name <: r"^(?:fetch|localStorage|sessionStorage|indexedDB|WebSocket|EventSource|Worker|SharedWorker)$"
+			! $program <: contains JsIdentifierBinding() as $binding where { $binding <: $global }
 		}
 	} where {
 		! $filename <: r"(?:^|.*[/\\])(?:adapters|test-support)[/\\].*|.*\.(?:test|spec)\.[cm]?[jt]sx?$",

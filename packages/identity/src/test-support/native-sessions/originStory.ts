@@ -16,7 +16,7 @@ interface State {
 export const origins = storyKit({
 	after: {
 		*configured(state) {
-			state.host = yield* startHost(state.nativeOrigins, state.trustedProxy, state.siblingOrigins);
+			state.host = yield* startHost(state.nativeOrigins, { siblingOrigins: state.siblingOrigins, trustedProxy: state.trustedProxy });
 		},
 	},
 	around: withIdentityDatabase,
