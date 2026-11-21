@@ -6,8 +6,7 @@ import { clientConnection } from "#adapters/clientConnection.ts";
 import { querySignals, shareQuerySignals } from "#querySignals.ts";
 import { wrapAtom } from "#wrapAtom.ts";
 
-type ActivityTracker = ReturnType<typeof makeActivity>;
-export const clientActivities = new WeakMap<object, ActivityTracker>();
+export type ActivityTracker = ReturnType<typeof makeActivity>;
 
 export function makeActivity(factory: Atom.RuntimeFactory) {
 	const { activity, change, excuse, hold, rendered, setConnection } = activityState();

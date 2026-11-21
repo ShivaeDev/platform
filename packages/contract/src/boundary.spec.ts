@@ -24,6 +24,14 @@ for (const [operation, rejection] of [
 	});
 }
 
+boundaryStory.it(
+	"a command a client made from the contract runs over HTTP counts as on the screen when its reply arrives",
+	[],
+	function* ({ saveSignals }) {
+		expect(yield* saveSignals()).toEqual(["sent", "accepted", "reflected"]);
+	},
+);
+
 for (const failure of ["unexpected", "defect"] as const) {
 	boundaryStory.it(`the group boundary maps a wrapped stream's late ${failure} failure after delivering its first note`, [], function* ({ follow }) {
 		expect(yield* follow(failure)).toEqual({ ending: "failed with internal server error: Notes unavailable", notes: ["first note"] });

@@ -7,6 +7,7 @@ import { rpcBoundaryHandlers } from "@shivaedev/errors/rpcBoundaryHandlers.ts";
 import { Conflict, InternalServerError, NotFound } from "@shivaedev/errors/taxonomy.ts";
 import { appHost } from "@shivaedev/server/appHost.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { CommandSignal, type CommandState } from "#commandSignal.ts";
 import { contract } from "#contract.ts";
 import { makeClient } from "#makeClient.ts";
 import { command, query, stream } from "#operation.ts";
@@ -101,6 +102,12 @@ export const boundaryStory = storyKit({
 				return answered(AtomRegistry.getResult(registry, made.runtime.atom(boundary.read.run({ outcome: result }))), (value) => value);
 			}
 			return answered(AtomRegistry.getResult(registry, made.runtime.atom(boundary.save.run({ outcome: result }))), (value) => value);
+		},
+		saveSignals: () => {
+			story.tell("a client made from the contract over HTTP saves a note and records the states its command reports");
+			const states: CommandState[] = [];
+			const save = made.api.boundary.save.run({ outcome: "success" }).pipe(Effect.provideService(CommandSignal, (state) => states.push(state)));
+			return Effect.as(AtomRegistry.getResult(registry, made.runtime.atom(save)), states);
 		},
 		subscribeOverHttp: () => {
 			story.tell("the HTTP client subscribes to changes to its note query");
