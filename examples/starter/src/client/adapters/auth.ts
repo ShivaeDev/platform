@@ -25,7 +25,7 @@ export const deviceStorage = Layer.merge(browserSessionMemory, browserQueryStora
 export function makeAuth(options: {
 	readonly baseUrl: string;
 	readonly fetchOptions?: NonNullable<Parameters<typeof createAuthClient>[0]>["fetchOptions"];
-	readonly runtime?: SessionRuntime;
+	readonly runtime?: SessionRuntime | undefined;
 }) {
 	const client = createAuthClient({ "baseURL": options.baseUrl, ...("fetchOptions" in options ? { fetchOptions: options.fetchOptions } : {}) });
 	const session = authSession(
