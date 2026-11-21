@@ -251,17 +251,17 @@ A call is found when its `clientModule` is imported by name, renamed or not, or 
 | `Schema.Json`, `Schema.JsonObject`, `Schema.JsonArray`               | `Schema.Json`, `Schema.JsonObject`, `Schema.Array(Schema.Json)`                                                                 |
 | an instance of an exported Schema class                              | that class, imported from its module                                                                                            |
 | a branded type, such as a branded string, number or template literal | the one exported schema whose `Type` is that type, imported from its module                                                     |
-| records keyed by a branded type                                      | `Schema.Record` over that schema                                                                                                |
+| records keyed by a branded string                                    | `Schema.Record` over that schema, checked with `Schema.isPropertyNames`                                                         |
 
 Effect RPC encodes with `Schema.toCodecJson`, so a `Date` travels as an ISO string and arrives as a `Date`, a `bigint` travels as a string, and `NaN` and the infinities travel as strings. Each of these arrives equal to what `run` returned and of the same class. One value does not: `-0` arrives as `0`, because JSON has no `-0`.
 
-A branded type maps to the schema it came from: the generator looks through the exported schemas of every file the module imports, directly or through others, and imports the one whose `Type` is exactly the type `run` returns, such as `export const ItemId = Schema.Number.pipe(Schema.brand("ItemId"))`, from the module that declares it. No fitting schema, or more than one, is refused with the brand's name.
+A branded type maps to the schema it came from: the generator looks through the exported schemas of every file the module imports, directly or through others, and imports the one whose `Type` is exactly the type `run` returns, such as `export const ItemId = Schema.Number.pipe(Schema.brand("ItemId"))`, from the module that declares it. No fitting schema, or more than one, is refused with the brand's name. A record keyed by a branded string carries `Schema.isPropertyNames` with the brand's schema, because `Schema.Record` alone drops a key its key schema rejects; with the check, such a key fails the encoding.
 
 A class instance and a same-shaped interface are told apart by declaration: a helper typed to return an interface with the fields of a Schema class is written as a struct, and an instance of the class as the class.
 
 An optional property is written with `?` under `exactOptionalPropertyTypes`, such as `flag?: boolean` or `reviewedAt?: Date | null`, and an absent key is the only way to leave it out.
 
-Anything else is refused, such as a `Map`, a class that is not a Schema class or not exported, a function, `any`, `unknown`, `string | number` or `string | bigint` (a NaN or infinite number and a bigint travel as strings), an enum, a branded type with no exported schema or more than one, a type that contains itself other than Effect's JSON types, a tuple with optional or rest elements, a record whose keys are neither `string` nor a branded type, a `Partial` record (its values may be `undefined`, which the plain record's may not), `null | undefined` (the wire would turn one into the other), a property typed `T | undefined`, or an optional property typed `T | undefined`:
+Anything else is refused, such as a `Map`, a class that is not a Schema class or not exported, a function, `any`, `unknown`, `string | number` or `string | bigint` (a NaN or infinite number and a bigint travel as strings), an enum, a branded type with no exported schema or more than one, a type that contains itself other than Effect's JSON types, a tuple with optional or rest elements, a record whose keys are neither `string` nor a branded string, such as one keyed by a branded number, a `Partial` record (its values may be `undefined`, which the plain record's may not), `null | undefined` (the wire would turn one into the other), a property typed `T | undefined`, or an optional property typed `T | undefined`:
 
 ```text
 refused.returnsMap: run returns Map<string, number> at success, which has no exact wire form; return a plain object, an array or a string-keyed record
@@ -297,5 +297,5 @@ A run that builds a program takes the machine-wide [heavy lock](https://github.c
 
 - The plugin and the global setup take Vite's and Vitest's root as the project folder, the one that holds `tsconfig.json`.
 - It reads types through TypeScript 6's API, while this repository type-checks with TypeScript 7; a disagreement between the two shows as a compile error on the module.
-- An invalid `Date`, a NaN or infinite number inside a `Schema.Json` value and a value that fails its brand's checks cannot be encoded, so the caller gets `InternalServerError`.
+- An invalid `Date`, a NaN or infinite number inside a `Schema.Json` value and a value or a record key that fails its brand's checks cannot be encoded, so the caller gets `InternalServerError`.
 - A module file must lie under `src`, define exactly one module and export it as a const.

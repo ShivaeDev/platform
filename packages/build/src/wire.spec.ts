@@ -213,12 +213,16 @@ const REFUSALS = {
 		'refused.returnsBrand: run returns NoteId at success, which has no exact wire form; export one schema for the brand NoteId, built with Schema.brand("NoteId"), from a module the operation imports',
 	returnsEnum:
 		"refused.returnsEnum: run returns Level at success.level, which has no exact wire form; return string or number literals instead of an enum",
+	returnsHandBranded:
+		"refused.returnsHandBranded: run returns UserId at success, which has no exact wire form; return the unbranded type, or build the brand with Schema.brand and export its schema from a module the operation imports",
 	returnsLooseOptional:
 		"refused.returnsLooseOptional: run returns string | undefined at success.summary, which has no exact wire form; drop undefined from the optional property summary, so an absent key is the only way to leave it out",
 	returnsMap:
 		"refused.returnsMap: run returns Map<string, number> at success, which has no exact wire form; return a plain object, an array or a string-keyed record",
 	returnsNullOrUndefined:
 		"refused.returnsNullOrUndefined: run returns null | undefined at success, which has no exact wire form; return either null or undefined, since the wire carries both as one",
+	returnsNumberBrandKeys:
+		"refused.returnsNumberBrandKeys: run returns Record<NoteId, string> at success, which has no exact wire form; key the record by string or a string brand, or return an array of entries, since JSON keys are strings and the wire cannot check them against a brand that is not a string",
 	returnsNumberKeys:
 		"refused.returnsNumberKeys: run returns Record<number, string> at success, which has no exact wire form; use string keys, or keys of a branded type",
 	returnsPartialRecord:

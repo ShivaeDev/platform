@@ -7,7 +7,7 @@ import { catalogProject, generatedOnce, generator } from "#test/generator.ts";
 const CATALOG = "src/generated/modules/catalog/catalog.ts";
 
 generator.it(
-	"a branded id and a branded template literal travel as the schemas the catalog exports for them, a record keyed by a brand as a record over that schema, Effect's JSON types as its JSON schemas and string or number with boolean as a union",
+	"a branded id and a branded template literal travel as the schemas the catalog exports for them, a record keyed by a string brand as a record over that schema that checks every key, Effect's JSON types as its JSON schemas and string or number with boolean as a union",
 	[catalogProject(), generatedOnce()],
 	function* ({ generatedFile }) {
 		const text = yield* generatedFile(CATALOG);
@@ -15,11 +15,15 @@ generator.it(
 			["item", () => Effect.succeed(successOf(text, "item")), "ItemId"],
 			["code", () => Effect.succeed(successOf(text, "code")), "ItemCode"],
 			[
-				"the brands' import",
+				"the brands' import from the file that declares them, though item's id is imported through a renaming re-export",
 				() => Effect.succeed(text.split("\n").find((line) => line.includes("Item"))),
 				'import { ItemCode, ItemId } from "#modules/catalog/model.ts";',
 			],
-			["prices", () => Effect.succeed(successOf(text, "prices")), "Schema.Record(ItemId, Schema.mutableKey(Schema.Number))"],
+			[
+				"prices",
+				() => Effect.succeed(successOf(text, "prices")),
+				"Schema.Record(ItemCode, Schema.mutableKey(Schema.Number)).check(Schema.isPropertyNames(ItemCode))",
+			],
 			["document", () => Effect.succeed(successOf(text, "document")), "Schema.Json"],
 			["settings", () => Effect.succeed(successOf(text, "settings")), "Schema.JsonObject"],
 			["history", () => Effect.succeed(successOf(text, "history")), "Schema.Array(Schema.Json)"],
@@ -48,13 +52,13 @@ generator.it(
 const DOCUMENT = { blocks: [{ level: 2, text: "ü\u0000\n" }, null, true, -1.5], empty: {}, title: "Plan" };
 
 generator.it(
-	"each catalog value arrives through the generated wire equal to what run returned, while a code outside its template and a NaN or infinity inside JSON cannot be encoded",
+	"each catalog value arrives through the generated wire equal to what run returned, while a code outside its template, a price keyed outside it and a NaN or infinity inside JSON cannot be encoded",
 	[catalogProject(), generatedOnce()],
 	function* ({ receives }) {
 		const sent = [
 			["an item id", "item", 7],
 			["an item code", "code", "item-a b"],
-			["prices keyed by item id", "prices", { 1: 2.5, 2: Number.POSITIVE_INFINITY }],
+			["prices keyed by item code", "prices", { "item-": Number.POSITIVE_INFINITY, "item-a": 2.5 }],
 			["no prices", "prices", {}],
 			["a JSON document", "document", DOCUMENT],
 			["a JSON string", "document", "Plan"],
@@ -70,6 +74,7 @@ generator.it(
 			received[label] = yield* receives(operation, value, "catalog");
 		}
 		received["a code outside its template"] = yield* receives("code", "other", "catalog");
+		received["a price keyed outside the code's template"] = yield* receives("prices", { "item-a": 1, other: 2 }, "catalog");
 		received["a NaN inside JSON"] = yield* receives("document", { count: Number.NaN }, "catalog");
 		received["an infinity inside JSON"] = yield* receives("history", [Number.POSITIVE_INFINITY], "catalog");
 
@@ -77,6 +82,7 @@ generator.it(
 			...Object.fromEntries(sent.map(([label, , value]) => [label, value])),
 			"a code outside its template": "cannot be encoded",
 			"a NaN inside JSON": "cannot be encoded",
+			"a price keyed outside the code's template": "cannot be encoded",
 			"an infinity inside JSON": "cannot be encoded",
 		});
 	},

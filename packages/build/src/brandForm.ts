@@ -7,13 +7,17 @@ export function isBranded(type: ts.Type): type is ts.IntersectionType {
 	return type.isIntersection() && type.types.some((member) => !(member.flags & ts.TypeFlags.Object));
 }
 
-function brandName(reading: TypeReading, type: ts.IntersectionType): string {
+export function isStringBrand(type: ts.IntersectionType): boolean {
+	return type.types.some((member) => member.flags & ts.TypeFlags.StringLike);
+}
+
+function brandName(reading: TypeReading, type: ts.IntersectionType): string | undefined {
 	const keys = type.types
 		.filter((member) => member.getSymbol()?.name === "Brand" && declaredIn(member, "Brand"))
 		.flatMap((member) => typeArguments(reading.checker, member))
 		.flatMap((key) => (key.isUnion() ? key.types : [key]))
 		.flatMap((key) => (key.isStringLiteral() ? [key.value] : []));
-	return keys.length === 0 ? reading.checker.typeToString(type) : [...new Set(keys)].sort(byText).join(" & ");
+	return keys.length === 0 ? undefined : [...new Set(keys)].sort(byText).join(" & ");
 }
 
 // A brand travels as the one schema the application exports for it, which checks the brand again when the browser decodes it.
@@ -24,11 +28,19 @@ export function brandForm(reading: TypeReading, type: ts.IntersectionType, path:
 		return { declared: only, form: "exported" };
 	}
 	const name = brandName(reading, type);
+	if (only !== undefined) {
+		const listed = schemas.map((schema) => `${schema.className} in ${schema.file}`).join(" and ");
+		return reading.refuse(
+			type,
+			path,
+			`export one schema for the brand ${name ?? reading.checker.typeToString(type)}, not ${schemas.length}: ${listed}`,
+		);
+	}
 	return reading.refuse(
 		type,
 		path,
-		only === undefined
-			? `export one schema for the brand ${name}, built with Schema.brand("${name}"), from a module the operation imports`
-			: `export one schema for the brand ${name}, not ${schemas.length}: ${schemas.map((schema) => `${schema.className} in ${schema.file}`).join(" and ")}`,
+		name === undefined
+			? "return the unbranded type, or build the brand with Schema.brand and export its schema from a module the operation imports"
+			: `export one schema for the brand ${name}, built with Schema.brand("${name}"), from a module the operation imports`,
 	);
 }

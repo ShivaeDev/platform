@@ -1,5 +1,5 @@
 import ts from "typescript";
-import { brandForm, isBranded } from "#brandForm.ts";
+import { brandForm, isBranded, isStringBrand } from "#brandForm.ts";
 import type { Field, WireForm } from "#facts.ts";
 import { isReadonlyProperty } from "#isReadonlyProperty.ts";
 import { redactedPath } from "#serverOnlyPath.ts";
@@ -52,6 +52,13 @@ function recordForm(reading: TypeReading, type: ts.Type, path: string, read: Rea
 	}
 	if (index.type.isUnion() && index.type.types.some((member) => member.flags & ts.TypeFlags.Undefined)) {
 		return reading.refuse(type, path, "drop Partial and undefined from the record's values, so an absent key is the only way to leave a value out");
+	}
+	if (isBranded(keyType) && !isStringBrand(keyType)) {
+		return reading.refuse(
+			type,
+			path,
+			"key the record by string or a string brand, or return an array of entries, since JSON keys are strings and the wire cannot check them against a brand that is not a string",
+		);
 	}
 	const keyName = reading.checker.typeToString(keyType);
 	const key: WireForm | undefined = isBranded(keyType)

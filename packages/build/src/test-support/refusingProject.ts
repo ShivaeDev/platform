@@ -3,7 +3,7 @@ export const REFUSING_PROJECT: Readonly<Record<string, string>> = {
 	"src/modules/refused/operations.ts": `import { Effect, Schema } from "effect";
 import { query } from "@shivaedev/contract/operation.ts";
 import { RefusedDraft } from "./payloads.ts";
-import { Busy, Counter, Level, noteId, type Shelf, type Sku, shared, type Tree } from "#modules/refused/shared.ts";
+import { Busy, Counter, Level, shared, type Tree } from "#modules/refused/shared.ts";
 
 class Hidden extends Schema.TaggedError<Hidden>()("Hidden", { message: Schema.String }) {}
 
@@ -76,28 +76,6 @@ export const ReturnsEnum = query("returnsEnum", {
 	*run() {
 		const level: Level = yield* Effect.succeed(Level.High);
 		return { level };
-	},
-});
-
-export const ReturnsBrand = query("returnsBrand", {
-	reads: () => [shared.list],
-	*run() {
-		return noteId(yield* Effect.succeed(1));
-	},
-});
-
-export const ReturnsTwiceBranded = query("returnsTwiceBranded", {
-	reads: () => [shared.list],
-	*run() {
-		return yield* Effect.succeed("a" as Sku);
-	},
-});
-
-export const ReturnsPartialRecord = query("returnsPartialRecord", {
-	reads: () => [shared.list],
-	*run() {
-		const counts: Partial<Record<Shelf, number>> = yield* Effect.succeed({});
-		return counts;
 	},
 });
 
@@ -196,6 +174,7 @@ export const RefusedDraft = Schema.Struct({ body: Schema.String });
 export const SkuCode = Schema.String.pipe(Schema.brand("Sku"));
 `,
 	"src/modules/refused/refused.ts": `import { defineModule } from "@shivaedev/contract/defineModule.ts";
+import { ReturnsBrand, ReturnsHandBranded, ReturnsNumberBrandKeys, ReturnsPartialRecord, ReturnsTwiceBranded } from "#modules/refused/brands.ts";
 import {
 	FailsDataTagged,
 	FailsUnexported,
@@ -203,19 +182,16 @@ import {
 	LocalPayload,
 	RelativePayload,
 	ReturnsAny,
-	ReturnsBrand,
 	ReturnsEnum,
 	ReturnsLooseOptional,
 	ReturnsMap,
 	ReturnsNullOrUndefined,
 	ReturnsNumberKeys,
-	ReturnsPartialRecord,
 	ReturnsPlainClass,
 	ReturnsRecursive,
 	ReturnsStringOrBigint,
 	ReturnsStringOrNumber,
 	ReturnsTupleRest,
-	ReturnsTwiceBranded,
 	ReturnsUndefinedProperty,
 	ReturnsUnexportedClass,
 	ReturnsUnknown,
@@ -234,6 +210,8 @@ export const Refused = defineModule({
 		ReturnsEnum,
 		ReturnsBrand,
 		ReturnsTwiceBranded,
+		ReturnsHandBranded,
+		ReturnsNumberBrandKeys,
 		ReturnsPartialRecord,
 		ReturnsUnknown,
 		ReturnsStringOrBigint,
@@ -269,6 +247,8 @@ export type Sku = typeof Sku.Type;
 
 export const Shelf = Schema.String.pipe(Schema.brand("Shelf"));
 export type Shelf = typeof Shelf.Type;
+
+export type UserId = string & { readonly __brand: "UserId" };
 
 export interface Tree {
 	readonly children: readonly Tree[];

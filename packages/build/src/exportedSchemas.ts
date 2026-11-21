@@ -31,38 +31,35 @@ function moduleGraph(program: ts.Program, file: string): readonly ts.SourceFile[
 	return [...seen];
 }
 
-function schemasIn(checker: ts.TypeChecker, source: ts.SourceFile): readonly (readonly [ts.Symbol, ExportedSchema])[] {
+function exportsOf(checker: ts.TypeChecker, source: ts.SourceFile): readonly (readonly [string, ts.Symbol])[] {
 	const module = checker.getSymbolAtLocation(source);
-	return (module === undefined ? [] : checker.getExportsOfModule(module)).flatMap((exported) => {
-		const symbol = exported.flags & ts.SymbolFlags.Alias ? checker.getAliasedSymbol(exported) : exported;
-		const declaration = symbol.valueDeclaration;
-		if (!(symbol.flags & ts.SymbolFlags.Variable) || declaration === undefined) {
-			return [];
-		}
-		const value = checker.getTypeOfSymbol(symbol);
-		const decoded = value.getProperty("Type");
-		if (decoded === undefined || value.getProperty("ast") === undefined) {
-			return [];
-		}
-		const declared = { className: exported.name, exportName: exported.name, file: declaration.getSourceFile().fileName };
-		return [[symbol, { declared, type: checker.getTypeOfSymbol(decoded) }] as const];
-	});
+	return (module === undefined ? [] : checker.getExportsOfModule(module)).map(
+		(exported) => [exported.name, exported.flags & ts.SymbolFlags.Alias ? checker.getAliasedSymbol(exported) : exported] as const,
+	);
 }
 
-// The exported schemas of the files a module imports, directly or through others, so a branded type maps to the one whose Type
-// it is. A schema re-exported by an index is imported from the file that declares it when the walk reaches that file too.
+// A schema re-exported under another name is imported by the name its declaring file exports it as.
+function schemaOf(checker: ts.TypeChecker, symbol: ts.Symbol): ExportedSchema | undefined {
+	const declaration = symbol.valueDeclaration;
+	const value = declaration === undefined || !(symbol.flags & ts.SymbolFlags.Variable) ? undefined : checker.getTypeOfSymbol(symbol);
+	const decoded = value?.getProperty("Type");
+	if (declaration === undefined || decoded === undefined || value?.getProperty("ast") === undefined) {
+		return undefined;
+	}
+	const file = declaration.getSourceFile();
+	const exportName = exportsOf(checker, file).find(([, exported]) => exported === symbol)?.[0];
+	return exportName === undefined
+		? undefined
+		: { declared: { className: exportName, exportName, file: file.fileName }, type: checker.getTypeOfSymbol(decoded) };
+}
+
 export function exportedSchemas(program: ts.Program, file: string): (type: ts.Type) => readonly DeclaredClass[] {
 	let found: readonly ExportedSchema[] | undefined;
 	function all() {
 		if (found === undefined) {
-			const bySymbol = new Map<ts.Symbol, ExportedSchema>();
-			for (const [symbol, schema] of moduleGraph(program, file).flatMap((source) => schemasIn(program.getTypeChecker(), source))) {
-				const known = bySymbol.get(symbol);
-				if (known === undefined || schema.declared.file === symbol.valueDeclaration?.getSourceFile().fileName) {
-					bySymbol.set(symbol, schema);
-				}
-			}
-			found = [...bySymbol.values()];
+			const checker = program.getTypeChecker();
+			const symbols = new Set(moduleGraph(program, file).flatMap((source) => exportsOf(checker, source).map(([, symbol]) => symbol)));
+			found = [...symbols].flatMap((symbol) => schemaOf(checker, symbol) ?? []);
 		}
 		return found;
 	}

@@ -1,5 +1,5 @@
-// An application's catalog module, whose ids are branded and whose items carry authored JSON: each operation returns a form
-// the wire carries through a schema the module exports or one of Effect's JSON schemas.
+// An application's catalog module, whose ids are branded, one of them imported through a renaming re-export, and whose items
+// carry authored JSON: each operation returns a form the wire carries through a schema the module exports or one of Effect's.
 export const CATALOG_PROJECT: Readonly<Record<string, string>> = {
 	"src/modules/catalog/catalog.ts": `import { defineModule } from "@shivaedev/contract/defineModule.ts";
 import { catalogWire } from "#generated/modules/catalog/catalog.ts";
@@ -11,6 +11,8 @@ export const Catalog = defineModule({
 	wire: catalogWire,
 });
 `,
+	"src/modules/catalog/ids.ts": `export { ItemId as Id } from "#modules/catalog/model.ts";
+`,
 	"src/modules/catalog/model.ts": `import { Schema } from "effect";
 
 export const ItemId = Schema.Number.pipe(Schema.brand("ItemId"));
@@ -21,7 +23,8 @@ export type ItemCode = typeof ItemCode.Type;
 `,
 	"src/modules/catalog/operations.ts": `import { Effect, type Schema } from "effect";
 import { query } from "@shivaedev/contract/operation.ts";
-import type { ItemCode, ItemId } from "#modules/catalog/model.ts";
+import type { Id } from "#modules/catalog/ids.ts";
+import type { ItemCode } from "#modules/catalog/model.ts";
 
 interface Answered {
 	readonly answer: string | boolean;
@@ -31,7 +34,7 @@ interface Answered {
 
 export const Item = query("item", {
 	*run() {
-		const id = yield* Effect.succeed(1 as ItemId);
+		const id = yield* Effect.succeed(1 as Id);
 		return id;
 	},
 });
@@ -45,7 +48,7 @@ export const Code = query("code", {
 
 export const Prices = query("prices", {
 	*run() {
-		const prices: Record<ItemId, number> = yield* Effect.succeed({});
+		const prices: Record<ItemCode, number> = yield* Effect.succeed({});
 		return prices;
 	},
 });

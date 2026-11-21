@@ -47,8 +47,11 @@ export function formCode(form: WireForm, classRef: ExportedRef): Code {
 						),
 						" }",
 					);
-		case "record":
-			return schema("Record", inner(form.key), ", ", form.mutable ? schema("mutableKey", inner(form.value)) : inner(form.value));
+		case "record": {
+			// Schema.Record drops a key its key schema rejects; the check makes the encoder fail on it instead.
+			const record = schema("Record", inner(form.key), ", ", form.mutable ? schema("mutableKey", inner(form.value)) : inner(form.value));
+			return form.key.form === "exported" ? code(record, ".check(", schema("isPropertyNames", inner(form.key)), ")") : record;
+		}
 		case "union":
 			return schema("Union", "[", joined(form.members.map(inner), ", "), "]");
 		case "nullOr":
