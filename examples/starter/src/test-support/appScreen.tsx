@@ -1,22 +1,20 @@
 import { layerWebSocketConstructor } from "@effect/platform-node/NodeWS";
 import { createMemoryHistory } from "@tanstack/react-router";
-import { Effect } from "effect";
+import { Deferred, Effect } from "effect";
+import { act } from "react";
 import type { RootOptions } from "react-dom/client";
-import type { ClientActivity } from "@shivaedev/contract/clientActivity.ts";
-import type { ClientOptions } from "@shivaedev/contract/clientOptions.ts";
+import { type ClientActivity, clientActivity } from "@shivaedev/contract/clientActivity.ts";
+import { type AppConnection, clientApp } from "@shivaedev/react/client/app.ts";
 import { mintUser } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
 import { seedCookies } from "@shivaedev/test-story/server/adapters/seedCookies.ts";
-import { type BrowserReadsOptions, browserReads } from "@shivaedev/test-story/server/browserReads.ts";
+import { browserReads } from "@shivaedev/test-story/server/browserReads.ts";
 import type { AppAccess } from "#AppAccess.ts";
-import { foundation } from "#admin/foundation.ts";
 import { App } from "#client/App.tsx";
-import { makeFoundationClient } from "#client/admin/foundation.ts";
-import { foundationRegistration } from "#client/admin/foundationRegistration.tsx";
-import type { ClientRegistration } from "#client/Module.ts";
-import { clientModules } from "#client/modules.ts";
+import { modules } from "#generated/client/modules.ts";
 import { AppAuth } from "#server/AppAuth.ts";
 import { createCookieHost } from "#test-support/createCookieHost.ts";
 import type { RunningHost } from "#test-support/host.ts";
+import { recordedApp } from "#test-support/recordedApp.ts";
 import { acquireScreen, type ScreenSurface } from "#test-support/screenState.ts";
 
 export const appScreen = Effect.fn("AppStory.appScreen")(function* (options: {
@@ -24,32 +22,24 @@ export const appScreen = Effect.fn("AppStory.appScreen")(function* (options: {
 	readonly route: string;
 	readonly host?: RunningHost;
 	readonly renderOptions?: RootOptions;
-	readonly modules?: {
-		readonly contracts: BrowserReadsOptions["contracts"];
-		readonly connect: (options: Pick<ClientOptions, "url" | "protocol">) => {
-			readonly activities: readonly ClientActivity[];
-			readonly registrations: readonly ClientRegistration[];
-		};
-	};
 }) {
 	const host = yield* createCookieHost(options.host);
 	const account = yield* mintUser(AppAuth, host, options.account.name, { role: options.account.role });
 	yield* seedCookies(account.cookies);
 	const url = `${host.baseUrl}/rpc`;
 	const observed = yield* browserReads({
-		contracts: [foundation.UsersPage.contract, foundation.JobsPage.contract, foundation.SessionsPage.contract, ...(options.modules?.contracts ?? [])],
+		contracts: modules.flatMap((module) => Object.values(module.contracts)),
 		headers: { cookie: account.headers.get("cookie") ?? "", origin: host.origin },
 		url,
 		webSocketConstructor: layerWebSocketConstructor,
 	});
-	const clientOptions = { protocol: observed.protocol, url };
-	const foundationClient = makeFoundationClient(url, clientOptions);
-	const modules = options.modules?.connect(clientOptions);
-	const surface: ScreenSurface = {
-		activities: [...(modules?.activities ?? []), foundationClient.activity],
-		transport: host.fetch.pending,
-		view: undefined,
-	};
+	const activities: ClientActivity[] = [];
+	const surface: ScreenSurface = { activities, transport: host.fetch.pending, view: undefined };
+	const connected = Deferred.makeUnsafe<AppConnection>();
+	const app = recordedApp(clientApp(modules, { protocol: observed.protocol, url }), (made) => {
+		activities.splice(0, activities.length, clientActivity(made));
+		Deferred.doneUnsafe(connected, Effect.succeed(made));
+	});
 	const view = yield* acquireScreen(surface, options.renderOptions);
 	const history = createMemoryHistory({ initialEntries: [options.route] });
 	function pending() {
@@ -60,14 +50,7 @@ export const appScreen = Effect.fn("AppStory.appScreen")(function* (options: {
 			|| view.container.querySelector('[role="status"]') !== null
 		);
 	}
-	yield* Effect.promise(() =>
-		view.render(
-			<App
-				auth={host.auth}
-				connect={(session) => clientModules(session, [foundationRegistration(foundationClient), ...(modules?.registrations ?? [])])}
-				history={history}
-			/>,
-		),
-	);
-	return { ...host, ...surface, account, foundationClient, history, observed, pending, view };
+	yield* Effect.promise(() => view.render(<App app={app} auth={host.auth} history={history} />));
+	const connection = yield* Effect.promise(() => act(() => Effect.runPromise(Deferred.await(connected))));
+	return { ...host, ...surface, account, connection, history, observed, pending, view };
 });

@@ -1,9 +1,10 @@
 import { Deferred, Effect } from "effect";
-import * as AtomRpc from "effect/reactivity/AtomRpc";
-import { bind } from "@shivaedev/contract/bind.ts";
+import { clientActivity } from "@shivaedev/contract/clientActivity.ts";
+import { makeClient } from "@shivaedev/contract/makeClient.ts";
 import { Conflict } from "@shivaedev/errors/taxonomy.ts";
 import { layerLiveMemoryProtocol } from "@shivaedev/test-kits/contract/liveMemoryProtocol.ts";
 import { Api, Rejected, type Removed, TitleRejected } from "#test/notices/Api.ts";
+import { settledBeside } from "#test/settledBeside.ts";
 
 export type HeldKind = "remove" | "restore" | "save";
 
@@ -127,10 +128,22 @@ export function noticeClient(options: { readonly holdReads?: boolean } = {}) {
 			}),
 		),
 	);
-	class Client extends AtomRpc.Service<Client>()("test/NoticeClient", {
-		group: Api,
-		protocol: layerLiveMemoryProtocol(Api, handlers),
-	}) {}
-	return { api: bind(Api, Client), arrivals, calls, hold, nextRead, reads, released, runtime: Client.runtime };
+	const connection = makeClient({ api: Api }, { protocol: layerLiveMemoryProtocol(Api, handlers), url: "memory://notices" });
+	const settled = settledBeside(() => ({
+		awaitingReruns: reads.some((read) => !Deferred.isDoneUnsafe(read)) ? undefined : 0,
+		commands: [...held.values()].filter(({ arrived, finished }) => Deferred.isDoneUnsafe(arrived) && !Deferred.isDoneUnsafe(finished)).length,
+	}));
+	return {
+		activity: clientActivity(connection),
+		api: connection.api.api,
+		arrivals,
+		calls,
+		hold,
+		nextRead,
+		reads,
+		released,
+		runtime: connection.Client.runtime,
+		settled,
+	};
 }
 export type NoticeClient = ReturnType<typeof noticeClient>;

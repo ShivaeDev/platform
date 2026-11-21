@@ -10,8 +10,8 @@ import { Access, Api, handlers, OwnerOnly, owner } from "#test/local-owner/api.t
 
 export const REVALIDATION_INTERVAL = Duration.millis(50);
 
-export const ownerHost = Effect.fnUntraced(function* () {
-	const local = yield* localOwner({ owner, roles: Access, streamRevalidationInterval: REVALIDATION_INTERVAL });
+export const ownerHost = Effect.fnUntraced(function* (nativeOrigins?: readonly string[]) {
+	const local = yield* localOwner({ nativeOrigins, owner, roles: Access, streamRevalidationInterval: REVALIDATION_INTERVAL });
 	const audit: string[] = [];
 	const context = yield* Layer.build(
 		appHost({

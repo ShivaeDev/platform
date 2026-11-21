@@ -1,7 +1,12 @@
 import { useRouter, useRouterState } from "@tanstack/react-router";
 import { Children, type ReactElement, type ReactNode } from "react";
-import { PermissionBoundary } from "@shivaedev/react/adapters/permissionBoundary.ts";
-import { Forbidden } from "@shivaedev/react/Forbidden.ts";
+import { Notices } from "#client/Notices.tsx";
+
+declare module "@tanstack/react-router" {
+	interface StaticDataRouteOption {
+		readonly fullScreen?: boolean;
+	}
+}
 
 export function Shell({ children }: { readonly children: ReactNode }): ReactElement {
 	const pending = useRouterState({ select: (state) => state.isLoading });
@@ -21,15 +26,12 @@ export function Shell({ children }: { readonly children: ReactNode }): ReactElem
 	const navigation = !fullScreen && menu.length > 0 && <nav aria-label="Main">{menu}</nav>;
 	const footerContent = !fullScreen && footer.length > 0 && <footer>{footer}</footer>;
 	return (
-		<PermissionBoundary
-			fallback={<Forbidden backLabel="Back to home" className="space-y-4 p-8 [&_a]:underline [&_h1]:text-3xl [&_h1]:font-semibold" to="/" />}
-			session={router.options.context?.session()}
-		>
+		<Notices>
 			{navigation}
 			{loading}
 			{children}
 			{overlays}
 			{footerContent}
-		</PermissionBoundary>
+		</Notices>
 	);
 }

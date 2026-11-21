@@ -36,7 +36,7 @@ export const connections = storyKit({
 		}
 		function nextQueryAnswers() {
 			return Effect.all(
-				[connection.client.api, connection.summary].map((api) => {
+				[connection.notes, connection.summary].map((api) => {
 					const signals = querySignals(api.get.query());
 					const before = view.registry.get(signals).completed;
 					const live = until(AtomRegistry.toStream(view.registry, api[LiveConnection].status), ({ connection: state }) => state === "live", {
@@ -70,7 +70,7 @@ export const connections = storyKit({
 				),
 			refreshNote: () =>
 				screen.act("refresh the note", async () => {
-					const signals = querySignals(connection.client.api.get.query());
+					const signals = querySignals(connection.notes.get.query());
 					const before = view.registry.get(signals).completed;
 					const button = [...view.container.querySelectorAll("button")].find((candidate) => candidate.textContent?.trim() === "Refresh note");
 					if (button === undefined) {
@@ -114,7 +114,7 @@ export const watching = connections.trait("screen", "two bindings show their liv
 		run(
 			Effect.gen(function* () {
 				yield* Queue.take(connection.events);
-				yield* AtomRegistry.getResult(view.registry, connection.client.api.get.query());
+				yield* AtomRegistry.getResult(view.registry, connection.notes.get.query());
 				yield* AtomRegistry.getResult(view.registry, connection.summary.get.query());
 			}),
 		),

@@ -5,8 +5,8 @@ import * as NetAddress from "effect/net/NetAddress";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { appHost } from "@shivaedev/server/appHost.ts";
-import { makeClient } from "#bind.ts";
 import { liveServerLayer } from "#live-server/layer.ts";
+import { makeClient } from "#makeClient.ts";
 import { moduleHandlers } from "#moduleHandlers.ts";
 import { CurrentViewer } from "#readPolicy.ts";
 import { storyRuntime } from "#test/storyRuntime.ts";
@@ -47,13 +47,16 @@ export const wireEngine = Effect.gen(function* () {
 	if (!NetAddress.isInetAddress(server.address)) {
 		return yield* Effect.die("Expected a TCP listener");
 	}
-	const connection = makeClient(WireNotesClient, {
-		headers: { viewer: VIEWER },
-		runtime: yield* storyRuntime,
-		url: `http://127.0.0.1:${server.address.port}/rpc`,
-		webSocketConstructor: layerWebSocketConstructor,
-	});
-	const api = connection.api;
+	const connection = makeClient(
+		{ wireNotesClient: WireNotesClient },
+		{
+			headers: { viewer: VIEWER },
+			runtime: yield* storyRuntime,
+			url: `http://127.0.0.1:${server.address.port}/rpc`,
+			webSocketConstructor: layerWebSocketConstructor,
+		},
+	);
+	const api = connection.api.wireNotesClient;
 	const registry = yield* Effect.acquireRelease(
 		Effect.sync(() => AtomRegistry.make()),
 		(current) => Effect.sync(() => current.dispose()),

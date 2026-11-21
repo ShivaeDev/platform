@@ -13,9 +13,9 @@ for (const { config, env, limit, name } of [
 	for (const binary of [false, true]) {
 		const encoding = binary ? "binary" : "text";
 		socketBody.it(
-			`an oversized ${encoding} message under ${name} closes with a typed size reason before any handler runs`,
+			`an oversized ${encoding} message under ${name} closes with a typed size reason before any handler runs, and the host warns once with the limit and an unknown size`,
 			[echoRpc, configuration(config), environment(env)],
-			function* ({ handledCalls, openSocket, sendSocketMessage, socketAnswer }) {
+			function* ({ handledCalls, openSocket, recordedWarnings, sendSocketMessage, socketAnswer }) {
 				yield* openSocket();
 				const body = oversizedBatch(limit);
 				yield* sendSocketMessage(binary ? Buffer.from(body) : body);
@@ -27,13 +27,14 @@ for (const { config, env, limit, name } of [
 						expect.objectContaining({ code: 1009, connection: "closed", error: "SocketError", reason: "SocketCloseError" }),
 					],
 					["handled calls", () => handledCalls(), []],
+					["recorded host warnings", () => recordedWarnings(), [refusalWarning(limit, "unknown")]],
 				]);
 			},
 		);
 		socketBody.it(
-			`a ${encoding} message filling ${name} works and the connection accepts another message`,
+			`a ${encoding} message filling ${name} works, the connection accepts another message and the host warns about nothing`,
 			[echoRpc, configuration(config), environment(env)],
-			function* ({ handledCalls, openSocket, sendSocketMessage, socketAnswer }) {
+			function* ({ handledCalls, openSocket, recordedWarnings, sendSocketMessage, socketAnswer }) {
 				yield* openSocket();
 				const accepted = largestAcceptedMessage(limit);
 				yield* sendSocketMessage(binary ? Buffer.from(accepted.body) : accepted.body);
@@ -42,6 +43,7 @@ for (const { config, env, limit, name } of [
 				yield* outcomes([
 					["RPC answer", () => socketAnswer(), expect.objectContaining({ body: expect.stringContaining("accepted"), connection: "open" })],
 					["handled calls", () => handledCalls(), [accepted.text, "another"]],
+					["recorded host warnings", () => recordedWarnings(), []],
 				]);
 			},
 		);
@@ -102,9 +104,9 @@ socketBody.it(
 
 for (const path of ["/rpc", "/rpc?auth=frame"]) {
 	socketBody.it(
-		`a zero limit refuses a nonempty frame at ${path}`,
+		`a zero limit refuses a nonempty frame at ${path}, and the host warns once with the frame's one byte and the route`,
 		[echoRpc, configuration({ maxBodySize: 0 })],
-		function* ({ handledCalls, openSocket, sendSocketMessage, socketAnswer }) {
+		function* ({ handledCalls, openSocket, recordedWarnings, sendSocketMessage, socketAnswer }) {
 			yield* openSocket(path);
 			if (path === "/rpc") {
 				yield* sendSocketMessage("");
@@ -125,6 +127,26 @@ for (const path of ["/rpc", "/rpc?auth=frame"]) {
 				],
 				["handled calls", () => handledCalls(), []],
 			]);
+			expect(yield* recordedWarnings()).toEqual([refusalWarning(0, 1)]);
 		},
 	);
+}
+
+socketBody.it(
+	"the host's refusal warning repeats no part of the refused message",
+	[echoRpc, configuration({ maxBodySize: 128 })],
+	function* ({ openSocket, recordedWarnings, sendSocketMessage, socketAnswer }) {
+		yield* openSocket();
+		yield* sendSocketMessage(message("private note text ".repeat(10)));
+		yield* socketAnswer();
+
+		expect(JSON.stringify(yield* recordedWarnings())).not.toContain("private note text");
+	},
+);
+
+function refusalWarning(limit: number, size: number | "unknown") {
+	return {
+		annotations: { "rpc.maxBodySize": limit, "rpc.messageSize": size, "url.path": "/rpc" },
+		message: `An RPC message of ${size === "unknown" ? "unknown size" : `${size} bytes`} exceeded the ${limit}-byte body limit at /rpc, so the host closed the socket with code 1009. Raise maxBodySize or MAX_BODY_SIZE if the application sends larger messages.`,
+	};
 }

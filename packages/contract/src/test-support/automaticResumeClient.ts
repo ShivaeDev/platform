@@ -1,11 +1,10 @@
 import { Deferred, Effect, Layer, Ref, Stream, SubscriptionRef } from "effect";
 import type * as Atom from "effect/reactivity/Atom";
-import * as AtomRpc from "effect/reactivity/AtomRpc";
-import { RpcTest } from "effect/rpc";
 import { rerunQuery } from "@shivaedev/server/rerunQuery.ts";
-import { bind } from "#bind.ts";
+import { layerMemoryProtocol } from "@shivaedev/test-kits/contract/testing.ts";
 import { changesHandlerLayer } from "#changesHandlerLayer.ts";
 import { compareQueries } from "#compareQueries.ts";
+import { makeClient } from "#makeClient.ts";
 import { querySubscription } from "#querySubscription.ts";
 import { CurrentViewer } from "#readPolicy.ts";
 import type { ResumeSource } from "#resume.ts";
@@ -37,15 +36,11 @@ export function automaticResumeClient(server: Effect.Success<typeof notesServer>
 				),
 	);
 	const handlers = Layer.merge(application, changes.pipe(Layer.provide(application)));
-	class Client extends AtomRpc.Service<Client>()("test/AutomaticResume", {
-		group: Notes,
-		makeEffect: RpcTest.makeClient(Notes, { flatten: true }),
-		protocol: Layer.merge(handlers, server.guard),
-		runtime,
-	}) {}
+	const protocol = layerMemoryProtocol(Notes).pipe(Layer.provide(Layer.merge(handlers, server.guard)));
+	const connection = makeClient({ notes: Notes }, { protocol, runtime, ...(resume === undefined ? {} : { resume }) });
 	return {
 		active,
-		api: bind(Notes, Client, resume === undefined ? {} : { resume }),
+		api: connection.api.notes,
 		disconnect: Effect.gen(function* () {
 			const previous = yield* Ref.getAndSet(ended, yield* Deferred.make<void>());
 			yield* Deferred.succeed(previous, undefined);

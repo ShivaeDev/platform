@@ -5,8 +5,8 @@ import { RpcClient, RpcSerialization } from "effect/rpc";
 import * as Socket from "effect/socket/Socket";
 import { liveHost } from "@shivaedev/test-kits/contract/liveMemoryProtocol.ts";
 import { rpcSocketHost } from "@shivaedev/test-story/server/rpcSocketHost.ts";
-import { makeClient } from "#bind.ts";
 import { clientActivity } from "#clientActivity.ts";
+import { makeClient } from "#makeClient.ts";
 import { SocketClock } from "#SocketClock.ts";
 import { Counter } from "#test/commands/Counter.ts";
 import { syntheticNative, syntheticWindow } from "#test/resumeSources.ts";
@@ -53,17 +53,18 @@ export const commandEngine = Effect.gen(function* () {
 			Layer.provide(Socket.layerWebSocket(host.url.replace(/^http/u, "ws")).pipe(Layer.provide(Socket.layerWebSocketConstructorGlobal))),
 			Layer.provide(RpcSerialization.layerNdjson),
 		),
-		live = true,
 	) {
-		const client = makeClient(Counter, {
-			...(custom ? { protocol } : {}),
-			...(live ? {} : { live: false }),
-			resume: native.source,
-			resumeWindow: browser.window,
-			runtime,
-			url: host.url,
-		});
-		function run<A, E>(effect: Effect.Effect<A, E, Effect.Services<ReturnType<typeof client.api.add.run>>>) {
+		const client = makeClient(
+			{ counter: Counter },
+			{
+				...(custom ? { protocol } : {}),
+				resume: native.source,
+				resumeWindow: browser.window,
+				runtime,
+				url: host.url,
+			},
+		);
+		function run<A, E>(effect: Effect.Effect<A, E, Effect.Services<ReturnType<typeof client.api.counter.add.run>>>) {
 			return AtomRegistry.getResult(registry, client.runtime.atom(effect).pipe(Atom.setIdleTTL(0)));
 		}
 		return { activity: clientActivity(client), client, protocol, run };

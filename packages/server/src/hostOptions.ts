@@ -32,7 +32,6 @@ export type HostCoreOptions<
 		readonly gracefulShutdownTimeout?: Duration.Input;
 	};
 	readonly requestServices?: Layer.Layer<TRequestServices, never, TRequestRequirements>;
-	readonly nativeOrigins?: readonly string[];
 	readonly rpcPath?: HttpRouter.PathInput;
 } & (
 	| { readonly group: RpcGroup.RpcGroup<TRpcs>; readonly handlers: Layer.Layer<THandlers, THandlerError, THandlerRequirements> }

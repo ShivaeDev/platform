@@ -1,5 +1,37 @@
 # Changelog
 
+## 0.39.0 - 2026-11-21
+
+### Added
+
+- The auth declaration names a bundled native client's origins once, in `defineAuth({ nativeOrigins, options })`. From that list the mount installs Better Auth's signed bearer plugin, adds the origins to Better Auth's `trustedOrigins` (a list, a function or the default), returns them on `mounted.sessions.nativeOrigins` for `SessionPolicy`, and the session origin check admits them beside the `origin` policy. Wildcards, patterns, `null` and URLs with paths fail the mount at startup with a config error.
+- `localOwner({ nativeOrigins, owner, roles })` takes the same list for a local-owner host, refuses the same malformed origins at start and puts the list on its `sessions`, so the session origin check, the RPC guard, CORS and the RPC socket upgrade admit it.
+- `SessionPolicy` has an optional `nativeOrigins` field typed by the branded `NativeOrigins` schema from `@shivaedev/identity/server/NativeOrigins.ts`, so only a validated list reaches it.
+- `SessionCredential` from `@shivaedev/identity/client/SessionCredential.ts` is a credential port for clients that keep their own session token, such as a bundled native shell. Like `SessionMemory`, it has `read`, `write` and `clear` Effects that fail with `SessionCredentialUnavailable`; the application supplies one Layer over its shell's secure storage. `sessionCredentialPlugin(layer)` from `@shivaedev/identity/client/adapters/sessionCredentialPlugin.ts` is a Better Auth client plugin that sends the stored credential as `Authorization: Bearer` with `credentials: "omit"`, stores the `set-auth-token` header after sign-in and clears the credential on sign-out or a signed-out session check. An answer changes the stored credential only when its request carried the one stored now, so a session check sent before sign-in that answers after it keeps the new credential. `storedCredential` answers the stored credential for `makeClient`'s `bearerToken`, so the socket sends the current one each time it connects.
+
+### Breaking
+
+- `betterAuthMount`'s `bearerSessions` option is removed. Move its `origins` into the declaration: replace `betterAuthMount(AppAuth, { bearerSessions: { origins } })` with `betterAuthMount({ ...AppAuth, nativeOrigins: origins })`, or name `nativeOrigins` in `defineAuth`. Remove those origins from Better Auth's `trustedOrigins` and from the `trustedOrigins({ allow })` session policy, and spread `mounted.sessions` into `SessionPolicy`.
+- `localRpcGuard(effect, trustedProxy)` from `@shivaedev/identity/server/adapters/local.ts` takes no native origin list; it reads `SessionPolicy.nativeOrigins`. Drop the third argument. `admittedSessions(gate, storage, bearer)` from `@shivaedev/identity/server/better-auth/adapters/admittedSessions.ts` takes a boolean instead of `{ origins }`. The `BearerSessionsOptions` type is removed.
+
+## 0.38.3 - 2026-11-21
+
+### Changed
+
+- Update `@shivaedev/contract` from 0.56.0 to 0.57.0.
+
+## 0.38.2 - 2026-11-21
+
+### Changed
+
+- Update `@shivaedev/contract` from 0.55.0 to 0.56.0.
+
+## 0.38.1 - 2026-11-21
+
+### Changed
+
+- Update `@shivaedev/contract` from 0.54.1 to 0.55.0.
+
 ## 0.38.0 - 2026-11-21
 
 ### Added

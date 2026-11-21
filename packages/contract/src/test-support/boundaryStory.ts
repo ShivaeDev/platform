@@ -1,12 +1,15 @@
 import { Context, Effect, Layer, Schema, Stream } from "effect";
 import { FetchHttpClient, HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
+import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { Rpc, RpcClient, RpcSerialization } from "effect/rpc";
 import { rpcBoundaryHandlers } from "@shivaedev/errors/rpcBoundaryHandlers.ts";
 import { Conflict, InternalServerError, NotFound } from "@shivaedev/errors/taxonomy.ts";
 import { appHost } from "@shivaedev/server/appHost.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { CommandSignal, type CommandState } from "#commandSignal.ts";
 import { contract } from "#contract.ts";
+import { makeClient } from "#makeClient.ts";
 import { command, query, stream } from "#operation.ts";
 import { answered } from "#test/answers.ts";
 
@@ -66,11 +69,16 @@ export const boundaryStory = storyKit({
 			Layer.provide([FetchHttpClient.layer, RpcSerialization.layerNdjson]),
 		);
 		const client = yield* RpcClient.make(Api, { flatten: true }).pipe(Effect.provide(protocol));
-		return { client };
+		const made = makeClient({ boundary: Api }, { protocol });
+		const registry = yield* Effect.acquireRelease(
+			Effect.sync(() => AtomRegistry.make()),
+			(current) => Effect.sync(() => current.dispose()),
+		);
+		return { client, made, registry };
 	},
 	name: "RPC group boundary",
 	stages: [],
-	verbs: ({ client }, story) => ({
+	verbs: ({ client, made, registry }, story) => ({
 		call: (operation: "read" | "save", result: Outcome) => {
 			story.tell(`the HTTP client calls ${operation} with a ${result} outcome`);
 			return operation === "read"
@@ -86,6 +94,20 @@ export const boundaryStory = storyKit({
 				(effect) => answered(effect, () => "completed"),
 				Effect.map((ending) => ({ ending, notes })),
 			);
+		},
+		run: (operation: "read" | "save", result: Outcome) => {
+			story.tell(`a client made from the contract over HTTP runs ${operation} with a ${result} outcome`);
+			const { boundary } = made.api;
+			if (operation === "read") {
+				return answered(AtomRegistry.getResult(registry, made.runtime.atom(boundary.read.run({ outcome: result }))), (value) => value);
+			}
+			return answered(AtomRegistry.getResult(registry, made.runtime.atom(boundary.save.run({ outcome: result }))), (value) => value);
+		},
+		saveSignals: () => {
+			story.tell("a client made from the contract over HTTP saves a note and records the states its command reports");
+			const states: CommandState[] = [];
+			const save = made.api.boundary.save.run({ outcome: "success" }).pipe(Effect.provideService(CommandSignal, (state) => states.push(state)));
+			return Effect.as(AtomRegistry.getResult(registry, made.runtime.atom(save)), states);
 		},
 		subscribeOverHttp: () => {
 			story.tell("the HTTP client subscribes to changes to its note query");

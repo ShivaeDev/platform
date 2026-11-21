@@ -1,7 +1,6 @@
 import { createMemoryHistory } from "@tanstack/react-router";
 import { Effect } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
-import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { act } from "react";
 import { LiveConnection } from "@shivaedev/contract/automaticLive.ts";
 import { authCall } from "@shivaedev/identity/client/adapters/authCall.ts";
@@ -9,24 +8,22 @@ import { browserSessionMemory } from "@shivaedev/identity/client/adapters/browse
 import { rememberSession } from "@shivaedev/identity/client/SessionMemory.ts";
 import { loadQuery } from "@shivaedev/react/adapters/loadQuery.ts";
 import { authAction } from "@shivaedev/react/client/authAction.ts";
+import { SessionApp } from "@shivaedev/react/client/SessionApp.ts";
+import { sessionRouter } from "@shivaedev/react/client/sessionRouter.ts";
 import { RouterProvider } from "@shivaedev/react/RouterProvider.ts";
 import type { Rendered } from "@shivaedev/test-story/client/adapters/react.ts";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 import { App } from "#client/App.tsx";
 import type { AuthActions } from "#client/adapters/auth.ts";
-import { appRouter } from "#client/appRouter.tsx";
 import type { Credentials } from "#client/Credentials.ts";
 import { LoginScreen } from "#client/LoginScreen.tsx";
-import { connectModules } from "#client/Module.ts";
-import { clientModules } from "#client/modules.ts";
 import { Notices } from "#client/Notices.tsx";
-import { SessionApp } from "#client/SessionApp.tsx";
+import { routing } from "#client/routing.tsx";
 import { CodePreview, type CodePreviewLine } from "#modules/notes/client/CodePreview.tsx";
-import { notesRegistration } from "#modules/notes/client/registration.tsx";
 import { notesClient } from "#modules/notes/test-support/client.ts";
 import { LoadedScreen } from "#modules/notes/test-support/LoadedScreen.tsx";
 import { screenAuth } from "#modules/notes/test-support/screenAuth.ts";
-import type { Screen } from "#modules/notes/test-support/screenState.ts";
+import { connectedIn, type Screen, screenApp } from "#modules/notes/test-support/screenState.ts";
 import { settleQuery } from "#modules/notes/test-support/settleQuery.ts";
 import { appAuth } from "#test-support/appAuth.ts";
 import { acquireScreen, screenView } from "#test-support/screenState.ts";
@@ -35,35 +32,31 @@ export const openRoute = Effect.fn("ScreenStory.openRoute")(function* (engine: S
 	engine.client.session.signedIn = signedIn;
 
 	const view = yield* acquireScreen(engine);
+	const { connection, live } = connectedIn(engine, view.registry);
 	if (signedIn) {
 		if (route === "/") {
-			engine.client.api.list.query();
+			live.notes.list.query();
 		} else {
-			engine.client.api.get.query({ id: 1 });
+			live.notes.get.query({ id: 1 });
 		}
-		view.registry.mount(engine.client.api[LiveConnection].connection);
+		view.registry.mount(live.notes[LiveConnection].connection);
 		yield* screenDriver({
 			act,
-			pending: () => view.registry.get(engine.client.api[LiveConnection].status).connection !== "live",
+			pending: () => view.registry.get(live.notes[LiveConnection].status).connection !== "live",
 			root: view.container,
 			tell: () => undefined,
 		}).settle();
 	}
-	const connection = yield* notesRegistration(engine.client).pipe(
-		Effect.map((module) => connectModules([module])),
-		Effect.provideService(AtomRegistry.AtomRegistry, view.registry),
-	);
-	const router = yield* appRouter(connection, screenAuth(), createMemoryHistory({ initialEntries: [route] }), () =>
-		signedIn ? { user: { id: "alice" } } : undefined,
-	).pipe(Effect.provideService(AtomRegistry.AtomRegistry, view.registry));
+	const router = sessionRouter({
+		...routing,
+		auth: screenAuth(),
+		connection,
+		history: createMemoryHistory({ initialEntries: [route] }),
+		registry: view.registry,
+		session: () => (signedIn ? { user: { id: "alice" } } : undefined),
+	});
 	engine.router = router;
-	yield* Effect.promise(() =>
-		view.render(
-			<Notices>
-				<RouterProvider router={router} />
-			</Notices>,
-		),
-	);
+	yield* Effect.promise(() => view.render(<RouterProvider router={router} />));
 	if (signedIn) {
 		yield* settleQuery(engine);
 	}
@@ -118,9 +111,7 @@ export const openApp = Effect.fn("ScreenStory.openApp")(function* (engine: Scree
 			&& (engine.view.registry.get(fixture.auth.actions.submit).waiting || engine.view.registry.get(fixture.auth.actions.signOut).waiting));
 	const view = yield* acquireScreen(engine);
 	const history = createMemoryHistory({ initialEntries: [route] });
-	yield* Effect.promise(() =>
-		view.render(<App auth={fixture.auth} connect={(session) => clientModules(session, [notesRegistration(engine.client)])} history={history} />),
-	);
+	yield* Effect.promise(() => view.render(<App app={screenApp(engine)} auth={fixture.auth} history={history} />));
 	yield* screenDriver({
 		act,
 		pending: () => view.registry.get(fixture.auth.session.atom).waiting,
@@ -138,11 +129,7 @@ function launchApp(engine: Screen, view: Rendered, check: "held" | "failing") {
 	});
 	engine.auth = fixture;
 	engine.pending = () => check === "failing" && view.registry.get(fixture.auth.session.atom).waiting;
-	return Effect.promise(() =>
-		view.render(
-			<App auth={fixture.auth} connect={(session) => clientModules(session, [notesRegistration(engine.client)])} history={createMemoryHistory()} />,
-		),
-	);
+	return Effect.promise(() => view.render(<App app={screenApp(engine)} auth={fixture.auth} history={createMemoryHistory()} />));
 }
 
 export const openReturningApp = Effect.fn("ScreenStory.openReturningApp")(function* (engine: Screen, check: "held" | "failing") {
@@ -174,19 +161,20 @@ export const openNotes = Effect.fn("ScreenStory.openNotes")(function* (engine: S
 					}),
 				);
 	engine.pending = () => signOut !== undefined && view.registry.get(signOut).waiting;
-	engine.client.api.list.query();
-	view.registry.mount(engine.client.api[LiveConnection].connection);
+	const { live } = connectedIn(engine, view.registry);
+	live.notes.list.query();
+	view.registry.mount(live.notes[LiveConnection].connection);
 	yield* screenDriver({
 		act,
-		pending: () => view.registry.get(engine.client.api[LiveConnection].status).connection !== "live",
+		pending: () => view.registry.get(live.notes[LiveConnection].status).connection !== "live",
 		root: view.container,
 		tell: () => undefined,
 	}).settle();
-	const loaded = yield* Effect.promise(() => loadQuery(view.registry, engine.client.api.list.query(), { abortController: new AbortController() }));
+	const loaded = yield* Effect.promise(() => loadQuery(view.registry, live.notes.list.query(), { abortController: new AbortController() }));
 	yield* Effect.promise(() =>
 		view.render(
 			<Notices>
-				<LoadedScreen client={engine.client} loaded={loaded} signOut={signOut} />
+				<LoadedScreen client={live.notes} loaded={loaded} signOut={signOut} />
 			</Notices>,
 		),
 	);
@@ -207,16 +195,7 @@ export const openSession = Effect.fn("ScreenStory.openSession")(function* (engin
 	const view = yield* acquireScreen(engine);
 	async function switchSession(id: string) {
 		engine.client = connection({ id });
-		await view.render(
-			<SessionApp
-				auth={auth}
-				connect={(session) => clientModules(session, [notesRegistration(connection(session))])}
-				history={history}
-				recheck={recheck}
-				session={{ user: { id } }}
-				userId={id}
-			/>,
-		);
+		await view.render(<SessionApp {...routing} app={screenApp(engine)} auth={auth} history={history} recheck={recheck} session={{ user: { id } }} />);
 	}
 	engine.switchSession = switchSession;
 	yield* Effect.promise(() => switchSession("alice"));

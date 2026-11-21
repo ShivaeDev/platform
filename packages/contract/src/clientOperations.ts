@@ -1,18 +1,16 @@
-import { Effect, Option, Schema, Stream } from "effect";
+import { Effect, Schema, Stream } from "effect";
 import * as Atom from "effect/reactivity/Atom";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import type * as AtomRpc from "effect/reactivity/AtomRpc";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import type { Rpc } from "effect/rpc";
-import type { Key } from "@shivaedev/changes/keys.ts";
 import type { BindingOwner } from "#adapters/bindingOwner.ts";
-import { clientId } from "#adapters/clientId.ts";
 import { streamingClient, unaryClient } from "#adapters/erasedClient.ts";
 import type { automaticLive } from "#automaticLive.ts";
-import type { QueryOptions, RunOptions } from "#bind.ts";
-import { clientActivities } from "#clientActivities.ts";
-import { clientInvalidationKeys, clientReadKeys } from "#clientKeys.ts";
+import type { QueryOptions, RunOptions } from "#Bound.ts";
+import type { ActivityTracker } from "#clientActivities.ts";
 import { commandPayload } from "#commandPayload.ts";
+import { COMMAND_REFLECTED } from "#commandReflected.ts";
 import { CommandSignal, untilReflected } from "#commandSignal.ts";
 import { waitForConnection } from "#connectionReadiness.ts";
 import { LIVE_SYNC } from "#liveSyncRpc.ts";
@@ -30,6 +28,7 @@ function runSubject(options: unknown): string | undefined {
 
 export function clientOperations(
 	service: AtomRpc.AtomRpcClient<unknown, string, Rpc.Any>,
+	activity: ActivityTracker,
 	automatic: ReturnType<typeof automaticLive>,
 	owner?: BindingOwner,
 ) {
@@ -39,10 +38,21 @@ export function clientOperations(
 		return owner === undefined ? effect : Effect.suspend(() => AtomRegistry.getResult(owner.registry, ordinaryClient.runtime.atom(effect)));
 	}
 
-	const observed = Effect.map(
-		CommandSignal,
-		(signal): CommandObserver => ({ pending: () => clientActivities.get(ordinaryClient)?.reflecting() ?? (() => undefined), signal }),
-	);
+	const observed = Effect.gen(function* () {
+		const signal = yield* CommandSignal;
+		const reactivity = yield* Reactivity.Reactivity;
+		return yield* Effect.sync(
+			(): CommandObserver => ({
+				pending: activity.reflecting,
+				signal: (state) => {
+					signal(state);
+					if (state === "reflected") {
+						reactivity.invalidateUnsafe([COMMAND_REFLECTED]);
+					}
+				},
+			}),
+		);
+	});
 
 	function boundQuery(tag: string, query: QueryShape) {
 		const cached = new WeakMap<ReturnType<typeof ordinaryClient.query>, ReturnType<typeof ordinaryClient.query>>();
@@ -59,24 +69,18 @@ export function clientOperations(
 				if (existing !== undefined) {
 					return existing;
 				}
-				const local = query.reads(payload, Option.none());
-				const keys = [...local, { _tag: "List" as const, collection: `@query/${tag}/${clientId()}` }];
-				const dependencies =
-					local.length === 0 ? [...keys, { _tag: "List" as const, collection: `@query/${tag.slice(0, tag.lastIndexOf("."))}` }] : keys;
 				const reference = { payload, query: query.name };
 				const result = automatic.query(
 					atom,
 					reference,
-					keys,
 					Schema.toEquivalence(query.success),
 					Schema.decodeUnknownSync(Schema.toType(query.success)),
-					(source) => ordinaryClient.runtime.factory.withReactivity(clientReadKeys(dependencies, owner?.context))(source),
 					headers,
 				);
 				function warm(get: Atom.AtomContext): boolean {
 					return get.once(warmQueries).has(tracked);
 				}
-				const watched = clientActivities.get(ordinaryClient)?.watch(result, warm) ?? result;
+				const watched = activity.watch(result, warm);
 				const tracked = retainQuery(ordinaryClient.runtime, watched, stored(payload, inputSubject(headers)));
 				cached.set(atom, tracked);
 				return tracked;
@@ -88,13 +92,6 @@ export function clientOperations(
 	}
 
 	function boundCommand(tag: string, command: CommandShape) {
-		function invalidate(payload: unknown, result: unknown) {
-			const keys: readonly Key[] = [
-				...command.invalidates(payload, result),
-				{ _tag: "List", collection: `@query/${tag.slice(0, tag.lastIndexOf("."))}` },
-			];
-			return Reactivity.invalidate(clientInvalidationKeys(keys, owner?.context));
-		}
 		function send(observer: CommandObserver, payload: unknown, subject: string | undefined) {
 			return ordinaryClient.use((client) =>
 				commandPayload(command, payload).pipe(
@@ -102,7 +99,6 @@ export function clientOperations(
 					Effect.flatMap((validated) =>
 						reflectCommand(client, observer, (options) => client(tag, validated, { headers: withSubject(options?.headers, subject) })),
 					),
-					Effect.tap((result) => invalidate(payload, result)),
 				),
 			);
 		}

@@ -28,7 +28,25 @@ for (const origin of [NATIVE_ORIGIN, ANDROID_ORIGIN]) {
 	);
 }
 
+for (const origin of [NATIVE_ORIGIN, ANDROID_ORIGIN]) {
+	origins.it(`${origin}, declared once in the auth declaration, signs in and receives the signed credential header`, [], function* ({ signIn }) {
+		expect(yield* signIn(origin)).toEqual({ answer: "signed in", credential: "issued" });
+	});
+
+	origins.it(`${origin}, declared once in the auth declaration, opens the RPC socket`, [], function* ({ socketUpgrade }) {
+		expect(yield* socketUpgrade(origin)).toBe("opened");
+	});
+}
+
 for (const origin of ["https://attacker.example", "capacitor://localhost.evil", "https://localhost:444", "null"]) {
+	origins.it(`${origin} is refused at sign-in and receives no credential`, [], function* ({ signIn }) {
+		expect(yield* signIn(origin)).toEqual({ answer: "forbidden: Local same-origin requests only", credential: "none" });
+	});
+
+	origins.it(`${origin} is refused at the RPC socket upgrade`, [], function* ({ socketUpgrade }) {
+		expect(yield* socketUpgrade(origin)).toBe("refused with HTTP 403");
+	});
+
 	origins.it(`${origin} is refused over RPC before any session lookup and gets no CORS`, [], function* ({ lastCors, profile, sessionLookups }) {
 		const answer = yield* profile({ bearer: true, origin });
 
@@ -128,6 +146,14 @@ origins.it(
 		]);
 	},
 );
+
+origins.it("without native origins a bundled origin's sign-in receives no credential header", [withoutNativeOrigins], function* ({ signIn }) {
+	expect(yield* signIn(NATIVE_ORIGIN)).toEqual({ answer: "signed in", credential: "none" });
+});
+
+origins.it("without native origins the host refuses a bundled origin's RPC socket", [withoutNativeOrigins], function* ({ socketUpgrade }) {
+	expect(yield* socketUpgrade(NATIVE_ORIGIN)).toBe("refused with HTTP 403");
+});
 
 origins.it("without native origins the host grants no native preflight", [withoutNativeOrigins], function* ({ preflight }) {
 	const answer = yield* preflight("/rpc", NATIVE_ORIGIN);

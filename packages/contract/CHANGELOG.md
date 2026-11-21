@@ -1,5 +1,69 @@
 # Changelog
 
+## 0.58.0 - 2026-11-21
+
+### Breaking
+
+- a browser contract built by `clientContract` carries no keys. Its definition names the module's queries and commands as lists, `queries: ["list"]` and `commands: ["create"]`, in place of records holding each query's `reads` and `readsCollections` and each command's `invalidates`, so `ClientContractDefinition`'s `queries` and `commands` are now `readonly string[]`. The host serves the module, whose keys decide which open queries a change reaches, and the browser's queries refresh from the server's announcements. An application runs `pnpm generate` and deletes nothing by hand; only a hand-written `clientContract` call changes, by replacing each record with the list of its operation names.
+- `makeClient`'s `bearerToken` is an `Effect.Effect<string | null>` that the client runs each time its socket connects, instead of a fixed string. A credential Effect that answers `null` connects without the authentication frame. Replace `bearerToken: token` with `bearerToken: Effect.succeed(token)`; a native shell passes `Effect.provide(storedCredential, credentialLayer)` from identity.
+- `authenticateSocket` from `@shivaedev/contract/socketAuthentication.ts` takes the socket URL, the credential Effect and optional upgrade headers and opens the WebSocket itself, adding `auth=frame` when a credential is sent. Replace `Layer.effect(Socket.Socket, authenticateSocket(token)).pipe(Layer.provide(Socket.layerWebSocket(framedUrl)))` with `Layer.effect(Socket.Socket, authenticateSocket(url, Effect.succeed(token)))` on the URL without `auth=frame`, provided with a `WebSocketConstructor`.
+
+## 0.57.0 - 2026-11-21
+
+### Fixed
+
+- a defined module's query that reads collections under a `permissionReadPolicy` opens its live subscription through `moduleHandlers`; the handler's copy of the policy now keeps the permission mark that collection reads require, where the subscription was refused with `QueryReadDenied`.
+
+### Breaking
+
+- `bind` is removed: `makeClient` is the one way to a bound API, so every bound command waits until its change is on the screen. A bound command over an `AtomRpc.Service` the caller built counted as reflected when its reply arrived. Make the client from the contract and pass the transport as `protocol`; a story kit passes the in-memory protocol from `@shivaedev/test-kits` with the same handlers. A kit that read
+
+  ```ts
+  class Client extends AtomRpc.Service<Client>()("test/NotesClient", {
+  	group: Notes,
+  	makeEffect: RpcTest.makeClient(Notes, { flatten: true }),
+  	protocol: handlers,
+  }) {}
+  const api = bind(Notes, Client, { registry });
+  ```
+
+  becomes
+
+  ```ts
+  const client = makeClient({ notes: Notes }, { protocol: layerMemoryProtocol(Notes).pipe(Layer.provide(handlers)), registry });
+  const api = client.api.notes;
+  ```
+
+  with `layerMemoryProtocol` from `@shivaedev/test-kits/contract/testing.ts`, or `layerLiveMemoryProtocol(Notes, handlers)` from `@shivaedev/test-kits/contract/liveMemoryProtocol.ts` when the kit lets the live host serve `$changes`. `Client.runtime` becomes `client.runtime`, and an Effect that required `Client` requires `ContractsClient` from `@shivaedev/contract/makeClient.ts`. An HTTP-only client passes `RpcClient.layerProtocolHttp(...)` as `protocol`; its commands count as on the screen at their reply, because no live stream follows them.
+- The binding types `Bound`, `BoundQuery`, `BoundCommand`, `BoundStream`, `Failure`, `RunFailure`, `QueryOptions` and `RunOptions` move from `@shivaedev/contract/bind.ts` to `@shivaedev/contract/Bound.ts`: `import type { Bound } from "@shivaedev/contract/bind.ts"` becomes `import type { Bound } from "@shivaedev/contract/Bound.ts"`.
+- the internals a client is built from take the client's activity and reflection directly. `automaticLive` and `clientOperations` take the client's activity as their second argument, `rpcClient` returns `{ activity, connection }`, and the `clientActivities` WeakMap is removed in favour of the exported `ActivityTracker` type. `followReflection` returns an Effect that dies without a reflection, as `reflectCommand` now does through the new `reflectionScope`. `queryDelivery().stream` requires its follower and `AutomaticQueryOptions.clientStatuses` requires its statuses. Direct callers make the client with `makeClient` instead.
+
+## 0.56.0 - 2026-11-21
+
+### Added
+
+- `ContractClient<typeof Notes>` from `@shivaedev/contract/makeClient.ts` is the type of a contract's binding in any client whose record holds it, so a screen names its client by the contract alone.
+- `makeClient`'s `url` is optional and defaults to `/rpc` beside the page's location, so browser code passes no URL and, without a session-scoped contract, no options.
+
+### Breaking
+
+- `makeClient` takes a record of contracts and moves to `@shivaedev/contract/makeClient.ts`. It makes one RPC client over every contract in the record, with one activity and one runtime, and binds each contract under its key in `api`. Wrap the contract in a record and read its binding by that key: `makeClient(Notes, options).api.list` becomes `makeClient({ notes: Notes }, options).api.notes.list`, and the import `import { makeClient } from "@shivaedev/contract/bind.ts"` becomes `import { makeClient } from "@shivaedev/contract/makeClient.ts"`.
+- the `group` option of `makeClient` is removed, and so is binding further contracts with `bind` on a made client's `Client`. Put every contract in one record instead: `const client = makeClient(Users, { group: Admin.group, url }); const jobs = bind(Jobs, client.Client)` becomes `const client = makeClient({ jobs: Jobs, users: Users }, { url })`, with `client.api.users` and `client.api.jobs`. `bind` stays for an `AtomRpc.Service` the application builds itself.
+- `MadeClient` from `@shivaedev/contract/clientOptions.ts` moves to `@shivaedev/contract/makeClient.ts` and takes the record's type, `MadeClient<typeof contracts>`; `ClientService` is removed. `ClientOptions` moves from `@shivaedev/contract/clientOptions.ts` to `@shivaedev/contract/ClientOptions.ts` and gains `registry`, so `Omit<ClientOptions, "url"> & { readonly registry?: AtomRegistry.AtomRegistry }` becomes `ClientOptions`.
+
+## 0.55.0 - 2026-11-21
+
+### Changed
+
+- a live subscription that failed with something other than `QueryReadDenied` reopens after the client's next reflected command, whatever keys that command declares. It used to reopen on a matching key the browser invalidated.
+
+### Breaking
+
+- every bound query subscribes to the server's changes. `bind` and `makeClient` no longer take `live`; delete `live: false` from their options. Over HTTP a bound operation's `run` still makes one call, and a bound query's atom fails with `WebSocketRequired`, so serve a screen's queries over the WebSocket client from `makeClient`.
+- the browser no longer refreshes queries itself. A successful command no longer invalidates its declared keys or its contract's key in the client's `Reactivity`, so an atom that listened there for a command's keys no longer reruns; read the query through a binding, whose subscription receives the server's new result.
+- `@shivaedev/contract/clientKeys.ts` is removed, with `clientReadKeys`, `clientInvalidationKeys` and `KeyContext`. Delete their imports; the server's keys from `@shivaedev/changes/keys.ts` are the only keys.
+- `queryProgress()` from `@shivaedev/contract/queryProgress.ts`, the `keyContext` and `retryKeys` options of `live()` from `@shivaedev/contract/live.ts`, and the positional `enabled` parameter of `automaticLive` from `@shivaedev/contract/automaticLive.ts` are removed. Delete them where you pass or call them; nothing replaces them.
+
 ## 0.54.1 - 2026-11-21
 
 ### Fixed

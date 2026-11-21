@@ -1,7 +1,6 @@
 import { Context, Effect, Layer, Option, Ref } from "effect";
 import { RpcTest } from "effect/rpc";
 import { TestClock } from "effect/testing";
-import { moduleHandlers } from "@shivaedev/contract/moduleHandlers.ts";
 import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import type { UserSessionShape } from "@shivaedev/identity/server/session.ts";
 import { JobsClientFactory } from "@shivaedev/jobs/server/JobsClientFactory.ts";
@@ -30,7 +29,7 @@ const emptyJobsEngine = Effect.gen(function* () {
 			Layer.provide(Layer.succeed(JobsClientFactory, testing.clientFactory)),
 		),
 	);
-	const registration = registerAdmin(adminRegistry(JobsPage), { jobs: moduleHandlers(JobsModule) });
+	const registration = registerAdmin(adminRegistry(JobsPage), { jobs: JobsModule });
 	const jobs = Context.get(context, Jobs);
 	const session = yield* Ref.make<Option.Option<UserSessionShape>>(Option.none());
 	const auth = Layer.succeed(SessionPolicy, { origin: () => true, provider: { get: () => Ref.get(session) }, roles: Access });

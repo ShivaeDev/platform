@@ -33,17 +33,15 @@ application.it(
 	[
 		generated("my-app", "--no-git", "--minimal"),
 		appAdds("src/modules/bookmarks/Bookmarks.ts", "custom module\n"),
-		appAdds("src/modules/bookmarks/client/make.ts", "custom client\n"),
+		appAdds("src/modules/bookmarks/model.ts", "custom model\n"),
 	],
 	function* ({ addResource, file, exists }) {
 		const answer = yield* addResource("bookmarks");
 
-		expect(answer).toBe(
-			"create-app: Refusing to overwrite existing files:\nsrc/modules/bookmarks/Bookmarks.ts\nsrc/modules/bookmarks/client/make.ts",
-		);
+		expect(answer).toBe("create-app: Refusing to overwrite existing files:\nsrc/modules/bookmarks/Bookmarks.ts\nsrc/modules/bookmarks/model.ts");
 		yield* outcomes([
 			["module", () => file("src/modules/bookmarks/Bookmarks.ts"), "custom module\n"],
-			["client", () => file("src/modules/bookmarks/client/make.ts"), "custom client\n"],
+			["model", () => file("src/modules/bookmarks/model.ts"), "custom model\n"],
 			["operation", () => exists("src/modules/bookmarks/server/Create.ts"), false],
 		]);
 	},
@@ -64,11 +62,12 @@ application.it(
 );
 
 application.it(
-	"a resource in a minimal app is a defined module with one file per operation under server/, registered as module: by its folder alone, and leaves the Quality config and the server's module composition unchanged",
+	"a resource in a minimal app is a defined module with one file per operation under server/ and a client module, registered by its folder alone, and leaves the Quality config and both module compositions unchanged",
 	[generated("my-app", "--no-git", "--minimal")],
 	function* ({ addResource, file, fileMentions, filesUnder }) {
 		const qualityConfig = yield* file("quality.config.ts");
 		const composition = yield* file("src/server/modules.ts");
+		const clientComposition = yield* file("src/client/modules.ts");
 
 		yield* addResource("reading-lists");
 
@@ -78,7 +77,9 @@ application.it(
 				() => filesUnder("src/modules/reading-lists"),
 				[
 					"ReadingLists.ts",
-					"client/make.ts",
+					"client/Screen.tsx",
+					"client/list.dom.spec.ts",
+					"client/module.tsx",
 					"model.ts",
 					"server/Create.ts",
 					"server/List.ts",
@@ -87,6 +88,7 @@ application.it(
 					"server/migrations/0006_reading_lists.ts",
 					"server/registration.ts",
 					"test-support/application.ts",
+					"test-support/screen.ts",
 				],
 			],
 			["registration names the module", () => fileMentions("src/modules/reading-lists/server/registration.ts", "module: ReadingLists,"), true],
@@ -96,7 +98,13 @@ application.it(
 				true,
 			],
 			["Quality config", () => file("quality.config.ts"), qualityConfig],
+			[
+				"client module exported",
+				() => fileMentions("src/modules/reading-lists/client/module.tsx", "export const readingListsModule = clientModule("),
+				true,
+			],
 			["server module composition", () => file("src/server/modules.ts"), composition],
+			["client module composition", () => file("src/client/modules.ts"), clientComposition],
 		]);
 	},
 );

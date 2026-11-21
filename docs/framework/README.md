@@ -37,7 +37,7 @@ Schema describes data once. Each operation is written once as its payload and `r
 
 ## Secure invite codes and tokens
 
-Use Effect's native `effect/crypto` services for secure values: `SecureRandom` for random bytes, integers, UUIDv4/v7 and ULIDs, and `Digest` for hashes. The application host supplies the Node implementations from `NodeCrypto.layer`, including during preflight and deferred application construction; Platform adds no wrapper. Use Effect's `Random` for non-secure choices such as sampling or jitter.
+Use Effect's native `effect/crypto` services for secure values: `SecureRandom` for random bytes, integers, UUIDv4/v7 and ULIDs, `Digest` for hashes, and `Mac` for HMAC signatures and constant-time comparison. `Mac.verify` checks a received HMAC tag in constant time; `Mac.timingSafeEqual` compares other secrets of a known length. The application host supplies the Node implementations from `NodeCrypto.layer`, including during preflight and deferred application construction; Platform adds no wrapper. Use Effect's `Random` for non-secure choices such as sampling or jitter.
 
 ```ts
 import { Effect } from "effect";
@@ -75,7 +75,7 @@ The [starter quickstart](./quickstart.md) begins with a runnable app, and its no
 - [Request context](./request-context.md) explains errors, session resolution, Origin policy and redacted request diagnostics; [BetterAuth at the RPC boundary](./auth-boundary.md) shows the session provider.
 - [Commit-bound changes](./changes.md) connects transaction bindings to application change vocabularies.
 - [Live updates](./live-updates.md) explains default query refresh and explicit hint-stream coordination.
-- [Editing](./editing.md) connects queries, forms and saves; [client lifetime](./client-lifecycle.md) ties the client registry to the authenticated session.
+- [Editing](./editing.md) connects queries, forms and saves; [client lifetime](./client-lifecycle.md) ties the client registry, stored results, warm queries and the remembered session to the authenticated session.
 - [Entity settings](./entity-settings.md) composes typed defaults, an authorized query, an upsert and a live form editor without a new helper.
 - [Cancellation](./cancellation.md) covers interruption from React actions to Node requests.
 - [Migrations](./migrations.md) and [PostgreSQL migrations](./postgres-migrations.md) explain authoring and runner ownership.

@@ -49,12 +49,9 @@ export type Failure =
 
 export interface OperationFacts {
 	readonly failures: readonly Failure[];
-	readonly invalidates: readonly CodePart[] | undefined;
 	readonly kind: "command" | "query";
 	readonly name: string;
 	readonly payload: readonly CodePart[] | undefined;
-	readonly reads: readonly CodePart[] | undefined;
-	readonly readsCollections: readonly CodePart[] | undefined;
 	readonly success: WireForm | undefined;
 }
 

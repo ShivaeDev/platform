@@ -27,17 +27,13 @@ export const deniedStory = storyKit({
 			engine.access.allowed = true;
 			engine.access.rejection = "denied";
 		},
-		announce: (id: number) => {
-			story.tell(`a change hint arrives for record ${id}`);
-			return Effect.flatMap(engine.clientReactivity, (reactivity) => reactivity.invalidate(invalidationKeys([records.item(id)])));
-		},
 		announceOnServer: () => {
 			story.tell("the server announces a change to the open record");
 			return engine.reactivity.invalidate(invalidationKeys([records.item(1)]));
 		},
 		attempts: () => Effect.sync(() => engine.attempts.length),
 		commandSucceeds: () => {
-			story.tell("the client's command declaring the record's key succeeds");
+			story.tell("a command from the client succeeds and is reflected");
 			return engine.run(engine.api.touch.run());
 		},
 		minutePasses: () => {

@@ -3,8 +3,8 @@ import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { BadRequest } from "@shivaedev/errors/taxonomy.ts";
 import { layerLiveMemoryProtocol } from "@shivaedev/test-kits/contract/liveMemoryProtocol.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { makeClient } from "#bind.ts";
 import { contract } from "#contract.ts";
+import { makeClient } from "#makeClient.ts";
 import { command } from "#operation.ts";
 
 const Range = Schema.Struct({ end: Schema.NumberFromString, start: Schema.NumberFromString }).check(
@@ -38,7 +38,7 @@ export const encodeStory = storyKit({
 			"ranges.save": receive,
 			"ranges.saveEncoded": receive,
 		});
-		const connection = makeClient(Api, { protocol: layerLiveMemoryProtocol(Api, handlers), url: "memory://ranges" });
+		const connection = makeClient({ api: Api }, { protocol: layerLiveMemoryProtocol(Api, handlers), url: "memory://ranges" });
 		const registry = yield* Effect.acquireRelease(
 			Effect.sync(() => AtomRegistry.make()),
 			(value) => Effect.sync(() => value.dispose()),
@@ -52,7 +52,7 @@ export const encodeStory = storyKit({
 		received: () => [...received],
 		save: (operation: "save" | "saveEncoded", start: number, end: number) => {
 			story.tell(`save the range ${start} to ${end}`);
-			return AtomRegistry.getResult(registry, connection.runtime.atom(connection.api[operation].run({ end, start }))).pipe(
+			return AtomRegistry.getResult(registry, connection.runtime.atom(connection.api.api[operation].run({ end, start }))).pipe(
 				Effect.catchTag("BadRequest", (error) =>
 					Effect.succeed({ message: error.message, refusal: error instanceof BadRequest ? "BadRequest" : "undecoded" }),
 				),

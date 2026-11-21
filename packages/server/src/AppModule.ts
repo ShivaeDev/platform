@@ -5,7 +5,7 @@ import type { AnyModule } from "@shivaedev/contract/moduleHandlers.ts";
 import type { MigrationOptions } from "#MigrationOptions.ts";
 
 export type ModuleLayer = Layer.Any & Pipeable.Pipeable;
-export type ModuleAdmin = AnyAdminRegistry & { readonly handlers: ModuleLayer };
+export type ModuleAdmin = AnyAdminRegistry & { readonly group: RpcGroup.Any; readonly handlers: ModuleLayer };
 
 interface ModuleParts {
 	readonly admin?: ModuleAdmin;

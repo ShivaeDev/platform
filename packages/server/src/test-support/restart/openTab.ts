@@ -1,7 +1,7 @@
 import { Effect, Stream } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
-import { makeClient } from "@shivaedev/contract/bind.ts";
+import { makeClient } from "@shivaedev/contract/makeClient.ts";
 import { until } from "@shivaedev/test-story/server/until.ts";
 import { RestartNotes } from "#test/restart/Notes.ts";
 
@@ -10,7 +10,9 @@ export const openTab = Effect.fnUntraced(function* (port: number, tab: string) {
 		Effect.sync(() => AtomRegistry.make()),
 		(current) => Effect.sync(() => current.dispose()),
 	);
-	const { api } = makeClient(RestartNotes, { url: `http://127.0.0.1:${port}/rpc?tab=${encodeURIComponent(tab)}` });
+	const {
+		api: { restartNotes: api },
+	} = makeClient({ restartNotes: RestartNotes }, { url: `http://127.0.0.1:${port}/rpc?tab=${encodeURIComponent(tab)}` });
 	const queries = [1, 2].map((id) => api.get.query({ id, tab }));
 	for (const query of queries) {
 		registry.mount(query);

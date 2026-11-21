@@ -1,14 +1,12 @@
-import { Effect, Schema } from "effect";
 import { permission } from "@shivaedev/access/permission.ts";
 import { role } from "@shivaedev/access/role.ts";
 import { roleSet } from "@shivaedev/access/roleSet.ts";
-import { contract } from "@shivaedev/contract/contract.ts";
-import { query } from "@shivaedev/contract/operation.ts";
 import { permissionMiddleware } from "@shivaedev/identity/permission.ts";
+import { ExportReads as ExportReadsClient } from "#generated/test-support/ExportReads.ts";
+import { WorkspaceAdmin as WorkspaceAdminClient } from "#generated/test-support/WorkspaceAdmin.ts";
 import { adminPage } from "#page.ts";
 import { ReadUsers, UsersPermission } from "#permissions.ts";
 import { adminRegistry } from "#registry.ts";
-import { registerAdmin } from "#server/registerAdmin.ts";
 import { Users } from "#test/pages.ts";
 
 export const ReadWorkspaces = permission("workspaces.read");
@@ -16,23 +14,16 @@ class WorkspacesPermission extends permissionMiddleware<WorkspacesPermission>()(
 export const WorkspaceAccess = roleSet(role("workspace-reader", [ReadWorkspaces]), role("auditor", [ReadUsers]), role("viewer", []));
 export type WorkspaceRole = typeof WorkspaceAccess.Role.Type;
 export const Workspaces = adminPage({
-	contract: contract("admin.workspaces", {
-		queries: [query("read", { payload: { id: Schema.String }, readPolicy: () => Effect.succeed(true), reads: () => [], success: Schema.String })],
-	}),
+	contract: WorkspaceAdminClient,
 	id: "workspaces",
 	permission: WorkspacesPermission,
 	route: { detail: "/admin/workspaces/$id/", path: "/admin/workspaces", title: "Workspaces" },
 });
 const WorkspaceExports = adminPage({
-	contract: contract("admin.exports", {
-		queries: [query("read", { readPolicy: () => Effect.succeed(true), reads: () => [], success: Schema.String })],
-	}),
+	contract: ExportReadsClient,
 	id: "exports",
 	permission: UsersPermission,
 	route: { path: "/admin/exports", title: "Exports" },
 });
-export const workspaceRegistration = registerAdmin(adminRegistry(Workspaces, Users, WorkspaceExports), {
-	exports: WorkspaceExports.contract.application.toLayer({ "admin.exports.read": () => Effect.succeed("exports") }),
-	users: Users.contract.application.toLayer({ "admin.users.profile": () => Effect.succeed("user profile") }),
-	workspaces: Workspaces.contract.application.toLayer({ "admin.workspaces.read": ({ id }) => Effect.succeed(`Workspace ${id}`) }),
-});
+// Browser-safe: the pages and their contracts, without the modules that serve them.
+export const WorkspacePages = adminRegistry(Workspaces, Users, WorkspaceExports);

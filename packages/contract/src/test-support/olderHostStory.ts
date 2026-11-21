@@ -25,8 +25,8 @@ export const olderHostStory = storyKit({
 			return commandFlights({ activity, flight: engine.flight, run, states: engine.states }, story.tell);
 		}
 		return {
-			add: (amount: number) => flights().complete(`the tab adds ${amount}`, connected(engine).tab.api.add.run({ amount })),
-			beginAdd: (amount: number) => flights().begin(`the tab starts adding ${amount}`, connected(engine).tab.api.add.run({ amount })),
+			add: (amount: number) => flights().complete(`the tab adds ${amount}`, connected(engine).tab.api.counter.add.run({ amount })),
+			beginAdd: (amount: number) => flights().begin(`the tab starts adding ${amount}`, connected(engine).tab.api.counter.add.run({ amount })),
 			finished: () => flights().finished(),
 			hostAnswers: () =>
 				Effect.gen(function* () {

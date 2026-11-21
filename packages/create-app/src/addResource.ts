@@ -33,6 +33,6 @@ export const addResource = Effect.fn("CreateApp.addResource")(function* (folder:
 		yield* fs.writeFileString(path.join(root, file), content, { flag: "wx", mode: 0o644 });
 	}
 	yield* Console.log(
-		`Added ${name}.\n\nNext steps:\n  pnpm format\n  pnpm generate\n  pnpm migrate\n  pnpm test src/modules/${name}/server/lifecycle.spec.ts`,
+		`Added ${name}.\n\nNext steps:\n  pnpm format\n  pnpm generate\n  pnpm migrate\n  pnpm test src/modules/${name}/server/lifecycle.spec.ts src/modules/${name}/client/list.dom.spec.ts`,
 	);
 });

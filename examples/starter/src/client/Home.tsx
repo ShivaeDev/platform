@@ -1,13 +1,13 @@
-import { Link, useLocation } from "@tanstack/react-router";
+import { Link, rootRouteId, useLocation, useRouteContext } from "@tanstack/react-router";
 import { Option } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import type { ReactElement } from "react";
 import { useSignOut } from "@shivaedev/react/client/adapters/useSignOut.ts";
 import { signInSearch } from "@shivaedev/react/signInSearch.ts";
-import type { AuthActions } from "#client/adapters/auth.ts";
 import { Button } from "#client/ui/button.tsx";
 
-export function Home({ auth }: { readonly auth: AuthActions }): ReactElement {
+export function Home(): ReactElement {
+	const { auth } = useRouteContext({ from: rootRouteId });
 	const signOut = useSignOut(auth.signOut, { signIn: "/sign-in" });
 	const location = useLocation();
 	const signOutFailure = Option.isSome(AsyncResult.error(signOut.result)) && <p role="alert">Could not sign out. Try again.</p>;

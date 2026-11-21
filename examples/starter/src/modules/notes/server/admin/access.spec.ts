@@ -37,7 +37,7 @@ adminHost.it(
 adminHost.it("an admin's job health lists the foundation and word-count queues", [adminAccount("operator", "admin")], function* ({ jobQueues }) {
 	const queues = yield* jobQueues("operator");
 
-	expect(queues).toEqual(["identity.auth-emails", "sweep-expired-auth-sessions", "count-note-words"]);
+	expect(queues).toEqual(["sweep-expired-auth-sessions", "count-note-words", "email.auth-emails"]);
 });
 
 const refusedReaders = [

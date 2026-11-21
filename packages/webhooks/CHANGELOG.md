@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.13.0 - 2026-11-21
+
+### Breaking
+
+- `WebhookStrategy` takes the services its `verify` needs as a type parameter, `WebhookStrategy<R = never>`, and `WebhookSource<R, E>` holds a `WebhookStrategy<R>`. `githubStrategy` is a `WebhookStrategy<Mac>`, so a `githubSource` and its `webhookRoute` Layer require `Mac`, which the application host provides. A custom strategy that needs no service compiles unchanged.
+
 ## 0.12.7 - 2026-11-21
 
 ### Changed

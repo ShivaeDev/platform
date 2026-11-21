@@ -1,7 +1,7 @@
 import { type Cause, Effect } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
 import type { RoleSet } from "@shivaedev/access/roleSet.ts";
-import { type BearerSessionsOptions, cookieSessionResponse, hasSessionCookie, sessionHeaders } from "#server/better-auth/adapters/bearerSessions.ts";
+import { cookieSessionResponse, hasSessionCookie, sessionHeaders } from "#server/better-auth/adapters/bearerSessions.ts";
 import type { HookRefusal } from "#server/better-auth/adapters/hookRuntime.ts";
 import { sessionPermissions } from "#server/better-auth/sessionPermissions.ts";
 
@@ -11,9 +11,9 @@ export interface MountedAuth {
 }
 export interface MountRouteOptions {
 	readonly basePath?: string | undefined;
-	readonly bearerSessions?: BearerSessionsOptions | undefined;
 	readonly clientIpHeader: string;
 	readonly ipv6Subnet?: number | undefined;
+	readonly nativeOrigins?: readonly string[] | undefined;
 	readonly roles?: RoleSet | undefined;
 	readonly runRequest?: (<A>(request: (signal: AbortSignal) => Promise<A>) => Effect.Effect<A, Cause.UnknownError | HookRefusal>) | undefined;
 	readonly trustedProxy?: string | undefined;
@@ -28,13 +28,13 @@ function replacesSession(request: Request, reply: Response, native: boolean, bas
 	);
 }
 async function providerResponse(auth: MountedAuth, web: Request, options: MountRouteOptions) {
-	if (options.bearerSessions === undefined) {
+	if (options.nativeOrigins === undefined) {
 		return auth.handler(web);
 	}
 	const { authCookies } = await auth.$context;
 	const cookieName = authCookies.sessionToken.name;
 	const headers = sessionHeaders(web.headers, cookieName);
-	const native = options.bearerSessions.origins.includes(web.headers.get("origin") ?? "") && !hasSessionCookie(web.headers, cookieName);
+	const native = options.nativeOrigins.includes(web.headers.get("origin") ?? "") && !hasSessionCookie(web.headers, cookieName);
 	const request = new Request(web, { headers });
 	const reply = await auth.handler(request);
 	const basePath = options.basePath ?? "/api/auth";

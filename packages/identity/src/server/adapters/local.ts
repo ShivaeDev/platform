@@ -75,12 +75,10 @@ export function localTransport(trustedProxy?: string, nativeOrigins: readonly st
 export const localRpcGuard = Effect.fnUntraced(function* <E, R>(
 	effect: Effect.Effect<HttpServerResponse.HttpServerResponse, E, R>,
 	trustedProxy?: string,
-	nativeOrigins: readonly string[] = [],
 ) {
 	const request = yield* HttpServerRequest.HttpServerRequest;
-	const policy = yield* Effect.serviceOption(SessionPolicy);
-	const origins = Option.getOrUndefined(policy)?.origin.trustedOrigins ?? [];
-	const allowed = localTransport(trustedProxy, [...nativeOrigins, ...origins]);
+	const policy = Option.getOrUndefined(yield* Effect.serviceOption(SessionPolicy));
+	const allowed = localTransport(trustedProxy, [...(policy?.nativeOrigins ?? []), ...(policy?.origin.trustedOrigins ?? [])]);
 	const serialization = yield* RpcSerialization.RpcSerialization;
 	const contentType = request.headers["content-type"]?.split(";")[0]?.trim().toLowerCase();
 	const legacyNdjson = serialization.contentType === RpcSerialization.ndjson.contentType && contentType === "application/ndjson";

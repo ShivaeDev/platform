@@ -25,19 +25,19 @@ return <InvoiceLineForm form={editor.form} save={editor.save} saving={editor.sav
 
 ## Compared with tRPC, TanStack Query and React Hook Form
 
-| Concern             | tRPC + TanStack Query + RHF                                                    | This stack                                                                  |
-| ------------------- | ------------------------------------------------------------------------------ | --------------------------------------------------------------------------- |
-| Load                | `trpc.invoiceLine.get.useQuery({ id })`                                        | `api.get.query({ id })` passed to `useEditor`                               |
-| Form defaults       | `useForm({ defaultValues })` plus `reset(data)` in an effect once data arrives | the row encoded with the fields; created on first data                      |
-| Refetch while dirty | `reset` overwrites edits unless `keepDirtyValues` is set; whole-form policy    | per-field merge by default                                                  |
-| Save                | `useMutation` + `onSuccess: invalidate` + `reset(saved)`                       | `save: api.save.run(...)`; contract invalidates, editor receives the result |
-| Server field errors | map `error.data` to `setError(field, ...)` by hand                             | typed field rejection attaches automatically                                |
-| Double submit       | `disabled={isPending}`                                                         | `save()` ignores it                                                         |
-| Create then reset   | `reset()` after success loses edits made during the save                       | kept per field                                                              |
-| Logout              | `queryClient.clear()` plus manual form resets                                  | `SessionBoundary` remounts and disposes the registry                        |
+| Concern             | tRPC + TanStack Query + RHF                                                    | This stack                                                                                  |
+| ------------------- | ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------- |
+| Load                | `trpc.invoiceLine.get.useQuery({ id })`                                        | `api.get.query({ id })` passed to `useEditor`                                               |
+| Form defaults       | `useForm({ defaultValues })` plus `reset(data)` in an effect once data arrives | the row encoded with the fields; created on first data                                      |
+| Refetch while dirty | `reset` overwrites edits unless `keepDirtyValues` is set; whole-form policy    | per-field merge by default                                                                  |
+| Save                | `useMutation` + `onSuccess: invalidate` + `reset(saved)`                       | `useEditor(api.save, ...)`; the server pushes the changed query, editor receives the result |
+| Server field errors | map `error.data` to `setError(field, ...)` by hand                             | typed field rejection attaches automatically                                                |
+| Double submit       | `disabled={isPending}`                                                         | `save()` ignores it                                                                         |
+| Create then reset   | `reset()` after success loses edits made during the save                       | kept per field                                                                              |
+| Logout              | `queryClient.clear()` plus manual form resets                                  | `SessionBoundary` remounts and disposes the registry                                        |
 
 The call site is similar in length. The difference is in the defaults: refresh, save and reset races are handled per field, and a contract field rejection is checked against the form's field names at compile time.
 
 ## Worked example
 
-The [starter editor](../../examples/starter/src/modules/notes/client/Edit.tsx) uses `useEditor` with the query its typed `/notes/$noteId` route loads: it spreads the route's `useLoaded()`, which supplies that query and the loaded row, as in `useEditor(client.api.update, { ...note, fixed: { id: noteId } })`. Its updates and deletes are versioned, and a stale one answers `Conflict`.
+The [starter editor](../../examples/starter/src/modules/notes/client/Edit.tsx) uses `useEditor` with the query its typed `/notes/$noteId` route loads: it spreads the route's `useLoaded()`, which supplies that query and the loaded row, as in `useEditor(client.update, { ...note, fixed: { id: noteId } })`. Its updates and deletes are versioned, and a stale one answers `Conflict`.

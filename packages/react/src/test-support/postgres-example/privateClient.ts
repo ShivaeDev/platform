@@ -1,19 +1,22 @@
 import { layerWebSocketConstructor } from "@effect/platform-node/NodeWS";
 import { Effect, ManagedRuntime, Schema, Stream } from "effect";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
-import { makeClient } from "@shivaedev/contract/bind.ts";
+import { makeClient } from "@shivaedev/contract/makeClient.ts";
 import type { QueryUpdate } from "@shivaedev/contract/queryUpdate.ts";
 import { Preferences } from "#test/postgres-example/privateFeature.ts";
 import { recorded } from "#test/postgres-example/recorded.ts";
 
 export async function privateClient(url: string, account: "alice" | "bob") {
 	const registry = AtomRegistry.make();
-	const connection = makeClient(Preferences, {
-		headers: { authorization: `Bearer ${account}-session` },
-		registry,
-		url,
-		webSocketConstructor: layerWebSocketConstructor,
-	});
+	const connection = makeClient(
+		{ preferences: Preferences },
+		{
+			headers: { authorization: `Bearer ${account}-session` },
+			registry,
+			url,
+			webSocketConstructor: layerWebSocketConstructor,
+		},
+	);
 	const runtime = ManagedRuntime.make(connection);
 	const client = await runtime.runPromise(connection.Client);
 	const delivered = recorded<{ readonly hint: QueryUpdate; readonly title: string; readonly list: readonly string[] }>();

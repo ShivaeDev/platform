@@ -19,6 +19,19 @@ appGithub.it(
 );
 
 appGithub.it(
+	"an App key in the PKCS#1 PEM GitHub issues signs the App JWT that exchanges installation token 1",
+	[],
+	function* ({ readWithPkcs1Key, requests }) {
+		yield* readWithPkcs1Key();
+
+		expect(yield* requests()).toEqual([
+			"POST /app/installations/7/access_tokens 200 with an App JWT",
+			"GET /repos/acme/widgets/pulls/1 200 with installation token 1",
+		]);
+	},
+);
+
+appGithub.it(
 	"a read 54 minutes after the exchange still uses installation token 1",
 	[holdsInstallationToken],
 	function* ({ pullReads, readPull, timePasses }) {

@@ -1,8 +1,8 @@
 import { Effect, FileSystem, Option, Path, Ref, Semaphore } from "effect";
-import { definesModule, registrationsOf } from "#adapters/typeScript.ts";
+import { definesModule } from "#adapters/typeScript.ts";
 import { readIfPresent } from "#files.ts";
 import { generate } from "#generate.ts";
-import { mayRegister } from "#registrations.ts";
+import { listsSomething } from "#moduleList.ts";
 import type { GenerateReport } from "#report.ts";
 
 export interface GenerateRound {
@@ -34,13 +34,8 @@ export const generateRound = Effect.fn("Build.generateRound")(function* (directo
 	);
 });
 
-function registers(relative: string, text: string) {
-	const { registrations, refusals } = registrationsOf(relative, text);
-	return mayRegister(relative) && registrations.length + refusals.length > 0;
-}
-
 // A dev server's generator: one run at a time, and a changed file starts a run only when the last run read it or it is a module
-// file or a registration under src that no run has seen yet.
+// file, a registration or a client module under src that no run has seen yet.
 export const watchedGeneration = Effect.fn("Build.watchedGeneration")(function* (directory: string) {
 	const fs = yield* FileSystem.FileSystem;
 	const path = yield* Path.Path;
@@ -54,7 +49,7 @@ export const watchedGeneration = Effect.fn("Build.watchedGeneration")(function* 
 		if (!(file.startsWith(sources) && (file.endsWith(".ts") || file.endsWith(".tsx"))) || file.startsWith(generated)) {
 			return false;
 		}
-		return Option.exists(yield* readIfPresent(file), (text) => definesModule(file, text) || registers(path.relative(root, file), text));
+		return Option.exists(yield* readIfPresent(file), (text) => definesModule(file, text) || listsSomething(path.relative(root, file), text));
 	});
 	const changed = Effect.fn("Build.changed")(function* (file: string) {
 		const real = yield* fs.realPath(file).pipe(Effect.catchReason("PlatformError", "NotFound", () => Effect.succeed(file)));

@@ -1,7 +1,7 @@
 import { Effect, Option } from "effect";
 import { act } from "react";
-import { makeClient } from "@shivaedev/contract/bind.ts";
 import { clientActivity, isClientSettled } from "@shivaedev/contract/clientActivity.ts";
+import { makeClient } from "@shivaedev/contract/makeClient.ts";
 import type { AuthTableOptions } from "@shivaedev/identity/server/better-auth/tables.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { render } from "@shivaedev/test-story/client/adapters/react.ts";
@@ -22,12 +22,16 @@ const openDirectory = Effect.fnUntraced(function* (mapping: AuthTableOptions) {
 	const engine = yield* makeUsersEngine(mapping);
 	const protocol = yield* engine.protocolAs("alice");
 	const runtime = yield* clientRuntime;
-	const client = makeClient(UsersPage.contract, { protocol, runtime, url: "http://localhost/rpc" });
+	const client = makeClient({ users: UsersPage.contract }, { protocol, runtime, url: "http://localhost/rpc" });
 	const activity = clientActivity(client);
 	const view = yield* Effect.acquireRelease(
 		Effect.promise(() =>
 			render(
-				<UsersView changeRole={client.Client.runtime.fn(client.api.changeRole.run)} list={client.api.list.query} roles={Access.Role.literals} />,
+				<UsersView
+					changeRole={client.Client.runtime.fn(client.api.users.changeRole.run)}
+					list={client.api.users.list.query}
+					roles={Access.Role.literals}
+				/>,
 			),
 		),
 		(screen) => Effect.promise(screen.unmount),

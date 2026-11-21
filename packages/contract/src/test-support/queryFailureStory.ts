@@ -2,11 +2,10 @@ import { Context, Effect, Layer } from "effect";
 import { FetchHttpClient, HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
-import * as AtomRpc from "effect/reactivity/AtomRpc";
 import { RpcClient, RpcMiddleware, RpcSerialization } from "effect/rpc";
 import { appHost } from "@shivaedev/server/appHost.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { bind } from "#bind.ts";
+import { makeClient } from "#makeClient.ts";
 import { ClientOffline, Guard, Records } from "#test/queryFailureContract.ts";
 import { storyRuntime } from "#test/storyRuntime.ts";
 
@@ -35,25 +34,19 @@ export const queryFailureStory = storyKit({
 			),
 		);
 		const runtime = yield* storyRuntime;
-		class Client extends AtomRpc.Service<Client>()("test/QueryFailureClient", {
-			group: Records,
-			protocol,
-			runtime,
-		}) {}
 		const registry = yield* Effect.acquireRelease(
 			Effect.sync(() => AtomRegistry.make()),
 			(current) => Effect.sync(() => current.dispose()),
 		);
-		return { access, Client, registry };
+		return { access, api: makeClient({ records: Records }, { protocol, runtime }).api.records, registry };
 	},
 	inspect: ({ access }) => ({ offline: access.offline }),
 	name: "query atom failures",
 	stages: ["client"],
 	verbs: (engine, story) => ({
-		read: (mode: "ordinary" | "live") => {
-			story.tell(`the client opens ${mode === "live" ? "a live" : "an ordinary"} note query`);
-			const api = bind(Records, engine.Client, { live: mode === "live" });
-			const result = AtomRegistry.getResult(engine.registry, api.get.query());
+		read: () => {
+			story.tell("the client opens a note query");
+			const result = AtomRegistry.getResult(engine.registry, engine.api.get.query());
 			function failureOutcome(failure: Effect.Error<typeof result>) {
 				switch (failure._tag) {
 					case "ClientOffline":

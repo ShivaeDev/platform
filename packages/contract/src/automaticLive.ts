@@ -5,15 +5,13 @@ import * as Atom from "effect/reactivity/Atom";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import type * as AtomRpc from "effect/reactivity/AtomRpc";
 import type { Rpc } from "effect/rpc";
-import type { Key } from "@shivaedev/changes/keys.ts";
 import type { BindingOwner } from "#adapters/bindingOwner.ts";
 import { changesClient } from "#adapters/erasedClient.ts";
 import { aggregateLiveStatus } from "#aggregateLiveStatus.ts";
 import { automaticQuery } from "#automaticQuery.ts";
-import { clientActivities } from "#clientActivities.ts";
+import type { ActivityTracker } from "#clientActivities.ts";
 import { type LiveStatus, live } from "#live.ts";
 import { queryDelivery } from "#queryDelivery.ts";
-import { queryProgress } from "#queryProgress.ts";
 import { querySignals, shareQuerySignals } from "#querySignals.ts";
 import { followReflection, type StreamAnchor } from "#reflectedStream.ts";
 import { type ResumeSource, type ResumeWindow, resumeSignal } from "#resume.ts";
@@ -36,10 +34,10 @@ const pausedByRuntime = Atom.family((_runtime: object) => Atom.keepAlive(Atom.ma
 
 export function automaticLive(
 	operations: AtomRpc.AtomRpcClient<unknown, string, Rpc.Any>,
+	activity: ActivityTracker,
 	name: string,
 	owner?: BindingOwner,
 	resume?: ResumeSource,
-	enabled = true,
 	resumeWindow?: ResumeWindow,
 ) {
 	const service = changesClient(operations);
@@ -62,15 +60,10 @@ export function automaticLive(
 	function query<A, E>(
 		atom: Atom.Atom<AsyncResult.AsyncResult<A, E>>,
 		reference: QueryReference,
-		keys: readonly Key[],
 		equivalent: (left: A, right: A) => boolean,
 		decode: (value: unknown) => A,
-		reactive: (source: Atom.Atom<AsyncResult.AsyncResult<A, E>>) => Atom.Atom<AsyncResult.AsyncResult<A, E>>,
 		headers?: Headers.Input,
 	) {
-		if (!enabled) {
-			return queryProgress(reactive(atom));
-		}
 		const ready = Atom.make(false);
 		const signals = querySignals(atom);
 		const delivery = queryDelivery(decode, paused, signals);
@@ -86,25 +79,21 @@ export function automaticLive(
 			return made;
 		}
 		const subscription = live(service.runtime, {
-			keyContext: owner?.context,
 			resume: signal,
-			retryKeys: keys,
 			stream: Stream.unwrap(
 				service.use((client) =>
-					Effect.map(AtomRegistry.AtomRegistry, (registry) => {
-						const reflected = followReflection(client, anchor(registry));
-						if (reflected === undefined) {
-							return delivery.stream(client(`${name}.$changes`, { queries: [reference] }, { headers }));
-						}
-						const opened = client(`${name}.$changes`, { queries: [reference] }, { headers: reflected.headers(headers) });
-						return delivery.stream(reflected.lifetime(opened), reflected.follower);
-					}),
+					Effect.flatMap(AtomRegistry.AtomRegistry, (registry) =>
+						Effect.map(followReflection(client, anchor(registry)), (reflected) => {
+							const opened = client(`${name}.$changes`, { queries: [reference] }, { headers: reflected.headers(headers) });
+							return delivery.stream(reflected.lifetime(opened), reflected.follower);
+						}),
+					),
 				),
 			),
 		});
 		const gated = automaticQuery({
 			anchor,
-			clientStatuses: clientActivities.get(service)?.statuses,
+			clientStatuses: activity.statuses,
 			equivalent,
 			ownerFailure,
 			paused,

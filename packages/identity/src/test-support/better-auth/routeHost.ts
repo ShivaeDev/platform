@@ -28,13 +28,13 @@ export const routeHost = Effect.fnUntraced(function* (basePath: string | undefin
 		logger: { disabled: true },
 		plugins: [testUtils()],
 		secret: "route-story-secret-with-at-least-32-characters",
-		trustedOrigins: [NATIVE_ORIGIN, "http://127.0.0.1:*"],
+		trustedOrigins: ["http://127.0.0.1:*"],
 	};
 	yield* migrateBetterAuth({ defaultRole: "operator", options });
-	const mounted = yield* betterAuthMount(
-		{ defaultRole: "operator", options, roles: TestRoles },
-		{ bearerSessions: { origins: [NATIVE_ORIGIN] } },
-	).pipe(Effect.provide(memoryStore), Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env: { "AUTH_RATE_LIMIT_ENABLED": "false" } }))));
+	const mounted = yield* betterAuthMount({ defaultRole: "operator", nativeOrigins: [NATIVE_ORIGIN], options, roles: TestRoles }).pipe(
+		Effect.provide(memoryStore),
+		Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env: { "AUTH_RATE_LIMIT_ENABLED": "false" } }))),
+	);
 	const context = yield* Layer.build(
 		HttpRouter.serve(mounted.routes, { disableLogger: true }).pipe(
 			Layer.provideMerge(NodeHttpServer.layer(createServer, { host: "127.0.0.1", port: 0 })),

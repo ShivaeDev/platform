@@ -2,12 +2,18 @@ import type { BetterAuthOptions } from "better-auth";
 import { bearer } from "better-auth/plugins/bearer";
 import { Result } from "effect";
 
-export interface BearerSessionsOptions {
-	readonly origins: readonly string[];
-}
-
 export function withBearerSessions<TOptions extends BetterAuthOptions>(options: TOptions, enabled: boolean): TOptions {
 	return enabled ? { ...options, plugins: [...(options.plugins ?? []), bearer({ requireSignature: true })] } : options;
+}
+
+export function nativeTrustedOrigins(
+	trusted: NonNullable<BetterAuthOptions["trustedOrigins"]>,
+	nativeOrigins: readonly string[] = [],
+): NonNullable<BetterAuthOptions["trustedOrigins"]> {
+	if (nativeOrigins.length === 0) {
+		return trusted;
+	}
+	return typeof trusted === "function" ? async (request) => [...(await trusted(request)), ...nativeOrigins] : [...trusted, ...nativeOrigins];
 }
 
 export function hasSessionCookie(headers: Headers, cookieName: string): boolean {

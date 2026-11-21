@@ -21,15 +21,6 @@ type Payloads<TWire> = { readonly [TOperation in keyof TWire]?: Schema.Top | Sch
 type PayloadOf<TPayloads, TOperation> = PayloadSchema<TOperation extends keyof TPayloads ? NonNullable<TPayloads[TOperation]> : Schema.Void>;
 type EntryOf<TWire, TOperation> = TOperation extends keyof TWire ? (TWire[TOperation] extends WireEntry ? TWire[TOperation] : never) : never;
 
-interface QueryKeys<TPayload> {
-	readonly reads: (payload: TPayload, viewer: Option.Option<Viewer>) => readonly Key[];
-	readonly readsCollections?: readonly { readonly name: string }[];
-}
-
-interface CommandKeys<TPayload> {
-	readonly invalidates?: (payload: TPayload, viewer?: Option.Option<Viewer>) => readonly Key[];
-}
-
 type ClientQueries<TWire, TPayloads, TQueries extends string> = {
 	readonly [TOperation in TQueries]: ClientQuery<
 		TOperation,
@@ -58,19 +49,21 @@ export interface ClientContractDefinition<
 	TSubject extends SubjectDeclaration | undefined,
 	TScope extends "session" | undefined,
 > {
-	readonly commands?: {
-		readonly [TOperation in TCommands]: CommandKeys<PayloadOf<TPayloads, TOperation>["Type"]>;
-	};
+	readonly commands?: readonly TCommands[];
 	readonly keyScope?: TScope;
 	readonly middleware?: TMiddleware;
 	readonly name: TName;
 	readonly payloads?: TPayloads;
-	readonly queries?: { readonly [TOperation in TQueries]: QueryKeys<PayloadOf<TPayloads, TOperation>["Type"]> };
+	readonly queries?: readonly TQueries[];
 	readonly subject?: TSubject;
 	readonly wire: TWire;
 }
 
-// Written by the generator: what the browser needs of a module as values, without its run, read policy or services.
+function noKeys(): readonly Key[] {
+	return [];
+}
+
+// Written by the generator: what the browser needs of a module as values, without its run, read policy, keys or services.
 export function clientContract<
 	const TName extends string,
 	const TWire extends Wire,
@@ -90,12 +83,12 @@ export function clientContract<
 	TScope
 >;
 export function clientContract(definition: {
-	readonly commands?: { readonly [operation: string]: CommandKeys<unknown> };
+	readonly commands?: readonly string[];
 	readonly keyScope?: "session";
 	readonly middleware?: RpcMiddleware.AnyService;
 	readonly name: string;
 	readonly payloads?: { readonly [operation: string]: Schema.Top | Schema.Struct.Fields | undefined };
-	readonly queries?: { readonly [operation: string]: QueryKeys<unknown> };
+	readonly queries?: readonly string[];
 	readonly subject?: SubjectDeclaration;
 	readonly wire: Wire;
 }): unknown {
@@ -107,17 +100,9 @@ export function clientContract(definition: {
 			...(entry === undefined ? {} : { rejections: wireRejections(entry.rejections), success: entry.success }),
 		};
 	}
-	const queries = Object.entries(definition.queries ?? {}).map(([name, { reads, readsCollections = [] }]) => {
-		const collections: readonly Key[] = readsCollections.map((collection) => ({ _tag: "List", collection: collection.name }));
-		return {
-			...operation("query", name, declared(name)),
-			reads: (payload: unknown, viewer: Option.Option<Viewer>) => [...reads(payload, viewer), ...collections],
-		};
-	});
-	const commands = Object.entries(definition.commands ?? {}).map(([name, { invalidates }]) => ({
-		...operation("command", name, declared(name)),
-		invalidates: (payload: unknown, _result: unknown, viewer?: Option.Option<Viewer>) => invalidates?.(payload, viewer) ?? [],
-	}));
+	// The server's module declares the keys and announces the changes; an operation's shape still names them, so the browser's are empty.
+	const queries = (definition.queries ?? []).map((name) => ({ ...operation("query", name, declared(name)), reads: noKeys }));
+	const commands = (definition.commands ?? []).map((name) => ({ ...operation("command", name, declared(name)), invalidates: noKeys }));
 	const group = declaredGroup(definition.name, {
 		commands,
 		queries,

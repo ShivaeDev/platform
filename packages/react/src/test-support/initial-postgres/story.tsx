@@ -2,7 +2,7 @@ import { layerWebSocketConstructor } from "@effect/platform-node/NodeWS";
 import { Deferred, Effect, Queue, Redacted, SubscriptionRef } from "effect";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { act } from "react";
-import { makeClient } from "@shivaedev/contract/bind.ts";
+import { makeClient } from "@shivaedev/contract/makeClient.ts";
 import { postgresTestUrl } from "@shivaedev/test-sql/server/adapters/postgresTestUrl.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { makePostgresTestLayer } from "@shivaedev/test-sql/server/postgres.ts";
@@ -29,8 +29,8 @@ export const initialPostgres = storyKit({
 		const host = yield* openHost(database.url);
 		const wire = transport();
 		const runtime = yield* storyRuntime;
-		const client = makeClient(Api, { runtime, url: host.url, webSocketConstructor: wire.layer });
-		const writer = makeClient(Api, { runtime, url: host.url, webSocketConstructor: layerWebSocketConstructor });
+		const client = makeClient({ api: Api }, { runtime, url: host.url, webSocketConstructor: wire.layer });
+		const writer = makeClient({ api: Api }, { runtime, url: host.url, webSocketConstructor: layerWebSocketConstructor });
 		const writerRegistry = yield* Effect.acquireRelease(
 			Effect.sync(() => AtomRegistry.make()),
 			(registry) => Effect.sync(() => registry.dispose()),
@@ -48,7 +48,7 @@ export const initialPostgres = storyKit({
 			story.tell(`a repository command commits the title ${title}`);
 			engine.state.title = title;
 			return Effect.gen(function* () {
-				yield* AtomRegistry.getResult(engine.writerRegistry, engine.writer.runtime.atom(engine.writer.api.rename.run({ title })));
+				yield* AtomRegistry.getResult(engine.writerRegistry, engine.writer.runtime.atom(engine.writer.api.api.rename.run({ title })));
 				yield* Queue.take(engine.host.notifications);
 			});
 		},
@@ -60,12 +60,12 @@ export const initialPostgres = storyKit({
 		loadRoute: () => {
 			story.tell("the route loader loads the live query in the screen's registry");
 			return Effect.promise(() =>
-				loadQuery(engine.screen.registry, engine.client.api.read.query({ allowed: true }), { abortController: new AbortController() }),
+				loadQuery(engine.screen.registry, engine.client.api.api.read.query({ allowed: true }), { abortController: new AbortController() }),
 			);
 		},
 		open: () => {
 			story.tell("the screen opens its live query");
-			return Effect.promise(() => engine.screen.render(<Screen query={engine.client.api.read.query({ allowed: engine.state.allowed })} />));
+			return Effect.promise(() => engine.screen.render(<Screen query={engine.client.api.api.read.query({ allowed: engine.state.allowed })} />));
 		},
 		reads: () => SubscriptionRef.get(engine.host.reads),
 		releaseRead: () => {
@@ -74,7 +74,7 @@ export const initialPostgres = storyKit({
 		},
 		requests: () => Effect.sync(() => [...engine.wire.requests]),
 		results: () => Effect.sync(() => [...engine.wire.results]),
-		settled: () => displayed(engine.screen, engine.client.api.read.query({ allowed: engine.state.allowed }), engine.state.title),
+		settled: () => displayed(engine.screen, engine.client.api.api.read.query({ allowed: engine.state.allowed }), engine.state.title),
 		shown: () => Effect.sync(() => engine.screen.container.querySelector("output")?.textContent),
 	}),
 });

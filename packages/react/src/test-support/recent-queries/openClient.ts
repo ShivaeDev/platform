@@ -1,6 +1,6 @@
 import { Deferred, Effect, Layer, Queue, Schema, Stream } from "effect";
-import { makeClient } from "@shivaedev/contract/bind.ts";
 import { contract } from "@shivaedev/contract/contract.ts";
+import { makeClient } from "@shivaedev/contract/makeClient.ts";
 import { query } from "@shivaedev/contract/operation.ts";
 import type { QueryReadDenied } from "@shivaedev/contract/readPolicyErrors.ts";
 import { NotFound } from "@shivaedev/errors/taxonomy.ts";
@@ -45,6 +45,9 @@ export const openClient = Effect.gen(function* () {
 		"recentNotes.get": () => Effect.die("Live queries receive their first result on the subscription"),
 	});
 	const transport = yield* Layer.build(layerMemoryProtocol(Notes).pipe(Layer.provide(handlers)));
-	const client = makeClient(Notes, { protocol: Layer.succeedContext(transport), runtime: yield* storyRuntime, url: "memory://recent-notes" });
+	const client = makeClient(
+		{ notes: Notes },
+		{ protocol: Layer.succeedContext(transport), runtime: yield* storyRuntime, url: "memory://recent-notes" },
+	);
 	return { client, closed, reads, requests, subscriptions };
 });

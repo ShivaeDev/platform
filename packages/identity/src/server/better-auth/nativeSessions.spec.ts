@@ -1,7 +1,7 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import type { ForgedBearer } from "#test/native-sessions/callers.ts";
-import { cookieOnly, nativeSessions, nativeTransport, passwordAccount, signedIn } from "#test/native-sessions/story.ts";
+import { cookieOnly, nativeSessions, passwordAccount, signedIn } from "#test/native-sessions/story.ts";
 
 const alice = signedIn("alice");
 const both = signedIn("alice", "bob");
@@ -27,7 +27,7 @@ nativeSessions.it("a revoked Bob cookie cannot use Alice's bearer to read provid
 
 nativeSessions.it(
 	"Alice's native sign-in issues a signed bearer credential exposed to the WebView",
-	[nativeTransport, passwordAccount("alice")],
+	[passwordAccount("alice")],
 	function* ({ exposedHeaders, issuedCredential, signIn }) {
 		yield* signIn("alice");
 
@@ -40,7 +40,7 @@ nativeSessions.it(
 
 nativeSessions.it(
 	"the WebView's bearer reaches Alice's session through the auth route and her profile through RPC",
-	[nativeTransport, alice],
+	[alice],
 	function* ({ profile, sessionUser }) {
 		yield* outcomes([
 			["profile", () => profile({ bearer: "alice", origin: WEB_VIEW }, "alice"), "alice's profile"],

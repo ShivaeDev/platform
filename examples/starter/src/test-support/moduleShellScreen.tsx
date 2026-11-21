@@ -1,23 +1,23 @@
 import { createMemoryHistory, createRoute, Link } from "@tanstack/react-router";
 import { Effect } from "effect";
+import { clientApp } from "@shivaedev/react/client/app.ts";
+import { type ClientModule, clientModule } from "@shivaedev/react/client/module.ts";
+import { SessionApp } from "@shivaedev/react/client/SessionApp.ts";
 import { expectNoReactWarnings } from "@shivaedev/test-story/client/adapters/react.ts";
-import type { ClientModule } from "#client/Module.ts";
-import { clientModules } from "#client/modules.ts";
-import { SessionApp } from "#client/SessionApp.tsx";
+import { accountModule } from "#client/accountModule.tsx";
+import { routing } from "#client/routing.tsx";
 import { appAuth } from "#test-support/appAuth.ts";
 import { acquireScreen, type ScreenSurface } from "#test-support/screenState.ts";
 import { screens } from "#test-support/screens.ts";
 
 expectNoReactWarnings();
 
-const plainModule: ClientModule = {
-	api: {},
-	routes: ({ getParentRoute }) => [createRoute({ component: () => <h1>Module home</h1>, getParentRoute, path: "/" })],
-};
+const plainModule = clientModule({}, () => ({
+	routes: (root) => [createRoute({ component: () => <h1>Module home</h1>, getParentRoute: () => root, path: "/" })],
+}));
 
-function contributingModule(name: string): ClientModule {
-	return {
-		api: {},
+function contributingModule(name: string) {
+	return clientModule({}, () => ({
 		footer: <p>{name} footer</p>,
 		menu: [
 			<Link key="home" to="/">
@@ -28,8 +28,7 @@ function contributingModule(name: string): ClientModule {
 			</Link>,
 		],
 		overlays: [<aside key="first">{name} overlay</aside>, <aside key="second">{name} second overlay</aside>],
-		routes: () => [],
-	};
+	}));
 }
 
 type ShellPath = "/" | "/timer" | "/workout";
@@ -45,21 +44,20 @@ const workoutContent = (
 	</>
 );
 
-function fullScreenModule(stillLoading: ShellPath | undefined): ClientModule {
-	return {
-		api: {},
-		routes: ({ getParentRoute }) => {
-			const workout = createRoute({ getParentRoute, id: "workout", staticData: { fullScreen: true } });
+function fullScreenModule(stillLoading: ShellPath | undefined) {
+	return clientModule({}, () => ({
+		routes: (root) => {
+			const workout = createRoute({ getParentRoute: () => root, id: "workout", staticData: { fullScreen: true } });
 			return [
 				createRoute({
 					component: () => <h1>Module home</h1>,
-					getParentRoute,
+					getParentRoute: () => root,
 					...neverLoads("/", stillLoading),
 					path: "/",
 				}),
 				createRoute({
 					component: () => <h1>Timer</h1>,
-					getParentRoute,
+					getParentRoute: () => root,
 					...neverLoads("/timer", stillLoading),
 					path: "/timer",
 					staticData: { fullScreen: true },
@@ -74,7 +72,7 @@ function fullScreenModule(stillLoading: ShellPath | undefined): ClientModule {
 				]),
 			];
 		},
-	};
+	}));
 }
 
 const openShell = Effect.fnUntraced(function* (engine: ScreenSurface, modules: readonly ClientModule[], path: string) {
@@ -83,11 +81,12 @@ const openShell = Effect.fnUntraced(function* (engine: ScreenSurface, modules: r
 	yield* Effect.promise(() =>
 		view.render(
 			<SessionApp
+				{...routing}
+				app={clientApp([accountModule, ...modules])}
 				auth={auth}
-				connect={(session) => clientModules(session, modules.map(Effect.succeed))}
 				history={createMemoryHistory({ initialEntries: [path] })}
 				recheck={() => undefined}
-				userId={undefined}
+				session={null}
 			/>,
 		),
 	);

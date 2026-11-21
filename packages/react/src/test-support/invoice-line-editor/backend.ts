@@ -1,9 +1,8 @@
 import { Context, Deferred, Effect, Layer, Schema } from "effect";
-import * as AtomRpc from "effect/reactivity/AtomRpc";
 import { RpcMiddleware } from "effect/rpc";
 import { collection } from "@shivaedev/changes/keys.ts";
-import { bind } from "@shivaedev/contract/bind.ts";
 import { contract } from "@shivaedev/contract/contract.ts";
+import { makeClient } from "@shivaedev/contract/makeClient.ts";
 import { command, query } from "@shivaedev/contract/operation.ts";
 import { fieldRejection } from "@shivaedev/contract/rejection.ts";
 import { Conflict, Unauthorized } from "@shivaedev/errors/taxonomy.ts";
@@ -123,13 +122,10 @@ export function makeInvoiceLineServer(initial: readonly InvoiceLine[]) {
 				: Effect.provideService(effect, Principal, { user: "ada" }),
 		),
 	);
-	class Client extends AtomRpc.Service<Client>()("test/InvoiceLineClient", {
-		group: InvoiceLines,
-		protocol: layerLiveMemoryProtocol(InvoiceLines, Layer.merge(handlers, guard)),
-	}) {}
-	const api = bind(InvoiceLines, Client);
+	const connection = makeClient({ invoiceLines: InvoiceLines }, { protocol: layerLiveMemoryProtocol(InvoiceLines, Layer.merge(handlers, guard)) });
+	const api = connection.api.invoiceLines;
 	function edit(line: InvoiceLine) {
 		return store.set(line.id, line);
 	}
-	return { api, control, edit, hold, runtime: Client.runtime, stored: (id: number) => store.get(id) };
+	return { api, control, edit, hold, runtime: connection.runtime, stored: (id: number) => store.get(id) };
 }

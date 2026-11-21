@@ -21,7 +21,7 @@ wireStory.it("a rejection declared only by the wire reaches the browser decoded 
 });
 
 wireStory.it(
-	"a command's invalidates on the client contract refreshes the browser's cached list",
+	"a command through the browser contract, which carries no keys, refreshes the open list through the keys its module declares beside its operations",
 	[clockReads("2026-11-10T09:30:00.000Z"), watchingList()],
 	function* ({ create, listShown }) {
 		expect(yield* listShown()).toEqual([]);

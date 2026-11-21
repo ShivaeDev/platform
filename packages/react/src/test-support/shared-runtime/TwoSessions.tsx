@@ -3,7 +3,7 @@ import type * as Atom from "effect/reactivity/Atom";
 import { useState } from "react";
 import { useAction, useQuery } from "#client/resultState.ts";
 import { SessionBoundary } from "#client/sessionBoundary.ts";
-import { type Backend, bindPreferences, type Person } from "#test/shared-runtime/preferences.ts";
+import { type Activities, type Backend, bindPreferences, type Person } from "#test/shared-runtime/preferences.ts";
 
 function PreferencesScreen({ person, preferences }: { readonly person: Person; readonly preferences: ReturnType<typeof bindPreferences> }) {
 	const self = useQuery(preferences.api.self.query());
@@ -20,10 +20,18 @@ function PreferencesScreen({ person, preferences }: { readonly person: Person; r
 	);
 }
 
-export function TwoSessions({ backend, runtime }: { readonly backend: Backend; readonly runtime: Atom.RuntimeFactory }) {
+export function TwoSessions({
+	activities,
+	backend,
+	runtime,
+}: {
+	readonly activities: Activities;
+	readonly backend: Backend;
+	readonly runtime: Atom.RuntimeFactory;
+}) {
 	return (["alice", "bob"] as const).map((person) => (
 		<SessionBoundary
-			connect={(_, registry) => bindPreferences(person, backend, runtime, registry)}
+			connect={(_, registry) => bindPreferences(person, backend, activities, runtime, registry)}
 			identify={(session) => session}
 			key={person}
 			recheck={() => undefined}
