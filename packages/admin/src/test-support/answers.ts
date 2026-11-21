@@ -17,6 +17,8 @@ export function refusal(error: unknown, jobName: (id: string) => string = (id) =
 			return "read denied";
 		case "Forbidden":
 			return "forbidden";
+		case "WebSocketRequired":
+			return "websocket required";
 		case "BadRequest":
 			return "bad input";
 		case "NotFound":

@@ -1,5 +1,4 @@
-import { Cause, Effect, Layer, Option, Ref, Stream } from "effect";
-import type { QueryUpdate } from "@shivaedev/contract/queryUpdate.ts";
+import { Cause, Effect, Layer, Option, Ref } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { adminRegistry, mergeAdminRegistries, validateAdminRegistry } from "#registry.ts";
 import { registerAdmin } from "#server/registerAdmin.ts";
@@ -8,20 +7,9 @@ import { adminEngine } from "#test/adminEngine.ts";
 import { answered } from "#test/answers.ts";
 import { FakeJobs } from "#test/FakeJobs.ts";
 import { FakeUsers } from "#test/FakeUsers.ts";
+import { firstChange } from "#test/firstChange.ts";
 import { Jobs, pagesBesideJobs, Registry } from "#test/pages.ts";
 import { type RoutePaths, routePages } from "#test/routePages.ts";
-
-function firstChange<E, R>(changes: Stream.Stream<QueryUpdate, E, R>) {
-	return changes.pipe(
-		Stream.runHead,
-		Effect.map(
-			Option.match({
-				onNone: () => "ended without a result",
-				onSome: (update: QueryUpdate) => (update._tag === "Result" ? update.value : `unexpected ${update._tag}`),
-			}),
-		),
-	);
-}
 
 export const adminStory = storyKit({
 	create: () => adminEngine,

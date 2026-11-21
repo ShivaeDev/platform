@@ -6,7 +6,7 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { matchAdminRoute } from "#matchAdminRoute.ts";
 import { workspaceServer } from "#test/pageHost.ts";
 import { WorkspaceScreen } from "#test/WorkspaceScreen.tsx";
-import { WorkspaceAccess, type WorkspaceRole, workspaceRegistration } from "#test/workspaces.ts";
+import { WorkspaceAccess, WorkspacePages, type WorkspaceRole } from "#test/workspaces.ts";
 
 Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 
@@ -30,7 +30,7 @@ export const pageScreens = storyKit({
 				story.tell(`${role} opens ${path} on the client`);
 				const { permissions } = yield* WorkspaceAccess.resolve(role);
 				const required = matchAdminRoute(
-					workspaceRegistration.pages.map((page) => page.route),
+					WorkspacePages.pages.map((page) => page.route),
 					path,
 				)?.permission;
 				const refused = required !== undefined && !hasPermission(permissions, required);

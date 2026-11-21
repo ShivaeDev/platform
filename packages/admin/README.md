@@ -96,7 +96,7 @@ const admin = mergeAdminRegistrations(foundation.admin, catalog.admin);
 
 Pass the policy Layer once as `appHost({ sessions, handlers: admin.handlers, group: admin.group })`. Custom hosts provide it to their composed middleware and routes with `Layer.provide(sessions)`. The combined registration exposes `pages` for navigation and `group` for the host, and preserves the handlers' service requirements. Duplicate page ids across modules fail at the type level; duplicate paths and RPC tags fail at composition. A module cannot contribute a page without registering it.
 
-Browser composition uses `mergeAdminRegistries` from `@shivaedev/admin/registry.ts` with the modules' browser-safe registries. A client module can also contribute its registry's `pages` directly to the application's navigation. A feature module adds pages to its own registry and their modules to its own registration; the foundation does not import feature pages.
+Browser composition uses `mergeAdminRegistries` from `@shivaedev/admin/registry.ts` with the modules' browser-safe registries. A client module can also contribute its registry's `pages` directly to the application's navigation. A registry holds pages and no RPC group. Browser code that needs one group for its pages merges their contracts, `RpcGroup.make().merge(...Admin.pages.map((page) => page.contract))`, or passes each page's contract to `makeClient`. Only server code reads `registration.group`; importing the registration into browser code pulls the server modules into the browser bundle. A feature module adds pages to its own registry and their modules to its own registration; the foundation does not import feature pages.
 
 ### Keep admin code in admin paths
 
