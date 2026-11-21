@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.1 - 2026-11-21
+
+### Changed
+
+- Update `@shivaedev/http` from 0.9.2 to 0.9.3.
+
 ## 0.5.0 - 2026-11-21
 
 ### Breaking
