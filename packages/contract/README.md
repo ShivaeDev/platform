@@ -202,7 +202,7 @@ Each operation runs in a span named after the module and the operation, such as 
 
 Types are erased, so the success schema and rejection classes the server encodes with and the browser decodes with must exist as values. [`@shivaedev/build`](https://github.com/ShivaeDev/platform/tree/main/packages/build) writes them from each module's `run` types into one file per module under `src/generated/`, which stays out of Git; an application runs it as `pnpm generate`. The module file passes its wire, as `Notes` does above, and every operation is served with its wire entry's success and rejections, plus `InternalServerError` and `ServiceUnavailable`. A wire entry's success describes only the shape: its RPC carries `GeneratedSuccess` from `@shivaedev/errors/GeneratedSuccess.ts`, so the host neither collects sensitive names from it nor treats its fields as public. Mark a sensitive field on the server's model instead, as the [errors README](https://github.com/ShivaeDev/platform/tree/main/packages/errors#masking-secrets-in-failures) describes.
 
-The file the generator writes exports the wire, the browser's contract built by `clientContract` from the wire, the copied payloads, `reads` and `invalidates`, and the module's name, middleware, subject and key scope, and it ends with a type-level assertion that the browser's contract and the server module have the same RPCs:
+The file the generator writes exports the wire, the browser's contract built by `clientContract` from the wire, the names of the module's queries and commands, the copied payloads, and the module's name, middleware, subject and key scope, and it ends with a type-level assertion that the browser's contract and the server module have the same RPCs:
 
 ```ts
 import { Schema } from "effect";
@@ -210,7 +210,7 @@ import { Unauthorized } from "@shivaedev/errors/taxonomy.ts";
 import { clientContract } from "@shivaedev/contract/clientContract.ts";
 import type { ClientMatchesModule } from "@shivaedev/contract/clientMatchesModule.ts";
 import type { Notes as NotesModule } from "#modules/notes/Notes.ts";
-import { Caller, NoteFields, notes, TitleTaken } from "#modules/notes/model.ts";
+import { Caller, NoteFields, TitleTaken } from "#modules/notes/model.ts";
 
 const Note = Schema.Struct({ createdAt: Schema.Date, id: Schema.Number, title: Schema.String });
 
@@ -220,24 +220,24 @@ export const notesWire = {
 } as const;
 
 export const Notes = clientContract({
-	commands: { create: { invalidates: () => [notes.list] } },
+	commands: ["create"],
 	middleware: Caller,
 	name: "notes",
 	payloads: { create: NoteFields },
-	queries: { list: { reads: () => [notes.list] } },
+	queries: ["list"],
 	wire: notesWire,
 });
 
 export const notesMatchModule: ClientMatchesModule<typeof Notes, typeof NotesModule> = true;
 ```
 
-`clientContract` requires a wire entry for every query and command it declares. The browser imports `Notes` from that file and binds it like any contract; it carries no `run`, read policy or service, and its import graph reaches no server code. Over RPC's JSON serialization, a `Schema.Date` field arrives as a `Date` equal to the one `run` returned, and a rejection the wire lists arrives as its class. Neither the browser's contract nor an operation without a read policy can be served: `contract()` requires one on every query, and a host refuses a query without one at start-up.
+`clientContract` requires a wire entry for every query and command it names. The browser imports `Notes` from that file and puts it in its client's record like any contract; it carries no `run`, read policy, key or service, and its import graph reaches no server code. Its queries read no keys and its commands invalidate none: the host serves the module, whose keys decide which open queries each change reaches, and the browser's queries refresh from the server's announcements. Over RPC's JSON serialization, a `Schema.Date` field arrives as a `Date` equal to the one `run` returned, and a rejection the wire lists arrives as its class. Neither the browser's contract nor an operation without a read policy can be served: `contract()` requires one on every query, and a host refuses a query without one at start-up.
 
 The compiler compares the wire with `run` on every type check, and a stale file is an error on the module's `name` line that names the operation, one problem per operation: `WireSuccessStale` when the entry's success differs from what `run` returns, `WireRejectionsStale` when its rejection tags or classes differ from what `run` and a query's read policy raise, other than infrastructure failures, and `OperationMissingFromWire` when an operation has no entry and its `run` returns a value or raises a rejection. A success differs when its type and `run`'s return type are not mutually assignable; when they differ only in array mutability, because `Schema.Array` decodes a readonly array; when an object that `run` returns and a `Schema.Struct` that the success holds in the same position, at the top or in an array, struct field, tuple, record, union or `Option`, have different keys, such as an optional property only one of them has, which the `Struct` would drop or never send; and when the success holds a `Schema.Class` in such a position and `run` returns something other than that class there, such as an object literal of its fields, which fails to encode. Rejections differ when `run` raises a tag the entry does not list, the entry lists a tag nothing raises or one of the automatic two, or a listed class and the class `run` raises under the same tag differ in shape, such as a local `NotFound` with other fields than the shared one.
 
 TypeScript compares classes by shape, so two cases still compile: a rejection class whose twin of the same shape is what `run` raises, and a helper typed to return a readonly interface of the same shape where the success is a `Schema.Class`. Neither is silent at run time: the twin is not the listed class, so the boundary answers `InternalServerError` and reports it, and the plain object fails to encode. The generator resolves both by declaration. A `Schema.Struct` behind another schema, such as a transformation, a brand or `Schema.suspend`, is compared with `run` only by mutual assignability, so an optional property that only one side has still compiles there and is dropped or never sent.
 
-The browser's assertion fails with `ClientDiffersFromModule`, naming the operations whose RPCs differ. `ClientMatchesModule` compares the operations' payloads, successes and rejections; a stale copy of a query's `reads`, a command's `invalidates` or the key scope in the generated file still compiles; the generator keeps those current, because a change to them makes `shivaedev-build generate --check` report the file stale. A stale wire and a stale browser contract read:
+The browser's assertion fails with `ClientDiffersFromModule`, naming the operations whose RPCs differ. `ClientMatchesModule` compares the operations, their kinds and their payloads, successes and rejections, so a browser contract that leaves out an operation, declares a command as a query or carries a stale payload fails. A stale key scope in the generated file still compiles; the generator keeps it current, because a change to it makes `shivaedev-build generate --check` report the file stale. A stale wire and a stale browser contract read:
 
 ```
 src/test-support/fixtures/invalid/moduleStaleRejection.ts(9,2): error TS2322: Type '"staleRejection"' is not assignable to type '"staleRejection" & NoInfer<WireRejectionsStale<"create", "the generated file is stale; run pnpm generate", "TitleTaken" | "Unauthorized", "Unauthorized">>'.
@@ -775,7 +775,7 @@ The application supplies the permission checker through `permissionReadPolicy(pe
 
 Collection reads reuse the bare repository table key, the same key as `notes.list`, even when the contract uses `keyScope: "session"`; record and bucket reads also use plain server keys. They add no wildcard matching or write-side work. Every committed repository insert, update, delete, upsert and bulk write already publishes that key. Generated-id inserts also publish the bare collection key alongside their generated record key, so `publishes` stories that check exact published keys must allow the bare key today. For a table named `notes`, that is `"notes"` alongside `"notes:<id>"` and any affected bucket keys. Mounting a collection subscriber adds **zero PostgreSQL NOTIFY messages per write**: it consumes the existing payloads. It adds a normal query subscription and an authorized reread when the collection changes.
 
-For dependencies that need server data, add `serverReads(payload, viewer)`, an Effect returning extra keys. Keep `reads` for keys the browser can derive, or return `[]` there. The server checks every referenced query's policy before it runs any `serverReads`, and resolves it with the owning query handler's services. Declare its failures in the query's `rejections`, as with policy failures. A denied subscription never runs the resolver.
+For dependencies that need server data, add `serverReads(payload, viewer)`, an Effect returning extra keys. `reads` holds the keys that follow from the payload and the viewer alone, or returns `[]`; `serverReads` holds the keys that need server data. The server checks every referenced query's policy before it runs any `serverReads`, and resolves it with the owning query handler's services. Declare its failures in the query's `rejections`, as with policy failures. A denied subscription never runs the resolver.
 
 ```ts
 import { Context, Effect, Schema } from "effect";
