@@ -188,7 +188,11 @@ export const releasedJobs = storyKit({
 			return Effect.gen(function* () {
 				const host = hostOf(state, release);
 				host.disposal = yield* Scope.close(host.scope, Exit.void).pipe(
-					Effect.andThen(Effect.sync(() => state.lifecycle.push(`the ${release} host disposed`))),
+					Effect.andThen(
+						Effect.sync(() => {
+							state.lifecycle.push(`the ${release} host disposed`);
+						}),
+					),
 					Effect.forkDetach,
 				);
 				yield* Deferred.await(host.drains);
