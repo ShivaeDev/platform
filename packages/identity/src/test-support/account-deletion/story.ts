@@ -1,4 +1,4 @@
-import { Data, Effect, Predicate, Redacted, Schema } from "effect";
+import { Effect, Predicate, Redacted, Schema } from "effect";
 import { Migrator, SqlClient, SqlSchema } from "effect/sql";
 import { clientOptions } from "@shivaedev/sql/clientOptions.ts";
 import { collectRepositoryModels } from "@shivaedev/sql/RepositoryModels.ts";
@@ -7,6 +7,7 @@ import { makePostgresTestLayer } from "@shivaedev/test-sql/server/postgres.ts";
 import { answered, errorWords } from "@shivaedev/test-story/server/answers.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { removedCredential, storedVerification, storedVerificationIdentifiers } from "#server/better-auth/test-support/accountDeletion.ts";
+import type { HandOverPlan } from "#test/account-deletion/HandOverPlan.ts";
 import { accountDeletionHost } from "#test/account-deletion/host.ts";
 import { ownedModels } from "#test/better-auth/ownedModels.ts";
 import { storyClock, withIdentityDatabase } from "#test/clock.ts";
@@ -15,14 +16,11 @@ import { databaseUrl } from "#test/postgres.ts";
 import { ORIGIN } from "#test/rpc/harness.ts";
 
 export type Person = "alice" | "bob";
-type HandOver = "none" | "gives projects to bob" | "fails after giving projects to bob";
-
-class HandOverRefused extends Data.TaggedError("HandOverRefused") {}
 
 interface Setup {
 	readonly announced: unknown[];
-	handOver: HandOver;
 	readonly people: Map<Person, { readonly headers: Headers; readonly id: string }>;
+	readonly plan: HandOverPlan["Service"];
 }
 
 // Applications build their client with clientOptions, so the owned tables' snake-case columns sit beneath camel-case fields.
@@ -45,39 +43,28 @@ function refusalWords(error: unknown) {
 		: errorWords(error);
 }
 
-function handOverOf(engine: Setup) {
-	return Effect.fnUntraced(function* (userId: string) {
-		if (engine.handOver === "none") {
-			return;
-		}
-		const sql = yield* SqlClient.SqlClient;
-		yield* sql`update projects set user_id = ${engine.people.get("bob")?.id ?? ""} where user_id = ${userId}`;
-		if (engine.handOver === "fails after giving projects to bob") {
-			return yield* new HandOverRefused();
-		}
-	});
-}
-
 export const accountDeletion = storyKit({
 	around: (effect) => withIdentityDatabase(effect.pipe(Effect.provide(collectRepositoryModels))),
 	clock: storyClock,
 	*create() {
-		const setup: Setup = { announced: [], handOver: "none", people: new Map() };
-		const host = yield* accountDeletionHost(handOverOf(setup), setup.announced);
+		const setup: Setup = { announced: [], people: new Map(), plan: { mode: "none", receiver: "" } };
+		const host = yield* accountDeletionHost(setup.plan, setup.announced);
 		const sql = yield* SqlClient.SqlClient;
 		yield* sql`create table notes (id serial primary key, title text not null, share_token text not null, user_id text not null)`;
 		yield* sql`create table projects (id serial primary key, user_id text not null)`;
 		for (const name of ["alice", "bob"] as const) {
-			const user = yield* passwordUser(host.auth, { email: emailOf(name), name, passwordHash: PASSWORD_HASH });
+			const role = name === "bob" ? "admin" : "user";
+			const user = yield* passwordUser(host.auth, { email: emailOf(name), name, passwordHash: PASSWORD_HASH, role });
 			const { headers } = yield* signInAgain(host.auth, user.id);
 			setup.people.set(name, { headers, id: user.id });
 			yield* sql`insert into notes (title, share_token, user_id) values (${`${name}'s note`}, ${`${name}-token`}, ${user.id})`;
 			yield* sql`insert into projects (user_id) values (${user.id})`;
 		}
+		setup.plan.receiver = setup.people.get("bob")?.id ?? "";
 		yield* Effect.all([ownedModels.notes, ownedModels.projects]);
 		return Object.assign(setup, { host });
 	},
-	inspect: ({ announced, handOver }) => ({ announced, handOver }),
+	inspect: ({ announced, plan }) => ({ announced, handOver: plan.mode }),
 	layer: postgres,
 	name: "account deletion",
 	runIf: databaseUrl !== undefined,
@@ -123,6 +110,16 @@ export const accountDeletion = storyKit({
 					})
 					.pipe(Effect.map(({ status }) => status));
 			},
+			removeThroughAdmin: (administrator: Person, name: Person) => {
+				story.tell(`${administrator}, an administrator, posts ${name}'s id to Better Auth's /admin/remove-user route`);
+				return engine.host
+					.fetch("/api/auth/admin/remove-user", {
+						body: JSON.stringify({ userId: person(name).id }),
+						headers: { "content-type": "application/json", cookie: person(administrator).headers.get("cookie") ?? "", origin: ORIGIN },
+						method: "POST",
+					})
+					.pipe(Effect.map(({ status }) => status));
+			},
 			request: (name: Person) => {
 				story.tell(`${name} requests her protected profile`);
 				return engine.host.client(person(name).headers).pipe(
@@ -154,14 +151,21 @@ export const accountDeletion = storyKit({
 				})(undefined);
 				return rows.map(({ owner }) => nameOf(owner));
 			}),
-			storedVerifications: () => storedVerificationIdentifiers,
+			storedVerifications: () =>
+				storedVerificationIdentifiers.pipe(
+					Effect.map((identifiers) =>
+						identifiers
+							.map((identifier) => [...engine.people].reduce((named, [name, { id }]) => named.replaceAll(id, name), identifier))
+							.sort((left, right) => left.localeCompare(right)),
+					),
+				),
 		};
 	},
 });
 
 export const handOverGivesProjects = accountDeletion.trait("data", "the application's hand-over gives the person's projects to bob", (engine) =>
 	Effect.sync(() => {
-		engine.handOver = "gives projects to bob";
+		engine.plan.mode = "gives projects to bob";
 	}),
 );
 
@@ -170,7 +174,7 @@ export const handOverFails = accountDeletion.trait(
 	"the application's hand-over gives the person's projects to bob and then fails",
 	(engine) =>
 		Effect.sync(() => {
-			engine.handOver = "fails after giving projects to bob";
+			engine.plan.mode = "fails after giving projects to bob";
 		}),
 );
 
@@ -200,11 +204,23 @@ export const passwordless = accountDeletion.trait("data", "alice signs in throug
 
 export const pendingVerifications = accountDeletion.trait(
 	"data",
-	"alice and bob each have a pending password reset and email verification code",
+	"alice and bob each have a pending password reset, email verification code and change-email code",
 	function* (engine) {
 		for (const name of ["alice", "bob"] as const) {
-			yield* storedVerification(`reset-password:${name}-token`, engine.people.get(name)?.id ?? "");
+			const id = engine.people.get(name)?.id ?? "";
+			yield* storedVerification(`reset-password:${name}-token`, id);
 			yield* storedVerification(`email-verification-otp-${emailOf(name)}`, "123456:0");
+			yield* storedVerification(`change-email-otp-${id}:${name}-new@deletion.test`, "123456:0");
+		}
+	},
+);
+
+export const lookalikeAddressCodes = accountDeletion.trait(
+	"data",
+	"mary-alice@deletion.test, whose address ends in alice's, has pending sign-in, verification and password-reset codes",
+	function* () {
+		for (const type of ["sign-in", "email-verification", "forget-password"]) {
+			yield* storedVerification(`${type}-otp-mary-alice@deletion.test`, "654321:0");
 		}
 	},
 );

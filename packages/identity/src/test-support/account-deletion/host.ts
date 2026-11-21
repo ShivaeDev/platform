@@ -1,4 +1,5 @@
 import { testUtils } from "better-auth/plugins";
+import { admin } from "better-auth/plugins/admin";
 import { ConfigProvider, Effect, Layer } from "effect";
 import { FetchHttpClient, HttpClient, HttpClientRequest, HttpRouter } from "effect/http";
 import * as Reactivity from "effect/reactivity/Reactivity";
@@ -23,6 +24,8 @@ import { migrateBetterAuth } from "#server/better-auth/migrate.ts";
 import { betterAuthMount } from "#server/better-auth/mount.ts";
 import { SessionPolicy } from "#server/SessionPolicy.ts";
 import { authenticatedUserLayer } from "#server/session.ts";
+import { HandOverPlan } from "#test/account-deletion/HandOverPlan.ts";
+import { ProjectHandOver } from "#test/account-deletion/service.ts";
 import { recordPublished } from "#test/recordPublished.ts";
 import { ORIGIN } from "#test/rpc/harness.ts";
 
@@ -32,16 +35,13 @@ const Profile = contract("profile", {
 const ServedApi = Account.merge(Profile);
 const Api = AccountClient.merge(Profile);
 
-export const accountDeletionHost = Effect.fnUntraced(function* <E>(
-	handOver: (userId: string) => Effect.Effect<void, E, SqlClient.SqlClient>,
-	announced: unknown[],
-) {
+export const accountDeletionHost = Effect.fnUntraced(function* (plan: HandOverPlan["Service"], announced: unknown[]) {
 	const options = {
 		"baseURL": ORIGIN,
 		database: yield* betterAuthDatabase(),
 		emailAndPassword: { enabled: true },
 		logger: { disabled: true },
-		plugins: [testUtils()],
+		plugins: [admin(), testUtils()],
 		secret: "account-deletion-story-secret-with-32-characters",
 		session: { cookieCache: { enabled: false }, disableSessionRefresh: true },
 		user: { deleteUser: { enabled: true } },
@@ -57,7 +57,10 @@ export const accountDeletionHost = Effect.fnUntraced(function* <E>(
 		Layer.succeed(ChangeObserver, recordPublished(announced)),
 	);
 	const application = Layer.merge(
-		moduleHandlers(Account).pipe(Layer.provide(accountDeletion({ options }, { handOver }))),
+		moduleHandlers(Account).pipe(
+			Layer.provide(accountDeletion({ options }, { handOver: ProjectHandOver })),
+			Layer.provide(ProjectHandOver.layer.pipe(Layer.provide(Layer.succeed(HandOverPlan, plan)))),
+		),
 		Profile.application.toLayer({ "profile.read": () => SessionUser }),
 	);
 	const live = yield* LiveServer.pipe(Effect.provide(liveServerLayer));

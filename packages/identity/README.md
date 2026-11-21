@@ -1097,30 +1097,33 @@ PostgreSQL sees only foreign keys, so a table whose owner column has none is cov
 
 ### Delete an account
 
-`Account` from `@shivaedev/identity/Account.ts` is a defined module, which is server code: register it as `module: Account` with `services: accountDeletion(AppAuth)`, using `accountDeletion` from `@shivaedev/identity/server/better-auth/accountDeletion.ts`. Its `identity.account.delete({ password })` command deletes the signed-in person's account; it needs the `AuthenticatedUser` middleware, the application's `SqlClient` and the owned models the host collects. Browser code imports the client contract under the same name from `@shivaedev/identity/generated/Account.ts` and calls the command through its bound-operation hook.
-
-```ts
-import { Account } from "@shivaedev/identity/Account.ts";
-import { accountDeletion } from "@shivaedev/identity/server/better-auth/accountDeletion.ts";
-import type { AppModule } from "@shivaedev/server/AppModule.ts";
-import { AppAuth } from "#server/AppAuth.ts";
-import { handOverHouseholds } from "#server/households/handOver.ts";
-
-export const accountRegistration = {
-	module: Account,
-	services: accountDeletion(AppAuth, { handOver: handOverHouseholds }),
-} satisfies AppModule;
-```
+`Account` from `@shivaedev/identity/Account.ts` is a defined module, which is server code: register it as `module: Account` with `services: accountDeletion(AppAuth)`, using `accountDeletion` from `@shivaedev/identity/server/better-auth/accountDeletion.ts`. Its `identity.account.delete({ password })` command deletes the signed-in person's account; it needs the `AuthenticatedUser` middleware, the application's `SqlClient` and `Reactivity`, which `appHost` provides, and the owned models the host collects. Browser code imports the client contract under the same name from `@shivaedev/identity/generated/Account.ts`; give the command to a form hook such as React's `useCreate`, so a refused password shows on the password field.
 
 The command runs these steps in order:
 
 1. It checks the person's current password with the verifier the declaration's options configure, Better Auth's own unless `emailAndPassword.password.verify` replaces it. A missing, overlong or wrong password is refused with `BadRequest` on the `password` field, and an account without a credential password with `PreconditionFailed`; nothing is deleted.
-2. One `transact` runs the application's hand-over, then [`eraseOwnedRows`](#export-and-erase-a-persons-data), then deletes the person's auth rows: the user row, whose `ON DELETE CASCADE` keys remove their sessions and sign-in accounts, and the verification rows whose value is their id or whose identifier names their address.
+2. One `transact` runs the application's hand-over, then [`eraseOwnedRows`](#export-and-erase-a-persons-data), then deletes the person's auth rows: the user row, whose `ON DELETE CASCADE` keys remove their sessions and sign-in accounts, and the verification rows Better Auth writes for them. Those are the rows whose value is their id, such as a password-reset token, the `email-verification`, `sign-in` and `forget-password` codes of their exact address, and the change-email and two-factor codes that start with their id.
 3. On commit it announces `userKeys` and `sessionKeys`, so live readers refresh. The person's next session check answers signed out, which makes a remembered session forget itself, and their next protected request is refused with `Unauthorized`.
 
-The hand-over is the application's policy for rows that other people keep, such as a shared household that passes to another member. `accountDeletion` takes it once as `handOver(userId)`, an Effect whose services the registration's Layer provides; its SQL joins the deletion's transaction, so its writes commit or roll back with the rest. Leave it out when nothing is handed over. A failing hand-over, a failing erase or a failing auth delete rolls everything back: the person keeps every row and still signs in with the same password. The command answers `InternalServerError` and the host reports the cause, because these failures are the application's to fix rather than the person's.
+The hand-over is the application's policy for rows that other people keep, such as a shared household that passes to another member. It is an application service written with `defineService` whose `handOver(userId)` operation yields its own dependencies; pass its tag to `accountDeletion` and provide its Layer, and leave both out when nothing is handed over. The deletion calls it inside its transaction, so its writes commit or roll back with the rest:
 
-The mount closes Better Auth's `/delete-user` and `/delete-user/callback` even when the options enable `user.deleteUser`, so this command is the one way to delete an account. Better Auth's deletion runs its steps outside any transaction, and its `user.delete.before` hooks do not run here: move such a hook's body into the hand-over.
+```ts
+import { Layer } from "effect";
+import { Account } from "@shivaedev/identity/Account.ts";
+import { accountDeletion } from "@shivaedev/identity/server/better-auth/accountDeletion.ts";
+import type { AppModule } from "@shivaedev/server/AppModule.ts";
+import { AppAuth } from "#server/AppAuth.ts";
+import { HouseholdHandOver } from "#server/households/handOver/service.ts";
+
+export const accountRegistration = {
+	module: Account,
+	services: accountDeletion(AppAuth, { handOver: HouseholdHandOver }).pipe(Layer.provide(HouseholdHandOver.layer)),
+} satisfies AppModule;
+```
+
+A failing hand-over, a failing erase or a failing auth delete rolls everything back: the person keeps every row and still signs in with the same password. The command answers `InternalServerError` and the host reports the cause, because these failures are the application's to fix rather than the person's.
+
+The mount closes Better Auth's `/delete-user` and `/delete-user/callback`, even when the options enable `user.deleteUser`, and the admin plugin's `/admin/remove-user`, so this command is the one HTTP route that deletes an account. Better Auth deletes outside any transaction and erases no owned rows, and its `user.delete.before` hooks do not run here: move such a hook's body into the hand-over. Server code that calls Better Auth's `auth.api` directly is not covered by the closed routes.
 
 The deletion reads and writes Better Auth's tables through the application's SQL client. It removes database sessions only; sessions kept in a cookie cache or secondary storage stay valid until they expire. Accounts that sign in only through a provider have no password to confirm with and are refused.
 
@@ -1265,7 +1268,7 @@ Import the module that defines the name; there is no package-root entry. Paths b
 | `server/better-auth/sweepExpiredSessions.ts`      | `sweepExpiredSessions`: delete expired sessions through the application's SQL client and return the number removed.                                                                                                                                     |
 | `Account.ts`                                      | `Account`: the defined module whose `delete` command deletes the signed-in person's account after confirming their password.                                                                                                                            |
 | `server/AccountDeletion.ts`                       | `AccountDeletion`: the port the account module's `delete` command calls.                                                                                                                                                                                |
-| `server/better-auth/accountDeletion.ts`           | `accountDeletion(declaration, { handOver? })`: the Better Auth `AccountDeletion` Layer, with the application's hand-over.                                                                                                                               |
+| `server/better-auth/accountDeletion.ts`           | `accountDeletion(declaration, { handOver? })`, `AccountHandOver`: the Better Auth `AccountDeletion` Layer and the shape of the application's hand-over service.                                                                                         |
 | `server/better-auth/accountData.ts`               | `accountData(declaration, reference?)`, returning `{ check, exportAccount, eraseOwnedRows }`: a person's account export, owned-row erasure and the coverage check, from the owned models the host reports.                                              |
 | `server/account-data/UncoveredUserColumns.ts`     | `UncoveredUserColumns`: the coverage failure naming each column that refers to a person without an owned model to cover it.                                                                                                                             |
 | `server/account-data/OwnedModelsUncollected.ts`   | `OwnedModelsUncollected`: the failure of export, erase and check when no collector records the owned models.                                                                                                                                            |

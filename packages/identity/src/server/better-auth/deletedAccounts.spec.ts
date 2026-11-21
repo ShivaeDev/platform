@@ -7,6 +7,7 @@ import {
 	bookmarkOfAliceNote,
 	handOverFails,
 	handOverGivesProjects,
+	lookalikeAddressCodes,
 	passwordless,
 	pendingVerifications,
 	requiredReviewAuthor,
@@ -79,13 +80,14 @@ for (const [failure, trait] of [
 	["the auth delete fails because alice's review cannot lose its author", requiredReviewAuthor],
 ] as const) {
 	accountDeletion.it(
-		`when ${failure}, nothing is deleted and alice still signs in with her password`,
-		[trait],
-		function* ({ announcedKeys, deleteAccount, sessionCheck, signIn, storedNotes }) {
+		`when ${failure}, the hand-over's change and the erase roll back and alice still signs in with her password`,
+		[handOverGivesProjects, trait],
+		function* ({ announcedKeys, deleteAccount, sessionCheck, signIn, storedNotes, storedProjectOwners }) {
 			const answer = yield* deleteAccount("alice");
 
 			yield* outcomes([
 				["answer", () => Effect.succeed(answer), "failed with internal server error"],
+				["stored project owners", storedProjectOwners, ["alice", "bob"]],
 				["stored notes", storedNotes, ["alice's note", "bob's note"]],
 				["alice's session check", () => sessionCheck("alice"), "signed in"],
 				["alice signs in with her password", () => signIn("alice"), "signed in"],
@@ -130,10 +132,12 @@ accountDeletion.it(
 );
 
 accountDeletion.it(
-	"deleting alice's account removes her pending password reset and email code and keeps bob's",
+	"deleting alice's account removes her pending password reset, email code and change-email code and keeps bob's",
 	[pendingVerifications],
 	function* ({ deleteAccount, storedVerifications }) {
 		expect(yield* storedVerifications()).toEqual([
+			"change-email-otp-alice:alice-new@deletion.test",
+			"change-email-otp-bob:bob-new@deletion.test",
 			"email-verification-otp-alice@deletion.test",
 			"email-verification-otp-bob@deletion.test",
 			"reset-password:alice-token",
@@ -142,7 +146,11 @@ accountDeletion.it(
 
 		yield* deleteAccount("alice");
 
-		expect(yield* storedVerifications()).toEqual(["email-verification-otp-bob@deletion.test", "reset-password:bob-token"]);
+		expect(yield* storedVerifications()).toEqual([
+			"change-email-otp-bob:bob-new@deletion.test",
+			"email-verification-otp-bob@deletion.test",
+			"reset-password:bob-token",
+		]);
 	},
 );
 
@@ -156,6 +164,34 @@ accountDeletion.it(
 			["closed route", () => Effect.succeed(status), HttpStatus.fromLiteral("NotFound")],
 			["alice's session check", () => sessionCheck("alice"), "signed in"],
 			["stored notes", storedNotes, ["alice's note", "bob's note"]],
+		]);
+	},
+);
+
+accountDeletion.it(
+	"the admin plugin's /admin/remove-user stays closed to bob, an administrator, and alice keeps her account",
+	[],
+	function* ({ removeThroughAdmin, sessionCheck, storedNotes }) {
+		const status = yield* removeThroughAdmin("bob", "alice");
+
+		yield* outcomes([
+			["closed route", () => Effect.succeed(status), HttpStatus.fromLiteral("NotFound")],
+			["alice's session check", () => sessionCheck("alice"), "signed in"],
+			["stored notes", storedNotes, ["alice's note", "bob's note"]],
+		]);
+	},
+);
+
+accountDeletion.it(
+	"deleting alice's account keeps the pending codes of mary-alice@deletion.test, whose address ends in alice's",
+	[lookalikeAddressCodes],
+	function* ({ deleteAccount, storedVerifications }) {
+		yield* deleteAccount("alice");
+
+		expect(yield* storedVerifications()).toEqual([
+			"email-verification-otp-mary-alice@deletion.test",
+			"forget-password-otp-mary-alice@deletion.test",
+			"sign-in-otp-mary-alice@deletion.test",
 		]);
 	},
 );

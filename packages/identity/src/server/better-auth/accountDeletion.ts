@@ -1,18 +1,41 @@
-import { Effect, Layer } from "effect";
+import { type Context, Effect, Layer } from "effect";
+import * as Reactivity from "effect/reactivity/Reactivity";
+import { SqlClient } from "effect/sql";
 import { AccountDeletion } from "#server/AccountDeletion.ts";
 import { AccountDeletionPolicy } from "#server/better-auth/AccountDeletionPolicy.ts";
-import { boundHandOver } from "#server/better-auth/adapters/boundHandOver.ts";
 import type { AuthSchemaDeclaration } from "#server/better-auth/define.ts";
 import { deleteAccount } from "#server/better-auth/deleteAccount.ts";
 
-export interface AccountDeletionOptions<E, R> {
-	readonly handOver?: ((userId: string) => Effect.Effect<void, E, R>) | undefined;
+export interface AccountHandOver<E> {
+	readonly handOver: (userId: string) => Effect.Effect<void, E>;
 }
 
-export function accountDeletion<E = never, R = never>(auth: Pick<AuthSchemaDeclaration, "options">, options: AccountDeletionOptions<E, R> = {}) {
+export interface AccountDeletionOptions<TIdentifier, E> {
+	readonly handOver?: Context.Service<TIdentifier, AccountHandOver<E>> | undefined;
+}
+
+// A hand-over's failure is the application's to fix, so it is reported rather than answered to the person.
+export function accountDeletion<TIdentifier = never, E = never>(
+	auth: Pick<AuthSchemaDeclaration, "options">,
+	options: AccountDeletionOptions<TIdentifier, E> = {},
+) {
 	return Layer.effect(AccountDeletion)(
-		Effect.map(boundHandOver(options.handOver), (handOver) =>
-			AccountDeletion.of({ delete: (password) => deleteAccount(password).pipe(Effect.provideService(AccountDeletionPolicy, { auth, handOver })) }),
-		),
+		Effect.gen(function* () {
+			const sql = yield* SqlClient.SqlClient;
+			const reactivity = yield* Reactivity.Reactivity;
+			const service = options.handOver === undefined ? undefined : yield* options.handOver;
+			const policy = {
+				auth,
+				handOver: (userId: string) => (service === undefined ? Effect.void : Effect.orDie(service.handOver(userId))),
+			};
+			return AccountDeletion.of({
+				delete: (password) =>
+					deleteAccount(password).pipe(
+						Effect.provideService(AccountDeletionPolicy, policy),
+						Effect.provideService(SqlClient.SqlClient, sql),
+						Effect.provideService(Reactivity.Reactivity, reactivity),
+					),
+			});
+		}),
 	);
 }

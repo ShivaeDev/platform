@@ -1,6 +1,4 @@
 import { Context, type Effect, type Schema } from "effect";
-import type * as Reactivity from "effect/reactivity/Reactivity";
-import type { SqlClient } from "effect/sql";
 import type { SqlError } from "effect/sql/SqlError";
 import type { AuthUnavailable, BadRequest, PreconditionFailed } from "@shivaedev/errors/taxonomy.ts";
 import type { SessionUser } from "#identity.ts";

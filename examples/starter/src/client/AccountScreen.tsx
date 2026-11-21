@@ -1,9 +1,9 @@
 import { Option } from "effect";
-import * as AsyncResult from "effect/reactivity/AsyncResult";
-import { useId, useState } from "react";
+import { useEffect, useEffectEvent, useId } from "react";
 import type { ContractClient } from "@shivaedev/contract/makeClient.ts";
+import { useField } from "@shivaedev/form/react.ts";
 import type { Account } from "@shivaedev/identity/generated/Account.ts";
-import { useAction } from "@shivaedev/react/client/resultState.ts";
+import { useCreate } from "@shivaedev/react/client/create.ts";
 import { Button } from "#client/ui/button.tsx";
 import { Card, CardContent } from "#client/ui/card.tsx";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "#client/ui/dialog.tsx";
@@ -33,16 +33,18 @@ export function AccountScreen({ client, onDeleted }: { readonly client: Contract
 
 function DeleteAccount({ client, onDeleted }: { readonly client: ContractClient<typeof Account>; readonly onDeleted: () => void }) {
 	const passwordId = useId();
-	const [password, setPassword] = useState("");
-	// The dialog says why the password was refused, so the notice host stays quiet for those two.
-	const deletion = useAction(client.delete, { failures: { BadRequest: "silent", PreconditionFailed: "silent" }, onSuccess: onDeleted });
-	const refusal = AsyncResult.error(deletion.result).pipe(
-		Option.filter((error) => error._tag === "BadRequest" || error._tag === "PreconditionFailed"),
-		Option.map((error) => error.message),
-	);
-	const refusalMessage = !deletion.pending && Option.isSome(refusal) && (
-		<p className="text-destructive text-sm" role="alert">
-			{refusal.value}
+	const errorId = useId();
+	const deletion = useCreate(client.delete, { initialValues: { password: "" } });
+	const password = useField(deletion.form, "password");
+	const deleted = useEffectEvent(onDeleted);
+	useEffect(() => {
+		if (Option.isSome(deletion.created)) {
+			deleted();
+		}
+	}, [deletion.created]);
+	const passwordError = Boolean(password.error) && (
+		<p className="text-destructive text-sm" id={errorId} role="alert">
+			{password.error}
 		</p>
 	);
 	return (
@@ -53,7 +55,7 @@ function DeleteAccount({ client, onDeleted }: { readonly client: ContractClient<
 					className="space-y-4"
 					onSubmit={(event) => {
 						event.preventDefault();
-						deletion.dispatch({ password });
+						deletion.save();
 					}}
 				>
 					<DialogHeader>
@@ -63,17 +65,20 @@ function DeleteAccount({ client, onDeleted }: { readonly client: ContractClient<
 					<div className="space-y-2">
 						<label htmlFor={passwordId}>Password</label>
 						<Input
+							aria-describedby={password.error ? errorId : undefined}
+							aria-invalid={Boolean(password.error)}
 							autoComplete="current-password"
 							id={passwordId}
-							onChange={(event) => setPassword(event.target.value)}
+							onBlur={password.onBlur}
+							onChange={(event) => password.onChange(event.target.value)}
 							type="password"
-							value={password}
+							value={password.value}
 						/>
 					</div>
-					{refusalMessage}
+					{passwordError}
 					<DialogFooter>
-						<Button disabled={deletion.pending} type="submit" variant="destructive">
-							{deletion.pending ? "Deleting…" : "Delete my account"}
+						<Button disabled={deletion.saving} type="submit" variant="destructive">
+							{deletion.saving ? "Deleting…" : "Delete my account"}
 						</Button>
 					</DialogFooter>
 				</form>
