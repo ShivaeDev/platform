@@ -60,6 +60,7 @@
 		"@shivaedev/changes": "workspace:*",
 		"@shivaedev/contract": "workspace:*",
 		"@shivaedev/errors": "workspace:*",
+		"@shivaedev/react": "workspace:*",
 		"@shivaedev/sql": "workspace:*",
 		"@shivaedev/test-story": "workspace:*",
 		"@types/node": "catalog:",

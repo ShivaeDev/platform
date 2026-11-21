@@ -807,6 +807,9 @@ importers:
       '@shivaedev/errors':
         specifier: workspace:*
         version: link:../errors
+      '@shivaedev/react':
+        specifier: workspace:*
+        version: link:../react
       '@shivaedev/sql':
         specifier: workspace:*
         version: link:../sql

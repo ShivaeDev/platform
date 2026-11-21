@@ -6,6 +6,7 @@ import {
 	generatedOnce,
 	notesApplication,
 	pageImporting,
+	pageImportingOperations,
 	pageImportingTheTagsClient,
 	refusedModule,
 	screenImportingTheModule,
@@ -64,6 +65,64 @@ for (const [kind, serverOnly, end] of CHAIN_ENDS) {
 		},
 	);
 }
+
+for (const kind of ["Platform's deployUpdate", "a contract that imports only stream from operation.ts"] as const) {
+	vite.it(
+		`vite build bundles a page whose script imports ${kind}, since a contract that lists only streams is no operation file`,
+		[notesApplication(), generatedOnce(), pageImportingOperations(kind)],
+		function* ({ builds }) {
+			const built = yield* builds();
+
+			expect(built).toBe("built");
+		},
+	);
+}
+
+const TAKING_QUERY = [
+	["a CommonJS contract that requires operation.ts", "src/modules/billing/contract.cjs"],
+	["a contract that imports query from operation.ts", "src/modules/billing/contract.ts"],
+	["a contract that imports operation.ts as a namespace", "src/modules/billing/contract.ts"],
+	["a contract that imports operation.ts dynamically", "src/modules/billing/contract.ts"],
+	[
+		"a contract that takes query from a file re-exporting all of operation.ts",
+		"src/modules/billing/contract.ts\n  → src/modules/billing/operations.ts",
+	],
+	[
+		"a contract that takes query from a file re-exporting it from operation.ts",
+		"src/modules/billing/contract.ts\n  → src/modules/billing/operations.ts",
+	],
+] as const;
+
+for (const [kind, chain] of TAKING_QUERY) {
+	vite.it(
+		`vite build fails when the page's script imports ${kind}, naming the file that takes query as an operation file`,
+		[notesApplication(), generatedOnce(), pageImportingOperations(kind)],
+		function* ({ builds }) {
+			const built = yield* builds();
+			const file = chain.split("\n  → ").at(-1);
+
+			expect(built).toEqual({
+				failed: expect.stringContaining(
+					`Server code reached the browser bundle: ${file} is an operation file: it defines a query or a command. The import chain from the client entry:\n  index.html\n  → src/client.ts\n  → ${chain}\n`,
+				),
+			});
+		},
+	);
+}
+
+vite.it(
+	"vite build fails, naming the module, when the bundle check cannot read a module that imports operation.ts",
+	[notesApplication(), generatedOnce(), pageImportingOperations("a CommonJS contract that requires operation.ts and returns early at its top level")],
+	function* ({ builds }) {
+		const built = yield* builds();
+
+		expect(built).toEqual({
+			failed: expect.stringContaining(
+				"The bundle check cannot read src/modules/billing/contract.cjs, which imports @shivaedev/contract/operation.ts: ",
+			),
+		});
+	},
+);
 
 vite.it("vite build stops on a refusal with the generator's message", [notesApplication(), refusedModule()], function* ({ builds }) {
 	const built = yield* builds();
