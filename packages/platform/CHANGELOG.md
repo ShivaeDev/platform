@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.41.0 - 2026-11-21
+
+### Changed
+
+- Update `@shivaedev/access` from 0.7.0 to 0.7.1.
+- Update `@shivaedev/admin` from 0.29.9 to 0.29.10.
+- Update `@shivaedev/contract` from 0.59.0 to 0.59.1.
+- Update `@shivaedev/email` from 0.10.2 to 0.10.3.
+- Update `@shivaedev/errors` from 0.14.1 to 0.15.0.
+- Update `@shivaedev/form` from 0.21.0 to 0.21.1.
+- Update `@shivaedev/github` from 0.20.0 to 0.20.1.
+- Update `@shivaedev/http` from 0.9.2 to 0.9.3.
+- Update `@shivaedev/identity` from 0.44.1 to 0.44.2.
+- Update `@shivaedev/jobs` from 0.45.0 to 0.45.1.
+- Update `@shivaedev/rate-limit` from 0.8.1 to 0.8.2.
+- Update `@shivaedev/react` from 0.59.3 to 0.59.4.
+- Update `@shivaedev/server` from 0.46.3 to 0.46.4.
+- Update `@shivaedev/webhooks` from 0.13.3 to 0.13.4.
+
+### Breaking
+
+- `@shivaedev/errors`: a name that an exported Schema class marks in a `GeneratedSuccess` RPC's success is now masked in that RPC's failures sent to the browser, as a model's names are. An application whose RPC returns such a class and whose declared rejection carries a field of the same name now receives that field masked after upgrading, without a code change: `0` for a number, `<redacted>` for a string, `false` for a boolean, and the other shapes as the README's failure-mask paragraph states them. A defined module's `$changes` carries every query's success, so through a module's live updates every query's rejections lose that field. To migrate, rename the rejection's field when the person must see its value.
+
 ## 0.40.43 - 2026-11-21
 
 ### Changed

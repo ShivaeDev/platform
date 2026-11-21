@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.9.6 - 2026-11-21
+
+### Changed
+
+- The story-testing skill says that a verb that refreshes or retries a loaded query settles on `activityScreenSignal(activity, isClientIdle)`, because the default check does not wait for that refresh.
+
 ## 0.9.5 - 2026-11-21
 
 ### Changed
