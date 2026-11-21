@@ -5,7 +5,7 @@ import * as Atom from "effect/reactivity/Atom";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import * as Socket from "effect/socket/Socket";
 import { makeClient } from "@shivaedev/contract/makeClient.ts";
-import { sessionCredentialClient } from "#client/adapters/sessionCredentialClient.ts";
+import { sessionCredentialPlugin } from "#client/adapters/sessionCredentialPlugin.ts";
 import { SessionCredential, storedCredential } from "#client/SessionCredential.ts";
 import { Api } from "#test/native-sessions/api.ts";
 import { type Host, NATIVE_ORIGIN } from "#test/native-sessions/host.ts";
@@ -31,7 +31,6 @@ export function memoryCredential() {
 	return { layer, stored };
 }
 
-// A WebView's WebSocket takes no upgrade headers; the bundled origin comes from the shell itself.
 const webView = Layer.succeed(Socket.WebSocketConstructor, (url, protocols) => {
 	if (protocols !== undefined && typeof protocols !== "string" && !Array.isArray(protocols)) {
 		throw new Error("The WebView cannot set upgrade headers");
@@ -43,7 +42,6 @@ export function nativeShell(host: Host) {
 	const credential = memoryCredential();
 	const modes = new Set<string>();
 	const network: { hold: HeldAnswer | undefined } = { hold: undefined };
-	// The WebView's fetch records the credentials mode it is asked for and can hold one session check's answer.
 	async function shellFetch(input: string | URL | Request, init?: RequestInit) {
 		modes.add(init?.credentials ?? "default");
 		const response = await fetch(input, init);
@@ -57,7 +55,7 @@ export function nativeShell(host: Host) {
 	const auth = createAuthClient({
 		"baseURL": host.baseUrl,
 		fetchOptions: { customFetchImpl: shellFetch, headers: { origin: NATIVE_ORIGIN } },
-		plugins: [sessionCredentialClient(credential.layer)],
+		plugins: [sessionCredentialPlugin(credential.layer)],
 	});
 	// Each read connects a new client, as a new session generation does, so its socket reads the stored credential.
 	const readOverSocket = Effect.fnUntraced(function* (owner: string) {

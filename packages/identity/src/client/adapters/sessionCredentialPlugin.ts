@@ -23,7 +23,7 @@ interface CredentialFetchPlugin {
 	readonly name: string;
 }
 
-export interface SessionCredentialClient {
+export interface SessionCredentialPlugin {
 	readonly fetchPlugins: CredentialFetchPlugin[];
 	readonly id: "session-credential";
 }
@@ -58,7 +58,7 @@ const settle = Effect.fnUntraced(function* ({ data, request, response }: Credent
 	}
 });
 
-export function sessionCredentialClient(credential: Layer.Layer<SessionCredential>): SessionCredentialClient {
+export function sessionCredentialPlugin(credential: Layer.Layer<SessionCredential>): SessionCredentialPlugin {
 	return {
 		fetchPlugins: [
 			{

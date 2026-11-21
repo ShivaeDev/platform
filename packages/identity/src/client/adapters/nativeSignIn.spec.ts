@@ -38,9 +38,10 @@ nativeSessions.it(
 		yield* shellSignsIn("alice");
 		yield* sessionExpires();
 
-		expect(yield* shellChecksSession()).toBe("no session");
-
-		expect(yield* storedCredentialSession()).toBe("no credential");
+		yield* outcomes([
+			["session check", () => shellChecksSession(), "no session"],
+			["stored credential", () => storedCredentialSession(), "no credential"],
+		]);
 	},
 );
 

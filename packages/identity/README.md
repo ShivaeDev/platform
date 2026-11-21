@@ -547,10 +547,10 @@ Pass that Layer to the Better Auth client as a plugin, and to `makeClient` throu
 import { createAuthClient } from "better-auth/client";
 import { Effect } from "effect";
 import { makeClient } from "@shivaedev/contract/makeClient.ts";
-import { sessionCredentialClient } from "@shivaedev/identity/client/adapters/sessionCredentialClient.ts";
+import { sessionCredentialPlugin } from "@shivaedev/identity/client/adapters/sessionCredentialPlugin.ts";
 import { storedCredential } from "@shivaedev/identity/client/SessionCredential.ts";
 
-export const authClient = createAuthClient({ baseURL: publicOrigin, plugins: [sessionCredentialClient(secureCredential)] });
+export const authClient = createAuthClient({ baseURL: publicOrigin, plugins: [sessionCredentialPlugin(secureCredential)] });
 const client = makeClient(contracts, { bearerToken: Effect.provide(storedCredential, secureCredential), registry, url: `${publicOrigin}/rpc` });
 ```
 
