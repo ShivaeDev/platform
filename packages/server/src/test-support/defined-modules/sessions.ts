@@ -8,7 +8,7 @@ export const sessions = Layer.succeed(SessionPolicy, {
 		get: (headers) =>
 			Effect.succeed(
 				headers.authorization === "alice"
-					? Option.some({ user: { email: "alice@example.test", emailVerified: true, id: "alice", name: "Alice", role: "user" } })
+					? Option.some({ user: { email: "alice@example.test", emailVerified: true, id: "alice", name: "Alice", role: "operator" } })
 					: Option.none(),
 			),
 	},

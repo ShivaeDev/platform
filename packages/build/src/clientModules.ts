@@ -1,6 +1,6 @@
 import ts from "typescript";
 import { type ExportedVariable, exportedVariables, exportsAnything } from "#exportedVariables.ts";
-import type { FileRegistrations } from "#registrations.ts";
+import { type FileRegistrations, isServerPath } from "#registrations.ts";
 
 const CLIENT_MODULE = "@shivaedev/react/client/module.ts";
 
@@ -49,16 +49,12 @@ export function isClientModuleFile(file: string): boolean {
 	return /[\\/]modules[\\/].+[\\/]client[\\/](?:admin[\\/])?module\.tsx?$/u.test(file);
 }
 
-// Server code never reaches the browser bundle, so the client's list must never import a file under a server folder.
-function isServerPath(file: string): boolean {
-	return /(?:^|[\\/])server[\\/]/u.test(file);
-}
-
 export function clientModulesIn(source: ts.SourceFile): Omit<FileRegistrations, "file"> {
 	const names = clientModuleNames(source);
 	const found = exportedVariables(source)
 		.filter(({ variable }: ExportedVariable) => callsClientModule(variable.initializer, names))
 		.map(({ name }) => name);
+	// Server code never reaches the browser bundle, so the client's list must never import a file under a server folder.
 	if (found.length > 0 && isServerPath(source.fileName)) {
 		return {
 			refusals: [

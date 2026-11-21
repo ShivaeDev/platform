@@ -1,6 +1,6 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { definedModulesHost, handWrittenNotes, queueSharedWithGreetings, replacedNotes } from "#test/defined-modules/story.ts";
+import { definedModulesHost, handWrittenNotes, queueSharedWithDrafts, queueSharedWithGreetings, replacedNotes } from "#test/defined-modules/story.ts";
 
 definedModulesHost.it(
 	"one host serves the hand-written drafts module and the defined notes module side by side, each answering a success and a rejection",
@@ -68,5 +68,33 @@ definedModulesHost.it(
 	[queueSharedWithGreetings],
 	function* ({ startup }) {
 		expect(yield* startup()).toBe('Queue "drafts.publish" is declared by both "drafts" and "greetings".');
+	},
+);
+
+definedModulesHost.it(
+	"a registration that brings only an admin page, with no group, handlers, name or services, is served beside the modules",
+	[],
+	function* ({ createNote, readUsage }) {
+		yield* createNote("Groceries");
+
+		expect(yield* readUsage()).toEqual(["Groceries"]);
+	},
+);
+
+definedModulesHost.it(
+	"a queue declared by the drafts module and by a registration with no name but an admin page is refused, naming that registration by its admin page",
+	[queueSharedWithDrafts("the usage report")],
+	function* ({ startup }) {
+		expect(yield* startup()).toBe('Queue "drafts.publish" is declared by both "drafts" and the registration of admin page "usage".');
+	},
+);
+
+definedModulesHost.it(
+	"a queue declared by the drafts module and by a registration with neither a name nor an admin page is refused, saying it has no name and to give it one",
+	[queueSharedWithDrafts("the reminders registration")],
+	function* ({ startup }) {
+		expect(yield* startup()).toBe(
+			'Queue "drafts.publish" is declared by both "drafts" and a registration with no name. Give the registration with no name a `name` so this message can name it.',
+		);
 	},
 );

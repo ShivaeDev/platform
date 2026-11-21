@@ -62,7 +62,5 @@ export const publishingModule = {
 export const indexingModule = {
 	name: "indexing",
 	...jobModule(TaskJobs.layer, { jobs: [Indexed.handle(({ title }) => store(title))] }),
-	group: RpcGroup.make(),
-	handlers: Layer.empty,
 	services: TaskJobs.layer({ jobs: [Indexed] }),
 } satisfies AppModule;
