@@ -30,7 +30,7 @@ export const initialPostgres = storyKit({
 		const wire = transport();
 		const runtime = yield* storyRuntime;
 		const client = makeClient(Api, { runtime, url: host.url, webSocketConstructor: wire.layer });
-		const writer = makeClient(Api, { live: false, runtime, url: host.url, webSocketConstructor: layerWebSocketConstructor });
+		const writer = makeClient(Api, { runtime, url: host.url, webSocketConstructor: layerWebSocketConstructor });
 		const writerRegistry = yield* Effect.acquireRelease(
 			Effect.sync(() => AtomRegistry.make()),
 			(registry) => Effect.sync(() => registry.dispose()),

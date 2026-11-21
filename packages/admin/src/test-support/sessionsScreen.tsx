@@ -44,8 +44,7 @@ export const sessionsScreen = storyKit({
 				Effect.sync(() => screenOf(engine).querySelector('[aria-label="Confirm session revocation"]')?.textContent ?? "no confirmation"),
 			confirmationFocused: () =>
 				Effect.sync(() => screenOf(engine).querySelector('[aria-label="Confirm session revocation"]') === document.activeElement),
-			confirmRevoke: () =>
-				Effect.andThen(driver.click({ name: "Confirm revoke", role: "button" }), driverFor(engine, story.tell, isClientIdle).settle()),
+			confirmRevoke: () => Effect.andThen(driver.click({ name: "Confirm revoke", role: "button" }), driver.settle()),
 			content: () => Effect.sync(() => screenOf(engine).textContent),
 			nextSessions: () => Effect.andThen(driver.click({ name: "Next sessions", role: "button" }), driver.settle()),
 			previousSessions: () => Effect.andThen(driver.click({ name: "Previous sessions", role: "button" }), driver.settle()),
@@ -80,14 +79,14 @@ const openView = Effect.fnUntraced(function* (engine: Engine, dates: DateDisplay
 
 export const sessionsViewOpen = sessionsScreen.trait(
 	"screen",
-	"the Sessions view opens against the admin HTTP host, set to British English and Berlin time",
+	"the Sessions view opens against the admin socket host, set to British English and Berlin time",
 	(engine) => openView(engine, { locale: "en-GB", timeZone: "Europe/Berlin" }),
 );
 
 export function sessionsViewOpenInBrowserZone(timeZone: string) {
 	return sessionsScreen.trait(
 		"screen",
-		`the Sessions view opens against the admin HTTP host in British English with no time zone of its own, in a browser whose time zone is ${timeZone}`,
+		`the Sessions view opens against the admin socket host in British English with no time zone of its own, in a browser whose time zone is ${timeZone}`,
 		function* (engine) {
 			yield* browserZone(timeZone);
 			yield* openView(engine, { locale: "en-GB" });

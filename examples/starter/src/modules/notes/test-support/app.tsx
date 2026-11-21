@@ -144,7 +144,7 @@ export function notesHostScreen(initial = "/sign-in") {
 			const client = makeNotesClient(`${engine.baseUrl}/rpc`, {
 				...(engine.headers.has("cookie") ? { headers: Object.fromEntries(engine.headers), webSocketConstructor: layerWebSocketConstructor } : {}),
 			});
-			engine.activity = clientActivity(client);
+			engine.activities = [clientActivity(client)];
 			return clientModules(session, [notesRegistration(client)]);
 		}
 

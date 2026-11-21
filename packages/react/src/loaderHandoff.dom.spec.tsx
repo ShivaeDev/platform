@@ -2,20 +2,20 @@ import { Effect } from "effect";
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { loaderScreen } from "#test/loaderScreen.tsx";
-import { noteLeftAfterShowing, noteLoadedButNotMounted, noteLoadWaiting, noteMountedAfterIdleWindow, noteShown } from "#test/loaderTraits.ts";
+import { noteLeftAfterShowing, noteLoadWaiting, noteMountedAfterIdleWindow, noteShown } from "#test/loaderTraits.ts";
 
 loaderScreen.it(
-	"leaving a route whose loader is waiting shows the other screen and releases the query source after the idle window",
+	"leaving a route whose loader is waiting shows the other screen and releases the query after the idle window",
 	[noteLoadWaiting()],
-	function* ({ idleWindowPasses, leave, loaderSource, shownTitle }) {
-		expect(yield* loaderSource()).toBe("held");
+	function* ({ idleWindowPasses, leave, loaderQuery, shownTitle }) {
+		expect(yield* loaderQuery()).toBe("held");
 
 		yield* leave();
 		yield* idleWindowPasses();
 
 		yield* outcomes([
 			["shown title", () => shownTitle(), "Other screen"],
-			["loader source", () => loaderSource(), "released"],
+			["loader query", () => loaderQuery(), "released"],
 		]);
 	},
 );
@@ -28,20 +28,6 @@ loaderScreen.it(
 			["first renders", () => firstRenders(), ["Delayed note"]],
 			["server calls", () => serverCalls(), ["get"]],
 		]);
-	},
-);
-
-loaderScreen.it(
-	"leaving a route before it renders holds its completed loader's query only until the hand-over window passes",
-	[noteLoadedButNotMounted("Unread note")],
-	function* ({ handOverWindowPasses, leave, loaderSource }) {
-		yield* leave();
-
-		expect(yield* loaderSource()).toBe("held");
-
-		yield* handOverWindowPasses();
-
-		expect(yield* loaderSource()).toBe("released");
 	},
 );
 

@@ -88,7 +88,7 @@ export const pageHost = storyKit({
 					transformClient: HttpClient.mapRequest(HttpClientRequest.setHeader("authorization", role)),
 					url: `${url}/rpc`,
 				}).pipe(Layer.provide([FetchHttpClient.layer, RpcSerialization.layerNdjson]));
-				const { client } = makeClient(Workspaces.contract, { headers: { authorization: role }, live: false, protocol, url: `${url}/rpc` });
+				const { client } = makeClient(Workspaces.contract, { headers: { authorization: role }, protocol, url: `${url}/rpc` });
 				return yield* answered(Effect.flatMap(client, (rpc) => rpc["admin.workspaces.read"]({ id: "studio" })));
 			}),
 	}),

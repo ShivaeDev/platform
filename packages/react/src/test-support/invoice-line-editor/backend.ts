@@ -1,12 +1,13 @@
-import { Context, Deferred, Effect, Layer, Schema, Stream } from "effect";
+import { Context, Deferred, Effect, Layer, Schema } from "effect";
 import * as AtomRpc from "effect/reactivity/AtomRpc";
-import { RpcMiddleware, RpcTest } from "effect/rpc";
+import { RpcMiddleware } from "effect/rpc";
 import { collection } from "@shivaedev/changes/keys.ts";
 import { bind } from "@shivaedev/contract/bind.ts";
 import { contract } from "@shivaedev/contract/contract.ts";
 import { command, query } from "@shivaedev/contract/operation.ts";
 import { fieldRejection } from "@shivaedev/contract/rejection.ts";
 import { Conflict, Unauthorized } from "@shivaedev/errors/taxonomy.ts";
+import { layerLiveMemoryProtocol } from "@shivaedev/test-kits/contract/liveMemoryProtocol.ts";
 
 export class InvoiceLine extends Schema.Class<InvoiceLine>("InvoiceLine")({
 	id: Schema.Number,
@@ -83,8 +84,7 @@ export function makeInvoiceLineServer(initial: readonly InvoiceLine[]) {
 	const counted = Effect.sync(() => {
 		control.saves += 1;
 	}).pipe(Effect.andThen(admitted));
-	const handlers = InvoiceLines.toLayer({
-		"invoiceLines.$changes": () => Stream.never,
+	const handlers = InvoiceLines.application.toLayer({
 		"invoiceLines.create": (draft) =>
 			counted.pipe(
 				Effect.andThen(normalized(draft).pipe(Effect.catch((rejection) => CreateInvoiceLine.reject.InvoiceLineRejected(rejection)))),
@@ -125,10 +125,9 @@ export function makeInvoiceLineServer(initial: readonly InvoiceLine[]) {
 	);
 	class Client extends AtomRpc.Service<Client>()("test/InvoiceLineClient", {
 		group: InvoiceLines,
-		makeEffect: RpcTest.makeClient(InvoiceLines, { flatten: true }),
-		protocol: Layer.merge(handlers, guard),
+		protocol: layerLiveMemoryProtocol(InvoiceLines, Layer.merge(handlers, guard)),
 	}) {}
-	const api = bind(InvoiceLines, Client, { live: false });
+	const api = bind(InvoiceLines, Client);
 	function edit(line: InvoiceLine) {
 		return store.set(line.id, line);
 	}

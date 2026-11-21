@@ -99,23 +99,27 @@ export const commands = storyKit({
 });
 
 export function connected(custom = false, shared = false) {
-	return commands.trait(
-		"connection",
-		custom ? "a native socket protocol is supplied by the story" : "the default socket client is connected",
-		function* (engine) {
-			engine.state.connection = engine.connect(custom);
-			const { client, run } = engine.connection();
-			engine.registry.mount(client.runtime);
-			yield* run(client.api.value.run());
-			yield* Queue.take(engine.events);
-			if (shared) {
-				engine.state.connection = engine.connect(true, engine.connection().protocol);
-				const peer = engine.connection();
-				engine.registry.mount(peer.client.runtime);
-				yield* peer.run(peer.client.api.value.run());
-			}
-		},
-	);
+	return connection(custom ? "a native socket protocol is supplied by the story" : "the default socket client is connected", custom, shared, true);
+}
+
+export function connectedWithoutLive() {
+	return connection("the default socket client is connected with live: false", false, false, false);
+}
+
+function connection(line: string, custom: boolean, shared: boolean, live: boolean) {
+	return commands.trait("connection", line, function* (engine) {
+		engine.state.connection = engine.connect(custom, undefined, live);
+		const { client, run } = engine.connection();
+		engine.registry.mount(client.runtime);
+		yield* run(client.api.value.run());
+		yield* Queue.take(engine.events);
+		if (shared) {
+			engine.state.connection = engine.connect(true, engine.connection().protocol);
+			const peer = engine.connection();
+			engine.registry.mount(peer.client.runtime);
+			yield* peer.run(peer.client.api.value.run());
+		}
+	});
 }
 
 export function showingValue() {

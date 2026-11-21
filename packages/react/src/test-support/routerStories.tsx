@@ -1,6 +1,6 @@
 import { RegistryContext } from "@effect/atom-react";
 import { RouterProvider } from "@tanstack/react-router";
-import { Deferred, Effect } from "effect";
+import { Deferred, Effect, Equal } from "effect";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { act } from "react";
 import { NotFound } from "@shivaedev/errors/taxonomy.ts";
@@ -157,7 +157,7 @@ function* openRoute(
 	);
 	const root = yield* screen.open(
 		null,
-		expectedFailure ? { onCaughtError: screenWarnings.expectCaughtError((error) => error === expectedFailure) } : undefined,
+		expectedFailure ? { onCaughtError: screenWarnings.expectCaughtError((error) => Equal.equals(error, expectedFailure)) } : undefined,
 	);
 	state.root = root;
 	const router = routerApp(registry, state.client, initial, viewerPage, refusals);

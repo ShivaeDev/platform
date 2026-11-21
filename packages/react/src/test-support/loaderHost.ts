@@ -1,12 +1,8 @@
-import { createServer } from "node:http";
-import { NodeHttpServer } from "@effect/platform-node";
-import { Deferred, Effect, Layer, Schema, Stream } from "effect";
-import { FetchHttpClient, HttpRouter, HttpServer } from "effect/http";
-import * as NetAddress from "effect/net/NetAddress";
-import { RpcClient, RpcSerialization, RpcServer } from "effect/rpc";
+import { Deferred, Effect, Schema } from "effect";
 import { makeClient as makeRpcClient } from "@shivaedev/contract/bind.ts";
 import { contract } from "@shivaedev/contract/contract.ts";
 import { command, query } from "@shivaedev/contract/operation.ts";
+import { layerLiveMemoryProtocol } from "@shivaedev/test-kits/contract/liveMemoryProtocol.ts";
 import { storyRuntime } from "#test/storyRuntime.ts";
 
 const notes = { _tag: "List", collection: "loaderNotes" } as const;
@@ -18,8 +14,7 @@ export const loaderHost = Effect.fnUntraced(function* () {
 	const calls: string[] = [];
 	const started = yield* Deferred.make<void>();
 	let response = Promise.withResolvers<{ readonly title: string }>();
-	const handlers = Notes.toLayer({
-		"loaderNotes.$changes": () => Stream.never,
+	const handlers = Notes.application.toLayer({
 		"loaderNotes.get": () =>
 			Effect.suspend(() => {
 				calls.push("get");
@@ -31,25 +26,12 @@ export const loaderHost = Effect.fnUntraced(function* () {
 				response.resolve({ title });
 			}),
 	});
-	const routes = RpcServer.layerHttp({ group: Notes, path: "/rpc", protocol: "http" }).pipe(Layer.provide([handlers, RpcSerialization.layerJson]));
-	const context = yield* Layer.build(
-		HttpRouter.serve(routes, { disableLogger: true }).pipe(Layer.provideMerge(NodeHttpServer.layer(createServer, { host: "127.0.0.1", port: 0 }))),
-	);
-	const server = yield* HttpServer.HttpServer.pipe(Effect.provide(context));
-	if (!NetAddress.isInetAddress(server.address)) {
-		return yield* Effect.die("Expected a TCP host");
-	}
-	const url = `http://${NetAddress.formatIp(server.address.address)}:${server.address.port}/rpc`;
 	const { api, Client } = makeRpcClient(Notes, {
-		live: false,
-		protocol: RpcClient.layerProtocolHttp({ url }).pipe(Layer.provide([FetchHttpClient.layer, RpcSerialization.layerJson])),
+		protocol: layerLiveMemoryProtocol(Notes, handlers),
 		runtime: yield* storyRuntime,
-		url,
+		url: "memory://loader-notes",
 	});
 	const atom = api.get.query();
-	if (!atom.initialValueTarget) {
-		return yield* Effect.die("Expected a native reactive query source");
-	}
 	return {
 		atom,
 		calls,
@@ -58,7 +40,6 @@ export const loaderHost = Effect.fnUntraced(function* () {
 		},
 		rename: (title: string) => Client.runtime.atom(api.rename.run({ title })),
 		respond: (title: string) => response.resolve({ title }),
-		source: atom.initialValueTarget,
 		started: Deferred.await(started),
 	};
 });

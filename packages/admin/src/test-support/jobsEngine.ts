@@ -6,7 +6,7 @@ import { SessionUser } from "@shivaedev/identity/identity.ts";
 import { defineQueue } from "@shivaedev/jobs/server/definition.ts";
 import { JobsClientFactory } from "@shivaedev/jobs/server/JobsClientFactory.ts";
 import { makePgBoss, pgBossLayer } from "@shivaedev/jobs/server/service.ts";
-import { hostChanges } from "@shivaedev/server/hostChanges.ts";
+import { liveHost } from "@shivaedev/test-kits/contract/liveMemoryProtocol.ts";
 import { makePgBossTesting } from "@shivaedev/test-kits/jobs/testing.ts";
 import { postgresTestUrl } from "@shivaedev/test-sql/server/adapters/postgresTestUrl.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
@@ -90,12 +90,12 @@ export const jobsEngine = Effect.gen(function* () {
 		jobs: moduleHandlers(JobsWithRetry),
 		users: Users.contract.application.toLayer({ "admin.users.profile": () => Effect.map(SessionUser, (user) => user.email) }),
 	});
-	const rpc = yield* adminRpc(
+	const host = yield* liveHost(
 		registration.group,
-		hostChanges(registration.group)
-			.pipe(Layer.provideMerge(registration.handlers))
-			.pipe(Layer.provide(pgBossQueues(Jobs, ...queues)), Layer.provide(Layer.succeed(Jobs, jobs))),
+		registration.handlers.pipe(Layer.provide(pgBossQueues(Jobs, ...queues)), Layer.provide(Layer.succeed(Jobs, jobs))),
+		{ protocol: "websocket" },
 	);
+	const rpc = yield* adminRpc(registration.group, host);
 
 	return {
 		...rpc,

@@ -1,14 +1,16 @@
 import { createServer } from "node:http";
 import { NodeHttpServer } from "@effect/platform-node";
-import { Context, Effect, Layer, Option, Stream } from "effect";
-import { FetchHttpClient, HttpRouter, HttpServer } from "effect/http";
+import { layerWebSocketConstructor } from "@effect/platform-node/NodeWS";
+import { Context, Effect, Layer, Option } from "effect";
+import { HttpRouter, HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
-import { RpcClient, RpcSerialization, RpcServer } from "effect/rpc";
+import { RpcSerialization, RpcServer } from "effect/rpc";
 import { makeClient as makeRpcClient } from "@shivaedev/contract/bind.ts";
 import { ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import { authSession as readSession } from "@shivaedev/identity/client/adapters/authSession.ts";
 import { permissionLayer } from "@shivaedev/identity/server/permissionLayer.ts";
 import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
+import { liveHost } from "@shivaedev/test-kits/contract/liveMemoryProtocol.ts";
 import { authSession } from "#client/authSession.ts";
 import { Notes, ReadPermission, type Role, Roles } from "#test/permission-routes/feature.ts";
 
@@ -27,13 +29,13 @@ export const openHost = Effect.fnUntraced(function* (initial: Role | undefined) 
 		},
 		roles: Roles,
 	};
-	const handlers = Notes.toLayer({
-		"permissionNotes.$changes": () => Stream.never,
+	const handlers = Notes.application.toLayer({
 		"permissionNotes.get": ({ id }) =>
 			id === "offline" ? Effect.fail(new ServiceUnavailable({ message: "Query service unavailable" })) : Effect.succeed(`Note ${id}`),
 	});
-	const routes = RpcServer.layerHttp({ group: Notes, path: "/rpc", protocol: "http" }).pipe(
-		Layer.provide([handlers, permissionLayer(ReadPermission), RpcSerialization.layerJson]),
+	const host = yield* liveHost(Notes, handlers, { protocol: "websocket" });
+	const routes = RpcServer.layerHttp({ group: host.group, path: "/rpc", protocol: "websocket" }).pipe(
+		Layer.provide([host.handlers, permissionLayer(ReadPermission), RpcSerialization.layerNdjson]),
 		Layer.provide(Layer.succeed(SessionPolicy, sessions)),
 	);
 	const context = yield* Layer.build(
@@ -42,7 +44,7 @@ export const openHost = Effect.fnUntraced(function* (initial: Role | undefined) 
 				NodeHttpServer.layer(
 					() => {
 						const server = createServer();
-						server.on("request", (request) => {
+						server.on("upgrade", (request) => {
 							requests.push(`${request.method} ${request.url}`);
 						});
 						return server;
@@ -57,11 +59,7 @@ export const openHost = Effect.fnUntraced(function* (initial: Role | undefined) 
 		return yield* Effect.die(new Error("Expected a TCP host"));
 	}
 	const url = `http://127.0.0.1:${address.port}/rpc`;
-	const { api } = makeRpcClient(Notes, {
-		live: false,
-		protocol: RpcClient.layerProtocolHttp({ url }).pipe(Layer.provide([FetchHttpClient.layer, RpcSerialization.layerJson])),
-		url,
-	});
+	const { api } = makeRpcClient(Notes, { url, webSocketConstructor: layerWebSocketConstructor });
 	return {
 		api,
 		readSession: (role: Role) =>

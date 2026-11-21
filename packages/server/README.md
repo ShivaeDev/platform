@@ -479,7 +479,7 @@ A nested `runWithServices` call replaces the outer invocation's overrides for it
 
 ### Node subscriptions: combine cancellation and clean up
 
-A native host that builds `hostChanges(group)` supplies its ordinary RPC handlers with `hostChanges(group).pipe(Layer.provideMerge(handlers))`. These are Layer dependencies because the subscription executes the authorized query handlers to produce its first result. `appHost` supplies them automatically.
+A native RPC host serves what `appHost` serves through two pieces. `yield* servedGroup(group, websocket)` from `@shivaedev/server/servedGroup.ts` returns the `group` to serve, with the read policy guard and the command guard in place, and the `guards` Layer to provide: a host with `websocket: false` refuses `$changes` calls with `WebSocketRequired`, as `appHost`'s HTTP route does. `servedHandlers(group, handlers, buildVersion?)` from `@shivaedev/server/servedHandlers.ts` adds the group's change stream, the host version and live sync to the application's handlers; the change stream depends on the ordinary handlers because a subscription runs the authorized query to produce its first result. `appHost` composes both itself.
 
 A long-lived response can receive cancellation from a Web request, a procedure and its underlying Node connection:
 
@@ -591,6 +591,7 @@ Import the module that defines the name; there is no package-root entry. Paths b
 | `migrationsIn.ts`                                                                        | `migrationsIn(directory)`: an `AppModule` `migrations` value that loads the `migrations` folder in `directory` under Node.                                                                                                                  |
 | `adapters/makePlatformRuntime.ts`                                                        | `makePlatformRuntime(layer, { developmentCacheKey? })`.                                                                                                                                                                                     |
 | `subscriptionSignal.ts`                                                                  | `nodeSubscriptionSignal({ nodeRequest?, request?, signals? })`, returning `{ signal, dispose }`.                                                                                                                                            |
+| `servedGroup.ts`, `servedHandlers.ts`                                                    | `servedGroup(group, websocket)`, `servedHandlers(group, handlers, buildVersion?)`: the served group, guards and handlers `appHost` composes, for a native RPC host.                                                                         |
 
 ### Install, setup and limits
 
