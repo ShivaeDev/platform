@@ -6,17 +6,18 @@ import { AuthUnavailable, Conflict, InternalServerError, ServiceUnavailable, Too
 import { layerLiveMemoryProtocol } from "@shivaedev/test-kits/contract/liveMemoryProtocol.ts";
 
 export class ReportArchived extends Schema.TaggedError<ReportArchived>()("ReportArchived", { year: Schema.Number }) {}
+export class ReportLocked extends Schema.TaggedError<ReportLocked>()("ReportLocked", { message: Schema.String }) {}
 
 const Report = Schema.Struct({ title: Schema.String });
 
-// The report can fail with every class of failure a screen meets: shared rejections, the server's own failures and one the app declared.
+// The report can fail with every class of failure a screen meets: shared rejections, the server's own failures and two the app declared.
 export const Reports = contract("reports", {
 	commands: [command("rename", { invalidates: () => [], payload: { title: Schema.String }, success: Report })],
 	queries: [
 		query("report", {
 			readPolicy: () => Effect.succeed(true),
 			reads: () => [],
-			rejections: { AuthUnavailable, Conflict, InternalServerError, ReportArchived, ServiceUnavailable, TooManyRequests },
+			rejections: { AuthUnavailable, Conflict, InternalServerError, ReportArchived, ReportLocked, ServiceUnavailable, TooManyRequests },
 			success: Report,
 		}),
 	],
@@ -27,6 +28,7 @@ export type Answer =
 	| "Conflict"
 	| "InternalServerError"
 	| "ReportArchived"
+	| "ReportLocked"
 	| "ServiceUnavailable"
 	| "TooManyRequests"
 	| "the report";
@@ -41,7 +43,7 @@ export interface ReportBackend {
 	title: string;
 }
 
-type ReportFailure = AuthUnavailable | Conflict | InternalServerError | ReportArchived | ServiceUnavailable | TooManyRequests;
+type ReportFailure = AuthUnavailable | Conflict | InternalServerError | ReportArchived | ReportLocked | ServiceUnavailable | TooManyRequests;
 
 function answer(backend: ReportBackend, next: Answer): Effect.Effect<{ readonly title: string }, ReportFailure> {
 	switch (next) {
@@ -53,6 +55,8 @@ function answer(backend: ReportBackend, next: Answer): Effect.Effect<{ readonly 
 			return Effect.fail(new InternalServerError({ message: "The server could not read the report" }));
 		case "ReportArchived":
 			return Effect.fail(new ReportArchived({ year: 2024 }));
+		case "ReportLocked":
+			return Effect.fail(new ReportLocked({ message: "The report is locked for the audit" }));
 		case "ServiceUnavailable":
 			return Effect.fail(new ServiceUnavailable({ message: "Reports are down for maintenance" }));
 		case "TooManyRequests":
@@ -62,9 +66,11 @@ function answer(backend: ReportBackend, next: Answer): Effect.Effect<{ readonly 
 	}
 }
 
-export function archivedNotice(error: ReportArchived) {
+function archivedNotice(error: ReportArchived) {
 	return { message: `The ${error.year} report is archived` };
 }
+
+export const reportFailures = { ReportArchived: archivedNotice, ReportLocked: "message" } as const;
 
 export function summaryAtom(backend: ReportBackend) {
 	return Atom.make(
