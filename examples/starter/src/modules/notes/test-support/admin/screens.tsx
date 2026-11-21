@@ -1,12 +1,13 @@
 import { layerWebSocketConstructor } from "@effect/platform-node/NodeWS";
 import { DateTime, Effect } from "effect";
 import { act } from "react";
+import { makeClient } from "@shivaedev/contract/makeClient.ts";
 import { mintUser } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import type { AppAccess } from "#AppAccess.ts";
-import { makeFoundationClient } from "#client/admin/foundation.ts";
+import { foundation } from "#admin/foundation.ts";
 import { openScreen } from "#modules/notes/test-support/admin/openScreen.tsx";
 import { notesHttp } from "#modules/notes/test-support/http.ts";
 import { AppAuth } from "#server/AppAuth.ts";
@@ -51,7 +52,8 @@ export const adminScreens = storyKit({
 			alert: () => Effect.sync(() => container().querySelector('[role="alert"]')?.textContent ?? "no alert"),
 			assignsRole: Effect.fn("AdminScreen.assignsRole")(function* (actor: string, target: string, role: typeof AppAccess.Role.Type) {
 				story.tell(`${actor} assigns ${target} the ${role} role from another client`);
-				const client = makeFoundationClient(`${engine.host.baseUrl}/rpc`, {
+				const client = makeClient({ users: foundation.UsersPage.contract }, {
+					url: `${engine.host.baseUrl}/rpc`,
 					headers: { cookie: engine.accounts.get(actor)?.headers.get("cookie") ?? "", origin: engine.host.origin },
 					webSocketConstructor: layerWebSocketConstructor,
 				});

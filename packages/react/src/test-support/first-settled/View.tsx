@@ -29,7 +29,7 @@ function Notes({ notes, reads }: { readonly notes: FirstSettledClient; readonly 
 			setCounting(true);
 		}
 	}, [reads]);
-	const { api } = notes.client;
+	const { notes: api } = notes.client.api;
 	const first =
 		reads === "title and author" ? (
 			<>
@@ -91,7 +91,7 @@ export function View({
 			persist={persist}
 			recheck={() => undefined}
 			session={session}
-			warm={(notes) => (warmCount ? [notes.client.api.count.query()] : [])}
+			warm={(notes) => (warmCount ? [notes.client.api.notes.count.query()] : [])}
 		>
 			{(notes) => <Screen notes={notes} reads={reads} routed={routed} />}
 		</SessionBoundary>

@@ -4,8 +4,8 @@ import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { type Rpc, RpcClient, type RpcGroup, RpcSerialization } from "effect/rpc";
 import * as Socket from "effect/socket/Socket";
 import { rpcSocketHost } from "@shivaedev/test-story/server/rpcSocketHost.ts";
-import { makeClient } from "#bind.ts";
 import { clientActivity } from "#clientActivity.ts";
+import { makeClient } from "#makeClient.ts";
 import { SocketClock } from "#SocketClock.ts";
 import { Counter } from "#test/commands/Counter.ts";
 import { storyRuntime } from "#test/storyRuntime.ts";
@@ -45,11 +45,11 @@ export const olderHostEngine = Effect.gen(function* () {
 			Layer.provide(Socket.layerWebSocket(host.url.replace(/^http/u, "ws")).pipe(Layer.provide(Socket.layerWebSocketConstructorGlobal))),
 			Layer.provide(RpcSerialization.layerNdjson),
 		);
-		const tab = makeClient(Counter, { ...(custom ? { protocol } : {}), runtime, url: host.url });
-		function run<A, E>(effect: Effect.Effect<A, E, Effect.Services<ReturnType<typeof tab.api.add.run>>>) {
+		const tab = makeClient({ counter: Counter }, { ...(custom ? { protocol } : {}), runtime, url: host.url });
+		function run<A, E>(effect: Effect.Effect<A, E, Effect.Services<ReturnType<typeof tab.api.counter.add.run>>>) {
 			return AtomRegistry.getResult(registry, tab.runtime.atom(effect).pipe(Atom.setIdleTTL(0)));
 		}
-		return { activity: clientActivity(tab), run, tab, view: tab.api.value.query() };
+		return { activity: clientActivity(tab), run, tab, view: tab.api.counter.value.query() };
 	}
 	const flight: { command: Fiber.Fiber<string> | undefined } = { command: undefined };
 	const connection: { current: ReturnType<typeof connect> | undefined } = { current: undefined };

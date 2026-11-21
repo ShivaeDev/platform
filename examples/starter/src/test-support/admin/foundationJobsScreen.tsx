@@ -1,11 +1,12 @@
 import { layerWebSocketConstructor } from "@effect/platform-node/NodeWS";
 import { DateTime, Effect } from "effect";
 import { JobsView } from "@shivaedev/admin/client/JobsView.ts";
+import { clientActivity } from "@shivaedev/contract/clientActivity.ts";
+import { makeClient } from "@shivaedev/contract/makeClient.ts";
 import { mintUser } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { foundation } from "#admin/foundation.ts";
-import { makeFoundationClient } from "#client/admin/foundation.ts";
 import { AppAuth } from "#server/AppAuth.ts";
 import { startHost } from "#test-support/host.ts";
 import { configured, postgres } from "#test-support/postgres.ts";
@@ -18,11 +19,12 @@ export const foundationJobsScreen = storyKit({
 	*create() {
 		const host = yield* startHost();
 		const { headers } = yield* mintUser(AppAuth, host, "operator", { role: "admin" });
-		const client = makeFoundationClient(`${host.baseUrl}/rpc`, {
+		const client = makeClient({ jobs: foundation.JobsPage.contract }, {
+			url: `${host.baseUrl}/rpc`,
 			headers: { cookie: headers.get("cookie") ?? "", origin: host.origin },
 			webSocketConstructor: layerWebSocketConstructor,
 		});
-		const surface: ScreenSurface = { activities: [client.activity], view: undefined };
+		const surface: ScreenSurface = { activities: [clientActivity(client)], view: undefined };
 		return { client, surface };
 	},
 	inspect: ({ surface }) => ({ text: surface.view?.container.textContent }),
@@ -38,5 +40,5 @@ export const foundationJobsScreen = storyKit({
 
 export const foundationJobsOpen = foundationJobsScreen.trait("screen", "an admin opens Jobs administration", function* ({ client, surface }) {
 	const view = yield* acquireScreen(surface);
-	yield* Effect.promise(() => view.render(<JobsView api={client.jobs} queues={foundation.queues.map(({ name }) => name)} />));
+	yield* Effect.promise(() => view.render(<JobsView api={client.api.jobs} queues={foundation.queues.map(({ name }) => name)} />));
 });

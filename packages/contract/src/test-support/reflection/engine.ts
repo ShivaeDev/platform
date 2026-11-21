@@ -10,10 +10,10 @@ import * as Socket from "effect/socket/Socket";
 import { CommandPublication } from "@shivaedev/changes/commandPublication.ts";
 import { Conflict } from "@shivaedev/errors/taxonomy.ts";
 import { appHost } from "@shivaedev/server/appHost.ts";
-import { makeClient } from "#bind.ts";
 import { clientActivity } from "#clientActivity.ts";
 import { liveServerLayer } from "#live-server/layer.ts";
 import { LiveServer } from "#live-server/service.ts";
+import { makeClient } from "#makeClient.ts";
 import { SocketClock } from "#SocketClock.ts";
 import { updateWords } from "#test/answers.ts";
 import { Board } from "#test/reflection/fixture.ts";
@@ -105,8 +105,8 @@ export const reflectionEngine = Effect.gen(function* () {
 		}),
 	);
 	const native = syntheticNative();
-	const tab = makeClient(Board, { resume: native.source, runtime, url, webSocketConstructor: sockets.layer });
-	function run<A, E>(effect: Effect.Effect<A, E, Effect.Services<ReturnType<typeof tab.api.touch.run>>>) {
+	const tab = makeClient({ board: Board }, { resume: native.source, runtime, url, webSocketConstructor: sockets.layer });
+	function run<A, E>(effect: Effect.Effect<A, E, Effect.Services<ReturnType<typeof tab.api.board.touch.run>>>) {
 		return AtomRegistry.getResult(registry, tab.runtime.atom(effect).pipe(Atom.setIdleTTL(0)));
 	}
 	const states = yield* SubscriptionRef.make<readonly string[]>([]);
@@ -140,7 +140,7 @@ export const reflectionEngine = Effect.gen(function* () {
 		sockets,
 		states,
 		tab,
-		view: tab.api.shown.query(),
+		view: tab.api.board.shown.query(),
 		viewer,
 		viewers: new Map<Viewer, Effect.Success<ReturnType<typeof viewer>>>(),
 		writes,

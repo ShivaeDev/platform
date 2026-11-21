@@ -2,11 +2,12 @@ import { Option } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import { useSignOut } from "@shivaedev/react/client/adapters/useSignOut.ts";
 import type { LoadedQueryState } from "@shivaedev/react/client/useLoaderQuery.ts";
+import type { ContractClient } from "@shivaedev/contract/makeClient.ts";
+import type { Notes } from "#generated/modules/notes/Notes.ts";
 import type { AuthActions } from "#client/adapters/auth.ts";
 import { Button } from "#client/ui/button.tsx";
 import { Card, CardContent } from "#client/ui/card.tsx";
 import { NoteCreate } from "#modules/notes/client/Create.tsx";
-import type { NotesClient } from "#modules/notes/client/make.ts";
 import { NotesTable } from "#modules/notes/client/Table.tsx";
 import type { Note } from "#modules/notes/model.ts";
 
@@ -15,7 +16,7 @@ export function NotesScreen({
 	query,
 	signOut,
 }: {
-	readonly client: NotesClient;
+	readonly client: ContractClient<typeof Notes>;
 	readonly query: LoadedQueryState<(typeof Note.Type)[], unknown>;
 	readonly signOut?: AuthActions["signOut"];
 }) {

@@ -6,13 +6,15 @@ import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { activityScreenSignal, type ClientActivity, clientActivity } from "@shivaedev/contract/clientActivity.ts";
+import { makeClient } from "@shivaedev/contract/makeClient.ts";
 import { RouterProvider } from "@shivaedev/react/RouterProvider.ts";
 import { memberScreens } from "@shivaedev/test-story/server/adapters/memberScreens.ts";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 import { makeAuth } from "#client/adapters/auth.ts";
 import { appRouter } from "#client/appRouter.tsx";
 import { connectModules } from "#client/Module.ts";
-import { makeNotesClient } from "#modules/notes/client/make.ts";
+import { Notes } from "#generated/modules/notes/Notes.ts";
+import { StatisticsPage } from "#modules/notes/admin/pages.ts";
 import { notesRegistration } from "#modules/notes/client/registration.tsx";
 
 export function notesMemberScreens(baseUrl: string) {
@@ -20,8 +22,9 @@ export function notesMemberScreens(baseUrl: string) {
 	return memberScreens({
 		baseUrl,
 		mount: Effect.fnUntraced(function* (member) {
-			const client = makeNotesClient(`${baseUrl}/rpc`, {
+			const client = makeClient({ notes: Notes, statistics: StatisticsPage.contract }, {
 				headers: { cookie: member.cookie, origin: new URL(baseUrl).origin },
+				url: `${baseUrl}/rpc`,
 				webSocketConstructor: layerWebSocketConstructor,
 			});
 			const auth = makeAuth({ baseUrl, fetchOptions: { customFetchImpl: member.fetch } });

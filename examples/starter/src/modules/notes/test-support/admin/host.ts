@@ -1,6 +1,6 @@
 import { layerWebSocketConstructor } from "@effect/platform-node/NodeWS";
 import { ConfigProvider, DateTime, Effect, Exit, Layer, Option, Scope } from "effect";
-import { makeClient } from "@shivaedev/contract/bind.ts";
+import { makeClient } from "@shivaedev/contract/makeClient.ts";
 import { JobsClientFactory } from "@shivaedev/jobs/server/JobsClientFactory.ts";
 import { mintUser } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
 import { makePgBossTesting } from "@shivaedev/test-kits/jobs/testing.ts";
@@ -10,7 +10,7 @@ import { countWords } from "@shivaedev/test-story/server/answers.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import type { AppAccess } from "#AppAccess.ts";
 import { foundation } from "#admin/foundation.ts";
-import { adminGroup } from "#modules/notes/test-support/admin/group.ts";
+import { StatisticsPage } from "#modules/notes/admin/pages.ts";
 import { notesHttp } from "#modules/notes/test-support/http.ts";
 import { AppAuth } from "#server/AppAuth.ts";
 import { applicationWorker } from "#server/applicationWorker.ts";
@@ -20,7 +20,6 @@ import { type RunningHost, startHost } from "#test-support/host.ts";
 import { testPoolSizes } from "#test-support/poolSizes.ts";
 import { configured, postgres } from "#test-support/postgres.ts";
 
-const { UsersPage } = foundation;
 
 interface AdminEngine {
 	readonly cookies: Map<string, string>;
@@ -57,8 +56,7 @@ export const adminHost = storyKit({
 	stages: ["accounts", "development"],
 	verbs: (engine, story) => {
 		const adminOf = Effect.fn("AdminStory.adminOf")(function* (name: string) {
-			return yield* makeClient(UsersPage.contract, {
-				group: adminGroup,
+			return yield* makeClient({ jobs: foundation.JobsPage.contract, statistics: StatisticsPage.contract, users: foundation.UsersPage.contract }, {
 				headers: { cookie: engine.cookies.get(name) ?? "", origin: engine.url },
 				url: `${engine.url}/rpc`,
 				webSocketConstructor: layerWebSocketConstructor,

@@ -182,17 +182,19 @@ The `Jobs` module declares no commands, and its bound client has no retry operat
 
 #### Mount the Jobs view
 
-Bind the page contract to the application's AtomRpc client and pass the queues given to `pgBossQueues` to `JobsView`. The view lists failed and dead-lettered jobs with readable failure messages, health, counts, pagination and detail. A caller without `jobs.read` sees a permission refusal. Tailwind applications include `@source "../../node_modules/@shivaedev/admin/src/client/adapters";` in their client CSS.
+Put the page contract in the record of the application's `makeClient` from `@shivaedev/contract/makeClient.ts` and pass its binding and the queues given to `pgBossQueues` to `JobsView`. The view lists failed and dead-lettered jobs with readable failure messages, health, counts, pagination and detail. A caller without `jobs.read` sees a permission refusal. Tailwind applications include `@source "../../node_modules/@shivaedev/admin/src/client/adapters";` in their client CSS.
 
 ```tsx
 import { JobsView } from "@shivaedev/admin/client/JobsView.ts";
+import { makeClient } from "@shivaedev/contract/makeClient.ts";
 
-const jobs = bind(JobsPage.contract, Client);
+const client = makeClient({ jobs: JobsPage.contract });
+const { jobs } = client.api;
 
 <JobsView api={jobs} queues={[Mail]} />;
 ```
 
-For a retry-enabled page, pass `retry={Client.runtime.fn(jobs.retry.run)}`. The view offers retry on failed originals; the server also requires `jobs.retry`. Omit both action props for a read-only view. Keep the view inside the application's admin shell and protect its route with `JobsPage.route.permission`.
+For a retry-enabled page, pass `retry={client.runtime.fn(jobs.retry.run)}`. The view offers retry on failed originals; the server also requires `jobs.retry`. Omit both action props for a read-only view. Keep the view inside the application's admin shell and protect its route with `JobsPage.route.permission`.
 
 Queue and schedule labels replace internal names in the queue picker and selected queue heading. A queue's `subject` columns select fields from its masked inspection payload; numbers display as decoded values, and missing fields display `—`. Native `Redacted` fields and sensitive keys remain masked. Failed and dead-lettered jobs use the same subject columns, with dead-letter copies under their source queue's tab rather than separate queue choices. String-only queue lists remain supported and show internal names without subject columns. `defineQueue` checks subject field names against its payload Schema; browser-safe declarations can use `SubjectColumn<typeof PayloadSchema>` from `@shivaedev/jobs/display.ts` to check columns before sharing them with the server.
 
@@ -228,13 +230,15 @@ Add `UsersPage` from `@shivaedev/admin/users/Page.ts` to the same registry as Jo
 
 Each user stores one role string accepted by `AppAccess.Role`. Each role declares an explicit permission list in application code. The Users area assigns roles; it does not edit their grants.
 
-Bind the page's contract to the registry's native AtomRpc client, then mount the view in the application's admin shell. Tailwind applications include `@source "../../node_modules/@shivaedev/admin/src/client/adapters";` in `src/client/entry.css`:
+Put the page's contract in the record of the application's `makeClient`, then mount the view in the application's admin shell. Tailwind applications include `@source "../../node_modules/@shivaedev/admin/src/client/adapters";` in `src/client/entry.css`:
 
 ```tsx
 import { UsersView } from "@shivaedev/admin/client/UsersView.ts";
+import { makeClient } from "@shivaedev/contract/makeClient.ts";
 
-const users = bind(UsersPage.contract, Client);
-const changeRole = Client.runtime.fn(users.changeRole.run);
+const client = makeClient({ users: UsersPage.contract });
+const { users } = client.api;
+const changeRole = client.runtime.fn(users.changeRole.run);
 
 <UsersView roles={AppAccess.Role.literals} list={users.list.query} changeRole={changeRole} />;
 ```
@@ -253,8 +257,9 @@ Add `SessionsPage` from `@shivaedev/admin/sessions/Page.ts` to the admin registr
 
 ```tsx
 import { SessionsView } from "@shivaedev/admin/client/SessionsView.ts";
+import { makeClient } from "@shivaedev/contract/makeClient.ts";
 
-const sessions = bind(SessionsPage.contract, Client);
+const { sessions } = makeClient({ sessions: SessionsPage.contract }).api;
 
 <SessionsView currentSessionId={currentSession.id} list={sessions.list.query} revoke={sessions.revoke} onCurrentSessionRevoked={signOut} />;
 ```

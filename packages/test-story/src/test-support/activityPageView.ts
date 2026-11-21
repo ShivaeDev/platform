@@ -5,18 +5,18 @@ import * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as Atom from "effect/reactivity/Atom";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { createElement, useContext, useState } from "react";
-import { makeClient } from "@shivaedev/contract/bind.ts";
+import { makeClient } from "@shivaedev/contract/makeClient.ts";
 import { ReadPage } from "#test/readPageHost.ts";
 
 export function activityPageClient(url: string) {
-	return makeClient(ReadPage, { url, webSocketConstructor: layerWebSocketConstructor });
+	return makeClient({ read: ReadPage }, { url, webSocketConstructor: layerWebSocketConstructor });
 }
 const titleDraft = Atom.make("");
 
 type PageClient = ReturnType<typeof activityPageClient>;
 
 function SecondPage({ client }: { readonly client: PageClient }) {
-	const result = useAtomValue(client.api.second.query({ id: 2 }));
+	const result = useAtomValue(client.api.read.second.query({ id: 2 }));
 	return createElement(
 		"p",
 		{ "data-second": true },
@@ -28,7 +28,7 @@ export function ActivityPageView({ client }: { readonly client: PageClient }) {
 	const [saved, setSaved] = useState("No receipt");
 	const [second, setSecond] = useState(false);
 	const registry = useContext(RegistryContext);
-	const result = useAtomValue(client.api.get.query({ id: 1 }));
+	const result = useAtomValue(client.api.read.get.query({ id: 1 }));
 	const [title, setTitle] = useAtom(titleDraft);
 	return createElement(
 		"main",
@@ -43,7 +43,7 @@ export function ActivityPageView({ client }: { readonly client: PageClient }) {
 			"button",
 			{
 				onClick: () =>
-					Effect.runPromise(AtomRegistry.getResult(registry, client.runtime.atom(client.api.write.run({ id: 1, title })))).then(setSaved),
+					Effect.runPromise(AtomRegistry.getResult(registry, client.runtime.atom(client.api.read.write.run({ id: 1, title })))).then(setSaved),
 				type: "button",
 			},
 			"Save",

@@ -3,7 +3,7 @@
 A small notes app showing Platform's path from a migrated PostgreSQL table through RPC to a React form. Create your own application with `pnpm create @shivaedev/app my-app`.
 
 ```tsx
-const query = useQuery(client.api.list.query());
+const query = useQuery(notes.list.query());
 ```
 
 The authenticated route loaders and screens share the same native query registry. Create a note, open its title to edit it, or delete it and return to the refreshed list. Better Auth supplies signup, sign-in and sign-out; each account sees its own notes.

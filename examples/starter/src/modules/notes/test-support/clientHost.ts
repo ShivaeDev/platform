@@ -6,7 +6,7 @@ import { HttpRouter, HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import type * as Reactivity from "effect/reactivity/Reactivity";
 import { type Rpc, type RpcGroup, RpcSerialization, RpcServer } from "effect/rpc";
-import { makeClient } from "@shivaedev/contract/bind.ts";
+import { makeClient } from "@shivaedev/contract/makeClient.ts";
 import { commandGuardLayer, guardCommands } from "@shivaedev/contract/CommandGuard.ts";
 import { Activity, clientActivity } from "@shivaedev/contract/clientActivity.ts";
 import { LiveSync } from "@shivaedev/contract/LiveSync.ts";
@@ -18,6 +18,7 @@ import { publishCommand } from "@shivaedev/server/publishCommand.ts";
 import { browserReads } from "@shivaedev/test-story/server/browserReads.ts";
 import { Notes } from "#generated/modules/notes/Notes.ts";
 import { Notes as NotesModule } from "#modules/notes/Notes.ts";
+import { StatisticsPage } from "#modules/notes/admin/pages.ts";
 
 export const notesClientHost = Effect.fnUntraced(function* (
 	handlers: Layer.Layer<Rpc.ToHandler<RpcGroup.Rpcs<typeof Notes.application>>>,
@@ -42,6 +43,6 @@ export const notesClientHost = Effect.fnUntraced(function* (
 	}
 	const url = `http://127.0.0.1:${server.address.port}/rpc`;
 	const observed = yield* browserReads({ contracts: [Notes], url, webSocketConstructor: layerWebSocketConstructor });
-	const client = makeClient(Notes, { protocol: observed.protocol, url });
+	const client = makeClient({ notes: Notes, statistics: StatisticsPage.contract }, { protocol: observed.protocol, url });
 	return { api: client.api, observed, runtime: client.runtime, sync: client.sync, [Activity]: clientActivity(client) };
 });

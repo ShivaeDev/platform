@@ -40,4 +40,4 @@ The call site is similar in length. The difference is in the defaults: refresh, 
 
 ## Worked example
 
-The [starter editor](../../examples/starter/src/modules/notes/client/Edit.tsx) uses `useEditor` with the query its typed `/notes/$noteId` route loads: it spreads the route's `useLoaded()`, which supplies that query and the loaded row, as in `useEditor(client.api.update, { ...note, fixed: { id: noteId } })`. Its updates and deletes are versioned, and a stale one answers `Conflict`.
+The [starter editor](../../examples/starter/src/modules/notes/client/Edit.tsx) uses `useEditor` with the query its typed `/notes/$noteId` route loads: it spreads the route's `useLoaded()`, which supplies that query and the loaded row, as in `useEditor(client.update, { ...note, fixed: { id: noteId } })`. Its updates and deletes are versioned, and a stale one answers `Conflict`.

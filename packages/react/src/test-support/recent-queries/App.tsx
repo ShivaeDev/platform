@@ -18,7 +18,7 @@ export interface Controls {
 	warm?: (ids: readonly string[]) => void;
 }
 function Note({ client, id }: { readonly client: Client; readonly id: string }) {
-	const query = useQuery(client.api.get.query({ id }));
+	const query = useQuery(client.api.notes.get.query({ id }));
 	const title = Option.getOrElse(query.data, () => "Loading");
 	const [first] = useState(title);
 	return (
@@ -77,7 +77,7 @@ export function App({
 			recheck={() => undefined}
 			session={user}
 			signedOut={<p>Signed out</p>}
-			warm={(connected) => warmIds.map((id) => connected.api.get.query({ id }))}
+			warm={(connected) => warmIds.map((id) => connected.api.notes.get.query({ id }))}
 		>
 			{(connected) => <Screen client={connected} controls={controls} />}
 		</SessionBoundary>

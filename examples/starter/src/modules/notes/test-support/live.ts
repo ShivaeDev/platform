@@ -2,20 +2,23 @@ import { layerWebSocketConstructor } from "@effect/platform-node/NodeWS";
 import { Effect, Equal, Queue, Schema, Stream } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
-import { makeClient } from "@shivaedev/contract/bind.ts";
+import { makeClient } from "@shivaedev/contract/makeClient.ts";
 import type { QueryUpdate } from "@shivaedev/contract/queryUpdate.ts";
 import { settledQueries } from "@shivaedev/test-kits/contract/settledQueries.ts";
 import { Notes } from "#generated/modules/notes/Notes.ts";
-import { makeNotesClient } from "#modules/notes/client/make.ts";
 import { Note } from "#modules/notes/model.ts";
 import type { RpcAddress } from "#modules/notes/test-support/Engine.ts";
 import { answerWithReason, refusal } from "#test-support/answers.ts";
 
 const liveClient = Effect.fn("AppStory.liveClient")(function* (address: RpcAddress, cookie: string) {
-	const client = makeNotesClient(`${address.baseUrl}/rpc`, {
-		headers: { cookie, origin: address.origin },
-		webSocketConstructor: layerWebSocketConstructor,
-	});
+	const client = makeClient(
+		{ notes: Notes },
+		{
+			headers: { cookie, origin: address.origin },
+			url: `${address.baseUrl}/rpc`,
+			webSocketConstructor: layerWebSocketConstructor,
+		},
+	);
 	const registry = yield* Effect.acquireRelease(
 		Effect.sync(() => AtomRegistry.make()),
 		(value) => Effect.sync(() => value.dispose()),
@@ -25,7 +28,7 @@ const liveClient = Effect.fn("AppStory.liveClient")(function* (address: RpcAddre
 
 export const watchedList = Effect.fn("AppStory.watchedList")(function* (address: RpcAddress, cookie: string) {
 	const { client, registry } = yield* liveClient(address, cookie);
-	const results = yield* settledQueries(client.api.list.query()).pipe(Effect.provideService(AtomRegistry.AtomRegistry, registry));
+	const results = yield* settledQueries(client.api.notes.list.query()).pipe(Effect.provideService(AtomRegistry.AtomRegistry, registry));
 	return {
 		latestList: () => Effect.map(results.latest, (result) => AsyncResult.getOrElse(result, () => undefined)),
 		nextList: () => answerWithReason(Effect.flatMap(results.next, AsyncResult.toExit)),
@@ -34,7 +37,7 @@ export const watchedList = Effect.fn("AppStory.watchedList")(function* (address:
 
 export const watchedNote = Effect.fn("AppStory.watchedNote")(function* (address: RpcAddress, cookie: string, id: number) {
 	const { client, registry } = yield* liveClient(address, cookie);
-	const results = yield* settledQueries(client.api.get.query({ id })).pipe(Effect.provideService(AtomRegistry.AtomRegistry, registry));
+	const results = yield* settledQueries(client.api.notes.get.query({ id })).pipe(Effect.provideService(AtomRegistry.AtomRegistry, registry));
 	const nextAnswer = answerWithReason(Effect.flatMap(results.next, AsyncResult.toExit));
 	let seen: Effect.Success<typeof nextAnswer> | undefined;
 	const remember = Effect.tap(nextAnswer, (answer) =>
@@ -59,7 +62,7 @@ export const watchedNote = Effect.fn("AppStory.watchedNote")(function* (address:
 });
 
 function changesClient(address: RpcAddress, cookie: string) {
-	return makeClient(Notes, {
+	return makeClient({ notes: Notes }, {
 		headers: { cookie, origin: address.origin },
 		url: `${address.baseUrl}/rpc`,
 		webSocketConstructor: layerWebSocketConstructor,

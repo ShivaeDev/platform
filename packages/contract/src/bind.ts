@@ -1,22 +1,20 @@
-import type { Effect, Layer, Stream } from "effect";
+import type { Effect, Stream } from "effect";
 import type { Headers } from "effect/http";
 import type * as AsyncResult from "effect/reactivity/AsyncResult";
 import type * as Atom from "effect/reactivity/Atom";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import type * as AtomRpc from "effect/reactivity/AtomRpc";
 import type * as Reactivity from "effect/reactivity/Reactivity";
-import type { Rpc, RpcGroup } from "effect/rpc";
+import type { Rpc } from "effect/rpc";
 import type { RpcClientError } from "effect/rpc/RpcClientError";
 import { bindingOwner } from "#adapters/bindingOwner.ts";
 import { automaticLive, type LiveBound } from "#automaticLive.ts";
 import { bindOperations } from "#bindOperations.ts";
 import { clientOperations } from "#clientOperations.ts";
-import type { ClientOptions, MadeClient } from "#clientOptions.ts";
 import type { Contract, Declared } from "#contract.ts";
 import type { CommandShape, QueryShape, StreamShape } from "#operation.ts";
 import type { Tag } from "#operationRpc.ts";
 import type { ResumeSource, ResumeWindow } from "#resume.ts";
-import { type RpcSource, rpcClient } from "#rpcClient.ts";
 
 // Like Effect's own `Rpc` helpers, these take any type: `Rpc.ExtractTag` of a generic group is not provably an `Rpc.Any`.
 export type Failure<R> =
@@ -112,37 +110,4 @@ export function bind(
 	const owner = bindingOwner(keyScope, options?.registry);
 	const automatic = automaticLive(service, name, owner, options?.resume, options?.resumeWindow);
 	return bindOperations(contract.declaration, clientOperations(service, automatic, owner), automatic.subscription);
-}
-
-export function makeClient<
-	TName extends string,
-	TQueries extends readonly QueryShape[],
-	TCommands extends readonly CommandShape[],
-	TRpcs extends Rpc.Any,
-	TStreams extends readonly StreamShape[],
-	TScope extends "session" | undefined,
-	TExtra extends Rpc.Any = never,
->(
-	contract: Contract<TName, TQueries, TCommands, TRpcs, TStreams, TScope>,
-	options: ClientOptions & { readonly group?: RpcGroup.RpcGroup<TRpcs | TExtra> } & ("session" extends TScope
-			? { readonly registry: AtomRegistry.AtomRegistry }
-			: { readonly registry?: AtomRegistry.AtomRegistry }),
-): MadeClient<TName, TQueries, TCommands, TRpcs, TStreams, TExtra>;
-export function makeClient(
-	contract: RpcSource & {
-		readonly declaration: Declared<string, readonly QueryShape[], readonly CommandShape[], readonly StreamShape[], "session" | undefined>;
-	},
-	options: ClientOptions & {
-		readonly group?: RpcSource;
-		readonly registry?: AtomRegistry.AtomRegistry;
-	},
-): Layer.Layer<never> {
-	const connection = rpcClient(contract.declaration.name, options.group ?? contract, options);
-	const bindingOptions: BindOptions = options;
-	const owner = bindingOwner(contract.declaration.keyScope, bindingOptions.registry);
-	const { resume, resumeWindow } = bindingOptions;
-	const automatic = automaticLive(connection.Client, contract.declaration.name, owner, resume, resumeWindow);
-	const operations = clientOperations(connection.Client, automatic, owner);
-	const api = bindOperations(contract.declaration, operations, automatic.subscription);
-	return Object.assign(connection, { api, sync: operations.sync });
 }

@@ -7,10 +7,10 @@ import * as Reactivity from "effect/reactivity/Reactivity";
 import { RpcMiddleware } from "effect/rpc";
 import { collection } from "@shivaedev/changes/keys.ts";
 import { appHost } from "@shivaedev/server/appHost.ts";
-import { makeClient } from "#bind.ts";
-import type { ClientOptions } from "#clientOptions.ts";
+import type { ClientOptions } from "#ClientOptions.ts";
 import { contract } from "#contract.ts";
 import { liveServerLayer } from "#live-server/layer.ts";
+import { makeClient } from "#makeClient.ts";
 import { query } from "#operation.ts";
 import { storyRuntime } from "#test/storyRuntime.ts";
 
@@ -55,15 +55,18 @@ export const queryHeadersEngine = Effect.fnUntraced(function* (options: Pick<Cli
 	if (!NetAddress.isInetAddress(server.address)) {
 		return yield* Effect.die("Expected a TCP listener");
 	}
-	const client = makeClient(Records, {
-		runtime,
-		...options,
-		url: `http://127.0.0.1:${server.address.port}/rpc`,
-		webSocketConstructor: layerWebSocketConstructor,
-	});
+	const client = makeClient(
+		{ records: Records },
+		{
+			runtime,
+			...options,
+			url: `http://127.0.0.1:${server.address.port}/rpc`,
+			webSocketConstructor: layerWebSocketConstructor,
+		},
+	);
 	const registry = yield* Effect.acquireRelease(
 		Effect.sync(() => AtomRegistry.make()),
 		(current) => Effect.sync(() => current.dispose()),
 	);
-	return { api: client.api, reactivity, reads, registry, stored, subscriptions };
+	return { api: client.api.records, reactivity, reads, registry, stored, subscriptions };
 });

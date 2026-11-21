@@ -1,8 +1,8 @@
 import { Deferred, Effect, Layer, Queue, Schema, Stream } from "effect";
-import { makeClient } from "@shivaedev/contract/bind.ts";
 import { changesHandlerLayer } from "@shivaedev/contract/changesHandlerLayer.ts";
 import { compareQueries } from "@shivaedev/contract/compareQueries.ts";
 import { contract } from "@shivaedev/contract/contract.ts";
+import { makeClient } from "@shivaedev/contract/makeClient.ts";
 import { query } from "@shivaedev/contract/operation.ts";
 import { querySubscription } from "@shivaedev/contract/querySubscription.ts";
 import { CurrentViewer } from "@shivaedev/contract/readPolicy.ts";
@@ -54,9 +54,12 @@ export const liveLoaderHost = Effect.fnUntraced(function* () {
 	const transport = yield* Layer.build(
 		layerMemoryProtocol(Notes).pipe(Layer.provide(Layer.merge(application, changes.pipe(Layer.provide(application))))),
 	);
-	const client = makeClient(Notes, { protocol: Layer.succeedContext(transport), runtime: yield* storyRuntime, url: "memory://live-loader-notes" });
+	const client = makeClient(
+		{ notes: Notes },
+		{ protocol: Layer.succeedContext(transport), runtime: yield* storyRuntime, url: "memory://live-loader-notes" },
+	);
 	return {
-		atom: client.api.get.query(),
+		atom: client.api.notes.get.query(),
 		calls,
 		closed: Queue.take(closed),
 		next: () => {

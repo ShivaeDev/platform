@@ -31,14 +31,16 @@ interface RouteContext {
 }
 
 const root = createRootRouteWithContext<RouteContext>()({ component: Outlet });
-const loadedTitle = queryRoute(({ context }: { context: RouteContext; params: object; search: object }) => context.notes.client.api.title.query());
+const loadedTitle = queryRoute(({ context }: { context: RouteContext; params: object; search: object }) =>
+	context.notes.client.api.notes.title.query(),
+);
 
 function LoadedTitle() {
 	return <output data-answer="title">{loadedTitle.useQuery().data}</output>;
 }
 function ReadTitle() {
 	const context: RouteContext = root.useRouteContext();
-	const title = useQuery(context.notes.client.api.title.query());
+	const title = useQuery(context.notes.client.api.notes.title.query());
 	const shown = Option.getOrElse(title.data, () => "waiting");
 	return <output data-answer="title">{shown}</output>;
 }

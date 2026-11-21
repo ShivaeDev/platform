@@ -37,14 +37,14 @@ export const openRoute = Effect.fn("ScreenStory.openRoute")(function* (engine: S
 	const view = yield* acquireScreen(engine);
 	if (signedIn) {
 		if (route === "/") {
-			engine.client.api.list.query();
+			engine.client.api.notes.list.query();
 		} else {
-			engine.client.api.get.query({ id: 1 });
+			engine.client.api.notes.get.query({ id: 1 });
 		}
-		view.registry.mount(engine.client.api[LiveConnection].connection);
+		view.registry.mount(engine.client.api.notes[LiveConnection].connection);
 		yield* screenDriver({
 			act,
-			pending: () => view.registry.get(engine.client.api[LiveConnection].status).connection !== "live",
+			pending: () => view.registry.get(engine.client.api.notes[LiveConnection].status).connection !== "live",
 			root: view.container,
 			tell: () => undefined,
 		}).settle();
@@ -174,19 +174,19 @@ export const openNotes = Effect.fn("ScreenStory.openNotes")(function* (engine: S
 					}),
 				);
 	engine.pending = () => signOut !== undefined && view.registry.get(signOut).waiting;
-	engine.client.api.list.query();
-	view.registry.mount(engine.client.api[LiveConnection].connection);
+	engine.client.api.notes.list.query();
+	view.registry.mount(engine.client.api.notes[LiveConnection].connection);
 	yield* screenDriver({
 		act,
-		pending: () => view.registry.get(engine.client.api[LiveConnection].status).connection !== "live",
+		pending: () => view.registry.get(engine.client.api.notes[LiveConnection].status).connection !== "live",
 		root: view.container,
 		tell: () => undefined,
 	}).settle();
-	const loaded = yield* Effect.promise(() => loadQuery(view.registry, engine.client.api.list.query(), { abortController: new AbortController() }));
+	const loaded = yield* Effect.promise(() => loadQuery(view.registry, engine.client.api.notes.list.query(), { abortController: new AbortController() }));
 	yield* Effect.promise(() =>
 		view.render(
 			<Notices>
-				<LoadedScreen client={engine.client} loaded={loaded} signOut={signOut} />
+				<LoadedScreen client={engine.client.api.notes} loaded={loaded} signOut={signOut} />
 			</Notices>,
 		),
 	);

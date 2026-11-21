@@ -4,7 +4,7 @@ import * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import * as Socket from "effect/socket/Socket";
 import { LiveConnection } from "@shivaedev/contract/automaticLive.ts";
-import { bind, makeClient } from "@shivaedev/contract/bind.ts";
+import { makeClient } from "@shivaedev/contract/makeClient.ts";
 import { Api } from "#test/native-sessions/api.ts";
 import { type Host, NATIVE_ORIGIN } from "#test/native-sessions/host.ts";
 import type { Account } from "#test/native-sessions/requests.ts";
@@ -25,22 +25,22 @@ export const openProfile = Effect.fnUntraced(function* (host: Host, account: Acc
 		Effect.sync(() => AtomRegistry.make()),
 		(current) => Effect.sync(() => current.dispose()),
 	);
-	const connection = makeClient(Api, {
-		bearerToken: account.credential ?? "",
-		registry,
-		url: `${host.baseUrl}/rpc`,
-		webSocketConstructor,
-	});
 	let resume: (() => void) | undefined;
-	const api = bind(Api, connection.Client, {
-		registry,
-		resume: (notify) => {
-			resume = notify;
-			return () => {
-				resume = undefined;
-			};
+	const api = makeClient(
+		{ profiles: Api },
+		{
+			bearerToken: account.credential ?? "",
+			registry,
+			resume: (notify) => {
+				resume = notify;
+				return () => {
+					resume = undefined;
+				};
+			},
+			url: `${host.baseUrl}/rpc`,
+			webSocketConstructor,
 		},
-	});
+	).api.profiles;
 	const query = (restricted ? api.restrictedProfile : api.profile).query({ owner: owner.user.id });
 	const identity = api[LiveConnection].identity;
 	if (identity !== undefined) {

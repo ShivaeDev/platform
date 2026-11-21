@@ -39,7 +39,7 @@ const create = Effect.gen(function* () {
 		Effect.promise(() => openScreen(client)),
 		(view) => Effect.promise(view.unmount),
 	);
-	const query = client.api.list.query(undefined);
+	const query = client.api.api.list.query(undefined);
 	yield* Effect.promise(() => act(async () => void (await Effect.runPromise(AtomRegistry.getResult(screen.registry, query)))));
 	const other: { screen?: Awaited<ReturnType<typeof openScreen>> } = {};
 	return { client, host, other, query, screen, wire, writer, writerRegistry };
@@ -47,7 +47,7 @@ const create = Effect.gen(function* () {
 export type Engine = Effect.Success<typeof create>;
 
 const commit = Effect.fnUntraced(function* (engine: Engine, id: number, title: string) {
-	const write = engine.writer.Client.runtime.atom(engine.writer.api.rename.run({ id, title }));
+	const write = engine.writer.Client.runtime.atom(engine.writer.api.api.rename.run({ id, title }));
 	yield* AtomRegistry.getResult(engine.writerRegistry, write);
 	yield* Queue.take(engine.host.notifications);
 });

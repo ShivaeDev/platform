@@ -3,6 +3,7 @@ import { createMemoryHistory } from "@tanstack/react-router";
 import { DateTime, Effect } from "effect";
 import { SqlClient } from "effect/sql";
 import { clientActivity } from "@shivaedev/contract/clientActivity.ts";
+import { makeClient } from "@shivaedev/contract/makeClient.ts";
 import { authTestDatabase } from "@shivaedev/identity/server/better-auth/testDatabase.ts";
 import { mintUser } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
@@ -12,7 +13,8 @@ import { App } from "#client/App.tsx";
 import { makeAuth } from "#client/adapters/auth.ts";
 import { LoginScreen } from "#client/LoginScreen.tsx";
 import { clientModules } from "#client/modules.ts";
-import { makeNotesClient } from "#modules/notes/client/make.ts";
+import { Notes } from "#generated/modules/notes/Notes.ts";
+import { StatisticsPage } from "#modules/notes/admin/pages.ts";
 import { notesRegistration } from "#modules/notes/client/registration.tsx";
 import { heldSignIn } from "#modules/notes/test-support/heldSignIn.ts";
 import { notesMemberScreens } from "#modules/notes/test-support/memberScreens.tsx";
@@ -142,7 +144,8 @@ export function notesHostScreen(initial = "/sign-in") {
 			|| view.registry.get(engine.auth.actions.submit).waiting
 			|| view.registry.get(engine.auth.actions.signOut).waiting;
 		function connect(session: { readonly id: string }) {
-			const client = makeNotesClient(`${engine.baseUrl}/rpc`, {
+			const client = makeClient({ notes: Notes, statistics: StatisticsPage.contract }, {
+				url: `${engine.baseUrl}/rpc`,
 				...(engine.headers.has("cookie") ? { headers: Object.fromEntries(engine.headers), webSocketConstructor: layerWebSocketConstructor } : {}),
 			});
 			engine.activities = [clientActivity(client)];

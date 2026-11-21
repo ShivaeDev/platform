@@ -95,7 +95,7 @@ export const bobSignedOut = authWritesStory.trait("accounts", "bob signed up and
 export const listsOpen = authWritesStory.trait("page", "an admin has the live users and sessions lists open", function* (engine) {
 	engine.registry.mount(engine.users);
 	engine.registry.mount(engine.sessions);
-	yield* until(AtomRegistry.toStream(engine.registry, engine.transport.api[LiveConnection].status), (status) => status.connection === "live", {
+	yield* until(AtomRegistry.toStream(engine.registry, engine.transport.api.users[LiveConnection].status), (status) => status.connection === "live", {
 		name: "live admin lists",
 	});
 	yield* AtomRegistry.getResult(engine.registry, engine.users);

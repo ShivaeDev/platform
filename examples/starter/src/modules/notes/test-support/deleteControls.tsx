@@ -8,12 +8,12 @@ import { acquireScreen, screenView } from "#test-support/screenState.ts";
 
 export const deleteControls = Effect.fnUntraced(function* (engine: Screen) {
 	const view = yield* acquireScreen(engine);
-	const notes = yield* Effect.promise(() => loadQuery(view.registry, engine.client.api.list.query(), { abortController: new AbortController() }));
+	const notes = yield* Effect.promise(() => loadQuery(view.registry, engine.client.api.notes.list.query(), { abortController: new AbortController() }));
 	yield* Effect.promise(() =>
 		view.render(
 			<Notices>
 				{notes.map((note) => (
-					<DeleteControl client={engine.client} key={note.id} note={note} />
+					<DeleteControl client={engine.client.api.notes} key={note.id} note={note} />
 				))}
 			</Notices>,
 		),

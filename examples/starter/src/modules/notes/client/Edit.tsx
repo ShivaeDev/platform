@@ -6,10 +6,11 @@ import { useId } from "react";
 import { useField } from "@shivaedev/form/react.ts";
 import type { Form } from "@shivaedev/form/shape.ts";
 import { useEditor } from "@shivaedev/react/client/editor.ts";
+import type { ContractClient } from "@shivaedev/contract/makeClient.ts";
+import type { Notes } from "#generated/modules/notes/Notes.ts";
 import { Button } from "#client/ui/button.tsx";
 import { Input } from "#client/ui/input.tsx";
 import { NoteDelete } from "#modules/notes/client/Delete.tsx";
-import type { NotesClient } from "#modules/notes/client/make.ts";
 import type { Note, NoteEditFields } from "#modules/notes/model.ts";
 
 function Title<A, E, TRuntimeError>({ form }: { readonly form: Form<typeof NoteEditFields.fields, A, E, TRuntimeError> }) {
@@ -44,12 +45,12 @@ export function NoteEdit({
 	note,
 	onDeleted,
 }: {
-	readonly client: NotesClient;
+	readonly client: ContractClient<typeof Notes>;
 	readonly note: { readonly loaded: typeof Note.Type; readonly query: Atom.Atom<AsyncResult.AsyncResult<typeof Note.Type, unknown>> };
 	readonly onDeleted: () => void;
 }) {
 	const noteId = note.loaded.id;
-	const editor = useEditor(client.api.update, { ...note, fixed: { id: noteId } });
+	const editor = useEditor(client.update, { ...note, fixed: { id: noteId } });
 	const currentNote = editor.query.data;
 	const loadFailure = Option.isSome(editor.query.cause) && <p role="alert">Could not load this note. Try refreshing.</p>;
 	return (

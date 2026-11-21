@@ -4,7 +4,7 @@ import * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { TestClock } from "effect/testing";
 import { act, createElement } from "react";
-import { makeClient } from "@shivaedev/contract/bind.ts";
+import { makeClient } from "@shivaedev/contract/makeClient.ts";
 import { postgresTestUrl } from "@shivaedev/test-sql/server/adapters/postgresTestUrl.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { makePostgresTestLayer } from "@shivaedev/test-sql/server/postgres.ts";
@@ -34,14 +34,17 @@ const openScreen = Effect.fnUntraced(function* (address: string, account: string
 		Effect.promise(() => render(null)),
 		(view) => Effect.promise(view.unmount),
 	);
-	const client = makeClient(Api, {
-		headers: { authorization: `Bearer ${account}-session` },
-		registry: screen.registry,
-		runtime: yield* storyRuntime,
-		url: address,
-		webSocketConstructor: layerWebSocketConstructor,
-	});
-	const query = client.api[mode].query({ id: 1 });
+	const client = makeClient(
+		{ api: Api },
+		{
+			headers: { authorization: `Bearer ${account}-session` },
+			registry: screen.registry,
+			runtime: yield* storyRuntime,
+			url: address,
+			webSocketConstructor: layerWebSocketConstructor,
+		},
+	);
+	const query = client.api.api[mode].query({ id: 1 });
 	yield* Effect.promise(() => screen.render(createElement(Note, { query })));
 	yield* Effect.promise(() => act(async () => void (await Effect.runPromise(AtomRegistry.getResult(screen.registry, query)))));
 	return { query, screen };

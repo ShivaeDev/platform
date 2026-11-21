@@ -5,7 +5,7 @@ import { Context, Effect, Layer, Option } from "effect";
 import { HttpRouter, HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import { RpcSerialization, RpcServer } from "effect/rpc";
-import { makeClient as makeRpcClient } from "@shivaedev/contract/bind.ts";
+import { makeClient as makeRpcClient } from "@shivaedev/contract/makeClient.ts";
 import { ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import { authSession as readSession } from "@shivaedev/identity/client/adapters/authSession.ts";
 import { permissionLayer } from "@shivaedev/identity/server/permissionLayer.ts";
@@ -59,7 +59,9 @@ export const openHost = Effect.fnUntraced(function* (initial: Role | undefined) 
 		return yield* Effect.die(new Error("Expected a TCP host"));
 	}
 	const url = `http://127.0.0.1:${address.port}/rpc`;
-	const { api } = makeRpcClient(Notes, { url, webSocketConstructor: layerWebSocketConstructor });
+	const {
+		api: { notes: api },
+	} = makeRpcClient({ notes: Notes }, { url, webSocketConstructor: layerWebSocketConstructor });
 	return {
 		api,
 		readSession: (role: Role) =>

@@ -1,6 +1,6 @@
 import { Deferred, Effect, Schema } from "effect";
-import { makeClient as makeRpcClient } from "@shivaedev/contract/bind.ts";
 import { contract } from "@shivaedev/contract/contract.ts";
+import { makeClient as makeRpcClient } from "@shivaedev/contract/makeClient.ts";
 import { command, query } from "@shivaedev/contract/operation.ts";
 import { layerLiveMemoryProtocol } from "@shivaedev/test-kits/contract/liveMemoryProtocol.ts";
 import { storyRuntime } from "#test/storyRuntime.ts";
@@ -26,11 +26,17 @@ export const loaderHost = Effect.fnUntraced(function* () {
 				response.resolve({ title });
 			}),
 	});
-	const { api, Client } = makeRpcClient(Notes, {
-		protocol: layerLiveMemoryProtocol(Notes, handlers),
-		runtime: yield* storyRuntime,
-		url: "memory://loader-notes",
-	});
+	const {
+		api: { notes: api },
+		Client,
+	} = makeRpcClient(
+		{ notes: Notes },
+		{
+			protocol: layerLiveMemoryProtocol(Notes, handlers),
+			runtime: yield* storyRuntime,
+			url: "memory://loader-notes",
+		},
+	);
 	const atom = api.get.query();
 	return {
 		atom,
