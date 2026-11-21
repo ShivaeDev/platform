@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.41.0 - 2026-11-21
+
+### Breaking
+
+- The account preferences plugin moves to a browser-safe path and a new name. Replace `import { preferencesClient } from "@shivaedev/identity/server/better-auth/preferencesClient.ts"` with `import { preferencesPlugin } from "@shivaedev/identity/client/preferencesPlugin.ts"` and call `preferencesPlugin()` where you called `preferencesClient()`. Its header names come from `accountPreferenceHeaders` in `@shivaedev/identity/accountPreferenceHeaders.ts`.
+
 ## 0.40.0 - 2026-11-21
 
 ### Added
