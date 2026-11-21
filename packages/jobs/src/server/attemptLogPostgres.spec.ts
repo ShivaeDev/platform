@@ -183,3 +183,53 @@ database.it(
 		]);
 	},
 );
+
+database.it(
+	"an attempt that pg-boss stops for its timeout before the runtime clock reaches the deadline logs no attempt line",
+	[running("app", [worker(Reports, "hangs")]), enqueued(Reports, {}, { as: "overdue report" })],
+	function* ({ pgBossClockPasses, recordedJobLog, runtimeClockCatchesUp, timePasses, untilAttempts, untilJob }) {
+		yield* untilAttempts(Reports, 1);
+
+		yield* pgBossClockPasses("1 second");
+		yield* untilJob("overdue report", "failed");
+		yield* runtimeClockCatchesUp("1 second");
+		yield* timePasses("500 millis");
+
+		expect(yield* recordedJobLog("overdue report")).toEqual([]);
+	},
+);
+
+const LeftBehind = defineQueue({
+	name: "attempt-log-left-behind",
+	queue: { retryBackoff: false, retryDelay: 0, retryLimit: 1 },
+	schema: Schema.Struct({ id: Schema.Number }),
+	worker: { batchSize: 2, pollingIntervalSeconds: 0.5 },
+});
+
+database.it(
+	"a job its batch leaves behind at another job's deadline logs no attempt line when pg-boss fails it for the timeout and it spends a retry",
+	[
+		storedTogether(LeftBehind, [
+			{ as: "first job", data: { id: 0 }, expireInSeconds: 1, priority: 10 },
+			{ as: "second job", data: { id: 1 }, expireInSeconds: 4, priority: 9 },
+		]),
+		running("app", [workerBy(LeftBehind, ({ id }, attempt) => (id === 0 && attempt === 0 ? "hangs" : "succeeds"))], {
+			handsBatchesOver: "by priority",
+		}),
+	],
+	function* ({ attemptCounts, job, recordedJobLog, timePasses, untilAttempts, untilInterrupted, untilSettled }) {
+		yield* untilAttempts(LeftBehind, 1);
+		yield* timePasses("1 second");
+		yield* untilInterrupted(LeftBehind, 1);
+
+		yield* timePasses("3 seconds");
+		yield* timePasses("500 millis");
+		yield* untilSettled(LeftBehind, 2);
+
+		yield* outcomes([
+			["attempts", () => attemptCounts(LeftBehind), { "first job": 2, "second job": 1 }],
+			["second job", () => job("second job"), expect.objectContaining({ retryCount: 1, state: "completed" })],
+			["second job log", () => recordedJobLog("second job"), []],
+		]);
+	},
+);
