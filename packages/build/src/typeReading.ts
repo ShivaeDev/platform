@@ -7,6 +7,7 @@ export interface TypeReading {
 	// Refuses the type at a path with what to write instead, and returns undefined so a caller can stop there.
 	readonly refuse: (type: ts.Type, path: string, instead: string) => undefined;
 	readonly refuseServerOnly: (path: string, schemaClass?: string) => undefined;
+	readonly schemasOf: (type: ts.Type) => readonly DeclaredClass[];
 }
 
 export function declaredIn(type: ts.Type, module: string): boolean {

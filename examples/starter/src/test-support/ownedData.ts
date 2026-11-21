@@ -1,43 +1,36 @@
-import { DateTime, Effect, Layer } from "effect";
+import { type Context, DateTime, Deferred, Effect, Layer } from "effect";
 import { accountData } from "@shivaedev/identity/server/better-auth/accountData.ts";
-import { JobsClientFactory } from "@shivaedev/jobs/server/JobsClientFactory.ts";
-import { collectRepositoryModels } from "@shivaedev/sql/RepositoryModels.ts";
-import { makePgBossTesting } from "@shivaedev/test-kits/jobs/testing.ts";
-import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
+import { RepositoryModels } from "@shivaedev/sql/RepositoryModels.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { AppAuth } from "#server/AppAuth.ts";
-import { jobsLayer } from "#server/jobsLayer.ts";
-import { serverModules } from "#server/modules.ts";
-import { testPoolSizes } from "#test-support/poolSizes.ts";
+import { startHost } from "#test-support/host.ts";
 import { configured, postgres } from "#test-support/postgres.ts";
 
 export const ownedData = storyKit({
 	around: withIsolatedDatabase,
 	clock: Effect.runSync(DateTime.now),
-	*create() {
-		return { database: yield* PostgresTestDatabase, testing: makePgBossTesting() };
-	},
+	create: () => ({}),
 	layer: postgres,
 	name: "owned account data",
 	runIf: configured,
 	stages: [],
-	verbs: (engine, story) => ({
+	verbs: (_engine, story) => ({
 		coverage: () => {
 			story.tell(
-				"the application's module services are built, as the host builds them, and identity checks the migrated database's personal columns",
+				"the application host starts, and identity checks the migrated database's personal columns against the collector that the host's application Effect built its module services under",
 			);
 			return Effect.gen(function* () {
-				const modules = yield* serverModules(Layer.empty);
-				const jobs = jobsLayer(engine.database.url, testPoolSizes.jobs).pipe(
-					Layer.provide(Layer.succeed(JobsClientFactory, engine.testing.clientFactory)),
-				);
-				yield* Layer.build(modules.services.pipe(Layer.provide(jobs)));
+				const collector = yield* Deferred.make<Context.Service.Shape<typeof RepositoryModels>>();
+				// Built with the module services inside the application Effect, so it sees the collector their repositories report to.
+				const observed = Layer.effectDiscard(Effect.flatMap(RepositoryModels, (models) => Deferred.succeed(collector, models)));
+				yield* startHost({ replacements: observed });
 				return yield* accountData(AppAuth).check.pipe(
+					Effect.provideService(RepositoryModels, yield* Deferred.await(collector)),
 					Effect.as("covered" as const),
 					Effect.catchTag("UncoveredUserColumns", ({ columns }) => Effect.succeed(columns)),
 				);
-			}).pipe(Effect.scoped, Effect.provide(collectRepositoryModels));
+			}).pipe(Effect.scoped);
 		},
 	}),
 });

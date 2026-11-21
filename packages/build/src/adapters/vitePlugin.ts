@@ -65,8 +65,13 @@ function generateFiles(): Plugin {
 		configResolved(resolved) {
 			config = resolved;
 		},
-		configureServer(devServer) {
+		async configureServer(devServer) {
 			server = devServer;
+			generation ??= runNode(watchedGeneration(devServer.config.root));
+			const { sources } = await generation;
+			if (!sources.startsWith(devServer.config.root)) {
+				devServer.watcher.add(sources);
+			}
 		},
 		enforce: "pre",
 		async hotUpdate(this: HotUpdateContext, { file, modules, server: devServer, timestamp }) {

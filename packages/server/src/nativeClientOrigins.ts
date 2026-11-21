@@ -1,6 +1,7 @@
 import { Effect, Option } from "effect";
 import { Headers, HttpMiddleware, HttpRouter, HttpServerRequest, HttpServerResponse } from "effect/http";
 import * as HttpStatus from "effect/http/HttpStatus";
+import { accountPreferenceHeaders } from "@shivaedev/identity/accountPreferenceHeaders.ts";
 import { localTransport } from "@shivaedev/identity/server/adapters/local.ts";
 import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 
@@ -28,6 +29,8 @@ export function nativeClientOrigins(trustedProxy: string | undefined, route: "au
 	).layer;
 }
 
+const CLIENT_HEADERS = ["Authorization", "Content-Type"];
+
 const withClientCors = Effect.fnUntraced(function* <E, R>(
 	effect: Effect.Effect<HttpServerResponse.HttpServerResponse, E, R>,
 	nativeOrigins: readonly string[],
@@ -43,7 +46,7 @@ const withClientCors = Effect.fnUntraced(function* <E, R>(
 	}
 	const transport = native ? request.modify({ headers: Headers.remove(request.headers, "cookie") }) : request;
 	return yield* HttpMiddleware.cors({
-		allowedHeaders: ["Authorization", "Content-Type"],
+		allowedHeaders: auth ? [...CLIENT_HEADERS, ...Object.values(accountPreferenceHeaders)] : CLIENT_HEADERS,
 		allowedMethods: auth ? ["GET", "POST"] : ["POST"],
 		allowedOrigins: [origin],
 		credentials: credentialed,

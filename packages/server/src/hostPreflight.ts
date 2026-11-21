@@ -1,5 +1,6 @@
 import { Effect, Layer } from "effect";
 import { redactingDiagnostics } from "#adapters/redactingDiagnostics.ts";
+import type { HostModels } from "#HostModels.ts";
 import type { hostCrypto } from "#hostCrypto.ts";
 
 export type HostPreflight<TServices = never, TError = never, TRequirements = never> =
@@ -11,12 +12,12 @@ type HostCrypto = Layer.Success<typeof hostCrypto>;
 export type PreflightHost<THost extends Layer.Any, TServices, TError, TRequirements> = Layer.Layer<
 	Layer.Success<THost> | TServices,
 	Layer.Error<THost> | TError,
-	Exclude<Layer.Services<THost>, TServices | HostCrypto> | Exclude<TRequirements, HostCrypto>
+	Exclude<Layer.Services<THost>, TServices | HostCrypto | HostModels> | Exclude<TRequirements, HostCrypto>
 >;
 
-export function hostPreflight<TServices, TError, TRequirements, TSensitiveError>(
+export function hostPreflight<TServices, TError, TRequirements, TSensitiveError, TSensitiveRequirements>(
 	startup: Layer.Layer<TServices, TError, TRequirements> | undefined,
-	sensitive: Effect.Effect<(key: string) => boolean, TSensitiveError>,
+	sensitive: Effect.Effect<(key: string) => boolean, TSensitiveError, TSensitiveRequirements>,
 ) {
 	return Layer.mergeAll(
 		Layer.empty,

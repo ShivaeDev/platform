@@ -1,4 +1,5 @@
 import { Effect } from "effect";
+import { vi } from "vitest";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { storyClock, withIdentityDatabase } from "#test/clock.ts";
 import { callers } from "#test/native-sessions/callers.ts";
@@ -13,6 +14,7 @@ import { sessionVerbs } from "#test/native-sessions/verbs.ts";
 import { databaseUrl, postgres } from "#test/postgres.ts";
 
 interface State {
+	accountPreferences: boolean;
 	readonly accounts: Map<string, Account>;
 	enabled: boolean;
 	host?: Host;
@@ -21,13 +23,15 @@ interface State {
 export const nativeSessions = storyKit({
 	after: {
 		*configured(state) {
-			state.host = yield* startHost(state.enabled ? [NATIVE_ORIGIN, ANDROID_ORIGIN] : undefined);
+			state.host = yield* startHost(state.enabled ? [NATIVE_ORIGIN, ANDROID_ORIGIN] : undefined, {
+				accountPreferences: state.accountPreferences,
+			});
 		},
 	},
 	around: withIdentityDatabase,
 	clock: storyClock,
-	create: (): State => ({ accounts: new Map(), enabled: true }),
-	inspect: (state) => ({ accounts: [...state.accounts.keys()], enabled: state.enabled }),
+	create: (): State => ({ accountPreferences: false, accounts: new Map(), enabled: true }),
+	inspect: (state) => ({ accountPreferences: state.accountPreferences, accounts: [...state.accounts.keys()], enabled: state.enabled }),
 	layer: postgres,
 	name: "native bearer sessions through appHost",
 	runIf: databaseUrl !== undefined,
@@ -49,6 +53,22 @@ export const nativeSessions = storyKit({
 export const cookieOnly = nativeSessions.trait("configured", "the default host keeps cookie-only sessions", (state) => {
 	state.enabled = false;
 });
+export const capturesPreferences = nativeSessions.trait("configured", "the auth mount captures account preferences", (state) => {
+	state.accountPreferences = true;
+});
+// A WebView or React Native shell has a global window; Node needs one so the plugin treats the shell as a client.
+export function deviceIn(timezone: string) {
+	return nativeSessions.trait("configured", `the shell runs in a WebView on a device set to ${timezone}`, function* () {
+		vi.stubEnv("TZ", timezone);
+		vi.stubGlobal("window", globalThis);
+		yield* Effect.addFinalizer(() =>
+			Effect.sync(() => {
+				vi.unstubAllEnvs();
+				vi.unstubAllGlobals();
+			}),
+		);
+	});
+}
 export function signedIn(...names: string[]) {
 	return accounts(names, false);
 }

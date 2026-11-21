@@ -210,28 +210,44 @@ const REFUSALS = {
 	relativePayload: `refused.relativePayload payload imports RefusedDraft by the relative path "./payloads.ts" in ${OPERATIONS}; import it through a package import, such as a # specifier, so the generated file can import it too`,
 	returnsAny: "refused.returnsAny: run returns any at success, which has no exact wire form; decode the value with a schema, or give it a type",
 	returnsBrand:
-		"refused.returnsBrand: run returns NoteId at success, which has no exact wire form; return the unbranded type, or wrap the value in an exported Schema class",
+		'refused.returnsBrand: run returns NoteId at success, which has no exact wire form; export one schema for the brand NoteId, built with Schema.brand("NoteId"), from a module the operation imports',
 	returnsEnum:
 		"refused.returnsEnum: run returns Level at success.level, which has no exact wire form; return string or number literals instead of an enum",
+	returnsHandBranded:
+		"refused.returnsHandBranded: run returns UserId at success, which has no exact wire form; return the unbranded type, or build the brand with Schema.brand and export its schema from a module the operation imports",
+	returnsLiteralBrandKeys:
+		"refused.returnsLiteralBrandKeys: run returns Record<Letter, number> at success, which has no exact wire form; key the record by string or a string brand, or return an array of entries, since TypeScript keeps no property for a branded literal key and the wire would drop it",
 	returnsLooseOptional:
 		"refused.returnsLooseOptional: run returns string | undefined at success.summary, which has no exact wire form; drop undefined from the optional property summary, so an absent key is the only way to leave it out",
 	returnsMap:
 		"refused.returnsMap: run returns Map<string, number> at success, which has no exact wire form; return a plain object, an array or a string-keyed record",
 	returnsNullOrUndefined:
 		"refused.returnsNullOrUndefined: run returns null | undefined at success, which has no exact wire form; return either null or undefined, since the wire carries both as one",
-	returnsNumberKeys: "refused.returnsNumberKeys: run returns Record<number, string> at success, which has no exact wire form; use string keys only",
+	returnsNumberBrandKeys:
+		"refused.returnsNumberBrandKeys: run returns Record<NoteId, string> at success, which has no exact wire form; key the record by string or a string brand, or return an array of entries, since JSON keys are strings and the wire cannot check them against a brand that is not a string",
+	returnsNumberKeys:
+		"refused.returnsNumberKeys: run returns Record<number, string> at success, which has no exact wire form; use string keys, or keys of a branded string",
+	returnsPartialRecord:
+		'refused.returnsPartialRecord: run returns Partial<Record<string & Brand<"Shelf">, number>> at success, which has no exact wire form; drop Partial and undefined from the record\'s values, so an absent key is the only way to leave a value out',
 	returnsPlainClass:
 		"refused.returnsPlainClass: run returns Counter at success, which has no exact wire form; return a plain object, or make the class a Schema class",
+	returnsReadonlyLiteralBrandKeys:
+		'refused.returnsReadonlyLiteralBrandKeys: run returns Readonly<Record<"c" | Letter, number>> at success, which has no exact wire form; key the record by string or a string brand, or return an array of entries, since TypeScript keeps no property for a branded literal key and the wire would drop it',
 	returnsRecursive:
 		"refused.returnsRecursive: run returns Tree at success.children[number], which has no exact wire form; return a type that does not contain itself",
+	returnsStringOrBigint:
+		"refused.returnsStringOrBigint: run returns string | bigint at success, which has no exact wire form; return string or number, alone or with boolean, since a NaN or infinite number and a bigint travel as strings and a union with string cannot tell them apart",
 	returnsStringOrNumber:
-		"refused.returnsStringOrNumber: run returns string | number at success, which has no exact wire form; return string, number or boolean literals, or objects told apart by one literal field such as _tag",
+		"refused.returnsStringOrNumber: run returns string | number at success, which has no exact wire form; return string or number, alone or with boolean, since a NaN or infinite number and a bigint travel as strings and a union with string cannot tell them apart",
 	returnsTupleRest:
 		"refused.returnsTupleRest: run returns readonly [string, ...number[]] at success, which has no exact wire form; use an array, or a tuple of required elements",
+	returnsTwiceBranded: `refused.returnsTwiceBranded: run returns string & Brand<"Sku"> at success, which has no exact wire form; export one schema for the brand Sku, not 2: SkuCode in src/modules/refused/payloads.ts and Sku in src/modules/refused/shared.ts`,
 	returnsUndefinedProperty:
 		"refused.returnsUndefinedProperty: run returns string | undefined at success.summary, which has no exact wire form; return null instead of undefined, or make the property optional",
 	returnsUnexportedClass:
 		"refused.returnsUnexportedClass: run returns Secret at success, which has no exact wire form; export the Schema class Secret from its module",
+	returnsUnknown:
+		"refused.returnsUnknown: run returns unknown at success, which has no exact wire form; decode the value with a schema, or give it a type",
 } as const;
 
 const MODULE_REFUSALS = {

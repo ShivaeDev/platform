@@ -206,10 +206,10 @@ failures.it(
 );
 
 failures.it(
-	"the application's query view defaults replace the default failure rendering",
+	"the application's query view defaults lay out the failure around the server's message",
 	[failureScreen({ queryDefaults: true }, "under the application's query view defaults")],
 	function* ({ note }) {
-		expect(yield* note()).toEqual(["This draft could not be opened"]);
+		expect(yield* note()).toEqual(["This draft could not be opened: Draft 7 is gone"]);
 	},
 );
 

@@ -21,7 +21,7 @@ export const reconnectSessions = storyKit({
 		const run = Effect.runPromiseWith(yield* Effect.context());
 		const { accounts, layer } = accountHandlers();
 		const host = yield* rpcSocketHost(Accounts, layer);
-		const auth = yield* makeAuth;
+		const auth = yield* makeAuth(runtime);
 		const screen = new Screen(() => undefined);
 		const errors: string[] = [];
 		const history = createMemoryHistory({ initialEntries: ["/"] });

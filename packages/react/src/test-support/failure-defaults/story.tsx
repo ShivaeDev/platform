@@ -85,6 +85,7 @@ export const failures = storyKit(
 					screen.tell(`the server is out with ${outage}`);
 					state.current.client.server.outage = outage;
 				}),
+			outline: () => Effect.sync(() => texts(state, "[data-outline]")),
 			press: (control: Control) => press(state, screen, control),
 			rechecks: () => Effect.sync(() => timesWords(state.current.rechecks)),
 			retry: () => screen.driver(container(state)).click({ name: "Retry", role: "button" }),
@@ -97,7 +98,7 @@ export const failures = storyKit(
 	),
 );
 
-type Options = Partial<Pick<FailureScreen, "hostWording" | "queryDefaults">>;
+type Options = Partial<Pick<FailureScreen, "hostWording" | "outline" | "queryDefaults">>;
 
 export function failureScreen(options: Options = {}, words = "with the default failure host") {
 	return failures.trait("screen", `alice opened the draft screen ${words}`, function* ({ screen, state }) {

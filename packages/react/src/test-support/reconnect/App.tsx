@@ -1,8 +1,8 @@
 import { useAtomValue } from "@effect/atom-react";
 import { createRootRoute, createRoute, createRouter, type RouterHistory, RouterProvider } from "@tanstack/react-router";
-import { Layer, Option } from "effect";
+import { Option } from "effect";
 import type * as Atom from "effect/reactivity/Atom";
-import { useLayoutEffect, useMemo, useState } from "react";
+import { useLayoutEffect, useState } from "react";
 import { LiveConnection } from "@shivaedev/contract/automaticLive.ts";
 import { useSignOut } from "#client/adapters/useSignOut.ts";
 import { useQuery } from "#client/resultState.ts";
@@ -61,7 +61,6 @@ export function App({
 	history: RouterHistory;
 	runtime: Atom.RuntimeFactory;
 }) {
-	const retries = useMemo(() => runtime(Layer.empty), [runtime]);
 	const session = useQuery(auth.session.atom);
 	const current = Option.getOrUndefined(session.data);
 	if (Option.isNone(session.data)) {
@@ -72,7 +71,6 @@ export function App({
 			connect={(_, registry) => connect(url, registry, runtime)}
 			identify={(value) => value.user.id}
 			recheck={auth.session.refresh}
-			runtime={retries}
 			session={current ?? undefined}
 			signedOut={<h1>Sign in</h1>}
 			signOut={auth.signOut}

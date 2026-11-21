@@ -9,7 +9,7 @@ import { formFields } from "#client/adapters/formFields.ts";
 import { typedEditor } from "#client/adapters/operationHooks.ts";
 import { rowValues } from "#client/adapters/rowValues.ts";
 import type { BoundOperation, LooseOperation } from "#client/boundOperation.ts";
-import type { FailureChoices, FormFailuresOption } from "#client/failures.ts";
+import type { EditorQueryFailuresOption, FailureChoices, FormFailuresOption } from "#client/failures.ts";
 import type { NoticeFeedback } from "#client/notices.ts";
 import type {
 	DecodingServicesOption,
@@ -21,8 +21,9 @@ import type {
 	Unfixed,
 	ValuesOption,
 } from "#client/operationForm.ts";
-import { type QueryOptions, type QueryState, useQuery } from "#client/resultState.ts";
+import type { QueryState } from "#client/resultState.ts";
 import { type SaveState, useSaveState } from "#client/saveState.ts";
+import { useEditorQuery } from "#client/useEditorQuery.ts";
 import type { LoadedQueryState } from "#client/useLoaderQuery.ts";
 import { useSubmissionCallbacks } from "#client/useSubmissionCallbacks.ts";
 import { loadedQuery } from "#loadedQuery.ts";
@@ -31,7 +32,6 @@ export type EditorOptions<TFields extends Fields, TRow, TQueryError, TSaved, TSa
 	readonly persistedDraft?: PersistedDraftConfig | undefined;
 	readonly query: Atom.Atom<AsyncResult.AsyncResult<TRow, TQueryError>>;
 	readonly notices?: NoticeFeedback<Decoded<TFields>, TSaved, Services<TFields, R>>;
-	readonly queryNotice?: QueryOptions<TQueryError>["notice"];
 } & Pick<SubmissionConfig<TFields, TSaved, TSaveError, R, TRuntimeError>, "requiredMessages" | "checks" | "debounce" | "arrayKeys">;
 export interface Editor<TFields extends Fields, TRow, TQueryError, TSaveError, TRuntimeError, TSaved = TRow>
 	extends SaveState<TSaveError | TRuntimeError> {
@@ -86,6 +86,7 @@ export type UseEditor = <
 		> &
 		NoInfer<ValuesOption<TRow | TSaved, FormFields<TPayload, TFixed, TFields>, Derived<TFields>>> &
 		NoInfer<DecodingServicesOption<FormFields<TPayload, TFixed, TFields>, R>> &
+		NoInfer<EditorQueryFailuresOption<TLoaded, TQueryError>> &
 		FormFailuresOption<FormFields<TPayload, TFixed, TFields>, TSaveError, Services<FormFields<TPayload, TFixed, TFields>, R>, TSilent>,
 ) => [TLoaded] extends [undefined]
 	? Editor<FormFields<TPayload, TFixed, TFields>, TRow, TQueryError, TSaveError, TRuntimeError, TSaved>
@@ -97,6 +98,7 @@ export type LooseEditor = (
 			readonly fields?: Schema.Struct<Fields>;
 			readonly fixed?: object;
 			readonly loaded?: unknown;
+			readonly queryFailures?: FailureChoices["failures"];
 			readonly values?: (row: unknown) => Encoded<Fields>;
 		},
 ) => Editor<Fields, unknown, unknown, unknown, unknown, unknown> | LoadedEditor<Fields, unknown, unknown, unknown, unknown, unknown>;
@@ -113,8 +115,7 @@ const useLooseEditor: LooseEditor = (operation, options) => {
 		runtime,
 		config.notices,
 	);
-	const query = useQuery(config.query, config.queryNotice === undefined ? {} : { notice: config.queryNotice });
-	const row = Option.orElse(query.data, () => ("loaded" in config ? Option.some(config.loaded) : Option.none()));
+	const { query, row } = useEditorQuery(config);
 	const [held, hold] = useState<Held | undefined>(undefined);
 	let current = held?.query === config.query && held.fields === fields && held.runtime === runtime ? held : undefined;
 	if (current === undefined && Option.isSome(row)) {
@@ -133,8 +134,7 @@ const useLooseEditor: LooseEditor = (operation, options) => {
 		};
 		hold(current);
 	}
-	const form = current?.form;
-	const values = current?.values;
+	const { form, values } = current ?? { form: undefined, values: undefined };
 	const received = Option.getOrUndefined(row);
 	useEffect(() => {
 		if (form && values && received !== undefined) {

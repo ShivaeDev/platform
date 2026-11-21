@@ -5,7 +5,9 @@ import type { AppViteOptions } from "#appViteConfig.ts";
 import { readIfPresent, writeAtomically } from "#files.ts";
 import { generate } from "#generate.ts";
 import { emptyProject, generatedOncePerFile, vitestRun, writeFiles } from "#test/fixtureProject.ts";
+import { MISPLACED_MODULES } from "#test/misplacedModules.ts";
 import { NOTES_PROJECT } from "#test/notesProject.ts";
+import { REFUSED_BRANDS } from "#test/refusedBrands.ts";
 import { REFUSING_PROJECT } from "#test/refusingProject.ts";
 import { VITE_PROJECT } from "#test/viteProject.ts";
 import { appConfigBuild, type DevServer, viteBuild, viteDevServer } from "#test/viteRuns.ts";
@@ -18,6 +20,7 @@ interface ViteEngine {
 	listBefore: string;
 	readonly lock: string;
 	readonly root: string;
+	viteRoot: string;
 }
 
 // Only the story's lock file, so the lock is taken even on CI, where a set CI variable skips it.
@@ -33,7 +36,14 @@ export const vite = storyKit({
 	*create() {
 		const root = yield* emptyProject();
 		const path = yield* Path.Path;
-		const engine: ViteEngine = { devServer: Option.none(), edited: new Set(), listBefore: "", lock: path.join(root, "heavy-process.lock"), root };
+		const engine: ViteEngine = {
+			devServer: Option.none(),
+			edited: new Set(),
+			listBefore: "",
+			lock: path.join(root, "heavy-process.lock"),
+			root,
+			viteRoot: root,
+		};
 		return engine;
 	},
 	inspect: ({ root }) => ({ root }),
@@ -70,7 +80,7 @@ export const vite = storyKit({
 					? "the application runs vite build"
 					: `the application runs vite build with ${serverOnly.join(", ")} listed as server-only`,
 			);
-			return viteBuild(engine.root, serverOnly);
+			return viteBuild(engine.viteRoot, serverOnly);
 		},
 		buildsWithTheAppConfig: (options: AppViteOptions = {}) => {
 			story.tell(`the application runs vite build with appViteConfig and ${JSON.stringify(options)}`);
@@ -133,7 +143,7 @@ export const vite = storyKit({
 		},
 		startsTheDevServer: Effect.fn("BuildStory.startsTheDevServer")(function* () {
 			story.tell("the developer starts the vite dev server and the browser connects to it");
-			return yield* viteDevServer(engine.root).pipe(
+			return yield* viteDevServer(engine.viteRoot).pipe(
 				Effect.map((devServer) => {
 					engine.devServer = Option.some(devServer);
 					return "started" as const;
@@ -220,14 +230,53 @@ export function notesTest() {
 	);
 }
 
+export function pageInTheClientFolder(kind: keyof typeof VITE_PROJECT.clientFolderPages) {
+	return vite.trait(
+		"page",
+		`the page lives in src/client, Vite's root, and its script imports ${kind}`,
+		Effect.fn("BuildStory.pageInTheClientFolder")(function* (engine: ViteEngine) {
+			const path = yield* Path.Path;
+			yield* writeFiles(engine.root, VITE_PROJECT.clientFolderPages[kind]);
+			engine.viteRoot = path.join(engine.root, "src", "client");
+		}),
+	);
+}
+
+export function notesTestInTheClientFolder() {
+	return vite.trait("page", "the project has a test file in src/client, Vitest's root, that imports the generated notes wire", (engine) =>
+		writeFiles(engine.root, VITE_PROJECT.notesTestInTheClientFolder),
+	);
+}
+
 export function notesTestThroughTheAppConfig() {
 	return vite.trait("page", "the project has a test file that imports the generated notes wire and a vitest config made by appTestConfig", (engine) =>
 		writeFiles(engine.root, VITE_PROJECT.notesTestThroughTheAppConfig),
 	);
 }
 
+export function solutionTsconfig() {
+	return vite.trait(
+		"project",
+		"the project's tsconfig.json holds no files, only a reference to tsconfig.app.json, which holds the project's settings",
+		Effect.fn("BuildStory.solutionTsconfig")(function* (engine: ViteEngine) {
+			const fs = yield* FileSystem.FileSystem;
+			const path = yield* Path.Path;
+			const tsconfig = path.join(engine.root, "tsconfig.json");
+			yield* writeFiles(engine.root, {
+				"tsconfig.app.json": yield* fs.readFileString(tsconfig),
+				"tsconfig.json": `${JSON.stringify({ files: [], references: [{ path: "./tsconfig.app.json" }] }, undefined, "\t")}\n`,
+			});
+		}),
+	);
+}
+
 export function refusedModule() {
 	return vite.trait("project", "the project also has the refused module, whose operations the wire cannot carry exactly", (engine) =>
-		writeFiles(engine.root, Object.fromEntries(Object.entries(REFUSING_PROJECT).filter(([file]) => file.startsWith("src/")))),
+		writeFiles(
+			engine.root,
+			Object.fromEntries(
+				Object.entries({ ...MISPLACED_MODULES, ...REFUSED_BRANDS, ...REFUSING_PROJECT }).filter(([file]) => file.startsWith("src/")),
+			),
+		),
 	);
 }

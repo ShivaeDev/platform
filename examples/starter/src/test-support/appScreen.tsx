@@ -44,7 +44,7 @@ export const appScreen = Effect.fn("AppStory.appScreen")(function* (options: {
 	const history = createMemoryHistory({ initialEntries: [options.route] });
 	function pending() {
 		return (
-			view.registry.get(host.auth.session.atom).waiting
+			host.sessionPending(view.registry)
 			|| view.registry.get(host.auth.actions.submit).waiting
 			|| view.registry.get(host.auth.actions.signOut).waiting
 			|| view.container.querySelector('[role="status"]') !== null

@@ -14,6 +14,7 @@ export interface ProjectConfig {
 	readonly declarations: readonly string[];
 	readonly files: readonly string[];
 	readonly options: ts.CompilerOptions;
+	readonly references: readonly string[];
 	readonly typeScriptVersion: string;
 }
 
@@ -39,6 +40,7 @@ export const readConfig = Effect.fn("Build.readConfig")(function* (tsconfig: str
 		declarations: parsed.config.fileNames.filter((file) => file.endsWith(".d.ts")),
 		files: parsed.config.fileNames,
 		options: parsed.config.options,
+		references: (parsed.config.projectReferences ?? []).map(({ path }) => path),
 		typeScriptVersion: ts.version,
 	};
 	return config;

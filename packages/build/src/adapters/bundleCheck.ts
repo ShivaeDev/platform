@@ -3,6 +3,7 @@ import { dirname, isAbsolute, join, posix, relative, sep } from "node:path";
 import { Option } from "effect";
 import type { Plugin, Rollup } from "vite";
 import { runNode } from "#adapters/runNode.ts";
+import { projectFolder } from "#project.ts";
 import { type BundleGraph, type BundleModule, type ServerMarkers, serverCodeIn } from "#serverCode.ts";
 
 const BROWSER_EXTERNAL = "__vite-browser-external:";
@@ -62,8 +63,9 @@ export function bundleCheck(serverOnly: readonly string[], oldFormFolders: reado
 			if (error !== undefined) {
 				return;
 			}
-			const graph = graphOf(this, root, oldFormFolders);
-			const found = await runNode(serverCodeIn(graph, await markersFrom(this, root), { oldFormFolders, root, serverOnly }));
+			const project = await runNode(projectFolder(root));
+			const graph = graphOf(this, project, oldFormFolders);
+			const found = await runNode(serverCodeIn(graph, await markersFrom(this, root), { oldFormFolders, root: project, serverOnly }));
 			if (Option.isSome(found)) {
 				this.error(found.value);
 			}

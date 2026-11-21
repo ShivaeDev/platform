@@ -3,6 +3,7 @@ import type * as AsyncResult from "effect/reactivity/AsyncResult";
 import type * as Atom from "effect/reactivity/Atom";
 import { createElement, useState } from "react";
 import type { UserListInput } from "@shivaedev/identity/users.ts";
+import { QueryView } from "@shivaedev/react/client/QueryView.ts";
 import { useAction, useQuery } from "@shivaedev/react/client/resultState.ts";
 import type { DateDisplay } from "#client/timestampText.ts";
 import { UsersTable } from "#client/UsersTable.tsx";
@@ -40,12 +41,13 @@ export function UsersView<TRole extends string>({ list, changeRole, roles, local
 			{ className: "rounded-md border px-3 py-2 disabled:opacity-50", disabled: state.pending, onClick: state.refresh, type: "button" },
 			"Refresh users",
 		),
-		state.pending ? createElement("p", { role: "status" }, "Loading users…") : null,
-		Option.isSome(state.cause) ? createElement("p", { role: "alert" }, "Could not load users. Try refreshing.") : null,
 		Option.isSome(action.cause) ? createElement("p", { role: "alert" }, failure(action.cause.value)) : null,
-		data === undefined
-			? null
-			: createElement(UsersTable<TRole>, { data, dates: { locale, timeZone }, dispatch: action.dispatch, pending: action.pending, roles }),
+		createElement(QueryView<UsersList, unknown>, {
+			content: (users) =>
+				createElement(UsersTable<TRole>, { data: users, dates: { locale, timeZone }, dispatch: action.dispatch, pending: action.pending, roles }),
+			loading: () => createElement("p", { role: "status" }, "Loading users…"),
+			query: state,
+		}),
 		data === undefined
 			? null
 			: createElement(

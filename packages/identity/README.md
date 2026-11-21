@@ -145,16 +145,16 @@ export const preferencesModule = {
 } satisfies AppModule;
 ```
 
-To capture browser defaults, enable `{ accountPreferences: true }` in `betterAuthMount` and install the optional Better Auth client plugin:
+To capture a client's defaults, enable `{ accountPreferences: true }` in `betterAuthMount` and install the Better Auth client plugin from `@shivaedev/identity/client/preferencesPlugin.ts`, which holds no server code:
 
 ```ts
 import { createAuthClient } from "better-auth/client";
-import { preferencesClient } from "@shivaedev/identity/server/better-auth/preferencesClient.ts";
+import { preferencesPlugin } from "@shivaedev/identity/client/preferencesPlugin.ts";
 
-export const auth = createAuthClient({ plugins: [preferencesClient()] });
+export const auth = createAuthClient({ plugins: [preferencesPlugin()] });
 ```
 
-The browser sends its `Intl.DateTimeFormat` timezone and locale to the auth mount. A successful first sign-in captures those values with metric units. After redirect-based sign-in, the browser's first `getSession` captures them. Missing or invalid browser timezone data leaves preferences uncaptured; a later browser session can capture them. Other clients can call the `capture` contract with their own defaults.
+The client sends its `Intl.DateTimeFormat` timezone and locale to the auth mount in the `x-platform-account-timezone` and `x-platform-account-locale` headers, whose names `accountPreferenceHeaders` from `@shivaedev/identity/accountPreferenceHeaders.ts` exports. It sends them only where a global `window` exists, as in a browser, a WebView or React Native, so a server-side auth call does not report the server's zone. A successful first sign-in captures those values with metric units. After redirect-based sign-in, the client's first `getSession` captures them. Missing or invalid timezone data leaves preferences uncaptured; a later session can capture them. A bundled native shell installs the same plugin (see [Bundled native clients](#bundled-native-clients)). Clients without a Better Auth client can call the `capture` contract with their own defaults.
 
 `AccountClock` from `@shivaedev/identity/server/account-clock/service.ts` is a per-request service. Its Layer requires `Subject`, and its initializer captures that subject's saved timezone. Register that Layer in the host's `requestServices` slot and `accountPreferencesStore` in global `services`. Each new request sees the current saved timezone. Configure `AccountDayStart` from `@shivaedev/identity/server/account-clock/settings.ts` in minutes after local midnight; it defaults to zero and accepts integers from 0 through 1439. The same module exports `LogicalDay`.
 
@@ -559,16 +559,20 @@ export const secureCredential = Layer.succeed(SessionCredential, {
 });
 ```
 
-Pass that Layer to the Better Auth client as a plugin, and to `makeClient` through `storedCredential`:
+Pass that Layer to the Better Auth client as a plugin, and to `makeClient` through `storedCredential`. When the mount captures [account preferences](#account-preferences-and-logical-days), install the same `preferencesPlugin()` the browser uses on the native auth client too, so the device's timezone and locale are captured at sign-in:
 
 ```ts
 import { createAuthClient } from "better-auth/client";
 import { Effect } from "effect";
 import { makeClient } from "@shivaedev/contract/makeClient.ts";
 import { sessionCredentialPlugin } from "@shivaedev/identity/client/adapters/sessionCredentialPlugin.ts";
+import { preferencesPlugin } from "@shivaedev/identity/client/preferencesPlugin.ts";
 import { storedCredential } from "@shivaedev/identity/client/SessionCredential.ts";
 
-export const authClient = createAuthClient({ baseURL: publicOrigin, plugins: [sessionCredentialPlugin(secureCredential)] });
+export const authClient = createAuthClient({
+	baseURL: publicOrigin,
+	plugins: [sessionCredentialPlugin(secureCredential), preferencesPlugin()],
+});
 const client = makeClient(contracts, { bearerToken: Effect.provide(storedCredential, secureCredential), registry, url: `${publicOrigin}/rpc` });
 ```
 
@@ -578,7 +582,7 @@ Native sign-out revokes the stored session. Signing in again while sending the c
 
 Use `nativeOrigins` for bundled clients so their transport remains credential-free; other declared origins follow the sibling browser policy above.
 
-The host answers native preflights with POST for RPC, GET and POST for auth, and only `Authorization` and `Content-Type` headers. Native responses echo the allowed origin exactly with `Vary: Origin`; auth responses expose `set-auth-token`. Native responses never enable CORS credentials. It strips cookies from admitted native requests before auth or RPC session resolution, so only the signed bearer session can authenticate them. This prevents native access from opening a cookie CSRF path, even if a caller sends a cookie. Resource authorization remains app-owned.
+The host answers native preflights with POST for RPC, GET and POST for auth. RPC allows only the `Authorization` and `Content-Type` headers; auth also allows the two account preference headers, for native and sibling browser origins alike. Native responses echo the allowed origin exactly with `Vary: Origin`; auth responses expose `set-auth-token`. Native responses never enable CORS credentials. It strips cookies from admitted native requests before auth or RPC session resolution, so only the signed bearer session can authenticate them. This prevents native access from opening a cookie CSRF path, even if a caller sends a cookie. Resource authorization remains app-owned.
 
 A WebView's live queries subscribe over the shared WebSocket client. `storedCredential` reads the port each time the socket connects: contract's `makeClient` sends the credential stored then as the socket's first frame, as the [contract guide](https://github.com/ShivaeDev/platform/blob/main/packages/contract/README.md#build-a-shared-websocket-client) describes, and connects without one when none is stored. A new client after each sign-in, sign-out or second sign-in, as React's `SessionBoundary` makes one per session, therefore carries the current credential. The host refuses a query's change stream over HTTP with `WebSocketRequired`. Over HTTP, use the WebView's own fetch with `credentials: "omit"` for commands, one-off reads and explicit NDJSON streams, and abort a stream's request to release server work; a buffering native HTTP bridge cannot deliver a stream incrementally. The host still validates trusted proxy peers and forwarded authority, enforces NDJSON and body limits, uses only transport credentials, redacts diagnostics and authorizes sessions. Native HTTP callers without an Origin can exercise bearer RPC with an origin policy that explicitly permits missing Origins.
 

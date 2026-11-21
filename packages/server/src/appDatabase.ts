@@ -1,6 +1,5 @@
 import * as PgClient from "@effect/sql-pg/PgClient";
 import { Clock, Config, Context, Effect, Layer, Option, Redacted } from "effect";
-import { Digest } from "effect/crypto";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import type { Rpc } from "effect/rpc";
 import { liveServerLayer } from "@shivaedev/contract/live-server/layer.ts";
@@ -15,6 +14,8 @@ import type { AppHostFactory } from "#AppHostFactory.ts";
 import type { AppHostInput } from "#AppHostInput.ts";
 import { deferredHost, migratedHost } from "#appDatabaseHttp.ts";
 import { appHostHttp } from "#appHostHttp.ts";
+import { defaultChangesChannel } from "#defaultChangesChannel.ts";
+import { hostModels } from "#HostModels.ts";
 import { hostCrypto } from "#hostCrypto.ts";
 import type { HostRouteRequirements } from "#hostOptions.ts";
 import { hostPreflight } from "#hostPreflight.ts";
@@ -90,12 +91,6 @@ export function appDatabase<R, E = never>(options: AppDatabaseOptions<R, E>) {
 	return worker.pipe(Layer.provideMerge(prepared));
 }
 
-const defaultChangesChannel = Effect.fnUntraced(function* (name: string) {
-	const digest = yield* Digest.Digest;
-	const hash = yield* digest.digestHex(Digest.sha256, new TextEncoder().encode(name));
-	return `changes_${hash.slice(0, 32)}`;
-});
-
 export const appHost: AppHostFactory = <
 	TRpcs extends Rpc.Any = never,
 	THandlers = never,
@@ -138,13 +133,14 @@ export const appHost: AppHostFactory = <
 	>,
 ) => {
 	const preflight = hostPreflight(options.preflight, "application" in options ? Effect.succeed(isSensitiveKey) : hostSensitiveKeys(options));
+	const hosted = Layer.merge(hostCrypto, hostModels());
 	if ("application" in options) {
-		return deferredHost(options.application, appDatabase(options)).pipe(Layer.provideMerge(preflight), Layer.provide(hostCrypto));
+		return deferredHost(options.application, appDatabase(options)).pipe(Layer.provideMerge(preflight), Layer.provide(hosted));
 	}
 	return options.migrations === undefined
-		? appHostHttp(options).pipe(Layer.provideMerge(preflight), Layer.provide(hostCrypto))
+		? appHostHttp(options).pipe(Layer.provideMerge(preflight), Layer.provide(hosted))
 		: migratedHost({ ...options, migrations: options.migrations }, appDatabase({ ...options, migrations: options.migrations })).pipe(
 				Layer.provideMerge(preflight),
-				Layer.provide(hostCrypto),
+				Layer.provide(hosted),
 			);
 };
