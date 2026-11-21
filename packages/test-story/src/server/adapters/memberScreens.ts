@@ -7,6 +7,7 @@ import { type DomCookie, seedCookies } from "#server/adapters/seedCookies.ts";
 import { domFetch } from "#server/domFetch.ts";
 
 export interface MemberScreen {
+	readonly cookie: string;
 	readonly fetch: typeof globalThis.fetch;
 	readonly name: string;
 	readonly registry: AtomRegistry.AtomRegistry;
@@ -36,6 +37,7 @@ export function memberScreens<E, R, TVerbs>(options: {
 					root.setAttribute("data-story-member", name);
 					document.body.append(root);
 					return {
+						cookie: cookies.map((cookie) => `${cookie.name}=${cookie.value}`).join("; "),
 						fetch: domFetch(options.baseUrl, { fetch: memberFetch(browser), location: browser.location }),
 						name,
 						registry: registryModule.make(),

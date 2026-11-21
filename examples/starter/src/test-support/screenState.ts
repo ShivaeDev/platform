@@ -7,7 +7,7 @@ import { type Rendered, render } from "@shivaedev/test-story/client/adapters/rea
 import type { ScreenDriverOptions } from "@shivaedev/test-story/server/screenDriver.ts";
 
 export interface ScreenSurface {
-	activity?: ClientActivity;
+	activities?: readonly ClientActivity[];
 	pending?: () => boolean;
 	transport?: ScreenDriverOptions["transport"];
 	view: Rendered | undefined;

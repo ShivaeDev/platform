@@ -1,4 +1,3 @@
-import { NodeHttpClient } from "@effect/platform-node";
 import { Context, Deferred, Effect } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { SqlClient } from "effect/sql";
@@ -9,7 +8,7 @@ import { makeClient } from "#test/order-example/makeClient.ts";
 import { ORDER_CHANGES, signedInSessions, startHost } from "#test/order-example/startHost.ts";
 
 function client(url: string, token?: string) {
-	return makeClient({ httpClient: NodeHttpClient.layerNodeHttp, token, url }).client;
+	return makeClient({ token, url }).client;
 }
 
 export interface Screen {

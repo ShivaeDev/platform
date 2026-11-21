@@ -1,28 +1,14 @@
-import { Layer } from "effect";
-import { FetchHttpClient, HttpClient, HttpClientRequest } from "effect/http";
-import { RpcClient, RpcSerialization } from "effect/rpc";
+import { layerWebSocketConstructor } from "@effect/platform-node/NodeWS";
 import { makeClient as makeRpcClient } from "@shivaedev/contract/bind.ts";
 import { Orders } from "#test/order-example/contract.ts";
 
-export function makeClient({
-	url,
-	token,
-	httpClient = FetchHttpClient.layer,
-}: {
-	readonly url: string;
-	readonly token?: string | undefined;
-	readonly httpClient?: Layer.Layer<HttpClient.HttpClient>;
-}) {
-	const { api, Client, client } = makeRpcClient(Orders, {
-		live: false,
-		protocol: RpcClient.layerProtocolHttp({
-			transformClient: (http) =>
-				token === undefined ? http : HttpClient.mapRequest(http, HttpClientRequest.setHeader("cookie", `order-session=${token}`)),
-			url,
-		}).pipe(Layer.provide([httpClient, RpcSerialization.layerNdjson])),
+export function makeClient({ url, token }: { readonly url: string; readonly token?: string | undefined }) {
+	const connection = makeRpcClient(Orders, {
+		headers: token === undefined ? {} : { cookie: `order-session=${token}` },
 		url,
+		webSocketConstructor: layerWebSocketConstructor,
 	});
-	const renameOrder = Client.runtime.fn(api.save.run);
+	const renameOrder = connection.Client.runtime.fn(connection.api.save.run);
 
-	return { api, Client, client, renameOrder };
+	return { api: connection.api, Client: connection.Client, client: connection.client, connection, renameOrder };
 }

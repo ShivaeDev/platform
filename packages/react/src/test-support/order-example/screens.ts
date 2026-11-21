@@ -1,6 +1,6 @@
-import { NodeHttpClient } from "@effect/platform-node";
 import { Effect } from "effect";
 import { act, createElement, Fragment } from "react";
+import { activityScreenSignal, clientActivity } from "@shivaedev/contract/clientActivity.ts";
 import { render } from "@shivaedev/test-story/client/adapters/react.ts";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 import { type Application, orderId } from "#test/order-example/applicationEngine.ts";
@@ -15,7 +15,7 @@ export const openScreens = Effect.fn("Orders.openScreens")(function* (
 	list?: string,
 	token: string | null = "alice-session",
 ) {
-	const views = makeClient({ httpClient: NodeHttpClient.layerNodeHttp, token: token ?? undefined, url: engine.url });
+	const views = makeClient({ token: token ?? undefined, url: engine.url });
 	const panels = Object.entries(editors).map(([key, alias]) =>
 		createElement("div", { "data-editor": key, key }, createElement(Editor, { client: views, id: orderId(engine, alias) })),
 	);
@@ -29,6 +29,7 @@ export const openScreens = Effect.fn("Orders.openScreens")(function* (
 		act: async (action) => {
 			await act(action);
 		},
+		activity: activityScreenSignal(clientActivity(views.connection)),
 		pending: () =>
 			queries.some((query) => root.registry.get(query).waiting)
 			|| (list !== undefined && (root.registry.get(views.api.list.query()).waiting || root.registry.get(views.renameOrder).waiting))

@@ -23,7 +23,7 @@ permissionScreens.it(
 
 		yield* outcomes([
 			["heading", () => heading(), "Admin users"],
-			["requests", () => requests(), ["POST /rpc/"]],
+			["requests", () => requests(), ["GET /rpc"]],
 		]);
 	},
 );

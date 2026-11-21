@@ -1,9 +1,9 @@
-import { Deferred, Effect, Exit, Layer, Schema, Stream } from "effect";
+import { Deferred, Effect, Exit, Schema } from "effect";
 import { collection } from "@shivaedev/changes/keys.ts";
 import { makeClient } from "@shivaedev/contract/bind.ts";
 import { contract } from "@shivaedev/contract/contract.ts";
 import { command, query } from "@shivaedev/contract/operation.ts";
-import { layerMemoryProtocol } from "@shivaedev/test-kits/contract/testing.ts";
+import { layerLiveMemoryProtocol } from "@shivaedev/test-kits/contract/liveMemoryProtocol.ts";
 
 export class ToggleRejected extends Schema.TaggedError<ToggleRejected>()("ToggleRejected", { reason: Schema.String }) {}
 const items = collection("items", Schema.Number);
@@ -43,10 +43,9 @@ export function pendingCommandClient(ids: readonly number[] = [1]) {
 			Effect.ensuring(Deferred.done(held.finished, Exit.void)),
 		);
 	}
-	const handlers = Items.toLayer(
+	const handlers = Items.application.toLayer(
 		Effect.succeed(
-			Items.of({
-				"items.$changes": () => Stream.never,
+			Items.application.of({
 				"items.count": () => (written ? refetch(count) : Effect.succeed(0)),
 				"items.list": () => (written ? refetch(list) : Effect.succeed(false)).pipe(Effect.map((enabled) => ids.map((id) => ({ enabled, id })))),
 				"items.toggle": toggle,
@@ -54,8 +53,7 @@ export function pendingCommandClient(ids: readonly number[] = [1]) {
 		),
 	);
 	const { api } = makeClient(Items, {
-		live: false,
-		protocol: layerMemoryProtocol(Items).pipe(Layer.provide(handlers)),
+		protocol: layerLiveMemoryProtocol(Items, handlers),
 		url: "memory://items",
 	});
 	const listed = api.list.query();

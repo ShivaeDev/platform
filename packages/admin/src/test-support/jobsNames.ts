@@ -1,6 +1,7 @@
 import { type Effect, Option, Predicate } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import type * as Atom from "effect/reactivity/Atom";
+import { querySignals } from "@shivaedev/contract/querySignals.ts";
 import { answered } from "#test/answers.ts";
 import type { jobsEngine } from "#test/jobsEngine.ts";
 import { Mail } from "#test/jobsPages.ts";
@@ -80,17 +81,27 @@ export function nextPage(engine: Engine, next: Option.Option<string>) {
 	return Option.match(next, { onNone: () => "last page", onSome: (cursor) => `after ${nameOf(engine, cursor)}` });
 }
 
+// A live query answers each server read, also one whose result equals the shown value, by completing it.
 function watch<A>(atom: Atom.Atom<AsyncResult.AsyncResult<A, unknown>>, shown: (value: A) => unknown) {
-	return (registry: Engine["registry"], answer: (described: unknown) => void) =>
-		registry.subscribe(
-			atom,
-			(result) => {
-				if (AsyncResult.isSuccess(result) && !result.waiting) {
+	return (registry: Engine["registry"], answer: (described: unknown) => void) => {
+		let seen = 0;
+		const unmount = registry.mount(atom);
+		const unsubscribe = registry.subscribe(
+			querySignals(atom),
+			({ completed, pending }) => {
+				const result = registry.get(atom);
+				if (completed > seen && !pending && AsyncResult.isSuccess(result)) {
+					seen = completed;
 					answer(shown(result.value));
 				}
 			},
 			{ immediate: true },
 		);
+		return () => {
+			unsubscribe();
+			unmount();
+		};
+	};
 }
 
 export function views(engine: Engine) {

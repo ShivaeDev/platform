@@ -1,12 +1,11 @@
+import { layerWebSocketConstructor } from "@effect/platform-node/NodeSocket";
 import { Clock, Context, Effect, Layer, Option, Ref } from "effect";
-import { FetchHttpClient, HttpClient, HttpClientRequest, HttpServer } from "effect/http";
+import { HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
-import * as AtomRpc from "effect/reactivity/AtomRpc";
 import * as Reactivity from "effect/reactivity/Reactivity";
-import { RpcClient, RpcSerialization } from "effect/rpc";
 import { appHost } from "@shivaedev/server/appHost.ts";
-import { bind } from "#bind.ts";
+import { makeClient } from "#bind.ts";
 import { liveServerLayer } from "#live-server/layer.ts";
 import { moduleHandlers } from "#moduleHandlers.ts";
 import { CurrentViewer } from "#readPolicy.ts";
@@ -48,22 +47,19 @@ export const wireEngine = Effect.gen(function* () {
 	if (!NetAddress.isInetAddress(server.address)) {
 		return yield* Effect.die("Expected a TCP listener");
 	}
-	const url = `http://127.0.0.1:${server.address.port}/rpc`;
-	class Browser extends AtomRpc.Service<Browser>()("test/WireNotesBrowser", {
-		group: WireNotesClient,
-		protocol: RpcClient.layerProtocolHttp({
-			transformClient: (http) => HttpClient.mapRequest(http, HttpClientRequest.setHeader("viewer", VIEWER)),
-			url,
-		}).pipe(Layer.provide([FetchHttpClient.layer, RpcSerialization.layerNdjson])),
+	const connection = makeClient(WireNotesClient, {
+		headers: { viewer: VIEWER },
 		runtime: yield* storyRuntime,
-	}) {}
-	const api = bind(WireNotesClient, Browser, { live: false });
+		url: `http://127.0.0.1:${server.address.port}/rpc`,
+		webSocketConstructor: layerWebSocketConstructor,
+	});
+	const api = connection.api;
 	const registry = yield* Effect.acquireRelease(
 		Effect.sync(() => AtomRegistry.make()),
 		(current) => Effect.sync(() => current.dispose()),
 	);
-	function run<A, E>(effect: Effect.Effect<A, E, Browser | Reactivity.Reactivity>) {
-		return AtomRegistry.getResult(registry, Browser.runtime.atom(effect));
+	function run<A, E>(effect: Effect.Effect<A, E, Context.Service.Identifier<typeof connection.Client> | Reactivity.Reactivity>) {
+		return AtomRegistry.getResult(registry, connection.runtime.atom(effect));
 	}
 	return { api, registry, run, stored, viewer: VIEWER };
 });

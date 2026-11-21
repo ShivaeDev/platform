@@ -129,14 +129,16 @@ export function saveAndTwoRemovalsHeld(secondDone: boolean) {
 	const done = secondDone ? ", and second's removal and the save have completed" : "";
 	return feedback.trait("screen", `the server holds alice's save of concurrent note and her removals of first and second${done}`, function* (engine) {
 		yield* shown(engine);
-		const { completeRemove, completeSave, remove, submit, type } = feedbackVerbs(engine.state, engine.screen);
+		const { answerRead, completeRemove, completeSave, remove, submit, type } = feedbackVerbs(engine.state, engine.screen);
 		yield* type("concurrent note");
 		yield* submit();
 		yield* remove("first");
 		yield* remove("second");
 		if (secondDone) {
 			yield* completeRemove("second");
+			yield* answerRead();
 			yield* completeSave();
+			yield* answerRead();
 		}
 	});
 }
@@ -155,6 +157,7 @@ export function firstUndoConflictingAfterSecondRestored() {
 			}
 			yield* undo("second");
 			yield* completeRestore("second");
+			yield* answerRead();
 			yield* editFirst();
 			yield* answerRead();
 			yield* undo("first");

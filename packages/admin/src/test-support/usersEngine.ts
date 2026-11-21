@@ -1,10 +1,7 @@
-import { Clock, Effect, Layer, Logger, Option, References, Schema, Tracer } from "effect";
-import { FetchHttpClient, HttpRouter } from "effect/http";
-import * as Reactivity from "effect/reactivity/Reactivity";
-import { RpcClient, RpcSerialization, RpcServer } from "effect/rpc";
+import { Effect, Layer, Logger, Option, References, Schema, Tracer } from "effect";
+import { RpcClient, RpcSerialization } from "effect/rpc";
+import * as Socket from "effect/socket/Socket";
 import { SqlClient } from "effect/sql";
-import { liveServerLayer } from "@shivaedev/contract/live-server/layer.ts";
-import { LiveServer } from "@shivaedev/contract/live-server/service.ts";
 import { moduleHandlers } from "@shivaedev/contract/moduleHandlers.ts";
 import { AuthUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import { betterAuthDatabase } from "@shivaedev/identity/server/better-auth/adapters/database.ts";
@@ -15,7 +12,8 @@ import { betterAuthUserDirectory } from "@shivaedev/identity/server/better-auth/
 import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import { DirectoryUser } from "@shivaedev/identity/users.ts";
 import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
-import { hostChanges } from "@shivaedev/server/hostChanges.ts";
+import { liveChannel, liveHost } from "@shivaedev/test-kits/contract/liveMemoryProtocol.ts";
+import { rpcSocketHost } from "@shivaedev/test-story/server/rpcSocketHost.ts";
 import { adminRegistry } from "#registry.ts";
 import { registerAdmin } from "#server/registerAdmin.ts";
 import { Access } from "#test/Access.ts";
@@ -29,7 +27,6 @@ export interface LogRecord {
 }
 
 export const makeUsersEngine = Effect.fnUntraced(function* (mapping: AuthTableOptions = {}) {
-	const clock = yield* Clock.Clock;
 	const sql = yield* SqlClient.SqlClient;
 	const pool = yield* betterAuthDatabase();
 	const authOptions = {
@@ -75,18 +72,18 @@ export const makeUsersEngine = Effect.fnUntraced(function* (mapping: AuthTableOp
 			logs.push({ annotations: options.fiber.getRef(References.CurrentLogAnnotations), message: options.message });
 		}),
 	]);
-	const reactivity = Layer.succeed(Reactivity.Reactivity, yield* Reactivity.make);
-	const live = yield* LiveServer.pipe(Effect.provide(liveServerLayer.pipe(Layer.provide(reactivity))));
 	const registration = registerAdmin(adminRegistry(UsersPage), { users: moduleHandlers(Users) });
-	const handlers = hostChanges(registration.group)
-		.pipe(Layer.provideMerge(registration.handlers))
-		.pipe(
-			Layer.provide(Layer.succeed(LiveServer, live)),
+	// Every caller's transport shares one change channel, so a change made through one is pushed to the others.
+	const channel = Layer.succeedContext(yield* Layer.build(liveChannel()));
+	const host = yield* liveHost(
+		registration.group,
+		registration.handlers.pipe(
 			Layer.provide(betterAuthUserDirectory({ options: authOptions, roles: Access })),
 			Layer.provide(Layer.succeed(SqlClient.SqlClient, sql)),
 			Layer.provide(logger),
-			Layer.provide(reactivity),
-		);
+		),
+		{ channel, protocol: "websocket" },
+	);
 	function currentUser(id: string) {
 		return Effect.tryPromise(() => context.internalAdapter.findUserById(id)).pipe(
 			Effect.flatMap(Schema.decodeUnknownEffect(Profile)),
@@ -96,23 +93,23 @@ export const makeUsersEngine = Effect.fnUntraced(function* (mapping: AuthTableOp
 	}
 	function protocolAs(id: string) {
 		return Effect.gen(function* () {
-			const app = HttpRouter.toWebHandler(
-				RpcServer.layerHttp({ group: registration.group, path: "/rpc", protocol: "http" }).pipe(
-					Layer.provide([handlers, RpcSerialization.layerNdjson, Layer.succeed(Tracer.Tracer, tracer), Layer.succeed(Clock.Clock, clock)]),
-					Layer.provide(Layer.succeed(SessionPolicy, { origin: () => true, provider: { get: () => currentUser(id) }, roles: Access })),
-				),
-				{ disableLogger: true },
+			const policy = { origin: () => true, provider: { get: () => currentUser(id) }, roles: Access };
+			const served = yield* rpcSocketHost(host.group, host.handlers.pipe(Layer.provide(Layer.succeed(SessionPolicy, policy)))).pipe(
+				Effect.provideService(Tracer.Tracer, tracer),
 			);
-			yield* Effect.addFinalizer(() => Effect.promise(() => app.dispose()));
-			const protocol = RpcClient.layerProtocolHttp({ url: "http://localhost/rpc" }).pipe(
-				Layer.provide([FetchHttpClient.layer, RpcSerialization.layerNdjson]),
-				Layer.provide(Layer.succeed(FetchHttpClient.Fetch, (input, init) => app.handler(new Request(input, init)))),
+			return RpcClient.layerProtocolSocket().pipe(
+				Layer.provide([
+					Socket.layerWebSocket(served.url.replace(/^http/u, "ws")).pipe(Layer.provide(Socket.layerWebSocketConstructorGlobal)),
+					RpcSerialization.layerNdjson,
+				]),
 			);
-			return protocol;
 		});
 	}
 	function clientAs(id: string) {
-		return protocolAs(id).pipe(Effect.flatMap((protocol) => RpcClient.make(UsersPage.contract).pipe(Effect.provide(protocol))));
+		return protocolAs(id).pipe(
+			Effect.flatMap(Layer.build),
+			Effect.flatMap((protocol) => RpcClient.make(UsersPage.contract).pipe(Effect.provideContext(protocol))),
+		);
 	}
 	return { answers: new Map<string, string>(), assignment: { finished: 0, started: 0 }, clientAs, logs, protocolAs, register, spans };
 });

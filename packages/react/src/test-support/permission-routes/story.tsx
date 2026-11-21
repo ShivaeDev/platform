@@ -164,7 +164,9 @@ export function refreshedAs(role: Role) {
 export function visitor(role: Role | undefined, serverRole = role) {
 	const who = role ? `a ${role}` : "a signed-out visitor";
 	const server = serverRole === role ? "" : ` whose server session is a ${serverRole}`;
-	return permissionScreens.trait("screen", `${who}${server} with the note routes served over HTTP`, ({ state }) => openApp(state, role, serverRole));
+	return permissionScreens.trait("screen", `${who}${server} with the note routes served over a live socket`, ({ state }) =>
+		openApp(state, role, serverRole),
+	);
 }
 
 export function visited(role: Role | undefined, path: string) {

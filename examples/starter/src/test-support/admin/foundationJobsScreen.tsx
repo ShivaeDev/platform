@@ -22,7 +22,7 @@ export const foundationJobsScreen = storyKit({
 			headers: { cookie: headers.get("cookie") ?? "", origin: host.origin },
 			webSocketConstructor: layerWebSocketConstructor,
 		});
-		const surface: ScreenSurface = { activity: client.activity, view: undefined };
+		const surface: ScreenSurface = { activities: [client.activity], view: undefined };
 		return { client, surface };
 	},
 	inspect: ({ surface }) => ({ text: surface.view?.container.textContent }),

@@ -1,11 +1,11 @@
-import { Deferred, Effect, Schema, Stream } from "effect";
+import { Deferred, Effect, Schema } from "effect";
 import * as AtomRpc from "effect/reactivity/AtomRpc";
-import { RpcTest } from "effect/rpc";
 import { collection } from "@shivaedev/changes/keys.ts";
 import { bind } from "@shivaedev/contract/bind.ts";
 import { contract } from "@shivaedev/contract/contract.ts";
 import { command, query } from "@shivaedev/contract/operation.ts";
 import { Conflict } from "@shivaedev/errors/taxonomy.ts";
+import { layerLiveMemoryProtocol } from "@shivaedev/test-kits/contract/liveMemoryProtocol.ts";
 
 const Row = Schema.Struct({ id: Schema.String, removed: Schema.Boolean, version: Schema.Number });
 const rowsKey = collection("undoable-rows", Schema.String);
@@ -30,8 +30,7 @@ export function changeClient() {
 		}
 		return pending;
 	}
-	const handlers = Rows.toLayer({
-		"undoableRows.$changes": () => Stream.never,
+	const handlers = Rows.application.toLayer({
 		"undoableRows.change": (input) => {
 			const pending = hold(input.id, input.removed);
 			return Effect.gen(function* () {
@@ -50,11 +49,10 @@ export function changeClient() {
 	});
 	class Client extends AtomRpc.Service<Client>()("@shivaedev/react/test/UndoableChange", {
 		group: Rows,
-		makeEffect: RpcTest.makeClient(Rows, { flatten: true }),
-		protocol: handlers,
+		protocol: layerLiveMemoryProtocol(Rows, handlers),
 	}) {}
 	return {
-		api: bind(Rows, Client, { live: false }),
+		api: bind(Rows, Client),
 		forget: (id: string, removed: boolean) => held.delete(`${id}:${removed}`),
 		hold,
 		runtime: Client.runtime,

@@ -96,46 +96,42 @@ commands.it(
 );
 
 commands.it(
-	"a completion invalidates the list once and reports before the list's refetch answers",
+	"a completion makes the server read the list once more and reports while the list still shows the earlier read",
 	[firstHeld()],
-	function* ({ complete, invalidations, listPending, listReads, notices }) {
-		yield* outcomes([
-			["invalidations", () => invalidations(), 0],
-			["list reads", () => listReads(), 1],
-		]);
+	function* ({ complete, listReads, listShown, notices }) {
+		expect(yield* listReads()).toEqual(["first read"]);
 
 		yield* complete("first", "A");
 
 		yield* outcomes([
-			["invalidations", () => invalidations(), 1],
-			["list pending", () => listPending(), "true"],
-			["list reads", () => listReads(), 2],
+			["list reads", () => listReads(), ["first read", "read after a change"]],
+			["shown list", () => listShown(), "initial"],
 			["notices", () => notices(), ["original: first -> A"]],
 		]);
 	},
 );
 
 commands.it(
-	"rendering again after a completion neither replays its notice nor invalidates again",
+	"rendering again after a completion neither replays its notice nor reads the list again",
 	[firstFinished("completed")],
-	function* ({ invalidations, notices, renderAgain }) {
+	function* ({ listReads, notices, renderAgain }) {
 		yield* renderAgain();
 
 		yield* outcomes([
-			["invalidations", () => invalidations(), 1],
+			["list reads", () => listReads(), ["first read", "read after a change"]],
 			["notices", () => notices(), ["original: first -> A"]],
 		]);
 	},
 );
 
 commands.it(
-	"a typed rejection reports its input and error, invalidates nothing and asks for no recheck",
+	"a typed rejection reports its input and error, makes the server read nothing again and asks for no recheck",
 	[firstHeld()],
-	function* ({ invalidations, notices, rechecks, reject }) {
+	function* ({ listReads, notices, rechecks, reject }) {
 		yield* reject("first", "Rejected");
 
 		yield* outcomes([
-			["invalidations", () => invalidations(), 0],
+			["list reads", () => listReads(), ["first read"]],
 			["notices", () => notices(), ["original: first rejected: Rejected"]],
 			["rechecks", () => rechecks(), "never"],
 		]);

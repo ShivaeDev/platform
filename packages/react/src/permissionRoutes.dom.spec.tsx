@@ -4,7 +4,7 @@ import { permissionScreens, refreshedAs, visited, visitor } from "#test/permissi
 
 for (const role of ["reader", "supervisor"] as const) {
 	permissionScreens.it(
-		`a ${role} opens the guarded note route and reads it over HTTP`,
+		`a ${role} opens the guarded note route and reads it over the live socket`,
 		[visitor(role)],
 		function* ({ heading, location, requests, visit }) {
 			yield* visit("/notes/first");
@@ -12,7 +12,7 @@ for (const role of ["reader", "supervisor"] as const) {
 			yield* outcomes([
 				["heading", () => heading(), "Note first"],
 				["location", () => location(), "/notes/first"],
-				["requests", () => requests(), ["POST /rpc/"]],
+				["requests", () => requests(), ["GET /rpc"]],
 			]);
 		},
 	);
@@ -56,7 +56,7 @@ permissionScreens.it(
 		yield* outcomes([
 			["heading", () => heading(), "Note first"],
 			["location", () => location(), "/notes/first?tab=history#latest"],
-			["requests", () => requests(), ["POST /rpc/"]],
+			["requests", () => requests(), ["GET /rpc"]],
 		]);
 	},
 );
@@ -90,7 +90,7 @@ permissionScreens.it(
 		yield* outcomes([
 			["heading", () => heading(), "Permission denied"],
 			["location", () => location(), "/notes/first"],
-			["requests", () => requests(), ["POST /rpc/"]],
+			["requests", () => requests(), ["GET /rpc"]],
 		]);
 	},
 );
@@ -103,7 +103,7 @@ permissionScreens.it(
 
 		yield* outcomes([
 			["heading", () => heading(), "Permission denied"],
-			["requests", () => requests(), ["POST /rpc/"]],
+			["requests", () => requests(), ["GET /rpc"]],
 		]);
 	},
 );

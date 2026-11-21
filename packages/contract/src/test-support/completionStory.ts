@@ -31,9 +31,9 @@ export const completionStory = storyKit({
 			engine.state.failed = true;
 			return engine.reactivity.invalidate(invalidationKeys([records.item(1)]));
 		},
-		open: (mode: "ordinary" | "pushed") => {
-			story.tell(`the client opens a ${mode} query`);
-			engine.view = mode === "ordinary" ? engine.ordinary.pushed.query() : engine.api[mode].query();
+		open: () => {
+			story.tell("the client opens the record's query");
+			engine.view = engine.api.pushed.query();
 			engine.registry.mount(engine.view);
 		},
 		refreshed: () => reRead(engine.registry, engine.view, engine.mark),

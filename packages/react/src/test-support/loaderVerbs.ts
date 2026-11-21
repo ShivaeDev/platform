@@ -2,9 +2,7 @@ import { Effect } from "effect";
 import type * as Atom from "effect/reactivity/Atom";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { act } from "react";
-import { passes, untilTimer } from "@shivaedev/test-story/server/watchedClock.ts";
-import { HAND_OVER_WINDOW } from "#adapters/queryHandoff.ts";
-import { atomRemoved, idleRegistry } from "#test/idleRegistry.ts";
+import { idleRegistry } from "#test/idleRegistry.ts";
 import { type Engine, opened, type RouteHost, sessionRegistry, settle } from "#test/loaderScreenState.ts";
 
 export function routeVerbs(engine: Engine<RouteHost>, story: { tell: (line: string) => void }) {
@@ -49,21 +47,7 @@ export function loaderVerbs(engine: Engine, story: { tell: (line: string) => voi
 	}
 	return {
 		...routeVerbs(engine, story),
-		handOverWindowPasses: () => {
-			story.tell(`the loader's ${HAND_OVER_WINDOW} hand-over window passes`);
-			return untilTimer(HAND_OVER_WINDOW).pipe(
-				Effect.andThen(
-					Effect.suspend(() => {
-						const removed = atomRemoved(sessionRegistry(engine), host.source);
-						return passes(
-							HAND_OVER_WINDOW,
-							Effect.promise(() => act(() => removed)),
-						);
-					}),
-				),
-			);
-		},
-		loaderSource: () => Effect.sync(() => presence(host.source)),
+		loaderQuery: () => Effect.sync(() => presence(host.atom)),
 		nextReadWaits: () =>
 			Effect.sync(() => {
 				story.tell("the server holds its next answer");
