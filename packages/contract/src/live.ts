@@ -1,7 +1,7 @@
 import { Cause, Effect, Option, Queue, Schema, type Stream } from "effect";
 import * as Atom from "effect/reactivity/Atom";
 import { Key } from "@shivaedev/changes/keys.ts";
-import { clientReadKeys, type KeyContext } from "#clientKeys.ts";
+import { COMMAND_REFLECTED } from "#commandReflected.ts";
 import { liveAttempt } from "#liveAttempt.ts";
 import { liveRetry } from "#liveRetry.ts";
 import type { SubscriptionEvent } from "#queryUpdate.ts";
@@ -20,10 +20,8 @@ export interface LiveStatus<E> {
 	readonly pending: number;
 }
 export interface LiveOptions<E, R> {
-	readonly keyContext?: KeyContext | undefined;
 	readonly resume?: Atom.Atom<unknown>;
 	readonly retryDelay?: import("effect").Duration.Input;
-	readonly retryKeys?: readonly (typeof Key.Type)[];
 	readonly stream: Stream.Stream<SubscriptionEvent, E, R>;
 }
 
@@ -53,7 +51,7 @@ export function live<R, E, TRuntimeError>(runtime: Atom.AtomRuntime<R, TRuntimeE
 				get.mount(status);
 				get.mount(paused);
 				const resumed = yield* Queue.unbounded<void>();
-				yield* retryOnChange(status, clientReadKeys(options.retryKeys ?? [], options.keyContext), () => get.refreshSelf());
+				yield* retryOnChange(status, [COMMAND_REFLECTED], () => get.refreshSelf());
 				function update(value: Partial<LiveStatus<E>>) {
 					get.set(status, { ...get.once(status), ...value });
 				}

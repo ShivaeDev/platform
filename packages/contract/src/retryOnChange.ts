@@ -10,6 +10,10 @@ export const retryOnChange = Effect.fnUntraced(function* <E>(status: Atom.Atom<L
 	const dispatcher = registry.schedulerAsync.makeDispatcher();
 	let active = true;
 	function canRetry() {
+		// A command can be reflected while its registry disposes the connection, after the status is gone and before this listener leaves.
+		if (!registry.getNodes().has(status)) {
+			return false;
+		}
 		const current = registry.get(status);
 		return (
 			current.connection === "failed"

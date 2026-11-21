@@ -50,9 +50,9 @@ export const queryFailureStory = storyKit({
 	name: "query atom failures",
 	stages: ["client"],
 	verbs: (engine, story) => ({
-		read: (mode: "ordinary" | "live") => {
-			story.tell(`the client opens ${mode === "live" ? "a live" : "an ordinary"} note query`);
-			const api = bind(Records, engine.Client, { live: mode === "live" });
+		read: () => {
+			story.tell("the client opens a note query");
+			const api = bind(Records, engine.Client);
 			const result = AtomRegistry.getResult(engine.registry, api.get.query());
 			function failureOutcome(failure: Effect.Error<typeof result>) {
 				switch (failure._tag) {

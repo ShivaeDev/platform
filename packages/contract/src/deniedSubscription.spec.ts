@@ -68,13 +68,13 @@ deniedStory.it("pushed: signing in reopens a denied subscription exactly once", 
 	]);
 });
 deniedStory.it(
-	"pushed: restored access and a matching change leave a refusal settled",
+	"pushed: restored access and the next reflected command leave a refusal settled",
 	[watching()],
-	function* ({ allow, announce, attempts, shown, minutePasses }) {
+	function* ({ allow, attempts, commandSucceeds, shown, minutePasses }) {
 		expect(yield* shown()).toBe("failed with read denied");
 		allow();
 
-		yield* announce(1);
+		yield* commandSucceeds();
 		yield* minutePasses();
 
 		yield* outcomes([
@@ -100,35 +100,16 @@ deniedStory.it(
 		]);
 	},
 );
-deniedStory.it(
-	"pushed: a matching hint leaves a still-denied subscription settled",
-	[watching()],
-	function* ({ announce, attempts, minutePasses, policyChecks, shown }) {
-		yield* announce(1);
-		yield* minutePasses();
+deniedStory.it("pushed: resume leaves a denial settled", [watching()], function* ({ attempts, minutePasses, policyChecks, resume, shown }) {
+	resume();
+	yield* minutePasses();
 
-		yield* outcomes([
-			["policy checks", () => policyChecks(), 1],
-			["query", () => shown(), "failed with read denied"],
-			["subscriptions", () => attempts(), 1],
-		]);
-	},
-);
-deniedStory.it(
-	"pushed: resume and unrelated hints leave a denial settled",
-	[watching()],
-	function* ({ announce, attempts, minutePasses, policyChecks, resume, shown }) {
-		resume();
-		yield* announce(2);
-		yield* minutePasses();
-
-		yield* outcomes([
-			["policy checks", () => policyChecks(), 1],
-			["query", () => shown(), "failed with read denied"],
-			["subscriptions", () => attempts(), 1],
-		]);
-	},
-);
+	yield* outcomes([
+		["policy checks", () => policyChecks(), 1],
+		["query", () => shown(), "failed with read denied"],
+		["subscriptions", () => attempts(), 1],
+	]);
+});
 deniedStory.it(
 	"pushed: a new viewer recovers a query whose mounted read lost access",
 	[readable(), watching()],
@@ -148,41 +129,18 @@ deniedStory.it(
 	},
 );
 deniedStory.it(
-	"pushed: matching changes can still recover other expected rejections",
-	[rejected("NotFound"), watching()],
-	function* ({ allow, announce, attempts, shown, untilLive }) {
+	"pushed: the next reflected command reopens a query without reads that failed with NotFound",
+	[rejected("NotFound"), watching("unkeyed")],
+	function* ({ allow, attempts, commandSucceeds, shown, untilLive }) {
 		expect(yield* shown()).toBe("failed with not found");
 		allow();
 
-		yield* announce(1);
+		yield* commandSucceeds();
 		yield* untilLive();
 
 		yield* outcomes([
 			["query", () => shown(), "Alice's record"],
 			["subscriptions", () => attempts(), 2],
-		]);
-	},
-);
-deniedStory.it(
-	"pushed: a query without reads stays settled on NotFound through a command declaring its record, until an explicit refresh",
-	[rejected("NotFound"), watching("unkeyed")],
-	function* ({ allow, attempts, commandSucceeds, minutePasses, refresh, shown }) {
-		expect(yield* shown()).toBe("failed with not found");
-		allow();
-
-		yield* commandSucceeds();
-		yield* minutePasses();
-
-		yield* outcomes([
-			["query after the command", () => shown(), "failed with not found"],
-			["subscriptions after the command", () => attempts(), 1],
-		]);
-
-		yield* refresh();
-
-		yield* outcomes([
-			["query after the refresh", () => shown(), "Alice's record"],
-			["subscriptions after the refresh", () => attempts(), 2],
 		]);
 	},
 );

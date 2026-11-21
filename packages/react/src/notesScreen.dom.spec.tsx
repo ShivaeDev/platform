@@ -5,7 +5,7 @@ import { notesScreen } from "#test/notesScreen.tsx";
 Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 expectNoReactWarnings();
 
-notesScreen.it("a command refetches the rendered notes through native RPC", [], function* ({ click, settle, text }) {
+notesScreen.it("a command's change reaches the rendered notes through the live subscription", [], function* ({ click, settle, text }) {
 	yield* settle();
 	expect(text("output")).toBe("");
 

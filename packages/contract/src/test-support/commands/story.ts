@@ -99,16 +99,12 @@ export const commands = storyKit({
 });
 
 export function connected(custom = false, shared = false) {
-	return connection(custom ? "a native socket protocol is supplied by the story" : "the default socket client is connected", custom, shared, true);
+	return connection(custom ? "a native socket protocol is supplied by the story" : "the default socket client is connected", custom, shared);
 }
 
-export function connectedWithoutLive() {
-	return connection("the default socket client is connected with live: false", false, false, false);
-}
-
-function connection(line: string, custom: boolean, shared: boolean, live: boolean) {
+function connection(line: string, custom: boolean, shared: boolean) {
 	return commands.trait("connection", line, function* (engine) {
-		engine.state.connection = engine.connect(custom, undefined, live);
+		engine.state.connection = engine.connect(custom);
 		const { client, run } = engine.connection();
 		engine.registry.mount(client.runtime);
 		yield* run(client.api.value.run());
