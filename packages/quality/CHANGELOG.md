@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.82.1 - 2026-11-21
+
+### Fixed
+
+- in a checkout without Git, the `.gitignore` files decide which imported files are ignored output, as they decide which files are sources, so an export that only generated output imports counts as used there too.
+
 ## 0.82.0 - 2026-11-21
 
 ### Added

@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.5.0 - 2026-11-21
+
+### Added
+
+- `shivaedev-build generate` also writes the server's module list to `src/generated/server/modules.ts`: every registration written `satisfies AppModule` from `@shivaedev/server/AppModule.ts`, imported by name or through a namespace and exported as `export const` or through a separate `export { ... }`, one import each, in the order of their files' paths, as `export const modules = [...] as const`. Registrations in `test-support` folders and test files are left out. `--check` reports the list missing or stale, and the dev server's plugin writes it again when a registration file appears or changes, so a module created while the dev server runs is served without a restart.
+
+### Breaking
+
+- `generate` now refuses three registration shapes the server's module list would leave out, on every run and also in an application that still lists its modules by hand, naming the file and the fix, and the list keeps its last content: an exported registration typed `: AppModule` or cast `as AppModule`; an exported object naming `module`, or `group` and `handlers`, and its `services` without `satisfies AppModule`; and a `server/registration.ts` under the project's `modules` folders that exports something but no registration the list finds, such as one built by a function call. To migrate, write `satisfies AppModule` after the exported registration's object, with `AppModule` imported from `@shivaedev/server/AppModule.ts`, and export the registration from its module's `server/registration.ts` as that const.
+
 ## 0.4.0 - 2026-11-21
 
 ### Breaking
