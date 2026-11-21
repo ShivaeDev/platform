@@ -1,9 +1,43 @@
 // Operations of the refused module that return a brand, or a record keyed by one, in a form the wire cannot carry exactly.
 export const REFUSED_BRANDS: Readonly<Record<string, string>> = {
+	"src/modules/refused/branded.ts": `import { Brand, Schema } from "effect";
+
+export type NoteId = number & Brand.Brand<"NoteId">;
+
+export const noteId = Brand.nominal<NoteId>();
+
+export const Shelf = Schema.String.pipe(Schema.brand("Shelf"));
+export type Shelf = typeof Shelf.Type;
+
+export type UserId = string & { readonly __brand: "UserId" };
+
+export type Letter = ("a" | "b") & Brand.Brand<"Letter">;
+
+export type Counts<K extends string> = { [P in K]: number };
+
+export interface Box<K extends string> {
+	readonly counts: { [P in K]: number };
+}
+
+export type LetterRecord = Record<Letter, number>;
+
+export type NoKeys = Record<never, number>;
+`,
 	"src/modules/refused/brands.ts": `import { Effect } from "effect";
 import { query } from "@shivaedev/contract/operation.ts";
-import type { Box, Counts, Letter, LetterRecord } from "#modules/refused/keys.ts";
-import { type NoteId, noteId, type Shelf, type Sku, shared, type UserId } from "#modules/refused/shared.ts";
+import type { Record as EffectRecord } from "effect";
+import {
+	type Box,
+	type Counts,
+	type Letter,
+	type LetterRecord,
+	type NoKeys,
+	type NoteId,
+	noteId,
+	type Shelf,
+	type UserId,
+} from "#modules/refused/branded.ts";
+import { type Sku, shared } from "#modules/refused/shared.ts";
 
 export const ReturnsBrand = query("returnsBrand", {
 	reads: () => [shared.list],
@@ -88,6 +122,30 @@ export const ReturnsGenericMappedNever = query("returnsGenericMappedNever", {
 	},
 });
 
+export const ReturnsEmptyOmit = query("returnsEmptyOmit", {
+	reads: () => [shared.list],
+	*run() {
+		const rest: Omit<{ readonly a: number }, "a"> = yield* Effect.succeed({});
+		return rest;
+	},
+});
+
+export const ReturnsAliasedEmptyRecord = query("returnsAliasedEmptyRecord", {
+	reads: () => [shared.list],
+	*run() {
+		const none: NoKeys = yield* Effect.succeed({});
+		return none;
+	},
+});
+
+export const ReturnsEmptyReadonlyRecord = query("returnsEmptyReadonlyRecord", {
+	reads: () => [shared.list],
+	*run() {
+		const none: EffectRecord.ReadonlyRecord<never, number> = yield* Effect.succeed({});
+		return none;
+	},
+});
+
 export const ReturnsAliasedLiteralBrandRecord = query("returnsAliasedLiteralBrandRecord", {
 	reads: () => [shared.list],
 	*run() {
@@ -103,17 +161,5 @@ export const ReturnsPartialRecord = query("returnsPartialRecord", {
 		return counts;
 	},
 });
-`,
-	"src/modules/refused/keys.ts": `import type { Brand } from "effect";
-
-export type Letter = ("a" | "b") & Brand.Brand<"Letter">;
-
-export type Counts<K extends string> = { [P in K]: number };
-
-export interface Box<K extends string> {
-	readonly counts: { [P in K]: number };
-}
-
-export type LetterRecord = Record<Letter, number>;
 `,
 };
