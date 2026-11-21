@@ -1,8 +1,10 @@
 import { Effect } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
+import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { domFetch } from "@shivaedev/test-story/server/domFetch.ts";
 import { makeAuth } from "#client/adapters/auth.ts";
 import { type RunningHost, startHost } from "#test-support/host.ts";
+import { sessionRequests } from "#test-support/sessionRequests.ts";
 
 export const createCookieHost = Effect.fn("CookieStory.createCookieHost")(function* (existing?: RunningHost) {
 	const host = existing ?? (yield* startHost());
@@ -22,5 +24,7 @@ export const createCookieHost = Effect.fn("CookieStory.createCookieHost")(functi
 			}
 		}).pipe(Effect.timeout("5 seconds"), Effect.orDie),
 	);
-	return { ...host, auth: makeAuth({ baseUrl, fetchOptions: { customFetchImpl: fetch } }), fetch };
+	const checks = sessionRequests(fetch);
+	const auth = makeAuth({ baseUrl, fetchOptions: { customFetchImpl: checks.fetch } });
+	return { ...host, auth, fetch, sessionPending: (registry: AtomRegistry.AtomRegistry) => checks.pending(registry, auth.session.atom) };
 });

@@ -2,7 +2,7 @@ import { Effect } from "effect";
 import * as Atom from "effect/reactivity/Atom";
 import { authCall } from "@shivaedev/identity/client/adapters/authCall.ts";
 import { authSession as readSession } from "@shivaedev/identity/client/adapters/authSession.ts";
-import { authSession } from "#client/authSession.ts";
+import { authSession, type SessionRuntime } from "#client/authSession.ts";
 
 export interface Session {
 	readonly user: { readonly name: string; readonly emailVerified: boolean };
@@ -16,7 +16,7 @@ interface Read {
 	readonly signal: AbortSignal;
 }
 
-export function sessionClient() {
+export function sessionClient(runtime: SessionRuntime) {
 	const signedIn = { user: { emailVerified: false, name: "Alice", permissions: [{ name: "notes.read", strength: "any" }] } };
 	let stored: Session | null = signedIn;
 	const reads: Read[] = [];
@@ -24,6 +24,7 @@ export function sessionClient() {
 		readSession(
 			(signal) => new Promise<{ data: Session | null; error: Refused | null }>((resolve, reject) => reads.push({ reject, resolve, signal })),
 		),
+		{ runtime },
 	);
 	const mutate = authCall((change: "rename" | "verify", _signal) => {
 		stored = { user: { emailVerified: change === "verify", name: change === "rename" ? "Alicia" : "Alice" } };
@@ -44,6 +45,7 @@ export function sessionClient() {
 			latest().resolve({ data, error: null });
 		},
 		mutation,
+		reads: () => reads.map(() => "get-session"),
 		refuse: () => latest().resolve({ data: null, error: { code: "FAILED_TO_GET_SESSION" } }),
 		reject: () => latest().reject("offline"),
 		session,

@@ -22,13 +22,6 @@ export function App(props: AppProps) {
 function SessionContent({ app = clientModules, auth, history, persist }: AppProps) {
 	const session = useQuery(auth.session.atom);
 	const current = Option.getOrNull(session.data);
-	if (Option.isNone(session.data) && session.pending) {
-		return (
-			<p className="p-8" role="status">
-				Checking your session…
-			</p>
-		);
-	}
 	if (current === null && Option.isSome(session.cause)) {
 		return (
 			<main className="space-y-4 p-8">
@@ -37,6 +30,13 @@ function SessionContent({ app = clientModules, auth, history, persist }: AppProp
 					Retry
 				</button>
 			</main>
+		);
+	}
+	if (Option.isNone(session.data) && session.pending) {
+		return (
+			<p className="p-8" role="status">
+				Checking your session…
+			</p>
 		);
 	}
 	return (

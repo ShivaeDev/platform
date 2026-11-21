@@ -1,9 +1,9 @@
-import { Clock, Effect, Queue } from "effect";
+import { Clock, Effect, Layer, Queue } from "effect";
 import * as Atom from "effect/reactivity/Atom";
 import { authSession as readSession } from "@shivaedev/identity/client/adapters/authSession.ts";
 import { authSession } from "#client/authSession.ts";
 
-export const makeAuth = Effect.gen(function* () {
+export const makeAuth = Effect.fnUntraced(function* (runtime: Atom.RuntimeFactory) {
 	const checked = yield* Queue.unbounded<void>();
 	const started = yield* Queue.unbounded<void>();
 	const clock = yield* Clock.Clock;
@@ -28,8 +28,9 @@ export const makeAuth = Effect.gen(function* () {
 				error: state.reachable ? null : { code: "FAILED_TO_GET_SESSION" },
 			};
 		}),
+		{ runtime: runtime(Layer.empty) },
 	);
 	const signOut = Atom.fn<void>()(() => Effect.tryPromise({ catch: (error) => error, try: () => signOutResponse.promise }));
 	return { checked, pending, session, signOut, signOutResponse, started, state };
 });
-export type Auth = Effect.Success<typeof makeAuth>;
+export type Auth = Effect.Success<ReturnType<typeof makeAuth>>;

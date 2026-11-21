@@ -1,6 +1,7 @@
 import { createMemoryHistory } from "@tanstack/react-router";
-import { Effect } from "effect";
+import { Clock, Effect, Layer } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
+import * as Atom from "effect/reactivity/Atom";
 import { act } from "react";
 import { LiveConnection } from "@shivaedev/contract/automaticLive.ts";
 import { authCall } from "@shivaedev/identity/client/adapters/authCall.ts";
@@ -102,11 +103,13 @@ export const openLogin = Effect.fn("ScreenStory.openLogin")(function* (engine: S
 	);
 });
 
+const storyRuntime = Effect.map(Clock.Clock, (clock) => Atom.runtime(Layer.succeed(Clock.Clock, clock)));
+
 export const openApp = Effect.fn("ScreenStory.openApp")(function* (engine: Screen, route: string, options: Parameters<typeof appAuth>[0]) {
-	const fixture = appAuth(options);
+	const fixture = appAuth({ ...options, runtime: yield* storyRuntime });
 	engine.auth = fixture;
 	engine.pending = () =>
-		(engine.view?.registry.get(fixture.auth.session.atom).waiting ?? false)
+		(engine.view !== undefined && fixture.sessionPending(engine.view.registry))
 		|| (engine.view !== undefined
 			&& (engine.view.registry.get(fixture.auth.actions.submit).waiting || engine.view.registry.get(fixture.auth.actions.signOut).waiting));
 	const view = yield* acquireScreen(engine);
@@ -114,21 +117,22 @@ export const openApp = Effect.fn("ScreenStory.openApp")(function* (engine: Scree
 	yield* Effect.promise(() => view.render(<App app={screenApp(engine)} auth={fixture.auth} history={history} />));
 	yield* screenDriver({
 		act,
-		pending: () => view.registry.get(fixture.auth.session.atom).waiting,
+		pending: () => fixture.sessionPending(view.registry),
 		root: view.container,
 		tell: () => undefined,
 	}).settle();
 });
 
-function launchApp(engine: Screen, view: Rendered, check: "held" | "failing") {
+function launchApp(engine: Screen, view: Rendered, check: "held" | "failing", runtime: Effect.Success<typeof storyRuntime>) {
 	const fixture = appAuth({
 		baseUrl: "http://returning.story.test",
+		runtime,
 		sessionFailure: check === "failing",
 		sessionHeld: check === "held",
 		signedIn: true,
 	});
 	engine.auth = fixture;
-	engine.pending = () => check === "failing" && view.registry.get(fixture.auth.session.atom).waiting;
+	engine.pending = () => check === "failing" && fixture.sessionPending(view.registry);
 	return Effect.promise(() => view.render(<App app={screenApp(engine)} auth={fixture.auth} history={createMemoryHistory()} />));
 }
 
@@ -137,13 +141,13 @@ export const openReturningApp = Effect.fn("ScreenStory.openReturningApp")(functi
 		Effect.provide(browserSessionMemory),
 	);
 	const view = yield* acquireScreen(engine);
-	yield* launchApp(engine, view, check);
+	yield* launchApp(engine, view, check, yield* storyRuntime);
 });
 
 export const relaunchApp = Effect.fn("ScreenStory.relaunchApp")(function* (engine: Screen) {
 	const view = screenView(engine);
 	yield* Effect.promise(() => view.render(null));
-	yield* launchApp(engine, view, "held");
+	yield* launchApp(engine, view, "held", yield* storyRuntime);
 });
 
 export const openNotes = Effect.fn("ScreenStory.openNotes")(function* (engine: Screen, signOutFailure?: string) {
