@@ -8,10 +8,10 @@ import { configured, postgres } from "#test-support/postgres.ts";
 import { type ScreenSurface, screenView } from "#test-support/screenState.ts";
 import { uiScreenVerbs } from "#test-support/uiScreenVerbs.ts";
 
-export const ALICE_PASSWORD = "alice-starter-password";
+export const ALICE_PASSWORD = "alice-account-password";
 // A precomputed hash of alice's password keeps the check real without hashing in each story's setup.
 const ALICE_PASSWORD_HASH =
-	"764b9f494e033e8d4d54e8e197b2e54d:1ff15e0dc579302c26a390989c24e7c2ee08d53df292333363621d45c39db9606f441b1c14f871537374fcd9365eaa316c7aebe5f3829c743f4fb5fddf38d751";
+	"b8fed1eda938eae61920f282ee3ca4b2:f8b318084670970f9fa3b3be313ac557de80a4cfc6592ff4b498eef7ef2d5b0cdad944a5599824f2cb11d44c3c319d6680cec904698434bb6bea123692b8a620";
 
 export const accountScreen = Effect.fn("AccountStory.accountScreen")(function* () {
 	const screen = yield* appScreen({ account: { name: "alice" }, route: "/account" });

@@ -5,9 +5,12 @@ import * as Reactivity from "effect/reactivity/Reactivity";
 import { RpcClient, RpcSerialization, RpcServer } from "effect/rpc";
 import { SqlClient } from "effect/sql";
 import { contract } from "@shivaedev/contract/contract.ts";
+import { liveServerLayer } from "@shivaedev/contract/live-server/layer.ts";
+import { LiveServer } from "@shivaedev/contract/live-server/service.ts";
 import { moduleHandlers } from "@shivaedev/contract/moduleHandlers.ts";
 import { query } from "@shivaedev/contract/operation.ts";
 import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
+import { hostChanges } from "@shivaedev/server/hostChanges.ts";
 import { RepositoryModels } from "@shivaedev/sql/RepositoryModels.ts";
 import { ChangeObserver } from "@shivaedev/sql/transact.ts";
 import { Account } from "#Account.ts";
@@ -57,8 +60,10 @@ export const accountDeletionHost = Effect.fnUntraced(function* <E>(
 		moduleHandlers(Account).pipe(Layer.provide(accountDeletion({ options }, { handOver }))),
 		Profile.application.toLayer({ "profile.read": () => SessionUser }),
 	);
+	const live = yield* LiveServer.pipe(Effect.provide(liveServerLayer));
+	const handlers = hostChanges(ServedApi).pipe(Layer.provideMerge(application), Layer.provide(Layer.succeed(LiveServer, live)));
 	const rpc = RpcServer.layerHttp({ group: ServedApi, path: "/rpc", protocol: "http" }).pipe(
-		Layer.provide([application, authenticatedUserLayer(), RpcSerialization.layerNdjson]),
+		Layer.provide([handlers, authenticatedUserLayer(), RpcSerialization.layerNdjson]),
 		Layer.provide(story),
 	);
 	const app = HttpRouter.toWebHandler(
