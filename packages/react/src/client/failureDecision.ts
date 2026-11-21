@@ -40,6 +40,11 @@ function messageOf(error: unknown): string {
 	return Predicate.hasProperty(error, "message") && Predicate.isString(error.message) ? error.message : "";
 }
 
+// A rejection the app declared is the answer the server chose, so reading again brings the same one; any other failure may read differently.
+export function defaultRetry<A>(error: unknown, retry: A): A | undefined {
+	return failureKind(error) === "app" ? undefined : retry;
+}
+
 // The app's handler for the tag wins, then a field the form owns, then the server's message for a request rejection; anything else
 // belongs to the application's failure host.
 export function decide<R>(

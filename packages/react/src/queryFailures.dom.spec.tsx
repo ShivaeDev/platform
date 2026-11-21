@@ -89,14 +89,32 @@ reportApps.it(
 );
 
 reportApps.it(
-	"a route's query that fails to refresh with the app's own ReportArchived shows what the route's handler returns",
+	"a route's query that fails to refresh with the app's own ReportArchived shows what the route's handler returns, without Retry",
 	[openedAt("/report")],
-	function* ({ notices, pressRefresh, serverAnswers }) {
+	function* ({ noticeActions, notices, pressRefresh, serverAnswers }) {
 		yield* serverAnswers("ReportArchived");
 
 		yield* pressRefresh();
 
-		expect(yield* notices()).toEqual(["The 2024 report is archived"]);
+		yield* outcomes([
+			["notices", () => notices(), ["The 2024 report is archived"]],
+			["notice actions", () => noticeActions(), ["Dismiss"]],
+		]);
+	},
+);
+
+reportApps.it(
+	"a route's query that fails to refresh with the app's own ReportMoved keeps the action the route's handler returns, without Retry",
+	[openedAt("/report")],
+	function* ({ noticeActions, notices, pressRefresh, serverAnswers }) {
+		yield* serverAnswers("ReportMoved");
+
+		yield* pressRefresh();
+
+		yield* outcomes([
+			["notices", () => notices(), ["The report moved to the 2025 report"]],
+			["notice actions", () => noticeActions(), ["Open the 2025 report", "Dismiss"]],
+		]);
 	},
 );
 
