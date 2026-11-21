@@ -4,6 +4,7 @@ export function resourceKit({ camel, name, pascal, table }: ResourceNames) {
 	return `import { layerWebSocketConstructor } from "@effect/platform-node/NodeWS";
 import { DateTime, Effect, Queue, Schema, Stream } from "effect";
 import { SqlClient } from "effect/sql";
+import type { ClientOptions } from "@shivaedev/contract/ClientOptions.ts";
 import { makeClient } from "@shivaedev/contract/makeClient.ts";
 import type { QueryUpdate } from "@shivaedev/contract/queryUpdate.ts";
 import { mintUser } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
@@ -15,7 +16,11 @@ import { AppAuth } from "#server/AppAuth.ts";
 import { startHost } from "#test-support/host.ts";
 import { postgres } from "#test-support/postgres.ts";
 
-type Client = Effect.Success<ReturnType<typeof makeClient<{ ${camel}: typeof Browser${pascal} }>>["client"]>;
+function connect(baseUrl: string, options: ClientOptions) {
+	return makeClient({ ${camel}: Browser${pascal} }, { ...options, url: \`\${baseUrl}/rpc\` }).client;
+}
+
+type Client = Effect.Success<ReturnType<typeof connect>>;
 
 const decodeItems = Schema.decodeUnknownSync(Schema.toType(Schema.Array(Item.json)));
 
@@ -65,7 +70,7 @@ export const app = storyKit({
 					const rows = yield* sql<{ title: string }>\`select title from \${sql("${table}")} order by id desc\`;
 					return rows.map((row) => row.title);
 				}),
-			visitorClient: () => makeClient({ ${camel}: Browser${pascal} }, { url: \`\${engine.host.baseUrl}/rpc\`, webSocketConstructor: layerWebSocketConstructor }).client,
+			visitorClient: () => connect(engine.host.baseUrl, { webSocketConstructor: layerWebSocketConstructor }),
 			watchesList: (name: string) =>
 				Effect.gen(function* () {
 					story.tell(\`\${name} keeps the ${name} list open\`);
@@ -84,11 +89,10 @@ export const app = storyKit({
 export function signedIn(name: string) {
 	return app.trait("accounts", \`\${name} is signed in\`, function* (engine) {
 		const { headers } = yield* mintUser(AppAuth, engine.host, name);
-		const client = yield* makeClient({ ${camel}: Browser${pascal} }, {
+		const client = yield* connect(engine.host.baseUrl, {
 			headers: { cookie: headers.get("cookie") ?? "", origin: engine.host.origin },
-			url: \`\${engine.host.baseUrl}/rpc\`,
 			webSocketConstructor: layerWebSocketConstructor,
-		}).client;
+		});
 		engine.accounts.set(name, client);
 	});
 }
