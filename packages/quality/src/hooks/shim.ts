@@ -8,6 +8,7 @@ export function isHookShim(text: string): boolean {
 
 // The hook moves to the checked-out worktree first, so each worktree commits under its own config and its own quality.
 // Git sets GIT_DIR for a hook in a linked worktree, which makes git take the current folder as the worktree root unless GIT_WORK_TREE names it.
+// Quality resolves that itself, but the global hook the shim runs first may not.
 export function hookShim(directory: string, command: HookCommand): string {
 	const folder = directory === "" ? "" : `/${shellWords([directory])}`;
 	const exec = [shellWords(command.runner), '"$quality"', shellWords(command.args)].filter((part) => part !== "");

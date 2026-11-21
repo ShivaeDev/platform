@@ -125,8 +125,8 @@ export function withWorktree(repository: HookRepository, name: string, at?: stri
 	return root;
 }
 
-export function commits(cwd: string, message: string, environment: Readonly<Record<string, string>> = {}): Run {
-	const result = spawnSync("git", ["commit", "--quiet", "--allow-empty", "--message", message], {
+export function commits(cwd: string, message: string, environment: Readonly<Record<string, string>> = {}, staging = "--allow-empty"): Run {
+	const result = spawnSync("git", ["commit", "--quiet", staging, "--message", message], {
 		cwd,
 		encoding: "utf8",
 		env: { ...isolatedEnvironment(cwd), ...environment },
