@@ -11,10 +11,12 @@ import {
 } from "@tanstack/react-router";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { type ComponentType, createElement, type ErrorInfo, Fragment, type ReactNode } from "react";
-import { PermissionBoundary, PermissionBoundaryError } from "#adapters/permissionBoundary.ts";
+import { PermissionBoundary } from "#adapters/permissionBoundary.ts";
 import { navigateTo } from "#client/adapters/navigateTo.ts";
+import { LoadFailureContext, RouteLoadFailure } from "#client/adapters/routeLoadFailure.ts";
 import type { AppConnection, ClientApp } from "#client/app.ts";
 import type { RegisteredAuth, RegisteredSession } from "#client/module.ts";
+import { type FailureLayout, FailureMessage } from "#client/QueryView.ts";
 import { type SessionRootOptions, sessionRoot } from "#client/sessionRoot.ts";
 import { Forbidden } from "#Forbidden.ts";
 import { signInRedirect } from "#signInRedirect.ts";
@@ -22,6 +24,7 @@ import { signInRedirect } from "#signInRedirect.ts";
 export interface SessionRouting extends SessionRootOptions {
 	readonly forbidden?: ReactNode;
 	readonly home?: RouteComponent;
+	readonly loadFailure?: ComponentType<FailureLayout>;
 	readonly onCatch?: ((error: unknown, errorInfo: ErrorInfo) => void) | undefined;
 	readonly parseSearch?: SearchParser;
 	readonly shell?: ComponentType<{ readonly children: ReactNode }>;
@@ -53,6 +56,7 @@ function PassThrough({ children }: { readonly children: ReactNode }): ReactNode 
 
 interface Shell {
 	readonly forbidden: ReactNode;
+	readonly loadFailure: ComponentType<FailureLayout>;
 	readonly session: () => RegisteredSession | null | undefined;
 	readonly shell: ComponentType<{ readonly children: ReactNode }>;
 }
@@ -62,8 +66,13 @@ const shells = new WeakMap<AnyRouter, Shell>();
 // The router renders its InnerWrap again whenever the provider above it renders, so the boundary reads the session as it is now.
 function SessionShell(props: { readonly children: ReactNode }) {
 	const router = useRouter<AnyRouter>();
-	const { forbidden, session, shell } = shells.get(router) ?? { forbidden: null, session: () => undefined, shell: PassThrough };
-	const children = createElement(shell, null, props.children);
+	const { forbidden, loadFailure, session, shell } = shells.get(router) ?? {
+		forbidden: null,
+		loadFailure: FailureMessage,
+		session: () => undefined,
+		shell: PassThrough,
+	};
+	const children = createElement(LoadFailureContext.Provider, { value: loadFailure }, createElement(shell, null, props.children));
 	return createElement(PermissionBoundary, { children, fallback: forbidden, session: session() });
 }
 
@@ -74,6 +83,7 @@ export function sessionRouter<TRoute extends AnyRoute>({
 	hidden,
 	history,
 	home,
+	loadFailure = FailureMessage,
 	notFound,
 	onCatch,
 	parseSearch,
@@ -94,7 +104,7 @@ export function sessionRouter<TRoute extends AnyRoute>({
 			registry,
 			session,
 		},
-		defaultErrorComponent: PermissionBoundaryError,
+		defaultErrorComponent: RouteLoadFailure,
 		defaultPendingMs: Number.POSITIVE_INFINITY,
 		disableGlobalCatchBoundary: true,
 		InnerWrap: SessionShell,
@@ -107,7 +117,7 @@ export function sessionRouter<TRoute extends AnyRoute>({
 			...(home === undefined || claimsHome(routes) ? [] : [createRoute({ component: home, getParentRoute: () => root, path: "/" })]),
 		]),
 	});
-	shells.set(router, { forbidden, session, shell });
+	shells.set(router, { forbidden, loadFailure, session, shell });
 	return router;
 }
 

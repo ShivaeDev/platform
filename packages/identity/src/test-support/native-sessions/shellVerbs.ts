@@ -19,6 +19,7 @@ export function shellVerbs(host: Host, accounts: ReadonlyMap<string, Account>, t
 		),
 	);
 	return {
+		deviceLocale: () => Effect.sync(() => new Intl.DateTimeFormat().resolvedOptions().locale),
 		heldCheckAnswers: () => {
 			tell("the held session check answers");
 			return held === undefined
@@ -30,6 +31,11 @@ export function shellVerbs(host: Host, accounts: ReadonlyMap<string, Account>, t
 			return checkSession;
 		},
 		shellCredentialsModes: () => Effect.sync(() => [...shell.modes]),
+		shellPreflight: (path: string) =>
+			Effect.sync(() => {
+				const preflight = shell.preflights.findLast((sent) => sent.path === path);
+				return preflight === undefined ? "no preflight" : `${preflight.granted ? "granted" : "refused"} for ${preflight.requested.join(", ")}`;
+			}),
 		shellReadsProfileOverSocket: (owner: string) =>
 			Effect.gen(function* () {
 				tell(`the shell connects a new client and reads ${owner}'s profile over the socket`);
@@ -67,5 +73,6 @@ export function shellVerbs(host: Host, accounts: ReadonlyMap<string, Account>, t
 					Effect.map(sessionName),
 				);
 			}),
+		storedPreferences: (name: string) => host.preferences.get(account(name).user.id),
 	};
 }

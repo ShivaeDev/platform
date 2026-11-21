@@ -1,14 +1,14 @@
 import { RegistryContext, useAtomValue } from "@effect/atom-react";
-import { Layer } from "effect";
+import { Effect, Layer } from "effect";
 import type * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as Atom from "effect/reactivity/Atom";
 import { createElement, Fragment, type ReactNode, useContext, useInsertionEffect, useLayoutEffect, useMemo, useRef } from "react";
 import { closeInactiveNotice } from "#client/adapters/closeInactiveNotice.ts";
-import { FailureHostContext } from "#client/FailureHostContext.ts";
+import { type FailureHost, FailureHostContext } from "#client/FailureHostContext.ts";
 import { NoticeContext } from "#client/NoticeContext.ts";
 import type { UnexpectedFailure } from "#client/unexpectedFailure.ts";
 import type { NoticeClock, NoticeEntry, NoticeKind } from "#noticeEntry.ts";
-import { noticeStore } from "#noticeStore.ts";
+import { noticeStore, publishNotice } from "#noticeStore.ts";
 import type { NoticeDescriptor as SharedNoticeDescriptor, NoticeFeedback as SharedNoticeFeedback } from "#noticeTypes.ts";
 
 export interface NoticeDescriptor<R = never> extends SharedNoticeDescriptor<R, ReactNode> {}
@@ -43,6 +43,7 @@ function Entries({ store, render }: { readonly store: ReturnType<typeof noticeSt
 	return entries.map((entry) => createElement(Entry, { entry, key: entry.id, render }));
 }
 const defaultClock = Atom.runtime(Layer.empty);
+const retryRuntime = Atom.runtime(Layer.empty);
 export function renderNotice(notice: Notice): ReactNode {
 	const action = notice.action;
 	return createElement(
@@ -56,6 +57,17 @@ export function renderNotice(notice: Notice): ReactNode {
 function failureNotice(failure: UnexpectedFailure): FailureNotice {
 	return { message: failure.message };
 }
+
+// A screen that must show a failure in place, such as a route that could not load, still shows one when the app silences the notice.
+function wordingOf(failure: UnexpectedFailure, wording: (failure: UnexpectedFailure) => FailureNotice | "silent"): ReactNode {
+	const descriptor = wording(failure);
+	return descriptor === "silent" ? failure.message : descriptor.message;
+}
+
+export const defaultFailureHost: FailureHost = {
+	report: () => undefined,
+	word: (failure) => wordingOf(failure, failureNotice),
+};
 export function NoticeHost({
 	children,
 	failure = failureNotice,
@@ -74,11 +86,18 @@ export function NoticeHost({
 	useInsertionEffect(() => {
 		wordingRef.current = failure;
 	}, [failure]);
-	const report = useMemo(
-		() => (unexpected: UnexpectedFailure) => {
-			const descriptor = wordingRef.current(unexpected);
-			return descriptor === "silent" ? undefined : store.publish(descriptor, "failure");
-		},
+	const host = useMemo<FailureHost>(
+		() => ({
+			report: (unexpected, retry) => {
+				const descriptor = wordingRef.current(unexpected);
+				if (descriptor === "silent") {
+					return undefined;
+				}
+				const action = retry === undefined ? undefined : { label: "Retry", run: Effect.sync(retry) };
+				return publishNotice(store, retryRuntime, { ...descriptor, action }, "failure");
+			},
+			word: (unexpected) => wordingOf(unexpected, wordingRef.current),
+		}),
 		[store],
 	);
 	useLayoutEffect(() => {
@@ -88,6 +107,6 @@ export function NoticeHost({
 	return createElement(
 		NoticeContext.Provider,
 		{ value: store },
-		createElement(FailureHostContext.Provider, { value: report }, createElement(Fragment, null, children, createElement(Entries, { render, store }))),
+		createElement(FailureHostContext.Provider, { value: host }, createElement(Fragment, null, children, createElement(Entries, { render, store }))),
 	);
 }

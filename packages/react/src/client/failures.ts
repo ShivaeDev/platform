@@ -54,3 +54,15 @@ export type FormFailuresOption<TFields extends Fields, E, R, TSilent extends boo
 	TSilent,
 	FieldRouted<Name<TFields>, E> | FieldFailure
 >;
+
+export type QueryFailureHandlers<E> = FailureHandlers<E, void, NoticeDescriptor>;
+
+export type QueryFailuresOption<E> = [Unhandled<E>] extends [never]
+	? { readonly failures?: QueryFailureHandlers<E> }
+	: { readonly failures: HandleAppRejections<Unhandled<E>, E, void, NoticeDescriptor> };
+
+export type EditorQueryFailuresOption<TLoaded, E> = [TLoaded] extends [undefined]
+	? { readonly queryFailures?: never }
+	: [Unhandled<E>] extends [never]
+		? { readonly queryFailures?: QueryFailureHandlers<E> }
+		: { readonly queryFailures: HandleAppRejections<Unhandled<E>, E, void, NoticeDescriptor> };

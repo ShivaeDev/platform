@@ -4,6 +4,10 @@ import { useAction } from "#client/resultState.ts";
 import type { NoticeClient } from "#test/notices/client.ts";
 import { Fields } from "#test/notices/Fields.ts";
 
+function refreshNotice() {
+	return { message: "Editor refresh failed" };
+}
+
 export function EditorOperations({ client }: { readonly client: NoticeClient }) {
 	const editor = useEditor(
 		{ run: (values: typeof Fields.Type) => client.api.remove.run(values).pipe(Effect.as(values.title)), runtime: client.runtime },
@@ -13,7 +17,7 @@ export function EditorOperations({ client }: { readonly client: NoticeClient }) 
 			loaded: "existing",
 			notices: { onSuccess: (title) => ({ message: `Saved ${title}` }) },
 			query: client.api.list.query(),
-			queryNotice: () => ({ message: "Editor refresh failed" }),
+			queryFailures: { Rejected: refreshNotice },
 			values: (title) => ({ title }),
 		},
 	);

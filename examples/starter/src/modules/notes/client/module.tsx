@@ -6,7 +6,6 @@ import { clientModule } from "@shivaedev/react/client/module.ts";
 import { Notes } from "#generated/modules/notes/Notes.ts";
 import { NoteEdit } from "#modules/notes/client/Edit.tsx";
 import { NotFound } from "#modules/notes/client/NotFound.tsx";
-import { RouteFailure } from "#modules/notes/client/RouteFailure.tsx";
 import { NotesScreen } from "#modules/notes/client/Screen.tsx";
 
 const NoteIdParam = Schema.NumberFromString.check(Schema.isInt(), Schema.isGreaterThan(0));
@@ -17,7 +16,6 @@ export const notesModule = clientModule({ notes: Notes }, ({ notes }) => ({
 		const list = queryRoute(() => notes.list.query());
 		const index = createRoute({
 			component: (): ReactElement => <NotesScreen client={notes} query={list.useQuery()} signOut={index.useRouteContext().auth.signOut} />,
-			errorComponent: RouteFailure,
 			getParentRoute: () => parent,
 			...list,
 			path: "/",
@@ -29,7 +27,6 @@ export const notesModule = clientModule({ notes: Notes }, ({ notes }) => ({
 				const loaded = noteQuery.useLoaded();
 				return <NoteEdit client={notes} key={loaded.loaded.id} note={loaded} onDeleted={() => navigate("/")} />;
 			},
-			errorComponent: RouteFailure,
 			getParentRoute: () => parent,
 			...noteQuery,
 			notFoundComponent: NotFound,

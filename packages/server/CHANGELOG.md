@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.43.0 - 2026-11-21
+
+### Added
+
+- `appHost` and `workerHost` provide `ColumnKey.fromConfig` beside the `effect/crypto` services, so a repository with encrypted fields works under either host once `COLUMN_ENCRYPTION_KEY` is set. A host whose models declare an encrypted field refuses to start with `ColumnKeyError` when the key is missing or malformed; a host without encrypted fields needs no key.
+- `appModules` accepts a defined module whose operations yield the host's crypto services, the `effect/crypto` services of `NodeCrypto.layer` (`SecureRandom`, `Digest`, `Mac`, `Kdf`, `Aead`, `Cipher`, `Signature`, `KeyAgreement` and `KeyWrap`) and sql's `ColumnKey`, with no registration providing them. An application deletes a crypto port or Layer it registered only to satisfy the module's service check.
+
 ## 0.42.0 - 2026-11-21
 
 ### Added

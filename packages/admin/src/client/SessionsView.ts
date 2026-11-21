@@ -4,6 +4,7 @@ import type * as Atom from "effect/reactivity/Atom";
 import { createElement, useState } from "react";
 import type { SessionList, SessionListInput, SignedInSession } from "@shivaedev/identity/signedInSessions.ts";
 import type { BoundOperation } from "@shivaedev/react/client/boundOperation.ts";
+import { QueryView } from "@shivaedev/react/client/QueryView.ts";
 import { useAction, useQuery } from "@shivaedev/react/client/resultState.ts";
 import { SessionConfirmation } from "#client/SessionConfirmation.tsx";
 import { SessionListView } from "#client/SessionListView.tsx";
@@ -51,8 +52,18 @@ export function SessionsView<R, E>({ currentSessionId, list, locale, onCurrentSe
 			},
 			"Refresh sessions",
 		),
-		state.pending ? createElement("p", { role: "status" }, "Loading sessions…") : null,
-		Option.isSome(state.cause) ? createElement("p", { role: "alert" }, "Could not load sessions. Try refreshing.") : null,
+		createElement(QueryView<SessionList, unknown>, {
+			content: (page) =>
+				createElement(SessionListView, {
+					currentSessionId,
+					dates: { locale, timeZone },
+					pending: action.pending,
+					select,
+					sessions: page.sessions,
+				}),
+			loading: () => createElement("p", { role: "status" }, "Loading sessions…"),
+			query: state,
+		}),
 		Option.isSome(action.cause) ? createElement("p", { role: "alert" }, "Could not revoke the session. Refresh and try again.") : null,
 		createElement(SessionConfirmation, {
 			currentSessionId,
@@ -61,15 +72,6 @@ export function SessionsView<R, E>({ currentSessionId, list, locale, onCurrentSe
 			pending: action.pending,
 			selected,
 		}),
-		data === undefined
-			? null
-			: createElement(SessionListView, {
-					currentSessionId,
-					dates: { locale, timeZone },
-					pending: action.pending,
-					select,
-					sessions: data.sessions,
-				}),
 		createElement(SessionPagination, {
 			cursors,
 			data,
