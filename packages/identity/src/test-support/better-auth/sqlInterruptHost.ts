@@ -21,7 +21,7 @@ export const sqlInterruptHost = Effect.gen(function* () {
 		session: { cookieCache: { enabled: false } },
 	};
 	yield* Effect.promise(async () => (await getMigrations(options)).runMigrations());
-	const mounted = yield* betterAuthMount(options)
+	const mounted = yield* betterAuthMount({ options })
 		.pipe(Effect.provide(memoryStore))
 		.pipe(Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env: { "AUTH_RATE_LIMIT_ENABLED": "false" } }))));
 	const calls: Promise<unknown>[] = [];

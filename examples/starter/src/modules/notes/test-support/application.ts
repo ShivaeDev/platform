@@ -1,6 +1,7 @@
 import { DateTime, Effect } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
 import { SqlClient } from "effect/sql";
+import { mintUser } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { fakeHttpService } from "@shivaedev/test-story/server/fakeHttpService.ts";
 import { otlpReceiver } from "@shivaedev/test-story/server/otlpReceiver.ts";
@@ -9,10 +10,10 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { applicationVerbs, runningHost } from "#modules/notes/test-support/applicationVerbs.ts";
 import type { Engine } from "#modules/notes/test-support/Engine.ts";
 import { notesRequests } from "#modules/notes/test-support/requests.ts";
+import { AppAuth } from "#server/AppAuth.ts";
 import { developmentServer } from "#test-support/developmentServer.ts";
 import { startHost } from "#test-support/host.ts";
 import { configured, postgres } from "#test-support/postgres.ts";
-import { mintUser } from "#test-support/sessionPrecondition.ts";
 
 export const app = storyKit({
 	after: {
@@ -51,7 +52,7 @@ export const app = storyKit({
 export function signedIn(name: string) {
 	return app.trait("accounts", `${name} is signed in`, function* (engine) {
 		const host = runningHost(engine);
-		const { headers, user } = yield* mintUser(host, name);
+		const { headers, user } = yield* mintUser(AppAuth, host, name);
 		const cookie = headers.get("cookie") ?? "";
 		engine.accounts.set(name, { cookie, notes: yield* notesRequests(host, name, cookie, engine.tell), userId: user.id });
 	});

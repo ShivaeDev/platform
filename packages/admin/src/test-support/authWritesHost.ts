@@ -8,7 +8,7 @@ import { roleSet } from "@shivaedev/access/roleSet.ts";
 import { bind, makeClient } from "@shivaedev/contract/bind.ts";
 import { moduleHandlers } from "@shivaedev/contract/moduleHandlers.ts";
 import { Sessions } from "@shivaedev/identity/Sessions.ts";
-import { betterAuthDatabase } from "@shivaedev/identity/server/better-auth/adapters/database.ts";
+import { defineAuth } from "@shivaedev/identity/server/better-auth/define.ts";
 import { migrateBetterAuth } from "@shivaedev/identity/server/better-auth/migrate.ts";
 import { betterAuthMount } from "@shivaedev/identity/server/better-auth/mount.ts";
 import { betterAuthUserDirectory } from "@shivaedev/identity/server/better-auth/userDirectory.ts";
@@ -26,17 +26,21 @@ import { Users } from "#Users.ts";
 import { UsersPage } from "#users/Page.ts";
 
 const Access = roleSet(role("user", []), role("admin", [ReadUsers, ManageSessions]));
-const authOptions = {
-	emailAndPassword: { enabled: true },
-	logger: { disabled: true },
-	secret: "admin-auth-writes-story-secret-at-least-32-characters",
-	session: { cookieCache: { enabled: false } },
-};
+const auth = defineAuth({
+	defaultRole: "user",
+	options: {
+		emailAndPassword: { enabled: true },
+		logger: { disabled: true },
+		secret: "admin-auth-writes-story-secret-at-least-32-characters",
+		session: { cookieCache: { enabled: false } },
+	},
+	roles: Access,
+});
 const viewer = { email: "admin@app.test", id: "admin", name: "admin", role: "admin" };
 
 const application = Effect.gen(function* () {
-	yield* migrateBetterAuth(authOptions, { defaultRole: "user" });
-	const { routes } = yield* betterAuthMount({ ...authOptions, database: yield* betterAuthDatabase() }, { defaultRole: "user", roles: Access }).pipe(
+	yield* migrateBetterAuth(auth);
+	const { routes } = yield* betterAuthMount(auth).pipe(
 		Effect.provide(memoryStore),
 		Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env: { "AUTH_RATE_LIMIT_ENABLED": "false" } }))),
 	);
@@ -45,7 +49,7 @@ const application = Effect.gen(function* () {
 		group: registration.group,
 		handlers: registration.handlers,
 		routes,
-		services: betterAuthUserDirectory(Access),
+		services: betterAuthUserDirectory(auth),
 		sessions: Layer.succeed(SessionPolicy, {
 			origin: () => true,
 			provider: { get: () => Effect.succeed(Option.some({ user: viewer })) },

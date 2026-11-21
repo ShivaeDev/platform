@@ -1,7 +1,6 @@
 import { ConfigProvider, Effect } from "effect";
 import { SqlClient } from "effect/sql";
 import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
-import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
 import { betterAuthMount } from "#server/better-auth/mount.ts";
 import { authTestDatabase } from "#server/better-auth/testDatabase.ts";
 
@@ -34,7 +33,7 @@ export const compositionHost = Effect.fnUntraced(function* (state: CompositionSt
 	}
 	return yield* betterAuthMount(
 		// Every session lookup refreshes the session, so a story can race a refresh.
-		{ ...compositionOptions, database: yield* betterAuthDatabase(), session: { updateAge: 0 } },
+		{ options: { ...compositionOptions, session: { updateAge: 0 } } },
 		{
 			databaseHooks: {
 				account: { create: { before: beforeAccount } },

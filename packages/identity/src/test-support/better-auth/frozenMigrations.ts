@@ -49,14 +49,12 @@ export const frozenAuthMigrations = storyKit({
 				engine.options = { ...engine.options, user: { additionalFields: { role: { required: true, type: "number" } } } };
 			}),
 		checkSchema: (defaultRole?: string) =>
-			assertBetterAuthSchema(engine.options, defaultRole === undefined ? undefined : { defaultRole }).pipe(
+			assertBetterAuthSchema({ defaultRole, options: engine.options }).pipe(
 				Effect.as("current"),
 				Effect.catchTag("BetterAuthSchemaDrift", (error) => Effect.succeed(error.message)),
 			),
-		generateFirst: (defaultRole?: string) =>
-			engine.files.generate("0001_auth", engine.options, defaultRole === undefined ? undefined : { defaultRole }),
-		generateNext: (defaultRole?: string) =>
-			engine.files.generate("0003_roles", engine.options, defaultRole === undefined ? undefined : { defaultRole }),
+		generateFirst: (defaultRole?: string) => engine.files.generate("0001_auth", { defaultRole, options: engine.options }),
+		generateNext: (defaultRole?: string) => engine.files.generate("0003_roles", { defaultRole, options: engine.options }),
 		makeRoleNullable: () => engine.storage.omitRole("no-existing-user"),
 		makeRoleOptional: () =>
 			Effect.sync(() => {
@@ -82,23 +80,25 @@ export const frozenAuthMigrations = storyKit({
 export const referencingHistory = frozenAuthMigrations.trait("history", "the saved history adds roles after a table referencing users", (engine) =>
 	withIsolatedDatabase(
 		Effect.gen(function* () {
-			yield* engine.files.generate("0001_auth", engine.options);
+			yield* engine.files.generate("0001_auth", { options: engine.options });
 			yield* engine.files.referenceUsers();
 			yield* engine.files.migrate();
 			engine.options = { ...engine.options, user: { additionalFields: { role: { defaultValue: "member", required: true, type: "string" } } } };
-			yield* engine.files.generate("0003_roles", engine.options);
+			yield* engine.files.generate("0003_roles", { options: engine.options });
 		}),
 	),
 );
 
 export const liveReferencingHistory = frozenAuthMigrations.trait("history", "a live auth migration follows a user foreign key", (engine) =>
 	Effect.gen(function* () {
-		yield* engine.files.generate("0001_auth", engine.options);
+		yield* engine.files.generate("0001_auth", { options: engine.options });
 		yield* engine.files.referenceUsers();
 	}),
 );
 
 export const liveAuthAlteration = migrateBetterAuth({
-	logger: { disabled: true },
-	user: { additionalFields: { role: { defaultValue: "member", required: true, type: "string" } } },
+	options: {
+		logger: { disabled: true },
+		user: { additionalFields: { role: { defaultValue: "member", required: true, type: "string" } } },
+	},
 });

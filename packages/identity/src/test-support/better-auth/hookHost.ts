@@ -53,16 +53,19 @@ export const hookHost = Effect.fnUntraced(function* (application: HookApplicatio
 		secret: "effect-hooks-story-secret-at-least-32-characters",
 	};
 	yield* Effect.promise(async () => (await getMigrations(options)).runMigrations());
-	const mounted = yield* betterAuthMount(options, {
-		databaseHooks: application.state.userHooks ? userCreationHooks(application.state.userTransforms) : application.hooks,
-		onPasswordReset: ({ user }) =>
-			Effect.gen(function* () {
-				const admission = yield* Admission;
-				yield* admission.check(user.id);
-				resetHooks.push(`effect ${user.name}`);
-			}),
-		signIn: application.state.policyRefuses ? { rule: () => Effect.succeed(false) } : undefined,
-	})
+	const mounted = yield* betterAuthMount(
+		{ options },
+		{
+			databaseHooks: application.state.userHooks ? userCreationHooks(application.state.userTransforms) : application.hooks,
+			onPasswordReset: ({ user }) =>
+				Effect.gen(function* () {
+					const admission = yield* Admission;
+					yield* admission.check(user.id);
+					resetHooks.push(`effect ${user.name}`);
+				}),
+			signIn: application.state.policyRefuses ? { rule: () => Effect.succeed(false) } : undefined,
+		},
+	)
 		.pipe(Effect.provide(memoryStore))
 		.pipe(
 			Effect.provideService(Admission, application.admission("nobody at mount time")),

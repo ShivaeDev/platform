@@ -10,6 +10,7 @@ import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
 import { appHost } from "@shivaedev/server/appDatabase.ts";
 import { migratePostgres } from "@shivaedev/sql/migrations.ts";
 import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
+import { defineAuth } from "#server/better-auth/define.ts";
 import { betterAuthMount } from "#server/better-auth/mount.ts";
 import { permissionLayer } from "#server/permissionLayer.ts";
 import { SessionPolicy } from "#server/SessionPolicy.ts";
@@ -45,12 +46,8 @@ export const startAdminHost = Effect.gen(function* () {
 		lockTimeout: "5 seconds",
 		table: "auth_migrations",
 	});
-	const {
-		auth,
-		profiles,
-		sessions: authSessions,
-		routes,
-	} = yield* betterAuthMount(options, { defaultRole: "user", roles: TestRoles }).pipe(Effect.provide(memoryStore));
+	const declaration = defineAuth({ defaultRole: "user", options, roles: TestRoles });
+	const { auth, profiles, sessions: authSessions, routes } = yield* betterAuthMount(declaration).pipe(Effect.provide(memoryStore));
 	const state: { handlerRequests: string[]; providerUnavailable: boolean } = { handlerRequests: [], providerUnavailable: false };
 	const provider = authSessions.provider;
 	const sessions = {
@@ -82,6 +79,7 @@ export const startAdminHost = Effect.gen(function* () {
 	return {
 		auth,
 		baseUrl: `http://127.0.0.1:${server.address.port}`,
+		declaration,
 		headers: new Headers(),
 		profiles,
 		queries,

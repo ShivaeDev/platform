@@ -31,8 +31,8 @@ export const roleHost = Effect.fnUntraced(function* () {
 		plugins: [testUtils()],
 		secret: "stored-role-story-secret-at-least-32-characters",
 	};
-	yield* migrateBetterAuth(options, { defaultRole: "user" });
-	const mounted = yield* betterAuthMount(options, { defaultRole: "user", roles: TestRoles })
+	yield* migrateBetterAuth({ defaultRole: "user", options });
+	const mounted = yield* betterAuthMount({ defaultRole: "user", options, roles: TestRoles })
 		.pipe(Effect.provide(memoryStore))
 		.pipe(Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env: {} }))));
 	const recorded = recorder();

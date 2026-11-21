@@ -1,15 +1,17 @@
 import { layerWebSocketConstructor } from "@effect/platform-node/NodeWS";
 import { DateTime, Effect, Option } from "effect";
 import { makeClient } from "@shivaedev/contract/bind.ts";
+import { mintUser } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
 import { makePgBossTesting, testRetryPolicy } from "@shivaedev/test-kits/jobs/testing.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import type { AppAccess } from "#AppAccess.ts";
 import { foundation } from "#admin/foundation.ts";
+import { AppAuth } from "#server/AppAuth.ts";
 import { sessionPermissions } from "#test-support/admin/session.ts";
 import { answer } from "#test-support/answers.ts";
 import { startHost } from "#test-support/host.ts";
 import { configured, postgres } from "#test-support/postgres.ts";
-import { mintUser } from "#test-support/sessionPrecondition.ts";
 
 export const foundationAdmin = storyKit({
 	around: withIsolatedDatabase,
@@ -80,9 +82,9 @@ export const foundationAdmin = storyKit({
 	},
 });
 
-export function foundationAccount(name: string, role = "user") {
+export function foundationAccount(name: string, role: typeof AppAccess.Role.Type = "user") {
 	return foundationAdmin.trait("accounts", `${name} is signed in as ${role === "user" ? "a" : "an"} ${role}`, function* (engine) {
-		const { headers } = yield* mintUser(engine.host, name, role);
+		const { headers } = yield* mintUser(AppAuth, engine.host, name, { role });
 		engine.cookies.set(name, headers.get("cookie") ?? "");
 	});
 }

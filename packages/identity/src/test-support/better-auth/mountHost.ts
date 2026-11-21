@@ -1,6 +1,7 @@
 import { createServer } from "node:http";
 import { NodeHttpServer } from "@effect/platform-node";
 import type { BetterAuthOptions, BetterAuthRateLimitOptions } from "better-auth";
+import { memoryAdapter } from "better-auth/adapters/memory";
 import { ConfigProvider, Context, Effect, Layer, Logger, type LogLevel, Tracer } from "effect";
 import { HttpMiddleware, HttpRouter, HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
@@ -69,14 +70,18 @@ export const startMountHost = Effect.fn("AuthMountStory.startMountHost")(functio
 	});
 	const auth = yield* betterAuthMount(
 		{
-			...engine.authOptions,
-			advanced: { disableOriginCheck: false },
-			emailAndPassword: { autoSignIn: false, enabled: true },
-			logger: { log: (level, message) => engine.providerLogs.push({ level, message }) },
-			"onAPIError": { throw: true },
-			plugins: [applicationProvider(engine)],
-			rateLimit: engine.rateLimit,
-			secret: "mount-story-secret-with-at-least-32-characters",
+			options: {
+				...engine.authOptions,
+				advanced: { disableOriginCheck: false },
+				// Mount routing, logging and rate limits need no PostgreSQL, so these stories stay fast.
+				database: memoryAdapter({ account: [], session: [], user: [], verification: [] }),
+				emailAndPassword: { autoSignIn: false, enabled: true },
+				logger: { log: (level, message) => engine.providerLogs.push({ level, message }) },
+				"onAPIError": { throw: true },
+				plugins: [applicationProvider(engine)],
+				rateLimit: engine.rateLimit,
+				secret: "mount-story-secret-with-at-least-32-characters",
+			},
 		},
 		{ bearerSessions: engine.bearerSessions },
 	).pipe(Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env: engine.env }))));

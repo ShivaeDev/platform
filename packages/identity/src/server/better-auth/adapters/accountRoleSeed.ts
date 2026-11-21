@@ -1,25 +1,24 @@
 import { type Config, Effect, Schema } from "effect";
 import { SqlClient, SqlSchema } from "effect/sql";
-import type { AccessPolicy } from "@shivaedev/access/roleSet.ts";
 import { AuthUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import type { ProviderAccountValue } from "#identity.ts";
 import { assignRole } from "#server/better-auth/assignRole.ts";
-import { type AuthTableOptions, tables } from "#server/better-auth/tables.ts";
+import type { RoleTables } from "#server/better-auth/define.ts";
+import { tables } from "#server/better-auth/tables.ts";
 
 export interface AccountRoleSeed<E> {
 	readonly onSignIn: (userId: string) => Effect.Effect<void, E>;
 }
 
 export const accountRoleSeed = Effect.fn("Identity.accountRoleSeed")(function* <TRole extends string>(
-	access: Pick<AccessPolicy<TRole>, "Role" | "hasPermission">,
+	auth: RoleTables<TRole>,
 	role: NoInfer<TRole>,
 	accounts: Config.Config<readonly ProviderAccountValue[]>,
-	options?: AuthTableOptions,
 ) {
 	const listed = yield* accounts;
 	const context = yield* Effect.context<SqlClient.SqlClient>();
 	const sql = (yield* SqlClient.SqlClient).withoutTransforms();
-	const { account: accountTable } = tables(options);
+	const { account: accountTable } = tables(auth.options);
 	const findUsers = SqlSchema.findAll({
 		execute: ({ accountId, providerId, userId }) => sql`
 			select distinct ${sql(accountTable.userId)} as id from ${sql(accountTable.table)}
@@ -34,7 +33,7 @@ export const accountRoleSeed = Effect.fn("Identity.accountRoleSeed")(function* <
 				Effect.mapError(() => new AuthUnavailable({ message: "Could not access provider accounts" })),
 			);
 			for (const user of users) {
-				yield* assignRole(access, user.id, role, options);
+				yield* assignRole(auth, user.id, role);
 			}
 		}
 	});

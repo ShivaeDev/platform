@@ -24,7 +24,7 @@ const applicationTables = Effect.gen(function* () {
 const registerInMigration = Effect.gen(function* () {
 	const sql = yield* SqlClient.SqlClient;
 	const storage = yield* authTestDatabase;
-	yield* storage.migrate(compositionOptions, { defaultRole: "member" });
+	yield* storage.migrate({ defaultRole: "member", options: compositionOptions });
 	const host = yield* compositionHost({ refuseAccount: false });
 	const response = yield* signUpAlice(host);
 	if (!response.ok) {
@@ -44,7 +44,7 @@ export const authMigrationTransactions = storyKit({
 		const sql = yield* SqlClient.SqlClient;
 		yield* migratePostgres({
 			loader: Migrator.fromRecord({
-				"0001_auth": migrateBetterAuth(compositionOptions).pipe(Effect.scoped),
+				"0001_auth": migrateBetterAuth({ options: compositionOptions }).pipe(Effect.scoped),
 				"0002_application": applicationTables,
 			}),
 			lockTimeout: "2 seconds",
@@ -60,7 +60,7 @@ export const authMigrationTransactions = storyKit({
 			story.tell("the numbered migration adds an auth column, registers alice through its local adapter, then copies her stored role");
 			return migratePostgres({
 				loader: Migrator.fromRecord({
-					"0001_auth": migrateBetterAuth(compositionOptions).pipe(Effect.scoped),
+					"0001_auth": migrateBetterAuth({ options: compositionOptions }).pipe(Effect.scoped),
 					"0002_application": applicationTables,
 					"0003_register": registerInMigration,
 				}),

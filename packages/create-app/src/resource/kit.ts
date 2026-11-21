@@ -5,13 +5,14 @@ export function resourceKit({ name, pascal, table }: ResourceNames) {
 import { DateTime, Effect, Queue, Schema, Stream } from "effect";
 import { SqlClient } from "effect/sql";
 import type { QueryUpdate } from "@shivaedev/contract/queryUpdate.ts";
+import { mintUser } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { make${pascal}Client } from "#modules/${name}/client/make.ts";
 import { Item } from "#modules/${name}/model.ts";
+import { AppAuth } from "#server/AppAuth.ts";
 import { startHost } from "#test-support/host.ts";
 import { postgres } from "#test-support/postgres.ts";
-import { mintUser } from "#test-support/sessionPrecondition.ts";
 
 type Client = Effect.Success<ReturnType<typeof make${pascal}Client>["client"]>;
 
@@ -81,7 +82,7 @@ export const app = storyKit({
 
 export function signedIn(name: string) {
 	return app.trait("accounts", \`\${name} is signed in\`, function* (engine) {
-		const { headers } = yield* mintUser(engine.host, name);
+		const { headers } = yield* mintUser(AppAuth, engine.host, name);
 		const client = yield* make${pascal}Client(\`\${engine.host.baseUrl}/rpc\`, {
 			headers: { cookie: headers.get("cookie") ?? "", origin: engine.host.origin },
 			webSocketConstructor: layerWebSocketConstructor,

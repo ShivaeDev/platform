@@ -1,15 +1,11 @@
 import { Effect, Redacted } from "effect";
 import { SessionUser } from "@shivaedev/identity/identity.ts";
 import { defineSeed } from "@shivaedev/identity/server/better-auth/defineSeed.ts";
-import { AppAccess } from "#AppAccess.ts";
 import { Owner } from "#roles/Owner.ts";
 import { User } from "#roles/User.ts";
-import { authOptions } from "#server/authOptions.ts";
+import { AppAuth } from "#server/AppAuth.ts";
 
-export const seed = defineSeed({
-	auth: authOptions(),
-	defaultRole: User.name,
-	roles: AppAccess,
+export const seed = defineSeed(AppAuth, {
 	run: Effect.gen(function* () {
 		const user = yield* SessionUser;
 		yield* Effect.logInfo(`Demo user ready: ${user.email}`);

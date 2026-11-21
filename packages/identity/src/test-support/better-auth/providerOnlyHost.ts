@@ -40,7 +40,7 @@ export const providerOnlyHost = Effect.fnUntraced(function* (enabledPaths: reado
 		socialProviders: { github: { clientId: "story-client", clientSecret: "story-secret" } },
 	};
 	yield* Effect.promise(async () => (await getMigrations(options)).runMigrations());
-	const mounted = yield* betterAuthMount(options, { enabledPaths, ...(preset ? { preset: "provider-only" } : {}) })
+	const mounted = yield* betterAuthMount({ options }, { enabledPaths, ...(preset ? { preset: "provider-only" } : {}) })
 		.pipe(Effect.provide(memoryStore))
 		.pipe(Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env: { "AUTH_RATE_LIMIT_ENABLED": "false" } }))));
 	const context = yield* Layer.build(
