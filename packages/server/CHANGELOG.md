@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.46.4 - 2026-11-21
+
+### Changed
+
+- `appHost` masks the names of fields that an exported Schema class marks sensitive in every RPC whose success carries the class, its module's `$changes` included, in the RPC's logs, logged defects, failure frames sent to the client and exported traces, as it masks a repository model's names. See the `@shivaedev/errors` entry for the rejection fields this masks and how to migrate.
+
 ## 0.46.3 - 2026-11-21
 
 ### Changed

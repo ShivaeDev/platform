@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.84.4 - 2026-11-21
+
+### Changed
+
+- Update `@shivaedev/errors` from 0.14.1 to 0.15.0.
+- Update `@shivaedev/skills` from 0.9.5 to 0.9.6.
+- Update `@shivaedev/test-story` from 0.52.6 to 0.52.7.
+
 ## 0.84.3 - 2026-11-21
 
 ### Fixed
