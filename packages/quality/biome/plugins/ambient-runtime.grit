@@ -98,8 +98,7 @@ or {
 		register_diagnostic(span=$match, message=$message)
 	},
 	or {
-		`$name` as $match where {
-			$match <: JsIdentifierExpression(),
+		JsIdentifierExpression(name=$name) as $match where {
 			$name <: r"^(?:fetch|localStorage|sessionStorage|indexedDB|WebSocket|EventSource|Worker|SharedWorker)$",
 			! $program <: contains JsIdentifierBinding() as $binding where { $binding <: $name }
 		},
