@@ -119,6 +119,8 @@ With a generated client the browser never needs a module or its operations, so t
 - `effect/sql`, imported from outside Effect (Effect's own index re-exports modules that import it, which do not count);
 - part of a package listed in `serverOnly`.
 
+An operation file is judged by the names it takes from `operation.ts`, as the bundler holds its code. A namespace import, a dynamic import or a re-export of everything takes every name, and a file that re-exports `query` or `command` is an operation file itself, so neither gets round the check. A contract that imports only `stream`, such as the host's own `HostVersion`, is not an operation file, because a stream keeps its own contract; so Platform's published client code, such as `@shivaedev/react`'s `deployUpdate`, passes the check.
+
 The build fails with the import chain from the client entry to that module:
 
 ```text
