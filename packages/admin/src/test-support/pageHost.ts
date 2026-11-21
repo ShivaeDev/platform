@@ -17,7 +17,9 @@ import { workspaceRegistration } from "#test/workspaceRegistration.ts";
 import { WorkspaceAccess, type WorkspaceRole, Workspaces } from "#test/workspaces.ts";
 
 function sessionFor(role: string | undefined) {
-	return role === undefined ? Option.none() : Option.some({ user: { email: "reader@app.test", id: "reader", name: "reader", role } });
+	return role === undefined
+		? Option.none()
+		: Option.some({ user: { email: "reader@app.test", emailVerified: true, id: "reader", name: "reader", role } });
 }
 
 export function workspaceSessions() {

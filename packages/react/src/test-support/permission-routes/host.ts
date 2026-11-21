@@ -24,7 +24,7 @@ export const openHost = Effect.fnUntraced(function* (initial: Role | undefined) 
 				Effect.sync(() =>
 					state.role === undefined
 						? Option.none()
-						: Option.some({ user: { email: "alice@example.test", id: "alice", name: "Alice", role: state.role } }),
+						: Option.some({ user: { email: "alice@example.test", emailVerified: true, id: "alice", name: "Alice", role: state.role } }),
 				),
 		},
 		roles: Roles,

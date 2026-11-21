@@ -58,5 +58,5 @@ export const emptyJobsStory = storyKit({
 });
 
 export const emptyJobsAdmin = emptyJobsStory.trait("session", "the caller is signed in as admin", ({ session }) =>
-	Ref.set(session, Option.some({ user: { email: "admin@example.test", id: "admin", name: "admin", role: "admin" } })),
+	Ref.set(session, Option.some({ user: { email: "admin@example.test", emailVerified: true, id: "admin", name: "admin", role: "admin" } })),
 );

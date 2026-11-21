@@ -96,7 +96,9 @@ export const profile = storyKit({
 });
 
 export const aliceSignedIn = profile.trait("policy", "alice is signed in, and the provider also keeps a private field on her user", (state) => {
-	state.session = Effect.succeed(Option.some({ user: { email: "alice@example.test", id: "alice", name: "Alice", privateField: "provider-only" } }));
+	state.session = Effect.succeed(
+		Option.some({ user: { email: "alice@example.test", emailVerified: true, id: "alice", name: "Alice", privateField: "provider-only" } }),
+	);
 });
 export const signedOut = profile.trait("policy", "nobody is signed in", (state) => {
 	state.session = Effect.succeed(Option.none());

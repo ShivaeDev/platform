@@ -676,7 +676,7 @@ Declare expected refusals with the shared tagged error schemas from [`@shivaedev
 
 ### Reading the signed-in user
 
-When a handler needs the current user's name and email, declare `AuthenticatedUser` and read `SessionUser`. `Identity` keeps its `{ id }` shape; `AuthenticatedUser` supplies both services for that invocation. Its provider must return `user: { id, name, email }`, described by `UserSessionShape`.
+When a handler needs the current user's name and email, declare `AuthenticatedUser` and read `SessionUser`. `Identity` keeps its `{ id }` shape; `AuthenticatedUser` supplies both services for that invocation. Its provider must return `user: { id, name, email, emailVerified }`, described by `UserSessionShape`. `SessionUser.emailVerified` says whether the person has confirmed their address. Better Auth's provider reads it from the session lookup the request already makes, so a screen or operation that shows "confirm your email" or gates a feature on a confirmed address needs no second session read: an account that has not confirmed reads `false`, and the first lookup after the person follows the confirmation link reads `true`. The browser's remembered session keeps only the session, user id and grants, so an application serves the flag from its own profile query.
 
 ```ts
 import { Effect, Layer, Schema } from "effect";
@@ -698,7 +698,7 @@ export const AccountHandlers = Account.toLayer({
 export const AccountServer = Layer.merge(AccountHandlers, authenticatedUserLayer());
 ```
 
-Here `sessions` is the application's policy Layer from the previous example, with a Better Auth lookup that returns all three user fields. The host provides it once to middleware and routes; custom hosts provide it with `Layer.provide(sessions)`. Merge `authenticatedUserLayer()` alongside the handler Layer when using `appHost`; the host continues to supply its id-only and optional middleware. A missing session fails with typed `Unauthorized`; rejected origins fail with `Forbidden`, and provider failures remain `AuthUnavailable`. The profile contains id, name and email, plus an optional role when the provider supplies it, without exposing the rest of the provider's user record. Handlers do not query the provider's user table.
+Here `sessions` is the application's policy Layer from the previous example, with a Better Auth lookup that returns all four user fields. The host provides it once to middleware and routes; custom hosts provide it with `Layer.provide(sessions)`. Merge `authenticatedUserLayer()` alongside the handler Layer when using `appHost`; the host continues to supply its id-only and optional middleware. A missing session fails with typed `Unauthorized`; rejected origins fail with `Forbidden`, and provider failures remain `AuthUnavailable`. The profile contains id, name, email and `emailVerified`, plus an optional role and permissions when the provider supplies them, without exposing the rest of the provider's user record. Handlers do not query the provider's user table.
 
 #### Reading provider account IDs
 

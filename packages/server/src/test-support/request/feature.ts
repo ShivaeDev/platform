@@ -26,6 +26,10 @@ const Feature = contract("request", {
 export const Api = Feature.merge(HostVersion.application);
 class Gate extends Context.Service<Gate, Effect.Effect<void>>()("@shivaedev/server/test/request/Gate") {}
 
+function callerSession(caller: string | undefined) {
+	return caller ? Option.some({ user: { email: `${caller}@test.example`, emailVerified: true, id: caller, name: caller } }) : Option.none();
+}
+
 export const openHost = Effect.fnUntraced(function* (build: () => number) {
 	const arrived = yield* Ref.make(0);
 	const ready = yield* Deferred.make<void>();
@@ -63,12 +67,7 @@ export const openHost = Effect.fnUntraced(function* (build: () => number) {
 		sessions: Layer.succeed(SessionPolicy, {
 			origin: () => true,
 			provider: {
-				get: (headers) =>
-					Effect.succeed(
-						headers.authorization
-							? Option.some({ user: { email: `${headers.authorization}@test.example`, id: headers.authorization, name: headers.authorization } })
-							: Option.none(),
-					),
+				get: (headers) => Effect.succeed(callerSession(headers.authorization)),
 			},
 		}),
 	});

@@ -49,7 +49,7 @@ export const machineTokens = Effect.fn("Identity.machineTokens")(function* (opti
 			const access = yield* options.roles.resolve(stored.value.scope).pipe(Effect.option);
 			return Option.map(access, (grants) => ({
 				machine: { id: stored.value.id, name: stored.value.name, scope: stored.value.scope },
-				user: { ...options.owner, ...grants },
+				user: { ...options.owner, emailVerified: true, ...grants },
 			}));
 		}),
 		revoke: Effect.fn("MachineTokens.revoke")((id: string) => repository.delete({ id, ownerId: options.owner.id })),

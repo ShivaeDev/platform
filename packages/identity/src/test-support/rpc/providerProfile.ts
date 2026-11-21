@@ -71,6 +71,7 @@ function connected(state: State) {
 function alice(state: State, providerAccounts: ProviderAccountsSessionShape["user"]["providerAccounts"]) {
 	state.user = {
 		email: "alice@example.test",
+		emailVerified: true,
 		id: "alice",
 		name: "Alice",
 		providerAccounts: Effect.suspend(() => {
