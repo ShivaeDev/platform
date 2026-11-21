@@ -54,6 +54,7 @@ export const ownerStory = storyKit({
 		}
 		let current = host;
 		const previousOwner = Redacted.value(host.local.token);
+		const machineToken = Redacted.value(machine.token);
 		let subscription: { readonly next: Effect.Effect<string, unknown>; readonly closed: Effect.Effect<{ code: number; reason: string }> } | undefined;
 		function closed() {
 			return subscription === undefined ? Effect.die("No live query is open") : subscription.closed;
@@ -69,7 +70,7 @@ export const ownerStory = storyKit({
 				case "owner":
 					return Redacted.value(current.local.token);
 				case "machine":
-					return Redacted.value(machine.token);
+					return machineToken;
 			}
 		}
 		return {
@@ -84,7 +85,7 @@ export const ownerStory = storyKit({
 			openLiveQuery: () =>
 				Effect.gen(function* () {
 					story.tell("the machine opens its live query with a first-frame bearer");
-					const connection = yield* socketClient(current.url, Redacted.value(machine.token));
+					const connection = yield* socketClient(current.url, machineToken);
 					const hints = yield* Queue.unbounded<string>();
 					const following = yield* connection.client["local.$changes"]({ queries: [{ payload: undefined, query: "profile" }] }).pipe(
 						Stream.runForEach((hint) => Queue.offer(hints, hint._tag)),
