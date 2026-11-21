@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.29.3 - 2026-11-21
+
+### Changed
+
+- the Jobs, Sessions and Users views show a failed load through `QueryView`, so the application's notice host words outages and the server's message words shared rejections, with a Retry, in place of each view's own "Could not load" sentence. A jobs panel no longer hides its content or words a `Forbidden` refusal itself; the Jobs and Sessions pages still show their permission screens.
+
 ## 0.29.2 - 2026-11-21
 
 ### Changed

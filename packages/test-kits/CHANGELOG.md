@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.16.6 - 2026-11-21
+
+### Changed
+
+- Update `@shivaedev/email` from 0.8.4 to 0.8.5.
+- Update `@shivaedev/identity` from 0.40.0 to 0.41.0.
+- Update `@shivaedev/server` from 0.43.0 to 0.44.0.
+
 ## 0.16.5 - 2026-11-21
 
 ### Changed
