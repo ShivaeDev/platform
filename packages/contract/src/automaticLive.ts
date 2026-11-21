@@ -5,7 +5,6 @@ import * as Atom from "effect/reactivity/Atom";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import type * as AtomRpc from "effect/reactivity/AtomRpc";
 import type { Rpc } from "effect/rpc";
-import type { Key } from "@shivaedev/changes/keys.ts";
 import type { BindingOwner } from "#adapters/bindingOwner.ts";
 import { changesClient } from "#adapters/erasedClient.ts";
 import { aggregateLiveStatus } from "#aggregateLiveStatus.ts";
@@ -13,7 +12,6 @@ import { automaticQuery } from "#automaticQuery.ts";
 import { clientActivities } from "#clientActivities.ts";
 import { type LiveStatus, live } from "#live.ts";
 import { queryDelivery } from "#queryDelivery.ts";
-import { queryProgress } from "#queryProgress.ts";
 import { querySignals, shareQuerySignals } from "#querySignals.ts";
 import { followReflection, type StreamAnchor } from "#reflectedStream.ts";
 import { type ResumeSource, type ResumeWindow, resumeSignal } from "#resume.ts";
@@ -39,7 +37,6 @@ export function automaticLive(
 	name: string,
 	owner?: BindingOwner,
 	resume?: ResumeSource,
-	enabled = true,
 	resumeWindow?: ResumeWindow,
 ) {
 	const service = changesClient(operations);
@@ -62,15 +59,10 @@ export function automaticLive(
 	function query<A, E>(
 		atom: Atom.Atom<AsyncResult.AsyncResult<A, E>>,
 		reference: QueryReference,
-		keys: readonly Key[],
 		equivalent: (left: A, right: A) => boolean,
 		decode: (value: unknown) => A,
-		reactive: (source: Atom.Atom<AsyncResult.AsyncResult<A, E>>) => Atom.Atom<AsyncResult.AsyncResult<A, E>>,
 		headers?: Headers.Input,
 	) {
-		if (!enabled) {
-			return queryProgress(reactive(atom));
-		}
 		const ready = Atom.make(false);
 		const signals = querySignals(atom);
 		const delivery = queryDelivery(decode, paused, signals);
@@ -86,9 +78,7 @@ export function automaticLive(
 			return made;
 		}
 		const subscription = live(service.runtime, {
-			keyContext: owner?.context,
 			resume: signal,
-			retryKeys: keys,
 			stream: Stream.unwrap(
 				service.use((client) =>
 					Effect.map(AtomRegistry.AtomRegistry, (registry) => {

@@ -18,9 +18,9 @@ deniedLive.it(
 	},
 );
 deniedLive.it(
-	"three refused queries make no more requests or policy checks after matching changes and a minute",
+	"three refused queries make no more requests or policy checks after a matching change and a minute",
 	[openedRoute()],
-	function* ({ announce, denyRead, invalidate, minutePasses, policyChecks, requests, states }) {
+	function* ({ announce, denyRead, minutePasses, policyChecks, requests, states }) {
 		const opened = yield* requests();
 		yield* denyRead();
 		yield* announce();
@@ -28,7 +28,6 @@ deniedLive.it(
 		const checks = yield* policyChecks();
 		expect(before).toEqual(opened);
 
-		yield* invalidate();
 		yield* minutePasses();
 
 		yield* outcomes([
@@ -58,20 +57,16 @@ deniedLive.it("a route loader refused at entry renders its not-found component",
 	expect(yield* shown()).toBe("Note not found");
 });
 
-deniedLive.it(
-	"a refused read stays denied through later matching changes",
-	[openedRoute()],
-	function* ({ announce, invalidate, requests, refuseReads, states }) {
-		yield* refuseReads();
-		yield* announce();
-		const before = yield* requests();
-		expect(yield* states()).toEqual(["denied", "denied", "denied"]);
+deniedLive.it("a refused read stays denied through later matching changes", [openedRoute()], function* ({ announce, requests, refuseReads, states }) {
+	yield* refuseReads();
+	yield* announce();
+	const before = yield* requests();
+	expect(yield* states()).toEqual(["denied", "denied", "denied"]);
 
-		yield* invalidate();
+	yield* announce();
 
-		yield* outcomes([
-			["queries", () => states(), ["denied", "denied", "denied"]],
-			["requests", () => requests(), before],
-		]);
-	},
-);
+	yield* outcomes([
+		["queries", () => states(), ["denied", "denied", "denied"]],
+		["requests", () => requests(), before],
+	]);
+});

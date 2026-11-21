@@ -1,6 +1,5 @@
 import { RouterProvider } from "@tanstack/react-router";
 import { Effect } from "effect";
-import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { TestClock } from "effect/testing";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { deniedLiveApp } from "#test/denied-live/app.tsx";
@@ -42,13 +41,6 @@ export const deniedLive = storyKit({
 					story.tell("revoke access to the private notes");
 					client.access.allowed = false;
 				}),
-			invalidate: () =>
-				screen
-					.act("matching changes arrive at the client", async () => {
-						const reactivity = await Effect.runPromise(AtomRegistry.getResult(view.registry, client.clientReactivity));
-						await Effect.runPromise(reactivity.invalidate(client.keys));
-					})
-					.pipe(Effect.andThen(settled())),
 			minutePasses: () => screen.act("a minute passes with the queries mounted", () => run(TestClock.adjust("1 minute"))),
 			policyChecks: () => Effect.sync(() => [...client.access.checks]),
 			refuseReads: () =>

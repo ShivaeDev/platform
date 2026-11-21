@@ -87,9 +87,9 @@ Declared keys win. A query that declares `reads`, `serverReads` or `readsCollect
 - A raw read of a tuple bucket or a composite row declares its key, as in `reads: ({ day }, viewer) => (Option.isSome(viewer) ? [entries.bucket.ownerDay({ ownerId: viewer.value.id, day })] : [])`, because `readSql` binds one column per parameter and refuses such a key.
 - `reads: () => []` declares that a query reads nothing live, and logs no warning.
 
-The browser never sees the keys a host records, so there a query without `reads` has no keys of its own; the [contract guide](../../packages/contract/README.md#3-every-day-read-and-change) says how a `live: false` binding refreshes it.
+The browser keeps no keys: every query reruns on the server and receives its new result over its subscription, so the keys a host records are all a query needs.
 
-Session-scoped contracts use these same keys. `keyScope: "session"` isolates the client registry and adds no server key prefix. Repository writes from workers reach matching subscriptions without an authenticated write context. Shared dependencies can cause reruns for several accounts; model buckets narrow that fan-out.
+Session-scoped contracts use these same keys. `keyScope: "session"` runs a contract's operations in the session's registry and adds no server key prefix. Repository writes from workers reach matching subscriptions without an authenticated write context. Shared dependencies can cause reruns for several accounts; model buckets narrow that fan-out.
 
 ## Push current results from the socket process
 
