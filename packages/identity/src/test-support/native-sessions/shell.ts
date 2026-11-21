@@ -6,9 +6,11 @@ import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import * as Socket from "effect/socket/Socket";
 import { makeClient } from "@shivaedev/contract/makeClient.ts";
 import { sessionCredentialPlugin } from "#client/adapters/sessionCredentialPlugin.ts";
+import { preferencesPlugin } from "#client/preferencesPlugin.ts";
 import { SessionCredential, storedCredential } from "#client/SessionCredential.ts";
 import { Api } from "#test/native-sessions/api.ts";
 import { type Host, NATIVE_ORIGIN } from "#test/native-sessions/host.ts";
+import { type ShellPreflight, webViewPreflight } from "#test/native-sessions/webViewPreflight.ts";
 
 export interface HeldAnswer {
 	readonly arrived: Deferred.Deferred<void>;
@@ -42,8 +44,10 @@ export function nativeShell(host: Host) {
 	const credential = memoryCredential();
 	const modes = new Set<string>();
 	const network: { hold: HeldAnswer | undefined } = { hold: undefined };
+	const preflights: ShellPreflight[] = [];
 	async function shellFetch(input: string | URL | Request, init?: RequestInit) {
 		modes.add(init?.credentials ?? "default");
+		await webViewPreflight(preflights, NATIVE_ORIGIN, String(input), init);
 		const response = await fetch(input, init);
 		const hold = network.hold;
 		if (hold !== undefined && new URL(String(input)).pathname.endsWith("/get-session")) {
@@ -55,7 +59,7 @@ export function nativeShell(host: Host) {
 	const auth = createAuthClient({
 		"baseURL": host.baseUrl,
 		fetchOptions: { customFetchImpl: shellFetch, headers: { origin: NATIVE_ORIGIN } },
-		plugins: [sessionCredentialPlugin(credential.layer)],
+		plugins: [sessionCredentialPlugin(credential.layer), preferencesPlugin()],
 	});
 	// Each read connects a new client, as a new session generation does, so its socket reads the stored credential.
 	const readOverSocket = Effect.fnUntraced(function* (owner: string) {
@@ -74,7 +78,7 @@ export function nativeShell(host: Host) {
 		);
 		return yield* AtomRegistry.getResult(registry, made.runtime.atom(made.api.profiles.profile.run({ owner })).pipe(Atom.setIdleTTL(0)));
 	});
-	return { auth, credential, modes, network, readOverSocket };
+	return { auth, credential, modes, network, preflights, readOverSocket };
 }
 
 export type NativeShell = ReturnType<typeof nativeShell>;
