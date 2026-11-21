@@ -1,7 +1,7 @@
-import { Effect, Option } from "effect";
+import { Effect, Option, Stream } from "effect";
 import { act } from "react";
 import { makeClient } from "@shivaedev/contract/bind.ts";
-import { type ClientActivity, clientActivity, isClientSettled } from "@shivaedev/contract/clientActivity.ts";
+import { activityScreenSignal, type ClientActivity, clientActivity } from "@shivaedev/contract/clientActivity.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { render } from "@shivaedev/test-story/client/adapters/react.ts";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
@@ -26,12 +26,16 @@ type Engine = Effect.Success<typeof usersEngine> & {
 Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 
 function driverFor(engine: Engine, tell: (line: string) => void) {
+	// The view's client exists only once the screen opens, after the verbs are made.
+	function signal() {
+		return activityScreenSignal(Option.getOrThrow(engine.activity));
+	}
 	return screenDriver({
 		act: async (action) => {
 			await act(action);
 		},
-		pending: () =>
-			!isClientSettled(Effect.runSync(Option.getOrThrow(engine.activity).current)) || screenOf(engine).querySelector('[role="status"]') !== null,
+		activity: Object.assign(Stream.unwrap(Effect.sync(signal)), { current: Effect.suspend(() => signal().current) }),
+		pending: () => screenOf(engine).querySelector('[role="status"]') !== null,
 		root: () => screenOf(engine),
 		tell,
 	});
@@ -100,7 +104,7 @@ export const twentyOneUsers = usersScreen.trait(
 const openView = Effect.fnUntraced(function* (engine: Engine, dates: DateDisplay) {
 	const protocol = yield* engine.protocolAs(engine.actor);
 	const runtime = yield* clientRuntime;
-	const client = makeClient(UsersPage.contract, { live: false, protocol, runtime, url: "http://localhost/rpc" });
+	const client = makeClient(UsersPage.contract, { protocol, runtime, url: "http://localhost/rpc" });
 	engine.activity = Option.some(clientActivity(client));
 	const view = yield* Effect.acquireRelease(
 		Effect.promise(() =>
@@ -119,10 +123,8 @@ const openView = Effect.fnUntraced(function* (engine: Engine, dates: DateDisplay
 	yield* driverFor(engine, () => undefined).settle();
 });
 
-export const viewOpen = usersScreen.trait(
-	"screen",
-	"the users view is open without live subscriptions on its first page, set to British English and Berlin time",
-	(engine) => openView(engine, { locale: "en-GB", timeZone: "Europe/Berlin" }),
+export const viewOpen = usersScreen.trait("screen", "the users view is open on its first page, set to British English and Berlin time", (engine) =>
+	openView(engine, { locale: "en-GB", timeZone: "Europe/Berlin" }),
 );
 
 export function viewOpenInBrowserZone(timeZone: string) {

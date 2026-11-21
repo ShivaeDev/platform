@@ -34,7 +34,7 @@ export const wireStory = storyKit({
 		const list = engine.api.list.query(undefined);
 		return {
 			create: (title: string) => {
-				story.tell(`alice's browser creates a note titled ${title} through the client contract over HTTP RPC`);
+				story.tell(`alice's browser creates a note titled ${title} through the client contract over its live socket`);
 				const mark = engine.registry.getNodes().has(list) ? markQuery(engine.registry, list) : undefined;
 				return answered(
 					engine.run(engine.api.create.run({ title })).pipe(

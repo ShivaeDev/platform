@@ -1,4 +1,3 @@
-import { useAtomValue } from "@effect/atom-react";
 import { Cause, Effect, Option } from "effect";
 import { Suspense, useMemo, useState } from "react";
 import { NoticeHost } from "#client/notices.ts";
@@ -20,7 +19,6 @@ export interface CompletionScreen {
 }
 function Commands({ state }: { readonly state: CompletionScreen }) {
 	const { client, callback, defect, notices } = state;
-	useAtomValue(client.watcher);
 	const list = useQuery(client.list);
 	const currentList = Option.getOrElse(list.data, () => "loading");
 	const [feedback, present] = useState("");
@@ -69,7 +67,7 @@ function Commands({ state }: { readonly state: CompletionScreen }) {
 					{title}
 				</button>
 			))}
-			<output data-pending={action.pending} data-query-pending={list.pending} data-result={action.result._tag}>
+			<output data-pending={action.pending} data-result={action.result._tag}>
 				{Option.getOrElse(action.data, () => "")}
 			</output>
 			<pre>{Option.match(action.cause, { onNone: () => "", onSome: Cause.pretty })}</pre>

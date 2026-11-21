@@ -1,12 +1,14 @@
 import { Effect } from "effect";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
+import { act } from "react";
+import { activityScreenSignal } from "@shivaedev/contract/clientActivity.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
+import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { makeClient } from "#test/batch-undo/client.ts";
 import { database, hasPostgres } from "#test/batch-undo/database.ts";
 import { type Props, View } from "#test/batch-undo/View.tsx";
 import { Screen } from "#test/Screen.ts";
-import { settleScreen } from "#test/settleScreen.ts";
 
 export const batchUndoStory = storyKit({
 	around: withIsolatedDatabase,
@@ -30,7 +32,15 @@ export const batchUndoStory = storyKit({
 	verbs: ({ props, screen, state, view }, story) => {
 		screen.tell = story.tell;
 		function settle() {
-			return settleScreen(view.container, () => view.container.querySelector('[data-loading="true"]') !== null, story.tell);
+			return screenDriver({
+				act: async (action) => {
+					await act(action);
+				},
+				activity: activityScreenSignal(props.client.activity),
+				pending: () => view.container.querySelector('[data-loading="true"]') !== null,
+				root: view.container,
+				tell: story.tell,
+			}).settle();
 		}
 		function click(name: string) {
 			return screen.driver(view.container).click({ name, role: "button" }).pipe(Effect.andThen(settle()));

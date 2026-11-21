@@ -1,22 +1,27 @@
-import { Effect, Layer, Stream } from "effect";
-import * as AtomRpc from "effect/reactivity/AtomRpc";
-import { RpcTest } from "effect/rpc";
-import { bind } from "@shivaedev/contract/bind.ts";
+import { Effect, Layer } from "effect";
+import { SqlClient } from "effect/sql";
+import { makeClient as makeRpcClient } from "@shivaedev/contract/bind.ts";
+import { clientActivity } from "@shivaedev/contract/clientActivity.ts";
+import { layerLiveMemoryProtocol } from "@shivaedev/test-kits/contract/liveMemoryProtocol.ts";
 import { BatchRows, Change, List, Rows } from "#test/batch-undo/contract.ts";
 import { makeStore } from "#test/batch-undo/makeStore.ts";
+import { storyRuntime } from "#test/storyRuntime.ts";
 
 export const makeClient = Effect.gen(function* () {
-	const store = yield* makeStore;
-	const handlers = Rows.toLayer({
-		"batchUndo.$changes": () => Stream.never,
-		"batchUndo.change": Change.run,
-		"batchUndo.list": List.run,
-	}).pipe(Layer.provide(Layer.succeed(BatchRows, store)));
-	class Client extends AtomRpc.Service<Client>()("@shivaedev/react/test/BatchUndo", {
-		group: Rows,
-		makeEffect: RpcTest.makeClient(Rows, { flatten: true }),
-		protocol: handlers,
-	}) {}
-	return { api: bind(Rows, Client, { live: false }), runtime: Client.runtime };
+	const database = yield* SqlClient.SqlClient;
+	// The store is built on the live host's Reactivity, so its repository's commits reach the host's change channel.
+	const store = Layer.effect(BatchRows, makeStore).pipe(Layer.provide(Layer.succeed(SqlClient.SqlClient, database)));
+	const handlers = Rows.application
+		.toLayer({
+			"batchUndo.change": Change.run,
+			"batchUndo.list": List.run,
+		})
+		.pipe(Layer.provide(store));
+	const connection = makeRpcClient(Rows, {
+		protocol: layerLiveMemoryProtocol(Rows, handlers),
+		runtime: yield* storyRuntime,
+		url: "memory://batch-undo",
+	});
+	return { activity: clientActivity(connection), api: connection.api, runtime: connection.runtime };
 });
 export type Client = Effect.Success<typeof makeClient>;

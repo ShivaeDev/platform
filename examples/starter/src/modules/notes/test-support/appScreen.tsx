@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { clientActivity, isClientSettled } from "@shivaedev/contract/clientActivity.ts";
+import { clientActivity } from "@shivaedev/contract/clientActivity.ts";
 import type { ClientOptions } from "@shivaedev/contract/clientOptions.ts";
 import { Notes } from "#generated/modules/notes/Notes.ts";
 import { StatisticsPage } from "#modules/notes/admin/pages.ts";
@@ -11,12 +11,8 @@ import { appScreen as openAppScreen } from "#test-support/appScreen.tsx";
 const modules = {
 	connect(options: Pick<ClientOptions, "url" | "protocol">) {
 		const client = makeNotesClient(options.url, options);
-		const admin = makeAdminClient(options.url, { ...options, live: false });
-		return {
-			activity: clientActivity(client),
-			pending: () => !isClientSettled(Effect.runSync(clientActivity(admin).current)),
-			registrations: [notesRegistration(client, admin)],
-		};
+		const admin = makeAdminClient(options.url, options);
+		return { activities: [clientActivity(client), clientActivity(admin)], registrations: [notesRegistration(client, admin)] };
 	},
 	contracts: [Notes, StatisticsPage.contract],
 };

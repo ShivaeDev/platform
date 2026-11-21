@@ -2091,6 +2091,9 @@ importers:
       '@shivaedev/jobs':
         specifier: workspace:*
         version: link:../jobs
+      '@shivaedev/server':
+        specifier: workspace:*
+        version: link:../server
       '@shivaedev/sql':
         specifier: workspace:*
         version: link:../sql

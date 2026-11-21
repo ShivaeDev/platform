@@ -57,6 +57,10 @@ export function live<R, E, TRuntimeError>(runtime: Atom.AtomRuntime<R, TRuntimeE
 				function update(value: Partial<LiveStatus<E>>) {
 					get.set(status, { ...get.once(status), ...value });
 				}
+				// A refresh or retry restarts a subscription that settled as failed, so it is connecting again.
+				if (get.once(status).connection === "failed") {
+					update({ connection: "connecting", failure: Option.none(), needsResync: true, pending: 0 });
+				}
 				get.addFinalizer(() => {
 					if (get.registry.getNodes().has(status)) {
 						update({ connection: "connecting", failure: Option.none(), needsResync: true, pending: 0 });

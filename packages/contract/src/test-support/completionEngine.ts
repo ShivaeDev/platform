@@ -59,11 +59,5 @@ export const completionEngine = Effect.gen(function* () {
 		url: `http://127.0.0.1:${server.address.port}/rpc`,
 		webSocketConstructor: layerWebSocketConstructor,
 	});
-	const ordinary = makeClient(Records, {
-		live: false,
-		runtime,
-		url: `http://127.0.0.1:${server.address.port}/rpc`,
-		webSocketConstructor: layerWebSocketConstructor,
-	});
-	return { answer, api: connection.api, ordinary: ordinary.api, reactivity, received, registry, state, view: connection.api.pushed.query() };
+	return { answer, api: connection.api, reactivity, received, registry, state, view: connection.api.pushed.query() };
 });

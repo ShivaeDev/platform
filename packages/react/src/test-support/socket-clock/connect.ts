@@ -9,7 +9,7 @@ import { storyRuntime } from "#test/storyRuntime.ts";
 
 export const connect = Effect.fnUntraced(function* (url: string, connections: Queue.Queue<string>, controlled = false) {
 	const configured = controlled ? { runtime: yield* storyRuntime } : {};
-	const client = makeClient(Notes, { ...configured, live: false, url, webSocketConstructor: layerWebSocketConstructor });
+	const client = makeClient(Notes, { ...configured, url, webSocketConstructor: layerWebSocketConstructor });
 	const clock = yield* Clock.Clock;
 	const runtime = Atom.runtime(
 		client.pipe(

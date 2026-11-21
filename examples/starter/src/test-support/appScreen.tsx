@@ -2,7 +2,7 @@ import { layerWebSocketConstructor } from "@effect/platform-node/NodeWS";
 import { createMemoryHistory } from "@tanstack/react-router";
 import { Effect } from "effect";
 import type { RootOptions } from "react-dom/client";
-import { type ClientActivity, isClientSettled } from "@shivaedev/contract/clientActivity.ts";
+import type { ClientActivity } from "@shivaedev/contract/clientActivity.ts";
 import type { ClientOptions } from "@shivaedev/contract/clientOptions.ts";
 import { seedCookies } from "@shivaedev/test-story/server/adapters/seedCookies.ts";
 import { type BrowserReadsOptions, browserReads } from "@shivaedev/test-story/server/browserReads.ts";
@@ -26,8 +26,7 @@ export const appScreen = Effect.fn("AppStory.appScreen")(function* (options: {
 	readonly modules?: {
 		readonly contracts: BrowserReadsOptions["contracts"];
 		readonly connect: (options: Pick<ClientOptions, "url" | "protocol">) => {
-			readonly activity: ClientActivity;
-			readonly pending: () => boolean;
+			readonly activities: readonly ClientActivity[];
 			readonly registrations: readonly ClientRegistration[];
 		};
 	};
@@ -43,9 +42,13 @@ export const appScreen = Effect.fn("AppStory.appScreen")(function* (options: {
 		webSocketConstructor: layerWebSocketConstructor,
 	});
 	const clientOptions = { protocol: observed.protocol, url };
-	const foundationClient = makeFoundationClient(url, { ...clientOptions, live: false });
+	const foundationClient = makeFoundationClient(url, clientOptions);
 	const modules = options.modules?.connect(clientOptions);
-	const surface: ScreenSurface = { activity: modules?.activity ?? foundationClient.activity, transport: host.fetch.pending, view: undefined };
+	const surface: ScreenSurface = {
+		activities: [...(modules?.activities ?? []), foundationClient.activity],
+		transport: host.fetch.pending,
+		view: undefined,
+	};
 	const view = yield* acquireScreen(surface, options.renderOptions);
 	const history = createMemoryHistory({ initialEntries: [options.route] });
 	function pending() {
@@ -53,8 +56,6 @@ export const appScreen = Effect.fn("AppStory.appScreen")(function* (options: {
 			view.registry.get(host.auth.session.atom).waiting
 			|| view.registry.get(host.auth.actions.submit).waiting
 			|| view.registry.get(host.auth.actions.signOut).waiting
-			|| (modules?.pending() ?? false)
-			|| !isClientSettled(Effect.runSync(foundationClient.activity.current))
 			|| view.container.querySelector('[role="status"]') !== null
 		);
 	}

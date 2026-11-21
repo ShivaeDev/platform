@@ -66,7 +66,6 @@ export const sessionStreamsEngine = Effect.gen(function* () {
 	}
 	const registries = { alice: yield* registry("alice"), bob: yield* registry("bob") };
 	const connection = makeClient(Owned, {
-		live: false,
 		protocol: (identity) =>
 			RpcClient.layerProtocolHttp({
 				transformClient: HttpClient.mapRequest(HttpClientRequest.setHeader("x-session", identity ?? "anonymous")),
@@ -78,8 +77,8 @@ export const sessionStreamsEngine = Effect.gen(function* () {
 	});
 	const apis = {
 		alice: connection.api,
-		bob: bind(Owned, connection.Client, { live: false, registry: registries.bob }),
-		ordinary: bind(Ordinary, connection.Client, { live: false }),
+		bob: bind(Owned, connection.Client, { registry: registries.bob }),
+		ordinary: bind(Ordinary, connection.Client),
 	};
 	function consume<A, E>(effect: Effect.Effect<A, E, Context.Service.Identifier<typeof connection.Client>>, person: StreamPerson) {
 		return AtomRegistry.getResult(registries[person], connection.runtime.atom(effect).pipe(Atom.setIdleTTL(0)));

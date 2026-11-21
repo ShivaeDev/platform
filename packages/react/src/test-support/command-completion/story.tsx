@@ -8,6 +8,7 @@ import { type CompletionScreen, CompletionView } from "#test/command-completion/
 import { timesWords } from "#test/outcomeWords.ts";
 import type { Screen } from "#test/Screen.ts";
 import { screenKit } from "#test/screenKit.ts";
+import { settleScreen } from "#test/settleScreen.ts";
 
 type Title = "first" | "second";
 
@@ -48,10 +49,18 @@ function finish(
 function commandVerbs(state: State, screen: Screen) {
 	return {
 		answerList: (value: string) =>
-			screen.act(`the list refetch answers with ${value}`, async () => {
-				Deferred.doneUnsafe(state.current.client.refetch, Effect.succeed(value));
-				await Effect.runPromise(Deferred.await(state.current.client.refetched));
-			}),
+			screen
+				.act(`the server's list read answers with ${value}`, async () => {
+					Deferred.doneUnsafe(state.current.client.refetch, Effect.succeed(value));
+					await Effect.runPromise(Deferred.await(state.current.client.refetched));
+				})
+				.pipe(
+					Effect.andThen(
+						Effect.suspend(() =>
+							settleScreen(view(state).container, () => view(state).container.querySelector("[data-list]")?.textContent !== value, screen.tell),
+						),
+					),
+				),
 		commit: (changes: Partial<CompletionScreen>, line: string) =>
 			screen.act(line, async () => {
 				state.current = { ...state.current, ...changes };
@@ -98,8 +107,6 @@ export const commands = storyKit(
 				callbackShown: () => Effect.sync(() => view(state).container.querySelector("[data-callback]")?.textContent),
 				defectShown: () => Effect.sync(() => view(state).container.querySelector("pre")?.textContent?.split("\n")[0]),
 				finished: () => Effect.sync(() => [...state.current.client.finished]),
-				invalidations: () => Effect.sync(() => state.current.client.invalidations()),
-				listPending: () => Effect.sync(() => output(state).getAttribute("data-query-pending")),
 				listReads: () => Effect.sync(() => state.current.client.reads()),
 				listShown: () => Effect.sync(() => view(state).container.querySelector("[data-list]")?.textContent),
 				notices: () => Effect.sync(() => [...state.current.notices]),

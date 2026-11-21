@@ -14,7 +14,7 @@ export const jobsClient = Effect.fnUntraced(function* (
 	protocol: Layer.Layer<RpcClient.Protocol>,
 ) {
 	const runtime = yield* clientRuntime;
-	const transport = makeClient(page.contract, { group, live: false, protocol, runtime, url: "http://localhost/rpc" });
+	const transport = makeClient(page.contract, { group, protocol, runtime, url: "http://localhost/rpc" });
 	const { api, Client } = transport;
 	const registry = yield* Effect.acquireRelease(
 		Effect.sync(() => AtomRegistry.make()),

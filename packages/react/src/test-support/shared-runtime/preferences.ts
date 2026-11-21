@@ -1,13 +1,12 @@
-import { Effect, Layer, Schema } from "effect";
+import { Effect, Schema } from "effect";
 import type * as Atom from "effect/reactivity/Atom";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import * as AtomRpc from "effect/reactivity/AtomRpc";
-import { RpcTest } from "effect/rpc";
 import { collection } from "@shivaedev/changes/keys.ts";
 import { bind } from "@shivaedev/contract/bind.ts";
 import { contract } from "@shivaedev/contract/contract.ts";
 import { command, query } from "@shivaedev/contract/operation.ts";
-import { hostChanges } from "@shivaedev/server/hostChanges.ts";
+import { layerLiveMemoryProtocol } from "@shivaedev/test-kits/contract/liveMemoryProtocol.ts";
 
 export type Person = "alice" | "bob";
 
@@ -37,9 +36,8 @@ export function bindPreferences(person: Person, backend: Backend, runtime: Atom.
 	});
 	class Client extends AtomRpc.Service<Client>()(`test/SessionKeys/${person}`, {
 		group: Preferences,
-		makeEffect: RpcTest.makeClient(Preferences, { flatten: true }),
-		protocol: Layer.merge(application, hostChanges(Preferences).pipe(Layer.provide(application))),
+		protocol: layerLiveMemoryProtocol(Preferences, application),
 		runtime,
 	}) {}
-	return { api: bind(Preferences, Client, { live: false, registry }), runtime: Client.runtime };
+	return { api: bind(Preferences, Client, { registry }), runtime: Client.runtime };
 }
