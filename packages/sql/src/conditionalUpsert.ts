@@ -2,6 +2,7 @@ import { Effect, Schema } from "effect";
 import type { Model } from "effect/schema";
 import { SqlClient } from "effect/sql";
 import type { SqlError } from "effect/sql/SqlError";
+import type { Filterable } from "#encryptedKeys.ts";
 import { makeConflictClause } from "#makeConflictClause.ts";
 import type { RepositoryChanges } from "#repositoryChanges.ts";
 import type { Comparisons, FindManyFilter } from "#repositoryFilter.ts";
@@ -17,8 +18,8 @@ interface Incoming<TModel extends Model.Any, TValue> {
 	}[keyof Fields<TModel>];
 }
 export type UpsertFilter<TModel extends Model.Any> = {
-	readonly [TKey in keyof Fields<TModel>]?:
-		| FindManyFilter<TModel>[TKey]
+	readonly [TKey in keyof Fields<TModel> as Filterable<TModel, TKey>]?:
+		| (TKey extends keyof FindManyFilter<TModel> ? FindManyFilter<TModel>[TKey] : never)
 		| Incoming<TModel, Fields<TModel>[TKey]>
 		| Comparisons<Fields<TModel>[TKey], NonNullable<Fields<TModel>[TKey]> | Incoming<TModel, NonNullable<Fields<TModel>[TKey]>>>;
 };
