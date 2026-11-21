@@ -10,6 +10,7 @@ import { GitHubToken } from "#GitHubToken.ts";
 import type { GitHubAppOptions } from "#githubApp.ts";
 import { rateLimits } from "#rateLimits.ts";
 import { resolveApiUrl } from "#resolveApiUrl.ts";
+import { githubMessage } from "#status.ts";
 import { TokenRefresh } from "#TokenRefresh.ts";
 
 const Installation = Schema.Struct({ id: Schema.Number });
@@ -58,6 +59,14 @@ export function appTokens(options: GitHubAppOptions) {
 	);
 }
 
+function refusal(cause: object) {
+	return new GitHubAppError({
+		detail: "bodyExcerpt" in cause && typeof cause.bodyExcerpt === "string" ? githubMessage(cause.bodyExcerpt) : undefined,
+		reason: "status",
+		status: "status" in cause && typeof cause.status === "number" ? cause.status : 403,
+	});
+}
+
 function appRequests(apiUrl: string) {
 	const rates = rateLimits();
 	return Effect.fnUntraced(function* <TSchema extends Schema.Constraint>(
@@ -80,9 +89,7 @@ function appRequests(apiUrl: string) {
 					if (cause._tag === "GitHubRateLimited") {
 						return cause;
 					}
-					return cause._tag === "GitHubTransportError"
-						? new GitHubAppError({ reason: "transport" }, { cause: cause.cause })
-						: new GitHubAppError({ reason: "status", status: "status" in cause ? cause.status : 403 });
+					return cause._tag === "GitHubTransportError" ? new GitHubAppError({ reason: "transport" }, { cause: cause.cause }) : refusal(cause);
 				}),
 			);
 		return yield* readBoundedJson(response, 64 * 1024, schema).pipe(

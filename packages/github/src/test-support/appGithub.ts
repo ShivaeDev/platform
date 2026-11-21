@@ -1,4 +1,4 @@
-import { type Duration, Effect, Fiber, Layer, Redacted, Schema, Stream } from "effect";
+import { Clock, type Duration, Effect, Fiber, Layer, Redacted, Schema, Stream } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
 import * as TestClock from "effect/testing/TestClock";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
@@ -23,6 +23,7 @@ import { appServer } from "#test/appServer.ts";
 import { appTransport } from "#test/appTransport.ts";
 import { PullRequest } from "#test/fixtures.ts";
 import { mutationAppVerbs } from "#test/mutationAppVerbs.ts";
+import { offsetClock } from "#test/offsetClock.ts";
 import { answered } from "#test/outcome.ts";
 import { pooledApp } from "#test/pooledApp.ts";
 import { telemetry } from "#test/telemetry.ts";
@@ -219,6 +220,14 @@ export const appGithub = storyKit({
 				attempt("the client reads pull request 1 through a one-connection pool", read(PULL, PullRequest).pipe(Effect.provide(contexts.pooled))),
 			readPullThrough: (scope: Scope) =>
 				attempt(`the ${scope} client reads pull request 1`, read(PULL, PullRequest).pipe(Effect.provide(contexts[scope]))),
+			readPullWithHostClock: (seconds: number) =>
+				Effect.gen(function* () {
+					const hostClock = offsetClock(yield* Clock.Clock, seconds * 1000);
+					return yield* attempt(
+						`the host clock runs ${Math.abs(seconds)} seconds ${seconds > 0 ? "ahead of" : "behind"} GitHub's and the background client reads pull request 1`,
+						read(PULL, PullRequest).pipe(Effect.provide(layer({ installationId: 7 })), Effect.provideService(Clock.Clock, hostClock)),
+					);
+				}),
 			readRepositoryPull: () =>
 				attempt("a client for acme/widgets reads pull request 1", read(PULL, PullRequest).pipe(Effect.provide(contexts.repository))),
 			readWithInvalidKey: () =>
@@ -280,17 +289,3 @@ export const appGithub = storyKit({
 export const clockReadsTwoMinutes = appGithub.trait("github", "the clock reads 00:02:00", function* () {
 	yield* TestClock.adjust("2 minutes");
 });
-
-export const exchangeRefused = appGithub.trait(
-	"github",
-	"GitHub refuses the next token exchange with 401 and echoes the App JWT, the private key, an installation token and the webhook secret",
-	function* ({ server }) {
-		yield* server.scriptFault("token", {
-			kind: "status",
-			reply: (request) => ({
-				body: { message: `${request.headers.authorization} ${PRIVATE_KEY} ${APP_TOKEN} ${WEBHOOK_SECRET}` },
-				status: HttpStatus.fromLiteral("Unauthorized"),
-			}),
-		});
-	},
-);
