@@ -1,4 +1,5 @@
 import { Effect } from "effect";
+import { forwardedEntry } from "#forwardedEntry.ts";
 import type { Release, ReleasePlan } from "#model.ts";
 import { parseChangeset } from "#parser.ts";
 import { renderEntries } from "#sections.ts";
@@ -21,7 +22,7 @@ export const collectPackageNotes = Effect.fn("Changesets.collectPackageNotes")(f
 	const forwarded = changesets.flatMap((changeset) =>
 		changeset.entries
 			.filter((entry) => entry.section === "Breaking" && release.breakingDependencies?.includes(entry.package) === true)
-			.map((entry) => ({ section: "Breaking" as const, text: `- \`${entry.package}\`: ${entry.text.slice(2)}` })),
+			.map((entry) => forwardedEntry(entry.package, entry)),
 	);
 	return renderEntries([...(entries.length === 0 ? dependencyNotes : entries), ...forwarded]);
 });

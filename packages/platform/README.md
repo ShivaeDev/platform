@@ -22,7 +22,7 @@ pnpm installs a dependency's dependencies out of an application's reach unless t
 
 ### What a platform version means
 
-A platform minor means migration work: at least one piece it pins released a breaking change. Its changelog repeats those pieces' Breaking entries under its own `### Breaking`, each naming its piece, so the migration steps for an upgrade are in platform's own notes. A platform patch moves only pieces without breaking changes, and its notes list each piece's old and new version.
+Platform takes a minor when a piece it pins releases a breaking change, and also when its own changeset adds something, such as a new piece. The migration steps for an upgrade are the entries under the `### Breaking` section of platform's changelog: platform repeats each piece's Breaking entries there, naming the piece. A release without that section needs no migration. A platform patch never carries a breaking change, its own or a pinned piece's.
 
 ### Set up an application
 
