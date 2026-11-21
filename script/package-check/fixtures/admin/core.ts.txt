@@ -11,7 +11,7 @@ import { JobsPermission, ReadJobs } from "@shivaedev/admin/permissions.ts";
 import { adminRegistry } from "@shivaedev/admin/registry.ts";
 import { adminDocuments } from "@shivaedev/admin/server/adminDocuments.ts";
 import { registerAdmin } from "@shivaedev/admin/server/registerAdmin.ts";
-import { contract } from "@shivaedev/contract/contract.ts";
+import { defineModule } from "@shivaedev/contract/defineModule.ts";
 import { query } from "@shivaedev/contract/operation.ts";
 import { SessionUser } from "@shivaedev/identity/identity.ts";
 import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
@@ -23,18 +23,23 @@ for (const context of [require, createRequire(require.resolve("@shivaedev/admin/
     assert.throws(() => context.resolve(peer), { code: "MODULE_NOT_FOUND" });
   }
 }
+const Viewer = query("viewer", {
+  readPolicy: () => Effect.succeed(true),
+  reads: () => [],
+  *run() {
+    return (yield* SessionUser).email;
+  },
+});
+// A consumer without the generator writes the wire by hand and lets the module stand in for its browser contract.
+const Packed = defineModule({ name: "admin.packed", operations: [Viewer], wire: { viewer: { rejections: {}, success: Schema.String } } });
 const page = adminPage({
-  contract: contract("admin.packed", {
-    queries: [query("viewer", { readPolicy: () => Effect.succeed(true), reads: () => [], success: Schema.String })],
-  }),
+  contract: Packed,
   id: "packed",
   permission: JobsPermission,
   route: { path: "/admin/packed", title: "Packed" },
 });
 const registry = adminRegistry(page);
-const registration = registerAdmin(registry, {
-  packed: page.contract.application.toLayer({ "admin.packed.viewer": () => Effect.map(SessionUser, (user) => user.email) }),
-});
+const registration = registerAdmin(registry, { packed: Packed });
 adminPermissionGuard(registry.pages, ({ matches }) => {
   assert.equal(matches.at(-1)?.staticData.permission, ReadJobs);
 })({ location: { href: "/admin/packed", pathname: "/admin/packed" }, matches: [] });

@@ -1,5 +1,6 @@
 ---
 "@shivaedev/admin": minor
+"@shivaedev/contract": patch
 "@shivaedev/server": patch
 "@shivaedev/create-app": patch
 ---
@@ -15,3 +16,7 @@
 
 - `@shivaedev/server`: an `admin` field on an application module is the result of `registerAdmin` or `mergeAdminRegistrations`, which carries the `group` the host serves.
 - `@shivaedev/create-app`: the starter's notes statistics and foundation admin registrations pass their modules to `registerAdmin`.
+
+### Fixed
+
+- `@shivaedev/contract`: a defined module's query that reads collections under a `permissionReadPolicy` opens its live subscription through `moduleHandlers`; the handler's copy of the policy now keeps the permission mark that collection reads require, where the subscription was refused with `QueryReadDenied`.
