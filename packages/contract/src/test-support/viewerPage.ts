@@ -1,9 +1,8 @@
-import { Effect } from "effect";
+import { Effect, Layer } from "effect";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
-import * as AtomRpc from "effect/reactivity/AtomRpc";
-import { RpcTest } from "effect/rpc";
+import { layerMemoryProtocol } from "@shivaedev/test-kits/contract/testing.ts";
 import { LiveConnection } from "#automaticLive.ts";
-import { bind } from "#bind.ts";
+import { makeClient } from "#makeClient.ts";
 import { storyRuntime } from "#test/storyRuntime.ts";
 import { Notes, type viewerEngine } from "#test/viewerEngine.ts";
 
@@ -11,17 +10,12 @@ export type PageQuery = { readonly kind: "list"; readonly title: string } | { re
 
 export const viewerPage = Effect.fnUntraced(function* (engine: Effect.Success<typeof viewerEngine>, viewer: string, page: PageQuery) {
 	const runtime = yield* storyRuntime;
-	class Client extends AtomRpc.Service<Client>()(`test/ViewerPage/${viewer}`, {
-		group: Notes,
-		makeEffect: RpcTest.makeClient(Notes, { flatten: true }),
-		protocol: engine.layerFor(viewer),
-		runtime,
-	}) {}
 	const registry = yield* Effect.acquireRelease(
 		Effect.sync(() => AtomRegistry.make()),
 		(current) => Effect.sync(() => current.dispose()),
 	);
-	const api = bind(Notes, Client, { registry });
+	const protocol = layerMemoryProtocol(Notes).pipe(Layer.provide(engine.layerFor(viewer)));
+	const api = makeClient({ notes: Notes }, { protocol, registry, runtime }).api.notes;
 	function queryOf() {
 		switch (page.kind) {
 			case "list":

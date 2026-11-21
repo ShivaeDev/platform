@@ -27,11 +27,11 @@ export interface ClientApp<TRoute extends AnyRoute = AnyRoute> {
 export type ClientAppOptions = Omit<ClientOptions, "registry">;
 
 function bindingsOf(bound: ReadonlyMap<ClientContract, unknown>): BindContracts {
-	function bind<TContracts extends Contracts>(contracts: TContracts): ContractClients<TContracts>;
-	function bind(contracts: Contracts): Readonly<Record<string, unknown>> {
+	function clientsOf<TContracts extends Contracts>(contracts: TContracts): ContractClients<TContracts>;
+	function clientsOf(contracts: Contracts): Readonly<Record<string, unknown>> {
 		return Object.fromEntries(Object.entries(contracts).map(([name, contract]) => [name, bound.get(contract)]));
 	}
-	return bind;
+	return clientsOf;
 }
 
 function connectModules(modules: readonly ClientModule[], options: ClientAppOptions, registry: AtomRegistry.AtomRegistry): AppConnection {
@@ -39,8 +39,8 @@ function connectModules(modules: readonly ClientModule[], options: ClientAppOpti
 	const unique = [...new Set(modules.flatMap((module) => Object.values(module.contracts)))];
 	const made = makeClient(Object.fromEntries(unique.map((contract, index) => [`${index}`, contract])), { ...options, registry });
 	const bound = new Map<ClientContract, unknown>(unique.map((contract, index) => [contract, made.api[`${index}`]]));
-	const bind = bindingsOf(bound);
-	const parts = modules.map((module) => module.connect(bind));
+	const clientsFor = bindingsOf(bound);
+	const parts = modules.map((module) => module.connect(clientsFor));
 	return composeBindings(
 		{
 			[Activity]: clientActivity(made),

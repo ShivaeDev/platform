@@ -1,19 +1,18 @@
 import { Effect, Layer, Option, Redacted, Schema, Stream } from "effect";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
-import * as AtomRpc from "effect/reactivity/AtomRpc";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { RpcMiddleware, RpcTest } from "effect/rpc";
 import { SqlClient } from "effect/sql";
 import { ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import { rerunQuery } from "@shivaedev/server/rerunQuery.ts";
-import { watchHints } from "@shivaedev/test-kits/contract/testing.ts";
+import { layerMemoryProtocol, watchHints } from "@shivaedev/test-kits/contract/testing.ts";
 import { postgresTestUrl } from "@shivaedev/test-sql/server/adapters/postgresTestUrl.ts";
 import { makePostgresTestLayer } from "@shivaedev/test-sql/server/postgres.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { bind } from "#bind.ts";
 import { changesHandlerLayer } from "#changesHandlerLayer.ts";
 import { contract } from "#contract.ts";
+import { makeClient } from "#makeClient.ts";
 import { makeLiveServer } from "#makeLiveServer.ts";
 import { query } from "#operation.ts";
 import { querySubscription } from "#querySubscription.ts";
@@ -65,18 +64,13 @@ export const readPolicyStory = storyKit({
 		const handlers = Layer.merge(application, changes.pipe(Layer.provide(application))).pipe(Layer.provide(Layer.succeed(SqlClient.SqlClient, sql)));
 		const protocol = handlers.pipe(Layer.provideMerge(Layer.succeed(Guard, (effect) => Effect.provideService(effect, CurrentViewer, viewer))));
 		const runtime = yield* storyRuntime;
-		class Client extends AtomRpc.Service<Client>()("test/ReadPolicyClient", {
-			group: Reads,
-			makeEffect: RpcTest.makeClient(Reads, { flatten: true }),
-			protocol,
-			runtime,
-		}) {}
 		const registry = yield* Effect.acquireRelease(
 			Effect.sync(() => AtomRegistry.make()),
 			(value) => Effect.sync(() => value.dispose()),
 		);
 		const client = yield* RpcTest.makeClient(Reads, { flatten: true }).pipe(Effect.provide(protocol));
-		return { api: bind(Reads, Client, { registry }), client, live, registry, sql };
+		const api = makeClient({ reads: Reads }, { protocol: layerMemoryProtocol(Reads).pipe(Layer.provide(protocol)), registry, runtime }).api.reads;
+		return { api, client, live, registry, sql };
 	},
 	inspect: ({ registry }) => ({ mountedAtoms: registry.getNodes().size, viewer: Option.getOrNull(viewer) }),
 	layer,

@@ -177,7 +177,7 @@ export const Notes = defineModule({
 });
 ```
 
-Here `NotesStore` is an ordinary service, `StoredNote` the row it returns, and `Caller` an RPC middleware that sets the viewer. `defineModule` takes the operations written as payload and run, its `wire` (below), and optionally `middleware`, `subject` and `keyScope` as `contract` does. It returns the module's contract, so `makeClient`, `bind` and a host accept it as they accept any contract. Each of its RPCs carries the `DefinedModule` annotation from the same file with the module's name, so a host can tell a module's queries from a contract's. The module lists no services: its type carries, for each operation, the services that operation's `run` and read policy yield, less what its middleware and subject provide per call, and nothing reads them at run time. An operation that starts to yield another service changes only that operation. A definition without `wire` is a compile error that says the property is missing. Its generics check the definition on the `name` line, so the first line of the compiler's message names the operation and its problem, such as `OperationNameRepeated` when two operations share a name:
+Here `NotesStore` is an ordinary service, `StoredNote` the row it returns, and `Caller` an RPC middleware that sets the viewer. `defineModule` takes the operations written as payload and run, its `wire` (below), and optionally `middleware`, `subject` and `keyScope` as `contract` does. It returns the module's contract, so `makeClient` and a host accept it as they accept any contract. Each of its RPCs carries the `DefinedModule` annotation from the same file with the module's name, so a host can tell a module's queries from a contract's. The module lists no services: its type carries, for each operation, the services that operation's `run` and read policy yield, less what its middleware and subject provide per call, and nothing reads them at run time. An operation that starts to yield another service changes only that operation. A definition without `wire` is a compile error that says the property is missing. Its generics check the definition on the `name` line, so the first line of the compiler's message names the operation and its problem, such as `OperationNameRepeated` when two operations share a name:
 
 ```
 src/test-support/fixtures/invalid/moduleRepeatedName.ts(15,2): error TS2322: Type '"lists"' is not assignable to type '"lists" & NoInfer<OperationNameRepeated<"list">>'.
@@ -428,26 +428,27 @@ export const NotesRoutes = RpcServer.layerHttp({ group: Notes, path: "/rpc", pro
 );
 ```
 
-The server host provides `NotesRoutes` to its native HTTP router. In a separate client module, use the same contract:
+The server host provides `NotesRoutes` to its native HTTP router. In a separate client module, make a client from the same contract and pass the native HTTP protocol:
 
 ```ts
 import { Layer } from "effect";
 import { FetchHttpClient } from "effect/http";
-import * as AtomRpc from "effect/reactivity/AtomRpc";
 import { RpcClient, RpcSerialization } from "effect/rpc";
-import { bind } from "@shivaedev/contract/bind.ts";
+import { makeClient } from "@shivaedev/contract/makeClient.ts";
 import { Notes } from "./notes.ts";
 
-export class NotesClient extends AtomRpc.Service<NotesClient>()("app/NotesClient", {
-	group: Notes,
-	protocol: RpcClient.layerProtocolHttp({ url: "http://127.0.0.1:3000/rpc" }).pipe(
-		Layer.provide([FetchHttpClient.layer, RpcSerialization.layerJson]),
-	),
-}) {}
-export const api = bind(Notes, NotesClient);
+export const client = makeClient(
+	{ notes: Notes },
+	{
+		protocol: RpcClient.layerProtocolHttp({ url: "http://127.0.0.1:3000/rpc" }).pipe(
+			Layer.provide([FetchHttpClient.layer, RpcSerialization.layerJson]),
+		),
+	},
+);
+export const api = client.api.notes;
 ```
 
-Over HTTP, each bound operation's `run` makes one call, so `api.rename.run(...)` and `api.get.run(...)` work. A bound query's atom subscribes to the server's change stream, which needs a WebSocket: over HTTP it fails with `WebSocketRequired`, so a screen that mounts queries uses the shared WebSocket client below. The [native RPC guide](https://github.com/ShivaeDev/platform/blob/main/docs/framework/native-rpc.md) covers hosting; the [feature guide](https://github.com/ShivaeDev/platform/blob/main/docs/framework/add-a-feature.md) composes a defined module, request identity, SQL and a rendered client in the starter.
+Over HTTP, each bound operation's `run` makes one call, so `api.rename.run(...)` and `api.get.run(...)` work. A command's change counts as on the screen when its reply arrives, because no live stream follows it. A bound query's atom subscribes to the server's change stream, which needs a WebSocket: over HTTP it fails with `WebSocketRequired`, so a screen that mounts queries uses the shared WebSocket client below. The [native RPC guide](https://github.com/ShivaeDev/platform/blob/main/docs/framework/native-rpc.md) covers hosting; the [feature guide](https://github.com/ShivaeDev/platform/blob/main/docs/framework/add-a-feature.md) composes a defined module, request identity, SQL and a rendered client in the starter.
 
 ### Build a shared WebSocket client
 
@@ -965,8 +966,8 @@ Import the module that defines the name; the package has no root entry.
 | `clientContract.ts`        | `clientContract({ name, wire, payloads?, queries?, commands?, middleware?, subject?, keyScope? })`, the browser's contract of a module that generated files build.                                                                                                                                                                                                                                                                                                     |
 | `clientMatchesModule.ts`   | `ClientMatchesModule<Client, Module>`, `true` when the browser's contract and the server module have the same RPCs, else `ClientDiffersFromModule`.                                                                                                                                                                                                                                                                                                                    |
 | `rejection.ts`             | `fieldRejection(struct, fields?)`; lower-level `rejectionSet(specs)`, which constructs the rejection classes, union schema and failure helpers used by operations.                                                                                                                                                                                                                                                                                                     |
-| `bind.ts`                  | `bind(contract, atomRpcService, { registry?, resume?, resumeWindow? }?)`, requiring the registry for session-scoped contracts and exposing `{ query, run, runtime }` for queries, `{ run, payload, runtime }` for commands and `{ run, runtime }` with native Streams for streams, for an `AtomRpc.Service` the caller builds itself.                                                                                                                                  |
-| `makeClient.ts`            | `makeClient(contracts, { url?, protocol?, headers?, bearerToken?, webSocketConstructor?, registry?, resume?, resumeWindow?, runtime? }?)`, which builds one shared WebSocket client over a record of contracts and binds each under its key in `api`, with `sync` beside it; `ContractClient<Contract>`, a binding's type; `ContractsClient`, the clients' shared service identity.                                                                                    |
+| `makeClient.ts`            | `makeClient(contracts, { url?, protocol?, headers?, bearerToken?, webSocketConstructor?, registry?, resume?, resumeWindow?, runtime? }?)`, one client over a record of contracts, on the shared WebSocket unless `protocol` names another transport, binding each under its key in `api`, with `sync` beside it; `ContractClient<Contract>`, a binding's type; `ContractsClient`, the clients' shared service identity.                                                |
+| `Bound.ts`                 | `Bound`, `BoundQuery`, `BoundCommand` and `BoundStream`, the types of a binding and its operations; `Failure`, a bound operation's failure; `QueryOptions` and `RunOptions`, a call's options.                                                                                                                                                                                                                                                                         |
 | `live.ts`                  | `LiveHint` schema; `live(runtime, { stream, resume?, retryDelay? })`, exposing `connection`, `paused` and `status`; `isLiveConnection(atom)` tells whether an atom is such a `connection`, which waits for as long as its subscription runs.                                                                                                                                                                                                                           |
 | `querySubscription.ts`     | `querySubscription(rpc, references, viewer)` checks each referenced query, resolves its payload and server-derived keys, and captures its scopes and ongoing authorization.                                                                                                                                                                                                                                                                                            |
 | `live-server/service.ts`   | `LiveServer`, the shared live server service.                                                                                                                                                                                                                                                                                                                                                                                                                          |

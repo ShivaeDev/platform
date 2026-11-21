@@ -3,7 +3,7 @@ import { RpcTest } from "effect/rpc";
 import { adminPage } from "@shivaedev/admin/page.ts";
 import { adminRegistry } from "@shivaedev/admin/registry.ts";
 import { registerAdmin } from "@shivaedev/admin/server/registerAdmin.ts";
-import { contract } from "@shivaedev/contract/contract.ts";
+import { defineModule } from "@shivaedev/contract/defineModule.ts";
 import { query } from "@shivaedev/contract/operation.ts";
 import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import { JobsPermission, ReadJobs } from "@shivaedev/admin/permissions.ts";
@@ -11,17 +11,22 @@ import { role } from "@shivaedev/access/role.ts";
 import { roleSet } from "@shivaedev/access/roleSet.ts";
 
 class JobStore extends Context.Service<JobStore, readonly string[]>()("consumer/JobStore") {}
-const Failed = query("failed", { readPolicy: () => Effect.succeed(true), reads: () => [], success: Schema.Array(Schema.String) });
-const Jobs = adminPage({ permission: JobsPermission, id: "jobs", route: { path: "/admin/jobs", title: "Jobs" }, contract: contract("admin.jobs", { queries: [Failed] }) });
-const registry = adminRegistry(Jobs);
-const registered = registerAdmin(registry, {
-  jobs: Jobs.contract.application.toLayer({ "admin.jobs.failed": () => Effect.service(JobStore) }),
+const Failed = query("failed", {
+  readPolicy: () => Effect.succeed(true),
+  reads: () => [],
+  *run() {
+    return yield* JobStore;
+  },
 });
+const JobsModule = defineModule({ name: "admin.jobs", operations: [Failed], wire: { failed: { rejections: {}, success: Schema.Array(Schema.String) } } });
+const Jobs = adminPage({ permission: JobsPermission, id: "jobs", route: { path: "/admin/jobs", title: "Jobs" }, contract: JobsModule });
+const registry = adminRegistry(Jobs);
+const registered = registerAdmin(registry, { jobs: JobsModule });
 const handlers: Layer.Layer<Layer.Success<typeof registered.handlers>, never, JobStore | SessionPolicy> = registered.handlers;
 type Equal<A, B> = [A, B] extends [B, A] ? true : false;
 const preserved: Equal<Layer.Services<typeof registered.handlers>, JobStore | SessionPolicy> = true;
 void preserved;
-const changes = Jobs.contract.toLayerHandler("admin.jobs.$changes", () => Stream.empty);
+const changes = registered.group.toLayerHandler("admin.jobs.$changes", () => Stream.empty);
 const sessions = Layer.succeed(SessionPolicy, { roles: roleSet(role("operator", [ReadJobs])),
   origin: () => true,
   provider: { get: () => Effect.succeed(Option.some({ user: { id: "operator", email: "operator@example.test", name: "Operator", role: "operator" } })) },

@@ -28,16 +28,12 @@ const shapes: readonly QueryShape[] = [Get]
 export const readsName: string = shapes[0]?.reads({ id: 1 })
 
 import { stream } from "@shivaedev/contract/operation.ts"
-import { bind } from "@shivaedev/contract/bind.ts"
-import * as AtomRpc from "effect/reactivity/AtomRpc"
-import { RpcTest } from "effect/rpc"
+import { type ContractsClient, makeClient } from "@shivaedev/contract/makeClient.ts"
 import type { RpcClientError } from "effect/rpc/RpcClientError"
 const Subscribe = stream("subscribe", { payload: { id: Schema.Number }, success: Schema.String, rejections: { Missing }, reads: ({ id }) => [notes.item(id)] })
 const Feed = contract("feed", { streams: [Subscribe] })
-const feedHandlers = Feed.toLayer({ "feed.$changes": () => Stream.never, "feed.subscribe": ({ id }) => Stream.succeed(String(id)) })
-class Client extends AtomRpc.Service<Client>()("packed/Stream", { group: Feed, makeEffect: RpcTest.makeClient(Feed, { flatten: true }), protocol: feedHandlers }) {}
-const api = bind(Feed, Client)
-export const subscription: Stream.Stream<string, Missing | RpcClientError, Client> = api.subscribe.run({ id: 1 })
+const api = makeClient({ feed: Feed }, { url: "http://127.0.0.1/rpc" }).api.feed
+export const subscription: Stream.Stream<string, Missing | RpcClientError, ContractsClient> = api.subscribe.run({ id: 1 })
 // @ts-expect-error Stream payloads remain typed through the packed declarations.
 api.subscribe.run({ id: "1" })
 // @ts-expect-error Bound streams expose run, without a query atom.

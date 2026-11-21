@@ -38,7 +38,7 @@ Bound contract queries keep their last successful result for five minutes after 
 
 ### 1. Once per application
 
-Set up the registry or session boundary at the application root, bind each session's contract APIs there and mount the notice host inside it.
+Set up the registry or session boundary at the application root, make each session's client there and mount the notice host inside it.
 
 #### Own the registry and the session
 

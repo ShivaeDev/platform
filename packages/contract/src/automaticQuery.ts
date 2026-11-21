@@ -51,7 +51,7 @@ export function automaticQuery<A, E>({
 				get.set(signals, recordSubscription(get.once(signals), value));
 				dispatcher.scheduleTask(() => {
 					if (active) {
-						for (const state of clientStatuses === undefined ? [statuses] : [statuses, clientStatuses]) {
+						for (const state of [statuses, clientStatuses]) {
 							registry.update(state, (current) => new Map([...current, [token, value]]));
 						}
 					}
@@ -63,7 +63,7 @@ export function automaticQuery<A, E>({
 			}
 			get.addFinalizer(() => {
 				active = false;
-				for (const state of clientStatuses === undefined ? [statuses] : [statuses, clientStatuses]) {
+				for (const state of [statuses, clientStatuses]) {
 					if (registry.getNodes().has(state)) {
 						registry.update(state, (current) => {
 							const next = new Map(current);

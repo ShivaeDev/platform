@@ -2,13 +2,12 @@ import { Effect, Layer, Stream, SubscriptionRef } from "effect";
 import type * as AsyncResult from "effect/reactivity/AsyncResult";
 import type * as Atom from "effect/reactivity/Atom";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
-import * as AtomRpc from "effect/reactivity/AtomRpc";
 import * as Reactivity from "effect/reactivity/Reactivity";
-import { RpcTest } from "effect/rpc";
 import { invalidationKeys } from "@shivaedev/changes/keys.ts";
 import { rerunQuery } from "@shivaedev/server/rerunQuery.ts";
-import { bind } from "#bind.ts";
+import { layerMemoryProtocol } from "@shivaedev/test-kits/contract/testing.ts";
 import { changesHandlerLayer } from "#changesHandlerLayer.ts";
+import { type ContractsClient, makeClient } from "#makeClient.ts";
 import { makeLiveServer } from "#makeLiveServer.ts";
 import { querySubscription } from "#querySubscription.ts";
 import { CurrentViewer } from "#readPolicy.ts";
@@ -79,19 +78,18 @@ export const sessionEngine = Effect.gen(function* () {
 				Effect.sync(() => AtomRegistry.make()),
 				(current) => Effect.sync(() => current.dispose()),
 			);
-			class Client extends AtomRpc.Service<Client>()(`test/Private/${person}`, {
-				group: Preferences,
-				makeEffect: RpcTest.makeClient(Preferences, { flatten: true }),
-				protocol: Layer.merge(
-					handlers,
-					Layer.succeed(Guard, (effect) => Effect.provideService(effect, Session, person)),
+			const protocol = layerMemoryProtocol(Preferences).pipe(
+				Layer.provide(
+					Layer.merge(
+						handlers,
+						Layer.succeed(Guard, (effect) => Effect.provideService(effect, Session, person)),
+					),
 				),
-				runtime,
-			}) {}
-			const api = bind(Preferences, Client, { registry });
-			const otherBinding = bind(Preferences, Client, { registry });
-			function run<A, E>(effect: Effect.Effect<A, E, Client | Reactivity.Reactivity>) {
-				return Effect.suspend(() => AtomRegistry.getResult(registry, Client.runtime.atom(Effect.suspend(() => effect))));
+			);
+			const connection = makeClient({ otherBinding: Preferences, preferences: Preferences }, { protocol, registry, runtime });
+			const api = connection.api.preferences;
+			function run<A, E>(effect: Effect.Effect<A, E, ContractsClient | Reactivity.Reactivity>) {
+				return Effect.suspend(() => AtomRegistry.getResult(registry, connection.runtime.atom(Effect.suspend(() => effect))));
 			}
 			function view(name: PreferenceView): Atom.Atom<AsyncResult.AsyncResult<string | readonly string[], unknown>> {
 				switch (name) {
@@ -105,11 +103,11 @@ export const sessionEngine = Effect.gen(function* () {
 			}
 			return {
 				api,
-				otherBinding,
+				otherBinding: connection.api.otherBinding,
 				registry,
 				run,
 				view,
-				withoutOwner: () => Reflect.apply(bind, undefined, [Preferences, Client]),
+				withoutOwner: () => Reflect.apply(makeClient, undefined, [{ preferences: Preferences }, { protocol, runtime }]),
 			};
 		});
 	}

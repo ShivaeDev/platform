@@ -27,7 +27,7 @@ export interface ModuleParts<TRoute extends AnyRoute = AnyRoute> {
 export type BindContracts = <TContracts extends Contracts>(contracts: TContracts) => ContractClients<TContracts>;
 
 export interface ClientModule<TRoute extends AnyRoute = AnyRoute> {
-	readonly connect: (bind: BindContracts) => ModuleParts<TRoute>;
+	readonly connect: (clientsFor: BindContracts) => ModuleParts<TRoute>;
 	readonly contracts: Contracts;
 }
 
@@ -35,5 +35,5 @@ export function clientModule<const TContracts extends Contracts, TRoute extends 
 	contracts: TContracts,
 	connect: (clients: ContractClients<TContracts>) => ModuleParts<TRoute>,
 ): ClientModule<TRoute> {
-	return { connect: (bind) => connect(bind(contracts)), contracts };
+	return { connect: (clientsFor) => connect(clientsFor(contracts)), contracts };
 }

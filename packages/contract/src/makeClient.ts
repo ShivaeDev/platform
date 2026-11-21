@@ -6,7 +6,7 @@ import type { Rpc, RpcClient, RpcGroup } from "effect/rpc";
 import type { RpcClientError } from "effect/rpc/RpcClientError";
 import { bindingOwner } from "#adapters/bindingOwner.ts";
 import { automaticLive, type LiveBound } from "#automaticLive.ts";
-import type { Bound } from "#bind.ts";
+import type { Bound } from "#Bound.ts";
 import { bindOperations } from "#bindOperations.ts";
 import type { ClientOptions } from "#ClientOptions.ts";
 import type { ActiveClient } from "#clientActivity.ts";
@@ -64,12 +64,12 @@ export function makeClient(contracts: Contracts, options: ClientOptions = {}): L
 		annotations: Context.mergeAll(...list.map((contract) => contract.annotations)),
 		requests: new Map(list.flatMap((contract) => [...contract.requests])),
 	};
-	const connection = rpcClient("@shivaedev/contract/Contracts", source, options);
+	const { activity, connection } = rpcClient("@shivaedev/contract/Contracts", source, options);
 	const { registry, resume, resumeWindow } = options;
 	const bound = Object.entries(contracts).map(([key, { declaration }]) => {
 		const owner = bindingOwner(declaration.keyScope, registry);
-		const automatic = automaticLive(connection.Client, declaration.name, owner, resume, resumeWindow);
-		const operations = clientOperations(connection.Client, automatic, owner);
+		const automatic = automaticLive(connection.Client, activity, declaration.name, owner, resume, resumeWindow);
+		const operations = clientOperations(connection.Client, activity, automatic, owner);
 		return { api: [key, bindOperations(declaration, operations, automatic.subscription)] as const, owner, sync: operations.sync };
 	});
 	// A sync runs through the session's registry when the record holds a session-scoped contract, as that contract's own calls do.

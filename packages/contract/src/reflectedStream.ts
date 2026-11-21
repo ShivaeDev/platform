@@ -1,7 +1,7 @@
 import { Effect, Exit, Stream } from "effect";
 import { Headers } from "effect/http";
 import { retriesLive } from "#liveRetry.ts";
-import { type FollowedStream, type Reflection, reflections } from "#reflection.ts";
+import { type FollowedStream, type Reflection, reflectionScope } from "#reflection.ts";
 import { streamSyncHeaders } from "#syncHeader.ts";
 
 export interface StreamAnchor extends FollowedStream {
@@ -17,10 +17,10 @@ export interface ReflectionFollower {
 
 // A mounted query keeps one place in its connection's waits across attempts; it leaves only when it unmounts or stops retrying.
 export function followReflection(client: object, anchor: StreamAnchor) {
-	const reflection = reflections.get(client)?.reflection;
-	if (reflection === undefined) {
-		return undefined;
-	}
+	return Effect.map(reflectionScope(client), ({ reflection }) => follow(reflection, anchor));
+}
+
+function follow(reflection: Reflection, anchor: StreamAnchor) {
 	const follower: ReflectionFollower = {
 		armed: () => reflection.armed(anchor),
 		confirmed: (ids) => reflection.confirmed(anchor, ids),

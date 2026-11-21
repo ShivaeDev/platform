@@ -1,12 +1,10 @@
-import { type Context, Effect, type Option } from "effect";
+import type { Context } from "effect";
 import type { Rpc, RpcGroup, RpcMiddleware } from "effect/rpc";
 import type { Permission } from "@shivaedev/access/permission.ts";
-import { type Contract, contract, type Declared, type QueryServices } from "@shivaedev/contract/contract.ts";
+import type { Contract } from "@shivaedev/contract/contract.ts";
 import type { CommandShape, QueryShape, StreamShape } from "@shivaedev/contract/operation.ts";
-import type { QueryReadPolicy, Viewer } from "@shivaedev/contract/readPolicy.ts";
-import { type Identity, SessionUser } from "@shivaedev/identity/identity.ts";
+import type { Identity, SessionUser } from "@shivaedev/identity/identity.ts";
 import type { IdentityFailures } from "@shivaedev/identity/middleware.ts";
-import { hasPermission } from "@shivaedev/identity/permission.ts";
 
 export interface AdminRoute {
 	readonly detail?: string;
@@ -24,33 +22,13 @@ type PagePermission = Context.Key<unknown, RpcMiddleware.RpcMiddleware<Identity 
 export interface AdminPage {
 	readonly contract: RpcGroup.Any & {
 		readonly application: RpcGroup.Any;
-		readonly requests: ReadonlyMap<string, Rpc.Any>;
+		readonly requests: ReadonlyMap<string, Rpc.AnyWithProps>;
 	};
 	readonly id: string;
 	readonly permissionKey: string;
 	readonly route: AdminRoute;
 	readonly [AdminPageTypeId]: true;
 }
-
-interface PageGroup extends RpcGroup.Any {
-	readonly application: RpcGroup.Any;
-	middleware: (middleware: RpcMiddleware.AnyService) => PageGroup;
-	readonly requests: ReadonlyMap<string, Rpc.Any>;
-}
-
-// Distributes over a generated contract's queries, which arrive as one array of their union rather than a tuple.
-type PageQuery<TQuery> = TQuery extends QueryShape
-	? Omit<TQuery, "readPolicy"> & {
-			readonly readPolicy: QueryReadPolicy<TQuery["payload"]["Type"], TQuery["error"]["Type"], QueryServices<TQuery> | SessionUser>;
-		}
-	: never;
-
-type PageQueries<TQueries extends readonly QueryShape[]> = { readonly [TIndex in keyof TQueries]: PageQuery<TQueries[TIndex]> };
-
-type PageRpcs<TRpc> =
-	TRpc extends Rpc.Rpc<infer TTag, infer TPayload, infer TSuccess, infer TError, infer TMiddleware, infer R>
-		? Rpc.Rpc<TTag, TPayload, TSuccess, TError, TMiddleware, R | SessionUser>
-		: never;
 
 export function adminPage<
 	const TId extends string,
@@ -71,42 +49,21 @@ export function adminPage<
 	readonly route: TRoute & { readonly permission: Permission };
 	readonly id: TId;
 	readonly permissionKey: TMiddleware["key"];
-	readonly contract: Contract<TName, PageQueries<TQueries>, TCommands, Rpc.AddMiddleware<PageRpcs<TRpcs>, TMiddleware>, TStreams, TScope>;
+	readonly contract: Contract<TName, TQueries, TCommands, Rpc.AddMiddleware<TRpcs, TMiddleware>, TStreams, TScope>;
 };
+// The browser calls the page through its generated contract; registerAdmin serves the page from its server module.
 export function adminPage(page: {
 	readonly id: string;
 	readonly route: Omit<AdminRoute, "permission">;
 	readonly permission: PagePermission & RpcMiddleware.AnyService;
-	readonly contract: {
-		readonly declaration: Declared<string, readonly QueryShape[], readonly CommandShape[], readonly StreamShape[], "session" | undefined>;
-		readonly requests: ReadonlyMap<string, Rpc.AnyWithProps>;
-	};
+	readonly contract: AdminPage["contract"] & { middleware: (middleware: RpcMiddleware.AnyService) => AdminPage["contract"] };
 }): AdminPage {
-	const { declaration } = page.contract;
-	const queries = declaration.queries.map((query) => ({
-		...query,
-		readPolicy: Object.assign(
-			(payload: unknown, viewer: Option.Option<Viewer>) =>
-				Effect.flatMap(SessionUser, (user) =>
-					hasPermission(user, page.permission.permission) ? (query.readPolicy?.(payload, viewer) ?? Effect.succeed(true)) : Effect.succeed(false),
-				),
-			query.readPolicy,
-		),
-	}));
-	// The declaration carries the subject, which the rebuilt contract guards each operation with; middleware applied to the whole
-	// contract is on every RPC, while a subject's middleware is per operation and never shared.
-	let protectedContract: PageGroup = contract(declaration.name, { ...declaration, queries });
-	const [first, ...rest] = page.contract.requests.values();
-	const shared = rest.reduce((common, rpc) => common.intersection(rpc.middlewares), new Set(first?.middlewares));
-	for (const middleware of shared) {
-		protectedContract = protectedContract.middleware(middleware);
-	}
 	const { permission, ...definition } = page;
 	return {
 		...definition,
 		permissionKey: permission.key,
 		route: { ...page.route, permission: page.permission.permission },
 		[AdminPageTypeId]: true as const,
-		contract: protectedContract.middleware(page.permission),
+		contract: page.contract.middleware(page.permission),
 	};
 }
