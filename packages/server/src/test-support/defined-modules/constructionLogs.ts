@@ -11,8 +11,9 @@ export interface Construction {
 	readonly release: Deferred.Deferred<void>;
 }
 
-// A credential-shaped name and a field the members model marks sensitive, written where an application could write them.
-const member = { address: "1 Elm Street", password: "construction-secret" };
+// A credential-shaped name, a field the members model marks sensitive and a name only the application's config lists,
+// written where an application could write them.
+const member = { address: "1 Elm Street", badge: "B-7", password: "construction-secret" };
 
 export function makeConstruction(): Construction {
 	return { captured: undefined, forkedLogged: Deferred.makeUnsafe(), logs: false, release: Deferred.makeUnsafe() };

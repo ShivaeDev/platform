@@ -4,7 +4,6 @@ import * as Reactivity from "effect/reactivity/Reactivity";
 import type { Rpc } from "effect/rpc";
 import { liveServerLayer } from "@shivaedev/contract/live-server/layer.ts";
 import { LiveServer } from "@shivaedev/contract/live-server/service.ts";
-import { isSensitiveKey } from "@shivaedev/errors/sensitive.ts";
 import { coordinateWorkerRelease } from "@shivaedev/sql/coordinateWorkerRelease.ts";
 import { type PostgresChangesOptions, postgresChanges } from "@shivaedev/sql/postgresChanges.ts";
 import { type PostgresOptions, postgresLayer } from "@shivaedev/sql/postgresLayer.ts";
@@ -132,10 +131,10 @@ export const appHost: AppHostFactory = <
 		TRequestRequirements
 	>,
 ) => {
-	const preflight = hostPreflight(options.preflight, "application" in options ? Effect.succeed(isSensitiveKey) : hostSensitiveKeys(options));
+	const preflight = hostPreflight(options.preflight, hostSensitiveKeys(options));
 	const hosted = Layer.merge(hostCrypto, hostModels());
 	if ("application" in options) {
-		return deferredHost(options.application, appDatabase(options)).pipe(Layer.provideMerge(preflight), Layer.provide(hosted));
+		return deferredHost(options.application, appDatabase(options), options).pipe(Layer.provideMerge(preflight), Layer.provide(hosted));
 	}
 	return options.migrations === undefined
 		? appHostHttp(options).pipe(Layer.provideMerge(preflight), Layer.provide(hosted))

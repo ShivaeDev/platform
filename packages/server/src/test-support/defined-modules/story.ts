@@ -37,6 +37,7 @@ interface State {
 	logs: { readonly cause: Cause.Cause<unknown>; readonly message: readonly unknown[] }[];
 	members: typeof membersModule | typeof privateJoinMembersModule;
 	notes: typeof notesModule | typeof handWrittenNotesModule | typeof replacedNotesModule;
+	sensitiveKeys: readonly string[];
 	startup: string;
 	url: string;
 }
@@ -78,7 +79,7 @@ export const definedModulesHost = storyKit({
 			}
 			const config = { databaseUrl: database.url, port: 0 };
 			// The application form, as the starter writes it: the application Effect builds the module services and hands the host the built context.
-			function application() {
+			function applicationHost() {
 				const { group, handlers, requestServices } = modules;
 				const built = Effect.map(Layer.build(modules.services), (context) => ({
 					config,
@@ -88,13 +89,13 @@ export const definedModulesHost = storyKit({
 					services: Layer.succeedContext(context),
 					sessions,
 				}));
-				return Effect.tap(built, () => logDuringConstruction(state.construction));
+				const application = Effect.tap(built, () => logDuringConstruction(state.construction));
+				const listed = { ...config, sensitiveKeys: state.sensitiveKeys };
+				return appHost({ application, config: listed, migrations: modules.migrations, postgresSettings: {} });
 			}
 			const host =
 				state.host === "application"
-					? Layer.build(
-							appHost({ application: application(), config, migrations: modules.migrations, postgresSettings: {} }).pipe(Layer.provide(configured)),
-						)
+					? Layer.build(applicationHost().pipe(Layer.provide(configured)))
 					: Layer.build(appHost({ postgresSettings: {}, ...modules, config, sessions }).pipe(Layer.provide(configured)));
 			const started = yield* Effect.suspend(() => host).pipe(
 				Effect.map(Option.some),
@@ -140,6 +141,7 @@ export const definedModulesHost = storyKit({
 		logs: [],
 		members: membersModule,
 		notes: notesModule,
+		sensitiveKeys: [],
 		startup: "not built",
 		url: "",
 	}),

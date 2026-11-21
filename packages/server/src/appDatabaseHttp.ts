@@ -82,10 +82,12 @@ export function deferredHost<
 		TApplicationRequirements
 	>,
 	database: ReturnType<typeof appDatabase<TMigrations, TMigrationError>>,
+	configured: { readonly config?: { readonly sensitiveKeys?: readonly string[] } },
 ) {
-	// The application and the database it runs on build inside the host's one policy, so whatever they log, fork or capture is masked too.
-	return redactedHost({}, (sensitive) =>
-		Layer.unwrap(Effect.flatMap(application, (options) => Effect.as(sensitive.configure(options), servedHost(options, sensitive)))).pipe(
+	// The application and the database it runs on build inside the host's one policy, which holds the configured names from the start,
+	// so whatever they log, fork or capture is masked too.
+	return redactedHost(configured, (sensitive) =>
+		Layer.unwrap(Effect.flatMap(application, (options) => Effect.as(sensitive.serve(options), servedHost(options, sensitive)))).pipe(
 			Layer.provideMerge(database),
 		),
 	);
