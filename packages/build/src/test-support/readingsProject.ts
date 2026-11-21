@@ -1,5 +1,8 @@
+import { writeFiles } from "#test/fixtureProject.ts";
+import { generator } from "#test/generator.ts";
+
 // A raw SQL read decoded with an exported Schema class that marks pulse sensitive, returned inside an object and an array.
-export const READINGS_PROJECT: Readonly<Record<string, string>> = {
+const READINGS_PROJECT: Readonly<Record<string, string>> = {
 	"src/modules/readings/latest.ts": `import { Effect, Schema } from "effect";
 import { query } from "@shivaedev/contract/operation.ts";
 import { readSql } from "@shivaedev/sql/readSql.ts";
@@ -28,3 +31,11 @@ export const Readings = defineModule({
 });
 `,
 };
+
+export function readingsProject() {
+	return generator.trait(
+		"project",
+		"the project has the readings module, whose latest query decodes a raw SQL read with the Reading class that marks pulse sensitive and returns it in an object and an array",
+		(engine) => writeFiles(engine.root, READINGS_PROJECT),
+	);
+}

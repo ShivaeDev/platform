@@ -1,7 +1,8 @@
 import { Effect } from "effect";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { importSourceOf, successOf } from "#test/generatedText.ts";
-import { generatedOnce, generator, readingsProject } from "#test/generator.ts";
+import { generatedOnce, generator } from "#test/generator.ts";
+import { readingsProject } from "#test/readingsProject.ts";
 
 generator.it(
 	"latest's Reading in an object and in an array is the Reading class imported from its module, not restated, so the generated success still marks pulse and only pulse",

@@ -15,7 +15,6 @@ import { emptyProject, fromSource, generatedOncePerFile, projectIn, typeCheck, w
 import { MISPLACED_MODULES } from "#test/misplacedModules.ts";
 import { NOTES_PROJECT } from "#test/notesProject.ts";
 import { PUBLIC_SHAPE_PROJECT } from "#test/publicShapeProject.ts";
-import { READINGS_PROJECT } from "#test/readingsProject.ts";
 import { REFUSED_BRANDS } from "#test/refusedBrands.ts";
 import { REFUSING_PROJECT } from "#test/refusingProject.ts";
 import { type PartsMark, partsOnlyOf, REGISTRATIONS_PROJECT, type RegistrationShape, registrationOf } from "#test/registrationsProject.ts";
@@ -211,14 +210,6 @@ export const generator = storyKit({
 
 export function notesProject() {
 	return generator.trait("project", "the project has the notes module", (engine) => writeFiles(engine.root, NOTES_PROJECT));
-}
-
-export function readingsProject() {
-	return generator.trait(
-		"project",
-		"the project has the readings module, whose latest query decodes a raw SQL read with the Reading class that marks pulse sensitive and returns it in an object and an array",
-		(engine) => writeFiles(engine.root, READINGS_PROJECT),
-	);
 }
 
 export function catalogProject() {
