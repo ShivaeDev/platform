@@ -1,11 +1,10 @@
-import { type AnyRouter, type LoaderFnContext, useMatch } from "@tanstack/react-router";
+import { type AnyRouteMatch, type AnyRouter, type LoaderFnContext, useMatch } from "@tanstack/react-router";
 import type * as AsyncResult from "effect/reactivity/AsyncResult";
 import type * as Atom from "effect/reactivity/Atom";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { loadQuery } from "#adapters/loadQuery.ts";
 import { useQueryRetry } from "#adapters/useQueryRetry.ts";
-import type { QueryOptions } from "#client/resultState.ts";
-import { type LoadedQueryState, useLoaderQuery } from "#client/useLoaderQuery.ts";
+import { type LoadedQueryArguments, type LoadedQueryState, useLoaderQuery } from "#client/useLoaderQuery.ts";
 import { type QueryRouteRedirects, queryRouteFailure } from "#queryRouteFailure.ts";
 
 interface QueryRouteInput<TParams, TSearch, TContext> {
@@ -28,6 +27,14 @@ function useLoadedQuery<TParams, TSearch, A, E, TContext>(
 	return { loaded, query: query({ context, params, search: loaderDeps }) };
 }
 
+function refreshMatch<TParams, TSearch, A, E, TContext extends QueryRouteContext>(
+	query: (route: QueryRouteInput<TParams, TSearch, TContext>) => Atom.Atom<AsyncResult.AsyncResult<A, E>>,
+	match: AnyRouteMatch,
+): void {
+	const { context, params, loaderDeps }: { context: TContext; params: TParams; loaderDeps: TSearch } = match;
+	context.registry.refresh(query({ context, params, search: loaderDeps }));
+}
+
 export function queryRoute<TParams extends object, TSearch extends object, A, E, TContext extends QueryRouteContext = QueryRouteContext>(
 	query: (route: QueryRouteInput<TParams, TSearch, TContext>) => Atom.Atom<AsyncResult.AsyncResult<A, E>>,
 	options: { readonly redirects?: QueryRouteRedirects } = {},
@@ -47,15 +54,13 @@ export function queryRoute<TParams extends object, TSearch extends object, A, E,
 			}
 		},
 		loaderDeps: ({ search }: { readonly search: TSearch }) => search,
+		// Spread into the route's options, so the router's default failure screen can rerun this route's own query.
+		refreshQuery: (match: AnyRouteMatch) => refreshMatch(query, match),
 		useLoaded: () => useLoadedQuery(query),
-		useQuery: (queryOptions: QueryOptions<E> = {}): LoadedQueryState<A, E> => {
+		useQuery: (...queryOptions: LoadedQueryArguments<E>): LoadedQueryState<A, E> => {
 			const { loaded, query: atom } = useLoadedQuery(query);
-			return useLoaderQuery(atom, loaded, queryOptions);
+			return useLoaderQuery(atom, loaded, ...queryOptions);
 		},
-		useRetry: () =>
-			useQueryRetry((match) => {
-				const { context, params, loaderDeps }: { context: TContext; params: TParams; loaderDeps: TSearch } = match;
-				context.registry.refresh(query({ context, params, search: loaderDeps }));
-			}),
+		useRetry: () => useQueryRetry((match) => refreshMatch(query, match)),
 	};
 }

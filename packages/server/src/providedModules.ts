@@ -2,6 +2,7 @@ import type { Layer } from "effect";
 import type { AnyModule } from "@shivaedev/contract/moduleHandlers.ts";
 import type { AppModule } from "#AppModule.ts";
 import type { appDatabase } from "#appDatabase.ts";
+import type { hostCrypto } from "#hostCrypto.ts";
 import type { hostHttpServices } from "#hostHttpServices.ts";
 
 export interface OperationServicesNotProvided<TModule extends string, TOperation extends PropertyKey, TMissing> {
@@ -11,7 +12,10 @@ export interface OperationServicesNotProvided<TModule extends string, TOperation
 	readonly problem: "run or readPolicy uses services that no registration's services, ports or requestServices provide and the host does not provide";
 }
 
-type HostServices = Layer.Success<ReturnType<typeof appDatabase<never, never>>> | Layer.Success<typeof hostHttpServices>;
+type HostServices =
+	| Layer.Success<ReturnType<typeof appDatabase<never, never>>>
+	| Layer.Success<typeof hostCrypto>
+	| Layer.Success<typeof hostHttpServices>;
 type Field<TModule, TKey extends PropertyKey> = TModule extends unknown ? (TKey extends keyof TModule ? TModule[TKey] : never) : never;
 type Provided<TModules extends readonly AppModule[]> =
 	| Layer.Success<Extract<Field<TModules[number], "services" | "ports" | "requestServices">, Layer.Any>>

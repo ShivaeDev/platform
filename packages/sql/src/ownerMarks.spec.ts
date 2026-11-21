@@ -32,6 +32,16 @@ ownerMarks.it(
 	},
 );
 
+ownerMarks.it("one model built over the notes and archived notes tables is collected for each table", [], function* ({ build, owned }) {
+	yield* build("note headings over the notes table");
+	yield* build("note headings over the archived notes table");
+
+	expect(yield* owned()).toEqual([
+		{ model: "NoteHeading", owner: { column: "author_id", field: "authorId" }, table: "notes" },
+		{ model: "NoteHeading", owner: { column: "author_id", field: "authorId" }, table: "archived_notes" },
+	]);
+});
+
 ownerMarks.it("an owner mark on a bucket field keeps the bucket, so the repository still needs the bucket's collection", [], function* ({ build }) {
 	yield* outcomes([
 		["built with its collection", () => build("notes owned by their author bucket"), "built"],
@@ -53,6 +63,11 @@ const refusals = [
 		built: "notes owned by a server-only token",
 		refusal:
 			'OwnerFieldError: Repository for hidden_owner_notes: owner field ["ownerToken"] is server-only, but it must decode to the plain user id that selects a person\'s rows for export and erasure',
+	},
+	{
+		built: "notes owned by an encrypted token",
+		refusal:
+			'OwnerFieldError: Repository for sealed_owner_notes: owner field ["ownerToken"] is encrypted, but it must decode to the plain user id that selects a person\'s rows for export and erasure',
 	},
 ] as const;
 

@@ -13,6 +13,7 @@ import type { FailureClient } from "#test/failure-defaults/client.ts";
 export interface FailureScreen {
 	readonly client: FailureClient;
 	readonly hostWording?: ((failure: UnexpectedFailure) => { readonly message: string }) | undefined;
+	readonly outline?: boolean | undefined;
 	readonly queryDefaults: boolean;
 	rechecks: number;
 }
@@ -111,6 +112,15 @@ function Note({ client }: { readonly client: FailureClient }) {
 	return <QueryView content={(title) => <p data-note="">{title}</p>} query={note} />;
 }
 
+function Outline({ client }: { readonly client: FailureClient }) {
+	const outline = useQuery(client.outline);
+	return (
+		<section data-outline="">
+			<QueryView content={(text) => <p>{text}</p>} query={outline} />
+		</section>
+	);
+}
+
 function Screen({ state }: { readonly state: FailureScreen }) {
 	const body = (
 		<>
@@ -119,10 +129,14 @@ function Screen({ state }: { readonly state: FailureScreen }) {
 			<RenameForm client={state.client} />
 			<DyingForm client={state.client} />
 			<Note client={state.client} />
+			{state.outline === true && <Outline client={state.client} />}
 		</>
 	);
 	return state.queryDefaults ? (
-		<QueryViewDefaults failure={() => <p role="alert">This draft could not be opened</p>} loading={() => <p role="status">Fetching the draft</p>}>
+		<QueryViewDefaults
+			failure={({ message }) => <p role="alert">This draft could not be opened: {message}</p>}
+			loading={() => <p role="status">Fetching the draft</p>}
+		>
 			{body}
 		</QueryViewDefaults>
 	) : (

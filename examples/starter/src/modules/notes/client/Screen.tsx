@@ -22,7 +22,6 @@ export function NotesScreen({
 }) {
 	const rows = query.data;
 	const signOutControl = signOut !== undefined && <SignOut action={signOut} />;
-	const loadFailure = Option.isSome(query.cause) && <p role="alert">Could not load notes. Try refreshing.</p>;
 	const emptyMessage = rows.length === 0 && <p className="text-muted-foreground text-sm">No notes yet. Add your first one above.</p>;
 	const table = rows.length > 0 && <NotesTable notes={rows} />;
 	return (
@@ -50,7 +49,6 @@ export function NotesScreen({
 						Refresh
 					</Button>
 				</div>
-				{loadFailure}
 				{emptyMessage}
 				{table}
 			</section>

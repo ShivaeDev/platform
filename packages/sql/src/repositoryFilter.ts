@@ -1,12 +1,15 @@
 import { Effect, Schema, SchemaIssue } from "effect";
 import type { Model } from "effect/schema";
 import { SqlClient } from "effect/sql";
+import type { Filterable } from "#encryptedKeys.ts";
 import type { Listed, NotNull, Pattern, Without } from "#filterOperators.ts";
 import { serverOnlyStored } from "#serverOnly.ts";
 import { type TupleFilter, tuplePredicate } from "#tupleIn.ts";
 
 export type RepositoryFilter<TModel extends Model.Any> = {
-	readonly [TField in keyof Schema.Struct.Type<TModel["fields"]>]?: Schema.Struct.Type<TModel["fields"]>[TField] | undefined;
+	readonly [TField in keyof Schema.Struct.Type<TModel["fields"]> as Filterable<TModel, TField>]?:
+		| Schema.Struct.Type<TModel["fields"]>[TField]
+		| undefined;
 };
 
 const Ordered = Schema.Union([Schema.String, Schema.Number, Schema.BigInt, Schema.Date, Schema.BigDecimal, Schema.DateTimeUtc]);
@@ -17,7 +20,7 @@ export type Comparisons<T, TOperand = NonNullable<T>> = ([NonNullable<T>] extend
 	Without<"in" | "not">;
 
 export type FindManyFilter<TModel extends Model.Any> = Partial<TupleFilter<TModel>> & {
-	readonly [TField in keyof Schema.Struct.Type<TModel["fields"]>]?:
+	readonly [TField in keyof Schema.Struct.Type<TModel["fields"]> as Filterable<TModel, TField>]?:
 		| Schema.Struct.Type<TModel["fields"]>[TField]
 		| (Comparisons<Schema.Struct.Type<TModel["fields"]>[TField]> & Pattern<Schema.Struct.Type<TModel["fields"]>[TField]>)
 		| NotNull<Schema.Struct.Type<TModel["fields"]>[TField]>

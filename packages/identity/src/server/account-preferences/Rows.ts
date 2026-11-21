@@ -1,11 +1,12 @@
 import { Schema } from "effect";
 import { Model } from "effect/schema";
 import { defineRepository } from "@shivaedev/sql/defineRepository.ts";
+import { owner } from "@shivaedev/sql/owner.ts";
 import { makeRepository } from "@shivaedev/sql/repository.ts";
 import { AccountPreferenceValues } from "#accountPreferenceValues.ts";
 
 class StoredPreferences extends Model.Class<StoredPreferences>("AccountPreferences")({
-	id: Schema.String,
+	id: owner(Schema.String),
 	...AccountPreferenceValues.fields,
 }) {}
 

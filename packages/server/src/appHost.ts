@@ -1,7 +1,7 @@
-import * as NodeCrypto from "@effect/platform-node/NodeCrypto";
 import { Layer } from "effect";
 import type { Rpc } from "effect/rpc";
 import { appHostHttp } from "#appHostHttp.ts";
+import { hostCrypto } from "#hostCrypto.ts";
 import type { HostCoreOptions, HostPolicy, HostRouteRequirements, HostRoutes } from "#hostOptions.ts";
 import type { HostPreflight } from "#hostPreflight.ts";
 import { hostPreflight } from "#hostPreflight.ts";
@@ -69,7 +69,7 @@ function buildHttpHost<
 		TRequestRequirements
 	>,
 ) {
-	return appHostHttp(options).pipe(Layer.provideMerge(hostPreflight(options.preflight, hostSensitiveKeys(options))), Layer.provide(NodeCrypto.layer));
+	return appHostHttp(options).pipe(Layer.provideMerge(hostPreflight(options.preflight, hostSensitiveKeys(options))), Layer.provide(hostCrypto));
 }
 
 type HttpHostFactory = <

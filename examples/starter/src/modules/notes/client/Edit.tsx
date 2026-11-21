@@ -1,5 +1,4 @@
 import { Link } from "@tanstack/react-router";
-import { Option } from "effect";
 import type * as AsyncResult from "effect/reactivity/AsyncResult";
 import type * as Atom from "effect/reactivity/Atom";
 import { useId } from "react";
@@ -52,7 +51,6 @@ export function NoteEdit({
 	const noteId = note.loaded.id;
 	const editor = useEditor(client.update, { ...note, fixed: { id: noteId } });
 	const currentNote = editor.query.data;
-	const loadFailure = Option.isSome(editor.query.cause) && <p role="alert">Could not load this note. Try refreshing.</p>;
 	return (
 		<main className="mx-auto w-full max-w-2xl space-y-6 px-4 py-12 sm:px-6">
 			<Link className="underline" to="/">
@@ -62,7 +60,6 @@ export function NoteEdit({
 			<Button disabled={editor.query.pending} onClick={editor.query.refresh} variant="outline">
 				Refresh
 			</Button>
-			{loadFailure}
 
 			<form
 				className="bg-card space-y-4 rounded-lg border p-5 shadow-sm"

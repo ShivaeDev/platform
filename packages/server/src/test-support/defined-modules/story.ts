@@ -1,8 +1,10 @@
-import { Cause, Effect, Layer, Logger, Option } from "effect";
+import { Cause, ConfigProvider, Effect, Layer, Logger, Option } from "effect";
+import * as Base64 from "effect/encoding/Base64";
 import { FetchHttpClient, HttpClient, HttpClientRequest, HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import { RpcClient, RpcSerialization } from "effect/rpc";
 import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
+import { COLUMN_KEY_CONFIG } from "@shivaedev/sql/ColumnKey.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { answered } from "@shivaedev/test-story/server/answers.ts";
@@ -13,16 +15,20 @@ import { Api, draftsModule, handWrittenNotesModule, notesModule, replacedNotesMo
 import { Greetings, greetingsModule } from "#test/defined-modules/greetings.ts";
 import { Members, membersModule, privateJoinMembersModule } from "#test/defined-modules/members.ts";
 import { OwnedData, ownedDataModule } from "#test/defined-modules/ownedData.ts";
+import { ProviderTokensModule, providerTokensModule } from "#test/defined-modules/providerTokens.ts";
 import { TestRoles } from "#test/permissions.ts";
 import { databaseUrl, postgres } from "#test/postgres.ts";
+import { workerHost } from "#workerHost.ts";
 
 type Caller = "alice" | "a visitor";
 
 const draftsQueue = { name: "drafts.publish" };
 
 interface State {
+	columnKey: string | undefined;
 	drafts: typeof draftsModule | (typeof draftsModule & { readonly queues: readonly (typeof draftsQueue)[] });
 	greetings: typeof greetingsModule | (typeof greetingsModule & { readonly queues: readonly (typeof draftsQueue)[] });
+	host: "app" | "worker";
 	logs: { readonly cause: Cause.Cause<unknown>; readonly message: readonly unknown[] }[];
 	members: typeof membersModule | typeof privateJoinMembersModule;
 	notes: typeof notesModule | typeof handWrittenNotesModule | typeof replacedNotesModule;
@@ -47,7 +53,7 @@ export const definedModulesHost = storyKit({
 	after: {
 		configured: Effect.fnUntraced(function* (state: State) {
 			const database = yield* PostgresTestDatabase;
-			const composed = yield* appModules([state.drafts, state.notes, state.members, state.greetings, ownedDataModule]).pipe(
+			const composed = yield* appModules([state.drafts, state.notes, state.members, state.greetings, ownedDataModule, providerTokensModule]).pipe(
 				Effect.map(Option.some),
 				Effect.catchTag("DuplicateModuleQueue", (refusal) =>
 					Effect.sync(() => {
@@ -60,13 +66,32 @@ export const definedModulesHost = storyKit({
 				return;
 			}
 			const modules = composed.value;
-			const host = appHost({ postgresSettings: {}, ...modules, config: { databaseUrl: database.url, port: 0 }, sessions });
 			const recorded = Logger.make(({ cause, message }) => {
 				state.logs.push({ cause, message: Array.isArray(message) ? message : [message] });
 			});
-			const started = yield* Layer.build(host.pipe(Layer.provide(Logger.layer([recorded])))).pipe(
+			const configured = Layer.mergeAll(
+				Logger.layer([recorded]),
+				state.columnKey === undefined
+					? Layer.empty
+					: ConfigProvider.layerAdd(ConfigProvider.fromUnknown({ [COLUMN_KEY_CONFIG]: state.columnKey }), { asPrimary: true }),
+			);
+			if (state.host === "worker") {
+				const worker = workerHost({ postgresSettings: {}, ...modules, config: { databaseUrl: database.url }, services: modules.services });
+				state.startup = yield* Layer.build(worker.pipe(Layer.provide(configured))).pipe(
+					Effect.as("started"),
+					Effect.catchTag("ColumnKeyError", (refusal) => Effect.succeed(refusal.message)),
+				);
+				return;
+			}
+			const host = appHost({ postgresSettings: {}, ...modules, config: { databaseUrl: database.url, port: 0 }, sessions });
+			const started = yield* Layer.build(host.pipe(Layer.provide(configured))).pipe(
 				Effect.map(Option.some),
 				Effect.catchTags({
+					ColumnKeyError: (refusal) =>
+						Effect.sync(() => {
+							state.startup = refusal.message;
+							return Option.none();
+						}),
 					HandWrittenModuleHandlers: (refusal) =>
 						Effect.sync(() => {
 							state.startup = refusal.message;
@@ -92,9 +117,12 @@ export const definedModulesHost = storyKit({
 	},
 	around: withIsolatedDatabase,
 	clock: "test",
+	// The provider tokens module's model has an encrypted field, so every host starts with a generated key unless a trait changes it.
 	create: (): State => ({
+		columnKey: Base64.encode(globalThis.crypto.getRandomValues(new Uint8Array(32))),
 		drafts: draftsModule,
 		greetings: greetingsModule,
+		host: "app",
 		logs: [],
 		members: membersModule,
 		notes: notesModule,
@@ -128,6 +156,11 @@ export const definedModulesHost = storyKit({
 		}
 		function greetingsClient() {
 			return RpcClient.make(Greetings, { flatten: true }).pipe(
+				Effect.provide(RpcClient.layerProtocolHttp({ url: state.url }).pipe(Layer.provide([FetchHttpClient.layer, RpcSerialization.layerNdjson]))),
+			);
+		}
+		function providerTokensClient() {
+			return RpcClient.make(ProviderTokensModule, { flatten: true }).pipe(
 				Effect.provide(RpcClient.layerProtocolHttp({ url: state.url }).pipe(Layer.provide([FetchHttpClient.layer, RpcSerialization.layerNdjson]))),
 			);
 		}
@@ -177,11 +210,19 @@ export const definedModulesHost = storyKit({
 				story.tell(`${caller} reads note ${id} through notes.get`);
 				return answered(Effect.flatMap(client(caller), (call) => call("notes.get", { id })));
 			},
+			readProviderToken: (id: number) => {
+				story.tell(`a visitor reads provider token ${id} back through providerTokens.reveal`);
+				return answered(Effect.flatMap(providerTokensClient(), (call) => call("providerTokens.reveal", { id })));
+			},
 			showMember: (id: number) => {
 				story.tell(`alice reads member ${id} through members.show, whose handler logs the member's row`);
 				return answered(Effect.flatMap(membersClient(), (call) => call("members.show", { id })));
 			},
 			startup: () => Effect.sync(() => state.startup),
+			storeProviderToken: (token: string) => {
+				story.tell(`a visitor stores the provider token ${token} through providerTokens.store`);
+				return answered(Effect.flatMap(providerTokensClient(), (call) => call("providerTokens.store", { token })));
+			},
 		};
 	},
 });
@@ -218,3 +259,17 @@ export const queueSharedWithGreetings = definedModulesHost.trait(
 		state.greetings = { ...greetingsModule, queues: [draftsQueue] };
 	},
 );
+
+export function columnKey(configured: "missing" | "16 random bytes in base64") {
+	return definedModulesHost.trait(
+		"configured",
+		`COLUMN_ENCRYPTION_KEY is ${configured === "missing" ? "not set" : `set to ${configured}`}`,
+		(state) => {
+			state.columnKey = configured === "missing" ? undefined : Base64.encode(globalThis.crypto.getRandomValues(new Uint8Array(16)));
+		},
+	);
+}
+
+export const servedByWorkerHost = definedModulesHost.trait("configured", "the modules are served by workerHost in place of appHost", (state) => {
+	state.host = "worker";
+});
