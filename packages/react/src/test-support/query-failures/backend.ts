@@ -41,7 +41,9 @@ export interface ReportBackend {
 	title: string;
 }
 
-function answer(backend: ReportBackend, next: Answer) {
+type ReportFailure = AuthUnavailable | Conflict | InternalServerError | ReportArchived | ServiceUnavailable | TooManyRequests;
+
+function answer(backend: ReportBackend, next: Answer): Effect.Effect<{ readonly title: string }, ReportFailure> {
 	switch (next) {
 		case "AuthUnavailable":
 			return Effect.fail(new AuthUnavailable({ message: "Sign-in is unavailable right now" }));

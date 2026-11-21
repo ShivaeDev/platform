@@ -83,7 +83,11 @@ const WORDINGS = {
 	"its own failure screen for every route": { failure: outageWording, loadFailure: OwnFailureScreen },
 } satisfies Record<string, Wording>;
 
-export function openedAt(path: string, wording: keyof typeof WORDINGS = "its default failure wording", firstAnswer?: Answer | LocalAnswer) {
+export function openedAt(
+	path: string,
+	wording: keyof typeof WORDINGS = "its default failure wording",
+	firstAnswer?: Answer | Exclude<LocalAnswer, "the summary">,
+) {
 	const first = firstAnswer === undefined ? "" : `, whose first read answers ${firstAnswer}`;
 	return reportApps.trait("screen", `alice opens an app with ${wording} at ${path}${first}`, function* ({ screen, state }) {
 		if (firstAnswer === "a defect" || firstAnswer === "an untagged failure") {

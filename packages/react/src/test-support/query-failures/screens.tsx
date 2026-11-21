@@ -1,12 +1,10 @@
-import type * as AsyncResult from "effect/reactivity/AsyncResult";
-import type * as Atom from "effect/reactivity/Atom";
 import type { ReactElement } from "react";
 import type { ContractClient } from "@shivaedev/contract/makeClient.ts";
 import { useField } from "@shivaedev/form/react.ts";
 import { useEditor } from "#client/editor.ts";
 import type { FailureLayout } from "#client/QueryView.ts";
 import type { LoadedQueryState } from "#client/useLoaderQuery.ts";
-import { archivedNotice, type ReportArchived, type Reports } from "#test/query-failures/backend.ts";
+import { archivedNotice, type Reports } from "#test/query-failures/backend.ts";
 
 interface Report {
 	readonly title: string;
@@ -29,7 +27,7 @@ export function ReportEditor({
 	report,
 }: {
 	readonly reports: ContractClient<typeof Reports>;
-	readonly report: { readonly loaded: Report; readonly query: Atom.Atom<AsyncResult.AsyncResult<Report, ReportArchived>> };
+	readonly report: { readonly loaded: Report; readonly query: ReturnType<ContractClient<typeof Reports>["report"]["query"]> };
 }): ReactElement {
 	const editor = useEditor(reports.rename, { ...report, queryFailures: { ReportArchived: archivedNotice } });
 	const title = useField(editor.form, "title");
