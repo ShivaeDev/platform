@@ -195,3 +195,51 @@ accountDeletion.it(
 		]);
 	},
 );
+
+const INCORRECT = "failed with bad request: The password is incorrect.";
+
+accountDeletion.it(
+	"alice's fourth wrong password within ten seconds is refused for trying too often, as Better Auth refuses a fourth on /change-email, while bob's is still checked",
+	[],
+	function* ({ changeEmail, deleteAccount }) {
+		const deletions: string[] = [];
+		const emailChanges: number[] = [];
+		for (let attempt = 0; attempt < 4; attempt += 1) {
+			deletions.push(yield* deleteAccount("alice", "wrong-password"));
+			emailChanges.push(yield* changeEmail("alice", "wrong-password"));
+		}
+
+		expect(emailChanges.at(-1)).toBe(HttpStatus.fromLiteral("TooManyRequests"));
+		expect(deletions).toEqual([INCORRECT, INCORRECT, INCORRECT, "failed with too many requests: Too many attempts. Wait a moment and try again."]);
+		expect(yield* deleteAccount("bob", "wrong-password")).toBe(INCORRECT);
+	},
+);
+
+accountDeletion.it("after two wrong passwords alice's correct one still deletes her account", [], function* ({ deleteAccount, storedNotes }) {
+	yield* deleteAccount("alice", "wrong-password");
+	yield* deleteAccount("alice", "wrong-password");
+
+	yield* outcomes([
+		["answer", () => deleteAccount("alice"), "deleted"],
+		["stored notes", storedNotes, ["bob's note"]],
+	]);
+});
+
+accountDeletion.it(
+	"ten seconds after alice's third wrong password her password is checked again and deletes her account",
+	[],
+	function* ({ deleteAccount, storedNotes, waits }) {
+		for (let attempt = 0; attempt < 3; attempt += 1) {
+			yield* deleteAccount("alice", "wrong-password");
+		}
+		yield* waits("9 seconds");
+		expect(yield* deleteAccount("alice")).toBe("failed with too many requests: Too many attempts. Wait a moment and try again.");
+
+		yield* waits("1 second");
+
+		yield* outcomes([
+			["answer", () => deleteAccount("alice"), "deleted"],
+			["stored notes", storedNotes, ["bob's note"]],
+		]);
+	},
+);

@@ -1,6 +1,7 @@
 import { type Context, Effect, Layer } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { SqlClient } from "effect/sql";
+import { Store } from "@shivaedev/rate-limit/Store.ts";
 import { AccountDeletion } from "#server/AccountDeletion.ts";
 import { AccountDeletionPolicy } from "#server/better-auth/AccountDeletionPolicy.ts";
 import type { AuthSchemaDeclaration } from "#server/better-auth/define.ts";
@@ -23,6 +24,7 @@ export function accountDeletion<TIdentifier = never, E = never>(
 		Effect.gen(function* () {
 			const sql = yield* SqlClient.SqlClient;
 			const reactivity = yield* Reactivity.Reactivity;
+			const store = yield* Store;
 			const service = options.handOver === undefined ? undefined : yield* options.handOver;
 			const policy = {
 				auth,
@@ -34,6 +36,7 @@ export function accountDeletion<TIdentifier = never, E = never>(
 						Effect.provideService(AccountDeletionPolicy, policy),
 						Effect.provideService(SqlClient.SqlClient, sql),
 						Effect.provideService(Reactivity.Reactivity, reactivity),
+						Effect.provideService(Store, store),
 					),
 			});
 		}),

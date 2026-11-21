@@ -1,6 +1,6 @@
 import { testUtils } from "better-auth/plugins";
 import { admin } from "better-auth/plugins/admin";
-import { ConfigProvider, Effect, Layer } from "effect";
+import { Effect, Layer } from "effect";
 import { FetchHttpClient, HttpClient, HttpClientRequest, HttpRouter } from "effect/http";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { RpcClient, RpcSerialization, RpcServer } from "effect/rpc";
@@ -11,6 +11,7 @@ import { LiveServer } from "@shivaedev/contract/live-server/service.ts";
 import { moduleHandlers } from "@shivaedev/contract/moduleHandlers.ts";
 import { query } from "@shivaedev/contract/operation.ts";
 import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
+import { Store } from "@shivaedev/rate-limit/Store.ts";
 import { hostChanges } from "@shivaedev/server/hostChanges.ts";
 import { RepositoryModels } from "@shivaedev/sql/RepositoryModels.ts";
 import { ChangeObserver } from "@shivaedev/sql/transact.ts";
@@ -44,17 +45,17 @@ export const accountDeletionHost = Effect.fnUntraced(function* (plan: HandOverPl
 		plugins: [admin(), testUtils()],
 		secret: "account-deletion-story-secret-with-32-characters",
 		session: { cookieCache: { enabled: false }, disableSessionRefresh: true },
-		user: { deleteUser: { enabled: true } },
+		user: { changeEmail: { enabled: true }, deleteUser: { enabled: true } },
 	};
 	yield* migrateBetterAuth({ options });
-	const mounted = yield* betterAuthMount({ options })
-		.pipe(Effect.provide(memoryStore))
-		.pipe(Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env: { "AUTH_RATE_LIMIT_ENABLED": "false" } }))));
+	const store = Layer.succeed(Store, yield* Store.pipe(Effect.provide(memoryStore)));
+	const mounted = yield* betterAuthMount({ options }).pipe(Effect.provide(store));
 	const sql = yield* SqlClient.SqlClient;
 	const story = Layer.mergeAll(
 		Layer.succeed(SqlClient.SqlClient, sql),
 		Layer.succeed(RepositoryModels, yield* RepositoryModels),
 		Layer.succeed(ChangeObserver, recordPublished(announced)),
+		store,
 	);
 	const application = Layer.merge(
 		moduleHandlers(Account).pipe(
