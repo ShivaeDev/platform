@@ -3,6 +3,7 @@ import type * as AsyncResult from "effect/reactivity/AsyncResult";
 import type * as Atom from "effect/reactivity/Atom";
 import type { JobsDeadLetter } from "#jobs/DeadLetter.ts";
 import type { JobsRow } from "#jobs/Row.ts";
+import type { JobsRunning } from "#jobs/Running.ts";
 import type { JobsHealth, QueueCounts } from "#jobs/schemas.ts";
 
 export type AdminJob = JobsRow | JobsDeadLetter;
@@ -28,6 +29,7 @@ export interface JobsViewClient {
 	readonly failed: Query<PageInput, Page<JobsRow>>;
 	readonly health: Query<void, typeof JobsHealth.Type>;
 	readonly job: Query<JobId, Option.Option<JobsRow>>;
+	readonly running: Query<PageInput, Page<JobsRunning>>;
 }
 export type RetryJob = Atom.AtomResultFn<JobId, void, unknown>;
 

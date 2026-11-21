@@ -74,7 +74,7 @@ function subjectValue(data: unknown, field: string): string {
 	return typeof value === "string" ? value : JSON.stringify(value);
 }
 
-function JobCell({ label, children }: { readonly label: string; readonly children: ReactNode }) {
+export function JobCell({ label, children }: { readonly label: string; readonly children: ReactNode }) {
 	return (
 		<td className="block min-w-0 p-3 wrap-anywhere sm:table-cell">
 			<span className="block font-medium sm:hidden">{label}</span>

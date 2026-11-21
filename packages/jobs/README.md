@@ -461,7 +461,7 @@ export const readJobCounts = Effect.gen(function* () {
 
 `PgBossInspection` from `@shivaedev/jobs/server/inspection.ts` exposes the shared read service used by admin pages and the testing controller. Provide `PgBossInspection.layer` with your `pgBossLayer`, or obtain the same reads from a configured jobs runtime with `yield* jobs.inspection()`.
 
-`storedJobs(queue, options?)` reads native stored metadata and encoded payloads. `jobs(queue, options?)` decodes stored payloads through the supplied queue Schema and includes native state, `startAfter`, `expireInSeconds`, `startedOn` and `keepUntil`. These reads include unredacted payloads; keep them inside trusted server code. The admin-facing `getJob`, `failedJobs` and `deadLetteredJobs` reads retain their payload redaction. `deferred(queue)` reads stored RetryAt reasons and requested times, while `snapshot(queues)` lists unfinished work with future RetryAt attempts marked `deferred`. `counts`, `health`, `queue`, `schedules`, `schemaVersion` and `busy` serve queue diagnostics and controller readouts.
+`storedJobs(queue, options?)` reads native stored metadata and encoded payloads. `jobs(queue, options?)` decodes stored payloads through the supplied queue Schema and includes native state, `startAfter`, `expireInSeconds`, `startedOn` and `keepUntil`. These reads include unredacted payloads; keep them inside trusted server code. The admin-facing `getJob`, `failedJobs` and `deadLetteredJobs` reads retain their payload redaction, and `activeJobs` reads no payload at all. `deferred(queue)` reads stored RetryAt reasons and requested times, while `snapshot(queues)` lists unfinished work with future RetryAt attempts marked `deferred`. `counts`, `health`, `queue`, `schedules`, `schemaVersion` and `busy` serve queue diagnostics and controller readouts.
 
 `changes(queue?)` acquires a scoped PostgreSQL listener and returns `revision` and `waitForChange(after)`. Capture its revision before reading, then wait against that revision to avoid missing a change between the read and the wait. The signal wakes for committed job changes from any client, optionally filtered to one queue. Local deferrals advance the revision before the worker continues its batch, without waiting for PostgreSQL notifications. It is a hint to read again, not a durable event log. The caller owns the listener's scope.
 
@@ -534,6 +534,17 @@ An entry carries the job's `id`, `queue`, native `state`, `retryCount`, `retryLi
 `readJobFailure(queue, output)` from `@shivaedev/jobs/server/readJobFailure.ts` exposes this readout for adapters. It returns an Effect with `JobFailure | null` and fails with `PgBossPayloadError` when stored output cannot be decoded.
 
 Pass a failed entry's `id` to `retry(queue, id)` to run that job again under its original ID; once it completes it leaves the failed listing and its copies leave the dead-letter listing. Dead-letter IDs belong to the `-dlq` queue, so `retry(queue, id)` does not find them and leaves them unchanged.
+
+### List running jobs
+
+`counts` says how many jobs are active; `activeJobs(queue, options)` says which ones and how long each has left. It lists the queue's jobs in the `active` state, the ones a worker has claimed and not yet settled, oldest start first, paged like the failed listing with `limit` and `cursor`. It reads pg-boss's `job` table through the jobs Layer's own connection and needs the client's `getDb` capability.
+
+```ts
+const running = yield* jobs.activeJobs(SendEmail, { limit: 20 });
+const late = running.jobs.filter((job) => Duration.isNegative(job.timeLeft));
+```
+
+Each `ActiveJob` carries `id`, `queue`, `attempt` (the one-based number of the running attempt), `startedOn`, `deadline` and `timeLeft`. `deadline` is `startedOn` plus the job's `expireInSeconds`, the moment pg-boss expires the attempt. `startedOn` and `deadline` are UTC `DateTime`s on PostgreSQL's clock, and `timeLeft` is a `Duration` measured against pg-boss's `job_now()` in the same query, so an application or browser clock that drifts does not shift it. It is negative for a job whose deadline has passed and that pg-boss has not yet expired. An entry carries no payload, so the read needs no decoding services and exposes no job data. A malformed cursor or limit fails with `SchemaError` before pg-boss is called.
 
 ### Queue settings on startup
 
@@ -611,7 +622,7 @@ Import the module that defines the name; the package has no root entry.
 | `@shivaedev/jobs/server/PgBoss.ts`                        | `PgBoss`: the shared client Context service.                                                                                                                                                                                                                      |
 | `@shivaedev/jobs/server/JobsClientFactory.ts`             | `JobsClientFactory`: the client factory `pgBossLayer` uses, defaulting to `defaultClientFactory`.                                                                                                                                                                 |
 | `@shivaedev/jobs/server/schema.ts`                        | `installPgBossSchema`, `pgBossSchema`; `PgBossSchemaOptions`                                                                                                                                                                                                      |
-| `@shivaedev/jobs/server/health.ts`                        | `deadLetterQueueName`; `DeadLetteredJob`, `JobPage`, `JobPageOptions`, `JobsHealth`, `ListedJob`, `QueueCounts`, `QueueHealth`                                                                                                                                    |
+| `@shivaedev/jobs/server/health.ts`                        | `deadLetterQueueName`; `ActiveJob`, `DeadLetteredJob`, `JobPage`, `JobPageOptions`, `JobsHealth`, `ListedJob`, `QueueCounts`, `QueueHealth`                                                                                                                       |
 | `@shivaedev/jobs/server/error.ts`                         | `PgBossError`, `PgBossNotFoundError`, `PgBossPayloadError`, `PgBossQueueNamesError`, `PgBossQueueOptionsError`, `PgBossClientOptionsError`, `toPgBossError`; `PgBossOperation`                                                                                    |
 | `@shivaedev/jobs/server/queueOptions.ts`                  | `QueueOptions`, `QueuePolicy`, `RetryOptions`                                                                                                                                                                                                                     |
 | `@shivaedev/jobs/server/workerOptions.ts`                 | `WorkerOptions`, `GroupConcurrencyConfig`                                                                                                                                                                                                                         |

@@ -72,6 +72,21 @@ export function jobsReadouts(engine: JobsScreenEngine, driver: ScreenDriver) {
 				}),
 			),
 		shownQueues: () => Effect.sync(() => driver.selection("select").options.map(({ label }) => label)),
+		shownRunningJobs: () =>
+			Effect.sync(() =>
+				[...screenOf(engine).querySelectorAll('[role="tabpanel"] tbody tr')].map((row) => {
+					const cells = [...row.querySelectorAll("td > div")];
+					const [queue, job, attempt, started, timeLeft] = cells.map(({ textContent }) => textContent ?? "");
+					return {
+						attempt,
+						job: nameOf(engine, job ?? ""),
+						queue,
+						started: cells[3]?.querySelector("time")?.dateTime,
+						startedText: started,
+						timeLeft,
+					};
+				}),
+			),
 		shownSubjectColumns: () => Effect.sync(() => [...screenOf(engine).querySelectorAll("thead th")].slice(4).map(({ textContent }) => textContent)),
 		shownSubjects: () =>
 			Effect.sync(() => {

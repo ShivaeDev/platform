@@ -1,6 +1,6 @@
 import { Context, type Effect, type Option } from "effect";
 import type { BadRequest } from "@shivaedev/errors/taxonomy.ts";
-import type { DeadLetteredJob, JobPage, JobPageOptions, JobsHealth, ListedJob, QueueCounts } from "@shivaedev/jobs/server/health.ts";
+import type { ActiveJob, DeadLetteredJob, JobPage, JobPageOptions, JobsHealth, ListedJob, QueueCounts } from "@shivaedev/jobs/server/health.ts";
 import type { Job } from "@shivaedev/jobs/server/job.ts";
 import type { JobsNotFailed } from "#jobs/NotFailed.ts";
 import type { JobsPayloadInvalid, JobsQueueUnregistered, JobsUnavailable } from "#jobs/schemas.ts";
@@ -11,6 +11,7 @@ type Listing = Read | JobsPayloadInvalid | BadRequest;
 export class RegisteredQueues extends Context.Service<
 	RegisteredQueues,
 	{
+		readonly activeJobs: (queue: string, options: JobPageOptions) => Effect.Effect<JobPage<ActiveJob>, Listing>;
 		readonly counts: (queue: string) => Effect.Effect<QueueCounts, Read>;
 		readonly deadLetteredJobs: (queue: string, options: JobPageOptions) => Effect.Effect<JobPage<DeadLetteredJob<unknown>>, Listing>;
 		readonly failedJobs: (queue: string, options: JobPageOptions) => Effect.Effect<JobPage<ListedJob<unknown>>, Listing>;

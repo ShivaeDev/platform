@@ -27,7 +27,7 @@ export type PgBossInspectionService = Omit<ReturnType<typeof inspectionReads>, "
 	readonly snapshot: <const TQueues extends readonly SnapshotQueue[]>(
 		queues: TQueues,
 	) => Effect.Effect<readonly UnfinishedJob<TQueues[number]>[], PgBossPayloadError | PgBossError, TQueues[number]["schema"]["DecodingServices"]>;
-} & Pick<PgBossService, "counts" | "deadLetteredJobs" | "failedJobs" | "getJob"> & {
+} & Pick<PgBossService, "activeJobs" | "counts" | "deadLetteredJobs" | "failedJobs" | "getJob"> & {
 		readonly health: (queues: readonly { readonly name: string }[]) => ReturnType<PgBossService["health"]>;
 		readonly changes: (queue?: { readonly name: string }) => ReturnType<typeof inspectionChanges>;
 	};

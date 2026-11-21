@@ -5,6 +5,7 @@ import { readJobFailure } from "@shivaedev/jobs/server/readJobFailure.ts";
 import { JobsDeadLetter } from "#jobs/DeadLetter.ts";
 import { jobsKeys } from "#jobs/keys.ts";
 import { JobsRow } from "#jobs/Row.ts";
+import { JobsRunning } from "#jobs/Running.ts";
 import { JobsPayloadInvalid, PageFields } from "#jobs/schemas.ts";
 import { RegisteredQueues } from "#server/RegisteredQueues.ts";
 
@@ -36,6 +37,16 @@ export const Failed = query("failed", {
 		const page = yield* (yield* RegisteredQueues).failedJobs(queue, options);
 		const rows: JobPage<JobsRow> = { jobs: page.jobs.map((job) => new JobsRow(job)), next: page.next };
 		return rows;
+	},
+});
+
+export const Running = query("running", {
+	payload: { ...PageFields, queue: Schema.String },
+	reads: ({ queue }) => [jobsKeys.running.item(queue)],
+	*run({ queue, ...options }) {
+		const page = yield* (yield* RegisteredQueues).activeJobs(queue, options);
+		const running: JobPage<JobsRunning> = { jobs: page.jobs.map((job) => new JobsRunning(job)), next: page.next };
+		return running;
 	},
 });
 

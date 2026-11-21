@@ -13,13 +13,17 @@ import type {
 	PgBossQueueNamesError,
 	PgBossQueueOptionsError,
 } from "#server/error.ts";
-import type { DeadLetteredJob, JobPage, JobPageOptions, JobsHealth, ListedJob, QueueCounts } from "#server/health.ts";
+import type { ActiveJob, DeadLetteredJob, JobPage, JobPageOptions, JobsHealth, ListedJob, QueueCounts } from "#server/health.ts";
 import type { PgBossInspectionService } from "#server/inspection.ts";
 import type { Job } from "#server/job.ts";
 import { ClientEngine } from "#server/lifecycle.ts";
 import { PgBoss } from "#server/PgBoss.ts";
 
 export interface PgBossService {
+	readonly activeJobs: (
+		queue: Pick<QueueDefinition, "name">,
+		options: JobPageOptions,
+	) => Effect.Effect<JobPage<ActiveJob>, PgBossError | PgBossPayloadError | Schema.SchemaError>;
 	readonly counts: (queue: Pick<QueueDefinition, "name">) => Effect.Effect<QueueCounts, PgBossError>;
 	readonly deadLetteredJobs: <const TName extends string, const TPayload extends JobPayloadSchema | typeof Schema.Null>(
 		queue: { readonly name: TName; readonly schema: TPayload },

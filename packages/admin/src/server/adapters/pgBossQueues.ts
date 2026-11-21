@@ -55,6 +55,7 @@ export function pgBossQueues<const TQueues extends readonly JobsEntry[], TServic
 				return Effect.provideContext(effect, decoding);
 			}
 			return RegisteredQueues.of({
+				activeJobs: (queue, options) => Effect.flatMap(registered(queue), (definition) => jobsFailures(inspection.activeJobs(definition, options))),
 				counts: (queue) => Effect.flatMap(registered(queue), (definition) => jobsFailures(inspection.counts(definition))),
 				deadLetteredJobs: (queue, options) =>
 					Effect.flatMap(registered(queue), (definition) =>
