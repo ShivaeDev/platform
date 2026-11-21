@@ -1,6 +1,8 @@
 import type { SeedFile } from "#testing/adapters/tree.ts";
 
-export const secondNameFiles: readonly (SeedFile & { readonly shape: string })[] = [
+type ShapedFile = SeedFile & { readonly shape: string };
+
+export const secondNameFiles: readonly ShapedFile[] = [
 	{ content: 'import type { Original } from "./owner.ts";\nexport type Alias = Original;\n', path: "src/type.ts", shape: "type alias" },
 	{
 		content: 'import { original } from "./owner.ts";\nexport const alias: typeof original = original;\n',
@@ -78,3 +80,90 @@ export const localAliasFacade: SeedFile = {
 	].join("\n"),
 	path: "src/chain.ts",
 };
+
+const APP_MODULE = 'import type { AppModule } from "@shivaedev/server/AppModule.ts";';
+const WATER = ['import { Water } from "./water.ts";', 'import { waterRepositories } from "./waterRepositories.ts";'];
+
+function registrationFile(name: string, shape: string, ...lines: readonly string[]): ShapedFile {
+	return { content: `${lines.join("\n")}\n`, path: `src/server/${name}.ts`, shape };
+}
+
+export const registrationFiles: readonly ShapedFile[] = [
+	registrationFile(
+		"water",
+		"water",
+		APP_MODULE,
+		...WATER,
+		"export const water = { module: Water, services: waterRepositories } satisfies AppModule;",
+	),
+	registrationFile(
+		"household",
+		"household",
+		'import { Layer } from "effect";',
+		APP_MODULE,
+		'import { Household } from "./household.ts";',
+		"export const household = { module: Household, services: Layer.empty } satisfies AppModule;",
+	),
+	registrationFile(
+		"training",
+		"training",
+		APP_MODULE,
+		'import { Training } from "./training.ts";',
+		'import { TrainingTables } from "./trainingTables.ts";',
+		"export const training = { module: Training, services: TrainingTables.layer } satisfies AppModule;",
+	),
+	registrationFile(
+		"namespaced",
+		"namespace-imported AppModule",
+		'import type * as Server from "@shivaedev/server/AppModule.ts";',
+		...WATER,
+		"export const water = { module: Water, services: waterRepositories } satisfies Server.AppModule;",
+	),
+	registrationFile(
+		"listed",
+		"later exported",
+		APP_MODULE,
+		...WATER,
+		"const registered = ({ module: Water, services: waterRepositories }) satisfies AppModule;",
+		"export { registered as water };",
+	),
+	registrationFile(
+		"usage",
+		"admin-only",
+		APP_MODULE,
+		'import { usageAdmin } from "./usageAdmin.ts";',
+		"export const usage = { admin: usageAdmin } satisfies AppModule;",
+	),
+];
+
+export const facadeFiles: readonly ShapedFile[] = [
+	registrationFile(
+		"api",
+		"written satisfies Api",
+		'import { create, list } from "./operations.ts";',
+		'import type { Api } from "./api.ts";',
+		"export const api = { list, create } satisfies Api;",
+	),
+	registrationFile(
+		"cast",
+		"cast as AppModule",
+		APP_MODULE,
+		...WATER,
+		"export const water = { module: Water, services: waterRepositories } as AppModule;",
+	),
+	registrationFile(
+		"annotated",
+		"typed AppModule",
+		APP_MODULE,
+		...WATER,
+		"export const water: AppModule = { module: Water, services: waterRepositories };",
+	),
+	registrationFile("unchecked", "with no satisfies", ...WATER, "export const water = { module: Water, services: waterRepositories };"),
+	registrationFile(
+		"local",
+		"written satisfies an AppModule of its own",
+		'import type { AppModule } from "./AppModule.ts";',
+		...WATER,
+		"export const water = { module: Water, services: waterRepositories } satisfies AppModule;",
+	),
+];

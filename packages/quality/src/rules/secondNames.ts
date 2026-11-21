@@ -1,5 +1,7 @@
 import ts from "typescript";
 import { importOrigins, originOf } from "#rules/importOrigins.ts";
+import { registersAppModule } from "#rules/registersAppModule.ts";
+import { importBindings } from "#rules/stories/importBindings.ts";
 
 function returned(body: ts.ConciseBody): ts.Expression | undefined {
 	if (!ts.isBlock(body)) {
@@ -117,9 +119,13 @@ function declarationOrigins(
 
 export function secondNames(source: ts.SourceFile): readonly SecondName[] {
 	const origins = importOrigins(source);
+	const bindings = importBindings(source);
 	const exported = exportedNames(source);
 	return source.statements.flatMap((statement) =>
 		declarations(statement, exported).flatMap((node) => {
+			if (ts.isVariableDeclaration(node) && node.initializer !== undefined && registersAppModule(node.initializer, bindings)) {
+				return [];
+			}
 			const modules = declarationOrigins(node, origins, source);
 			return modules.length === 0 ? [] : [{ modules: [...new Set(modules)], node }];
 		}),
