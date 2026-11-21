@@ -35,6 +35,33 @@ console.log(Notes, Tags);
 `,
 };
 
+const CLIENT_FOLDER_PAGE = `<!doctype html>
+<html>
+	<body>
+		<script type="module" src="/main.ts"></script>
+	</body>
+</html>
+`;
+
+const CLIENT_FOLDER_PAGES = {
+	"a file under a server folder": {
+		"src/client/index.html": CLIENT_FOLDER_PAGE,
+		"src/client/main.ts": `import { sessionCookie } from "#server/session.ts";
+
+console.log(sessionCookie);
+`,
+		"src/server/session.ts": `export const sessionCookie = "session";
+`,
+	},
+	"the generated notes client": {
+		"src/client/index.html": CLIENT_FOLDER_PAGE,
+		"src/client/main.ts": `import { Notes } from "#generated/modules/notes/notes.ts";
+
+console.log(Notes);
+`,
+	},
+} satisfies Record<string, Readonly<Record<string, string>>>;
+
 const TAGS_MODULE = {
 	path: "src/modules/tags/tags.ts",
 	text: `import { defineModule } from "@shivaedev/contract/defineModule.ts";
@@ -194,6 +221,17 @@ const NOTES_TEST: Readonly<Record<string, string>> = {
 `,
 };
 
+const NOTES_TEST_IN_THE_CLIENT_FOLDER: Readonly<Record<string, string>> = {
+	"src/client/notes.test.ts": NOTES_TEST_FILE,
+	"vitest.config.mjs": `export default {
+	environments: { __vitest__: { resolve: { conditions: ${CONDITIONS} } } },
+	root: "src/client",
+	ssr: { resolve: { conditions: ${CONDITIONS} } },
+	test: { globalSetup: [${JSON.stringify(fileURLToPath(new URL("../adapters/vitest/setup.ts", import.meta.url)))}], include: ["**/*.test.ts"] },
+};
+`,
+};
+
 const NOTES_TEST_THROUGH_THE_APP_CONFIG: Readonly<Record<string, string>> = {
 	"src/notes.test.ts": NOTES_TEST_FILE,
 	"vitest.config.mjs": `import { appTestConfig } from "@shivaedev/build/adapters/appTestConfig.ts";
@@ -222,10 +260,12 @@ export const notesModule = clientModule({ notes: Notes }, () => ({}));
 `;
 
 export const VITE_PROJECT = {
+	clientFolderPages: CLIENT_FOLDER_PAGES,
 	notesClientModule: { path: "src/modules/notes/client/module.tsx", text: NOTES_CLIENT_MODULE },
 	notesPage: NOTES_PAGE,
 	notesRegistration: { path: "src/modules/notes/server/registration.ts", texts: NOTES_REGISTRATIONS },
 	notesTest: NOTES_TEST,
+	notesTestInTheClientFolder: NOTES_TEST_IN_THE_CLIENT_FOLDER,
 	notesTestThroughTheAppConfig: NOTES_TEST_THROUGH_THE_APP_CONFIG,
 	oldFormPages: OLD_FORM_PAGES,
 	pageImportingTheTagsClient: PAGE_IMPORTING_THE_TAGS_CLIENT,
