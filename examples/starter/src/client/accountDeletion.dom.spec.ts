@@ -37,3 +37,20 @@ accountDeletion.it(
 		]);
 	},
 );
+
+accountDeletion.it(
+	"a fourth wrong password within ten seconds shows alice the notice that she tried too often",
+	[],
+	function* ({ clickControl, controlTexts, enterControl, settle }) {
+		yield* settle();
+		yield* clickControl({ name: "Delete account", role: "button" });
+		yield* enterControl("input[type=password]", "not-alice-password");
+
+		for (let attempt = 0; attempt < 4; attempt += 1) {
+			yield* clickControl({ name: "Delete my account", role: "button" });
+			yield* settle();
+		}
+
+		yield* outcomes([["notices", () => controlTexts("[role=alert] > p"), ["Too many attempts. Wait a moment and try again."]]]);
+	},
+);

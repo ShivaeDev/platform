@@ -1,5 +1,6 @@
 import { Effect, Predicate, Redacted, Schema } from "effect";
 import { Migrator, SqlClient, SqlSchema } from "effect/sql";
+import * as TestClock from "effect/testing/TestClock";
 import { clientOptions } from "@shivaedev/sql/clientOptions.ts";
 import { collectRepositoryModels } from "@shivaedev/sql/RepositoryModels.ts";
 import { passwordUser, signInAgain } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
@@ -38,7 +39,7 @@ function emailOf(name: Person) {
 
 // The person reads a refusal's own words, so the readout keeps the message of a request rejection.
 function refusalWords(error: unknown) {
-	return Predicate.hasProperty(error, "_tag") && (error._tag === "BadRequest" || error._tag === "PreconditionFailed")
+	return Predicate.hasProperty(error, "_tag") && ["BadRequest", "PreconditionFailed", "TooManyRequests"].includes(String(error._tag))
 		? `${errorWords(error)}: ${String(Reflect.get(error, "message"))}`
 		: errorWords(error);
 }
@@ -89,6 +90,16 @@ export const accountDeletion = storyKit({
 		}
 		return {
 			announcedKeys: () => Effect.sync(() => engine.announced.map((key) => String(key).replace(/:(?<id>.+)$/u, (_, id: string) => `:${nameOf(id)}`))),
+			changeEmail: (name: Person, password: string) => {
+				story.tell(`${name} asks Better Auth's /change-email route for a new address, confirming it with ${JSON.stringify(password)}`);
+				return engine.host
+					.fetch("/api/auth/change-email", {
+						body: JSON.stringify({ newEmail: `${name}-new@deletion.test`, password }),
+						headers: { "content-type": "application/json", cookie: person(name).headers.get("cookie") ?? "", origin: ORIGIN },
+						method: "POST",
+					})
+					.pipe(Effect.map(({ status }) => status));
+			},
 			deleteAccount: (name: Person, password = CURRENT_PASSWORD) => {
 				story.tell(
 					`${name} asks to delete her account, confirming it with ${password === CURRENT_PASSWORD ? "her password" : JSON.stringify(password)}`,
@@ -159,6 +170,10 @@ export const accountDeletion = storyKit({
 							.sort((left, right) => left.localeCompare(right)),
 					),
 				),
+			waits: (duration: `${number} ${"second" | "seconds"}`) => {
+				story.tell(`${duration} pass`);
+				return TestClock.adjust(duration);
+			},
 		};
 	},
 });

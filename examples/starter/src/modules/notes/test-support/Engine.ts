@@ -22,6 +22,7 @@ export interface Engine {
 	hostOptions: HostOptions;
 	live: RpcAddress | undefined;
 	readonly sourceApi: Effect.Success<ReturnType<typeof fakeHttpService>>;
+	readonly spentBudgets: string[];
 	tell: (line: string) => void;
 	traces: Effect.Success<ReturnType<typeof otlpReceiver>> | undefined;
 	worker: { readonly jobs: PgBossTesting; readonly stop: Effect.Effect<void> } | undefined;

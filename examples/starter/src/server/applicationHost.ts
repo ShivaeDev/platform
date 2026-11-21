@@ -8,7 +8,6 @@ import { betterAuthUserDirectory } from "@shivaedev/identity/server/better-auth/
 import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import { authenticatedUserLayer } from "@shivaedev/identity/server/session.ts";
 import { trustedOrigins } from "@shivaedev/identity/server/trustedOrigins.ts";
-import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
 import { appHost } from "@shivaedev/server/appDatabase.ts";
 import { hostAssets } from "@shivaedev/server/hostAssets.ts";
 import { Owner } from "#roles/Owner.ts";
@@ -55,7 +54,7 @@ export function applicationHost<R = never, E = never, TRequirements = never>(con
 					const { routes, sessions: authSessions } = yield* betterAuthMount(AppAuth, {
 						emails: yield* AuthEmails.emails.pipe(Effect.provideContext(serviceContext)),
 						roleSeed: ownerSeed,
-					});
+					}).pipe(Effect.provideContext(serviceContext));
 					const sessions = {
 						...authSessions,
 						origin: trustedOrigins({
@@ -76,7 +75,7 @@ export function applicationHost<R = never, E = never, TRequirements = never>(con
 						sessions: Layer.succeed(SessionPolicy, sessions),
 					};
 				}),
-			}).pipe(Layer.provide(memoryStore));
+			});
 		}),
 	);
 }
