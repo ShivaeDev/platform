@@ -32,6 +32,16 @@ ownerMarks.it(
 	},
 );
 
+ownerMarks.it("one model built over the notes and archived notes tables is collected for each table", [], function* ({ build, owned }) {
+	yield* build("note headings over the notes table");
+	yield* build("note headings over the archived notes table");
+
+	expect(yield* owned()).toEqual([
+		{ model: "NoteHeading", owner: { column: "author_id", field: "authorId" }, table: "notes" },
+		{ model: "NoteHeading", owner: { column: "author_id", field: "authorId" }, table: "archived_notes" },
+	]);
+});
+
 ownerMarks.it("an owner mark on a bucket field keeps the bucket, so the repository still needs the bucket's collection", [], function* ({ build }) {
 	yield* outcomes([
 		["built with its collection", () => build("notes owned by their author bucket"), "built"],
