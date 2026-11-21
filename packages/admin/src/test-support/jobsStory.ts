@@ -158,7 +158,7 @@ export const signedOut = jobsStory.trait("session", "no caller is signed in", ({
 
 export function signedInAs(role: typeof Access.Role.Type) {
 	return jobsStory.trait("session", `the caller is signed in as ${role}`, ({ session }) =>
-		Ref.set(session, Option.some({ user: { email: `${role}@example.test`, id: role, name: role, role } })),
+		Ref.set(session, Option.some({ user: { email: `${role}@example.test`, emailVerified: true, id: role, name: role, role } })),
 	);
 }
 

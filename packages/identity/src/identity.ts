@@ -13,6 +13,7 @@ export interface ProviderAccountValue {
 }
 export const SessionUserSchema = Schema.Struct({
 	email: Schema.String,
+	emailVerified: Schema.Boolean,
 	id: Schema.String,
 	name: Schema.String,
 	permissions: Schema.optionalKey(Schema.Array(Permission)),

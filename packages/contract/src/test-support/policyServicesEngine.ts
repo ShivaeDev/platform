@@ -17,6 +17,7 @@ function providerSession(id: string) {
 	return {
 		user: {
 			email: `${id}@example.test`,
+			emailVerified: true,
 			id,
 			name: id,
 			providerAccounts: Effect.succeed([{ accountId: "team", providerId: id === "alice" ? "github" : "gitlab" }]),
@@ -43,6 +44,7 @@ export const policyServicesEngine = Effect.gen(function* () {
 				Layer.succeed(ReadAccess, readAccess(admitted)),
 				Layer.succeed(SessionUserWithProviderAccounts, {
 					email: "stale@example.test",
+					emailVerified: true,
 					id: "stale",
 					name: "stale",
 					providerAccounts: Effect.succeed([]),

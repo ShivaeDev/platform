@@ -35,7 +35,7 @@ const auth = defineAuth({
 	},
 	roles: Access,
 });
-const viewer = { email: "admin@app.test", id: "admin", name: "admin", role: "admin" };
+const viewer = { email: "admin@app.test", emailVerified: true, id: "admin", name: "admin", role: "admin" };
 
 const application = Effect.gen(function* () {
 	yield* migrateBetterAuth(auth);

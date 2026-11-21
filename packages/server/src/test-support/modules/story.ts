@@ -25,7 +25,7 @@ const sessions = Layer.succeed(SessionPolicy, {
 		get: (headers) =>
 			Effect.succeed(
 				headers.authorization === "admin"
-					? Option.some({ user: { email: "admin@example.test", id: "admin", name: "Admin", role: "admin" } })
+					? Option.some({ user: { email: "admin@example.test", emailVerified: true, id: "admin", name: "Admin", role: "admin" } })
 					: Option.none(),
 			),
 	},

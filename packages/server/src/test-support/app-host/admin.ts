@@ -24,7 +24,7 @@ const Admin = RpcGroup.make(
 const Api = Admin.merge(RpcGroup.make(Rpc.make("publicRead", { success: Schema.String })));
 
 function memberSession(role: string) {
-	return { user: { email: "member@example.test", id: "member", name: "Member", role } };
+	return { user: { email: "member@example.test", emailVerified: true, id: "member", name: "Member", role } };
 }
 
 function adminSessions(state: HostState) {

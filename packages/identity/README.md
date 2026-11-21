@@ -676,7 +676,7 @@ Declare expected refusals with the shared tagged error schemas from [`@shivaedev
 
 ### Reading the signed-in user
 
-When a handler needs the current user's name and email, declare `AuthenticatedUser` and read `SessionUser`. `Identity` keeps its `{ id }` shape; `AuthenticatedUser` supplies both services for that invocation. Its provider must return `user: { id, name, email }`, described by `UserSessionShape`.
+When a handler needs the current user's name and email, declare `AuthenticatedUser` and read `SessionUser`. `Identity` keeps its `{ id }` shape; `AuthenticatedUser` supplies both services for that invocation. Its provider must return `user: { id, name, email, emailVerified }`, described by `UserSessionShape`. `SessionUser.emailVerified` says whether the person has confirmed their address. Better Auth's provider reads it from the session lookup the request already makes, so a screen or operation that shows "confirm your email" or gates a feature on a confirmed address needs no second session read: an account that has not confirmed reads `false`, and the first lookup after the person follows the confirmation link reads `true`. The browser's remembered session keeps only the session, user id and grants, so an application serves the flag from its own profile query.
 
 ```ts
 import { Effect, Layer, Schema } from "effect";
