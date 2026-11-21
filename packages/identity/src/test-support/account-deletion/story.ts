@@ -9,7 +9,7 @@ import { answered, errorWords } from "@shivaedev/test-story/server/answers.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { removedCredential, storedVerification, storedVerificationIdentifiers } from "#server/better-auth/test-support/accountDeletion.ts";
 import type { HandOverPlan } from "#test/account-deletion/HandOverPlan.ts";
-import { accountDeletionHost } from "#test/account-deletion/host.ts";
+import { type AccountDeletionHost, accountDeletionHost, type SessionStorage } from "#test/account-deletion/host.ts";
 import { ownedModels } from "#test/better-auth/ownedModels.ts";
 import { storyClock, withIdentityDatabase } from "#test/clock.ts";
 import { CURRENT_PASSWORD, PASSWORD_HASH } from "#test/passwords.ts";
@@ -20,8 +20,10 @@ export type Person = "alice" | "bob";
 
 interface Setup {
 	readonly announced: unknown[];
-	readonly people: Map<Person, { readonly headers: Headers; readonly id: string }>;
+	host: AccountDeletionHost | undefined;
+	readonly people: Map<Person, { headers: Headers; readonly id: string }>;
 	readonly plan: HandOverPlan["Service"];
+	storage: SessionStorage;
 }
 
 // Applications build their client with clientOptions, so the owned tables' snake-case columns sit beneath camel-case fields.
@@ -37,6 +39,10 @@ function emailOf(name: Person) {
 	return `${name}@deletion.test`;
 }
 
+export function addressCode(name: Person) {
+	return `email-verification-otp-${emailOf(name)}`;
+}
+
 // The person reads a refusal's own words, so the readout keeps the message of a request rejection.
 function refusalWords(error: unknown) {
 	return Predicate.hasProperty(error, "_tag") && ["BadRequest", "PreconditionFailed", "TooManyRequests"].includes(String(error._tag))
@@ -45,32 +51,40 @@ function refusalWords(error: unknown) {
 }
 
 export const accountDeletion = storyKit({
+	after: {
+		*hosting(setup: Setup) {
+			const host = yield* accountDeletionHost(setup.plan, setup.announced, setup.storage);
+			setup.host = host;
+			const sql = yield* SqlClient.SqlClient;
+			yield* sql`create table notes (id serial primary key, title text not null, share_token text not null, user_id text not null)`;
+			yield* sql`create table projects (id serial primary key, user_id text not null)`;
+			for (const name of ["alice", "bob"] as const) {
+				const role = name === "bob" ? "admin" : "user";
+				const user = yield* passwordUser(host.auth, { email: emailOf(name), name, passwordHash: PASSWORD_HASH, role });
+				const { headers } = yield* signInAgain(host.auth, user.id);
+				setup.people.set(name, { headers: yield* host.cachedSession(headers), id: user.id });
+				yield* sql`insert into notes (title, share_token, user_id) values (${`${name}'s note`}, ${`${name}-token`}, ${user.id})`;
+				yield* sql`insert into projects (user_id) values (${user.id})`;
+			}
+			setup.plan.receiver = setup.people.get("bob")?.id ?? "";
+			yield* Effect.all([ownedModels.notes, ownedModels.projects]);
+		},
+	},
 	around: (effect) => withIdentityDatabase(effect.pipe(Effect.provide(collectRepositoryModels))),
 	clock: storyClock,
-	*create() {
-		const setup: Setup = { announced: [], people: new Map(), plan: { mode: "none", receiver: "" } };
-		const host = yield* accountDeletionHost(setup.plan, setup.announced);
-		const sql = yield* SqlClient.SqlClient;
-		yield* sql`create table notes (id serial primary key, title text not null, share_token text not null, user_id text not null)`;
-		yield* sql`create table projects (id serial primary key, user_id text not null)`;
-		for (const name of ["alice", "bob"] as const) {
-			const role = name === "bob" ? "admin" : "user";
-			const user = yield* passwordUser(host.auth, { email: emailOf(name), name, passwordHash: PASSWORD_HASH, role });
-			const { headers } = yield* signInAgain(host.auth, user.id);
-			setup.people.set(name, { headers, id: user.id });
-			yield* sql`insert into notes (title, share_token, user_id) values (${`${name}'s note`}, ${`${name}-token`}, ${user.id})`;
-			yield* sql`insert into projects (user_id) values (${user.id})`;
-		}
-		setup.plan.receiver = setup.people.get("bob")?.id ?? "";
-		yield* Effect.all([ownedModels.notes, ownedModels.projects]);
-		return Object.assign(setup, { host });
-	},
-	inspect: ({ announced, plan }) => ({ announced, handOver: plan.mode }),
+	create: (): Setup => ({ announced: [], host: undefined, people: new Map(), plan: { mode: "none", receiver: "" }, storage: "database" }),
+	inspect: ({ announced, plan, storage }) => ({ announced, handOver: plan.mode, sessions: storage }),
 	layer: postgres,
 	name: "account deletion",
 	runIf: databaseUrl !== undefined,
-	stages: ["data"],
+	stages: ["hosting", "data"],
 	verbs: (engine, story) => {
+		function host() {
+			if (engine.host === undefined) {
+				throw new Error("The account deletion host has not started");
+			}
+			return engine.host;
+		}
 		function person(name: Person) {
 			const found = engine.people.get(name);
 			if (found === undefined) {
@@ -82,7 +96,7 @@ export const accountDeletion = storyKit({
 			return [...engine.people].find(([, account]) => account.id === id)?.[0] ?? id;
 		}
 		function signInRequest(name: Person) {
-			return engine.host.fetch("/api/auth/sign-in/email", {
+			return host().fetch("/api/auth/sign-in/email", {
 				body: JSON.stringify({ email: emailOf(name), password: CURRENT_PASSWORD }),
 				headers: { "content-type": "application/json", origin: ORIGIN },
 				method: "POST",
@@ -90,9 +104,19 @@ export const accountDeletion = storyKit({
 		}
 		return {
 			announcedKeys: () => Effect.sync(() => engine.announced.map((key) => String(key).replace(/:(?<id>.+)$/u, (_, id: string) => `:${nameOf(id)}`))),
+			cachedAddressCodes: Effect.fn("AccountDeletionStory.cachedAddressCodes")(function* () {
+				const { internalAdapter } = yield* Effect.promise(() => host().auth.$context);
+				const found: Person[] = [];
+				for (const name of ["alice", "bob"] as const) {
+					if ((yield* Effect.promise(() => internalAdapter.findVerificationValue(addressCode(name)))) !== null) {
+						found.push(name);
+					}
+				}
+				return found;
+			}),
 			changeEmail: (name: Person, password: string) => {
 				story.tell(`${name} asks Better Auth's /change-email route for a new address, confirming it with ${JSON.stringify(password)}`);
-				return engine.host
+				return host()
 					.fetch("/api/auth/change-email", {
 						body: JSON.stringify({ newEmail: `${name}-new@deletion.test`, password }),
 						headers: { "content-type": "application/json", cookie: person(name).headers.get("cookie") ?? "", origin: ORIGIN },
@@ -104,16 +128,18 @@ export const accountDeletion = storyKit({
 				story.tell(
 					`${name} asks to delete her account, confirming it with ${password === CURRENT_PASSWORD ? "her password" : JSON.stringify(password)}`,
 				);
-				return engine.host.client(person(name).headers).pipe(
-					Effect.flatMap((rpc) => rpc["identity.account.delete"]({ password })),
-					Effect.as("deleted"),
-					Effect.scoped,
-					(effect) => answered(effect, refusalWords),
-				);
+				return host()
+					.client(person(name).headers)
+					.pipe(
+						Effect.flatMap((rpc) => rpc["identity.account.delete"]({ password })),
+						Effect.as("deleted"),
+						Effect.scoped,
+						(effect) => answered(effect, refusalWords),
+					);
 			},
 			deleteThroughBetterAuth: (name: Person) => {
 				story.tell(`${name} posts her password to Better Auth's own /delete-user route`);
-				return engine.host
+				return host()
 					.fetch("/api/auth/delete-user", {
 						body: JSON.stringify({ password: CURRENT_PASSWORD }),
 						headers: { "content-type": "application/json", cookie: person(name).headers.get("cookie") ?? "", origin: ORIGIN },
@@ -123,7 +149,7 @@ export const accountDeletion = storyKit({
 			},
 			removeThroughAdmin: (administrator: Person, name: Person) => {
 				story.tell(`${administrator}, an administrator, posts ${name}'s id to Better Auth's /admin/remove-user route`);
-				return engine.host
+				return host()
 					.fetch("/api/auth/admin/remove-user", {
 						body: JSON.stringify({ userId: person(name).id }),
 						headers: { "content-type": "application/json", cookie: person(administrator).headers.get("cookie") ?? "", origin: ORIGIN },
@@ -133,18 +159,22 @@ export const accountDeletion = storyKit({
 			},
 			request: (name: Person) => {
 				story.tell(`${name} requests her protected profile`);
-				return engine.host.client(person(name).headers).pipe(
-					Effect.flatMap((rpc) => rpc["profile.read"]()),
-					Effect.map(({ name: shown }) => shown),
-					Effect.scoped,
-					answered,
-				);
+				return host()
+					.client(person(name).headers)
+					.pipe(
+						Effect.flatMap((rpc) => rpc["profile.read"]()),
+						Effect.map(({ name: shown }) => shown),
+						Effect.scoped,
+						answered,
+					);
 			},
 			sessionCheck: (name: Person) =>
-				engine.host.fetch("/api/auth/get-session", { headers: { cookie: person(name).headers.get("cookie") ?? "" } }).pipe(
-					Effect.flatMap((response) => Effect.promise(() => response.json())),
-					Effect.map((body) => (body === null ? "signed out" : "signed in")),
-				),
+				host()
+					.fetch("/api/auth/get-session", { headers: { cookie: person(name).headers.get("cookie") ?? "" } })
+					.pipe(
+						Effect.flatMap((response) => Effect.promise(() => response.json())),
+						Effect.map((body) => (body === null ? "signed out" : "signed in")),
+					),
 			signIn: (name: Person) => signInRequest(name).pipe(Effect.map(({ status }) => (status === 200 ? "signed in" : `refused with ${status}`))),
 			storedNotes: Effect.fn("AccountDeletionStory.storedNotes")(function* () {
 				const sql = yield* SqlClient.SqlClient;
@@ -173,6 +203,17 @@ export const accountDeletion = storyKit({
 			waits: (duration: `${number} ${"second" | "seconds"}`) => {
 				story.tell(`${duration} pass`);
 				return TestClock.adjust(duration);
+			},
+			writesNote: (name: Person, title: string) => {
+				story.tell(`${name} writes the note ${JSON.stringify(title)} through her protected profile`);
+				return host()
+					.client(person(name).headers)
+					.pipe(
+						Effect.flatMap((rpc) => rpc["profile.note"]({ title })),
+						Effect.as("written"),
+						Effect.scoped,
+						answered,
+					);
 			},
 		};
 	},

@@ -1,6 +1,6 @@
 import { testUtils } from "better-auth/plugins";
 import { admin } from "better-auth/plugins/admin";
-import { Effect, Layer } from "effect";
+import { Effect, Layer, Schema } from "effect";
 import { FetchHttpClient, HttpClient, HttpClientRequest, HttpRouter } from "effect/http";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { RpcClient, RpcSerialization, RpcServer } from "effect/rpc";
@@ -9,7 +9,7 @@ import { contract } from "@shivaedev/contract/contract.ts";
 import { liveServerLayer } from "@shivaedev/contract/live-server/layer.ts";
 import { LiveServer } from "@shivaedev/contract/live-server/service.ts";
 import { moduleHandlers } from "@shivaedev/contract/moduleHandlers.ts";
-import { query } from "@shivaedev/contract/operation.ts";
+import { command, query } from "@shivaedev/contract/operation.ts";
 import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
 import { Store } from "@shivaedev/rate-limit/Store.ts";
 import { hostChanges } from "@shivaedev/server/hostChanges.ts";
@@ -26,17 +26,37 @@ import { betterAuthMount } from "#server/better-auth/mount.ts";
 import { SessionPolicy } from "#server/SessionPolicy.ts";
 import { authenticatedUserLayer } from "#server/session.ts";
 import { HandOverPlan } from "#test/account-deletion/HandOverPlan.ts";
+import { memorySecondaryStorage } from "#test/account-deletion/memorySecondaryStorage.ts";
 import { ProjectHandOver } from "#test/account-deletion/service.ts";
 import { recordPublished } from "#test/recordPublished.ts";
 import { ORIGIN } from "#test/rpc/harness.ts";
 
 const Profile = contract("profile", {
+	commands: [command("note", { invalidates: () => [], payload: { title: Schema.String } })],
 	queries: [query("read", { readPolicy: () => Effect.succeed(true), reads: () => [], success: SessionUserSchema })],
 }).middleware(AuthenticatedUser);
+
+export type SessionStorage =
+	| "database"
+	| "cookie cache"
+	| "secondary storage"
+	| "secondary storage and the database"
+	| "secondary storage whose client parses JSON";
+
+function sessionOptions(storage: SessionStorage) {
+	const session = {
+		cookieCache: { enabled: storage === "cookie cache" },
+		disableSessionRefresh: true,
+		storeSessionInDatabase: storage === "secondary storage and the database",
+	};
+	return storage.startsWith("secondary storage")
+		? { secondaryStorage: memorySecondaryStorage(storage === "secondary storage whose client parses JSON"), session }
+		: { session };
+}
 const ServedApi = Account.merge(Profile);
 const Api = AccountClient.merge(Profile);
 
-export const accountDeletionHost = Effect.fnUntraced(function* (plan: HandOverPlan["Service"], announced: unknown[]) {
+export const accountDeletionHost = Effect.fnUntraced(function* (plan: HandOverPlan["Service"], announced: unknown[], storage: SessionStorage) {
 	const options = {
 		"baseURL": ORIGIN,
 		database: yield* betterAuthDatabase(),
@@ -44,7 +64,7 @@ export const accountDeletionHost = Effect.fnUntraced(function* (plan: HandOverPl
 		logger: { disabled: true },
 		plugins: [admin(), testUtils()],
 		secret: "account-deletion-story-secret-with-32-characters",
-		session: { cookieCache: { enabled: false }, disableSessionRefresh: true },
+		...sessionOptions(storage),
 		user: { changeEmail: { enabled: true }, deleteUser: { enabled: true } },
 	};
 	yield* migrateBetterAuth({ options });
@@ -62,7 +82,14 @@ export const accountDeletionHost = Effect.fnUntraced(function* (plan: HandOverPl
 			Layer.provide(accountDeletion({ options }, { handOver: ProjectHandOver })),
 			Layer.provide(ProjectHandOver.layer.pipe(Layer.provide(Layer.succeed(HandOverPlan, plan)))),
 		),
-		Profile.application.toLayer({ "profile.read": () => SessionUser }),
+		Profile.application.toLayer({
+			"profile.note": ({ title }) =>
+				Effect.gen(function* () {
+					const { id } = yield* SessionUser;
+					yield* sql`insert into notes (title, share_token, user_id) values (${title}, ${`${title}-token`}, ${id})`;
+				}).pipe(Effect.orDie),
+			"profile.read": () => SessionUser,
+		}),
 	);
 	const live = yield* LiveServer.pipe(Effect.provide(liveServerLayer));
 	const handlers = hostChanges(ServedApi).pipe(Layer.provideMerge(application), Layer.provide(Layer.succeed(LiveServer, live)));
@@ -78,8 +105,23 @@ export const accountDeletionHost = Effect.fnUntraced(function* (plan: HandOverPl
 		{ disableLogger: true },
 	);
 	yield* Effect.addFinalizer(() => Effect.promise(() => app.dispose()));
+	function fetch(path: string, init: RequestInit = {}) {
+		return Effect.promise(() => app.handler(new Request(`${ORIGIN}${path}`, init)));
+	}
 	return {
 		auth: mounted.auth,
+		// A browser keeps the session data cookie a session check sets, which is what Better Auth's cookie cache reads.
+		cachedSession: (headers: Headers) =>
+			fetch("/api/auth/get-session", { headers }).pipe(
+				Effect.map((response) => {
+					const cookies = new Map((headers.get("cookie") ?? "").split("; ").map((pair) => [pair.split("=")[0] ?? "", pair] as const));
+					for (const cookie of response.headers.getSetCookie()) {
+						const pair = cookie.split(";")[0] ?? "";
+						cookies.set(pair.split("=")[0] ?? "", pair);
+					}
+					return new Headers({ ...Object.fromEntries(headers), cookie: [...cookies.values()].join("; ") });
+				}),
+			),
 		client: (headers: Headers) =>
 			RpcClient.make(Api).pipe(
 				Effect.provide(
@@ -92,7 +134,7 @@ export const accountDeletionHost = Effect.fnUntraced(function* (plan: HandOverPl
 					),
 				),
 			),
-		fetch: (path: string, init: RequestInit = {}) => Effect.promise(() => app.handler(new Request(`${ORIGIN}${path}`, init))),
+		fetch,
 	};
 });
 
