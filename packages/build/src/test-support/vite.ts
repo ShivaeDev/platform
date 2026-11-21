@@ -1,7 +1,7 @@
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { ConfigProvider, Effect, FileSystem, Option, Path, Queue } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import type { AppViteOptions } from "#adapters/appViteConfig.ts";
+import type { AppViteOptions } from "#appViteConfig.ts";
 import { writeAtomically } from "#files.ts";
 import { generate } from "#generate.ts";
 import { emptyProject, generatedOncePerFile, vitestRun, writeFiles } from "#test/fixtureProject.ts";

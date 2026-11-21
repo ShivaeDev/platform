@@ -1,6 +1,6 @@
 import { folderNames } from "#rules/files/folderNames.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
+import { assertThat } from "#testing/assertThat.ts";
 
 const CONTENT = { content: [{ glob: "content/", reason: "Content identifiers follow the content format." }] };
 

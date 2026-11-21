@@ -1,8 +1,8 @@
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { mixedDebt } from "#test/mixedDebt.ts";
 import { committed, qualityInstalled, repositoryHas, repositoryStory } from "#test/repositoryStory.ts";
-import { assertThat, withMatchers } from "#testing/adapters/assertThat.ts";
 import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
+import { assertThat, withMatchers } from "#testing/assertThat.ts";
 
 const PREVIOUS = '{"path":"src/work.ts","rule":"effect/boundary","count":1}\n';
 const RECORDED =

@@ -85,7 +85,7 @@ Provide the application's session policy through `SessionPolicy` once. Registrat
 
 A page can declare `route: { path: "/admin/workspaces", detail: "/admin/workspaces/$id", title: "Workspaces" }`. The detail must be a descendant of the page's path; composition rejects a detail elsewhere or equal to the page path. Mount `adminDocuments(registration, handler)` from `@shivaedev/admin/server/adminDocuments.ts` beside the application's public document routes and provide the same `SessionPolicy` layer. The handler serves the application's document; the guard checks the matched page's permission first. Unregistered admin paths return 404. `/admin` and `/admin/` use the first registered page's permission.
 
-Use `adminPermissionGuard(registration.pages, permissionGuard({ session, signedOut }))` from `@shivaedev/admin/client/adapters/adminPermissionGuard.ts` as the client root route's `beforeLoad`, using the native `permissionGuard` from `@shivaedev/react/adapters/permissionGuard.ts`. It applies the matched list or detail page's permission together with other route permissions. Like the document guard, `/admin` and `/admin/` use the first registered page's permission. The application still declares the detail component in its router.
+Use `adminPermissionGuard(registration.pages, permissionGuard({ session, signedOut }))` from `@shivaedev/admin/client/adminPermissionGuard.ts` as the client root route's `beforeLoad`, using the native `permissionGuard` from `@shivaedev/react/adapters/permissionGuard.ts`. It applies the matched list or detail page's permission together with other route permissions. Like the document guard, `/admin` and `/admin/` use the first registered page's permission. The application still declares the detail component in its router.
 
 ### Pages owned by modules
 
@@ -185,7 +185,7 @@ The `Jobs` module declares no commands, and its bound client has no retry operat
 Bind the page contract to the application's AtomRpc client and pass the queues given to `pgBossQueues` to `JobsView`. The view lists failed and dead-lettered jobs with readable failure messages, health, counts, pagination and detail. A caller without `jobs.read` sees a permission refusal. Tailwind applications include `@source "../../node_modules/@shivaedev/admin/src/client/adapters";` in their client CSS.
 
 ```tsx
-import { JobsView } from "@shivaedev/admin/client/adapters/JobsView.ts";
+import { JobsView } from "@shivaedev/admin/client/JobsView.ts";
 
 const jobs = bind(JobsPage.contract, Client);
 
@@ -224,14 +224,14 @@ Pass the schedule declarations and bound action to show **Run now** for a select
 
 ### Built-in Users page
 
-Add `UsersPage` from `@shivaedev/admin/users/Page.ts` to the same registry as Jobs and register `users: moduleHandlers(Users)`, with `Users` from `@shivaedev/admin/Users.ts`, the module behind the page, which is server code. The module requires identity's `UserDirectory` service. Provide `betterAuthUserDirectory(AppAccess, authOptions)` from `@shivaedev/identity/server/better-auth/adapters/userDirectory.ts` with the same options used by `betterAuthMount`. Identity owns the PostgreSQL reads and role writes, including custom auth mappings. For example, `authOptions.user.modelName: "users"` makes the Users view open and page through `users`; mapped name, email, role and creation-time columns are used as well. The page reads identity's exported `userKeys.list` collection, so role changes refresh open user lists.
+Add `UsersPage` from `@shivaedev/admin/users/Page.ts` to the same registry as Jobs and register `users: moduleHandlers(Users)`, with `Users` from `@shivaedev/admin/Users.ts`, the module behind the page, which is server code. The module requires identity's `UserDirectory` service. Provide `betterAuthUserDirectory(AppAccess, authOptions)` from `@shivaedev/identity/server/better-auth/userDirectory.ts` with the same options used by `betterAuthMount`. Identity owns the PostgreSQL reads and role writes, including custom auth mappings. For example, `authOptions.user.modelName: "users"` makes the Users view open and page through `users`; mapped name, email, role and creation-time columns are used as well. The page reads identity's exported `userKeys.list` collection, so role changes refresh open user lists.
 
 Each user stores one role string accepted by `AppAccess.Role`. Each role declares an explicit permission list in application code. The Users area assigns roles; it does not edit their grants.
 
 Bind the page's contract to the registry's native AtomRpc client, then mount the view in the application's admin shell. Tailwind applications include `@source "../../node_modules/@shivaedev/admin/src/client/adapters";` in `src/client/entry.css`:
 
 ```tsx
-import { UsersView } from "@shivaedev/admin/client/adapters/UsersView.ts";
+import { UsersView } from "@shivaedev/admin/client/UsersView.ts";
 
 const users = bind(UsersPage.contract, Client);
 const changeRole = Client.runtime.fn(users.changeRole.run);
@@ -252,7 +252,7 @@ Keep Better Auth cookie caching disabled so requests see current permissions. Ro
 Add `SessionsPage` from `@shivaedev/admin/sessions/Page.ts` to the admin registry and register `sessions: moduleHandlers(Sessions)`, with `moduleHandlers` from `@shivaedev/contract/moduleHandlers.ts` and `Sessions` from `@shivaedev/identity/Sessions.ts`. Registration installs this middleware using `SessionPolicy`. The page uses identity's `identity.sessions` contract and `sessions.manage` permission.
 
 ```tsx
-import { SessionsView } from "@shivaedev/admin/client/adapters/SessionsView.ts";
+import { SessionsView } from "@shivaedev/admin/client/SessionsView.ts";
 
 const sessions = bind(SessionsPage.contract, Client);
 

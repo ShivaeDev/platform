@@ -1,7 +1,7 @@
 import { jsxConditionals } from "#rules/react/jsxConditionals.ts";
 import { CHILD_DECISION, jsxAccepted, jsxDecisions } from "#test/jsxConditionalFiles.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
+import { assertThat } from "#testing/assertThat.ts";
 
 for (const { code, findings, name } of jsxDecisions) {
 	ruleStory.it(

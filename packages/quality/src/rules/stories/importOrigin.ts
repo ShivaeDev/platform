@@ -20,7 +20,7 @@ export function importOrigin(from: string | undefined, name?: string) {
 	if (from === "@shivaedev/test/adapters/makeEffectIt.ts" && name === "makeEffectIt") {
 		return "effectFactory";
 	}
-	if (from === "@shivaedev/test/adapters/it.ts" && name === "it") {
+	if (from === "@shivaedev/test/it.ts" && name === "it") {
 		return "plain";
 	}
 	const namespace = moduleOrigin(from);

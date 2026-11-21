@@ -2,7 +2,7 @@ import { Cause, Effect, Option } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as Atom from "effect/reactivity/Atom";
 import { StrictMode } from "react";
-import { useField } from "@shivaedev/form/adapters/react.ts";
+import { useField } from "@shivaedev/form/react.ts";
 import { useCreate } from "#client/create.ts";
 import { type Notice, NoticeHost } from "#client/notices.ts";
 import { useAction, useQuery } from "#client/resultState.ts";

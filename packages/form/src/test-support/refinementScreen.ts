@@ -3,8 +3,8 @@ import { Effect } from "effect";
 import { act, createElement } from "react";
 import { expectNoReactWarnings, render } from "@shivaedev/test-story/client/adapters/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { useSubmit } from "#adapters/react.ts";
 import { form } from "#form.ts";
+import { useSubmit } from "#react.ts";
 import { Passwords } from "#test/schemaMessages.ts";
 
 Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });

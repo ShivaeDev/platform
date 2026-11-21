@@ -1,8 +1,8 @@
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { waitOnEvents } from "#rules/stories/waitOnEvents.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
-import { assertThat, withMatchers } from "#testing/adapters/assertThat.ts";
-import { kitFiles } from "#testing/adapters/storySpecFiles.ts";
+import { assertThat, withMatchers } from "#testing/assertThat.ts";
+import { kitFiles } from "#testing/storySpecFiles.ts";
 
 const SPEC = {
 	content: 'import { app } from "#test/index.ts"; app.it("ships", [], function* ({ ship }) { yield* ship(); });',

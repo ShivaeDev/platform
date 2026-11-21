@@ -6,7 +6,7 @@ import { ConfigProvider, Effect, Layer, Option } from "effect";
 import { Headers, HttpRouter, HttpServer, HttpServerRequest } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
-import { betterAuthMount } from "#server/better-auth/adapters/mount.ts";
+import { betterAuthMount } from "#server/better-auth/mount.ts";
 import { recorder } from "#test/rpc/harness.ts";
 
 export const clientIpHost = Effect.fn("ClientIpStory.clientIpHost")(function* (env: Record<string, string>) {

@@ -1,6 +1,6 @@
 import { Deferred, type Duration, Effect, Fiber } from "effect";
 import { TestClock } from "effect/testing";
-import { postgresMigration } from "@shivaedev/rate-limit/adapters/postgresMigration.ts";
+import { postgresMigration } from "@shivaedev/rate-limit/postgresMigration.ts";
 import { postgresTestDatabase } from "@shivaedev/rate-limit/postgresTestDatabase.ts";
 import { signedInUser } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";

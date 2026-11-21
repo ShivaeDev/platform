@@ -1,8 +1,8 @@
 import * as NodePath from "@effect/platform-node/NodePath";
 import { Effect, Path, Schema } from "effect";
 import { type BiomeRun, runBiome } from "#adapters/biome/run.ts";
-import { toolContractDefaults } from "#adapters/biome/toolContractDefaults.ts";
 import { recognizeDiagnostics } from "#biome/recognizeDiagnostics.ts";
+import { toolContractDefaults } from "#biome/toolContractDefaults.ts";
 import type { ExceptionDeclaration } from "#exceptions/declaration.ts";
 import { SetupFailure } from "#failure.ts";
 import { ignoredTrackedPaths } from "#inventory/trackedPaths.ts";
@@ -43,9 +43,10 @@ const reportFor = Effect.fn("Biome.reportFor")(function* (
 	paths: readonly string[],
 	exceptions: readonly ExceptionDeclaration[],
 	nonEffectFolders: readonly string[],
+	liftAdapters: boolean,
 ) {
 	const command = [...args, "--reporter=json", "--max-diagnostics=none", ...paths];
-	const run = yield* runBiome(root, command, exceptions, nonEffectFolders);
+	const run = yield* runBiome(root, command, exceptions, nonEffectFolders, liftAdapters);
 	const report = decodeReport(run.stdout.trim());
 	if (report._tag === "None") {
 		return yield* Effect.fail(failure(command, run, "a report", [run.stdout, run.stderr].join("\n")));
@@ -67,10 +68,11 @@ export const biomeReport = Effect.fn("Biome.biomeReport")(function* (
 	exceptions: readonly ExceptionDeclaration[] = [],
 	files: readonly string[] = ["."],
 	nonEffectFolders: readonly string[] = [],
+	liftAdapters = false,
 ) {
 	const { relative, sep } = yield* Path.Path.pipe(Effect.provide(NodePath.layer));
 
-	const [report, tracked] = yield* Effect.all([reportFor(root, args, files, exceptions, nonEffectFolders), ignoredTrackedPaths(root)], {
+	const [report, tracked] = yield* Effect.all([reportFor(root, args, files, exceptions, nonEffectFolders, liftAdapters), ignoredTrackedPaths(root)], {
 		concurrency: "unbounded",
 	});
 	const paths = tracked
@@ -78,7 +80,7 @@ export const biomeReport = Effect.fn("Biome.biomeReport")(function* (
 		.filter((path) => files.includes(".") || files.includes(path))
 		.filter((path) => !path.split(sep).some((part) => part === ".git" || part === ".worktrees" || part === "node_modules"));
 	const extraArgs = [...args, "--vcs-enabled=false", ...(args.includes("--no-errors-on-unmatched") ? [] : ["--no-errors-on-unmatched"])];
-	const extra = paths.length === 0 ? undefined : yield* reportFor(root, extraArgs, paths, exceptions, nonEffectFolders);
+	const extra = paths.length === 0 ? undefined : yield* reportFor(root, extraArgs, paths, exceptions, nonEffectFolders, liftAdapters);
 	const diagnostics = [...report.diagnostics, ...(extra?.diagnostics ?? [])];
 	const unique = [...new Map(diagnostics.map((diagnostic) => [JSON.stringify(diagnostic), diagnostic])).values()];
 	return {

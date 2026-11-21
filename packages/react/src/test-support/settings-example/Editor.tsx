@@ -1,7 +1,7 @@
 import { useAtomMount } from "@effect/atom-react";
 import { Option, Schema } from "effect";
 import { useId } from "react";
-import { useField } from "@shivaedev/form/adapters/react.ts";
+import { useField } from "@shivaedev/form/react.ts";
 import { useEditor } from "#client/editor.ts";
 import { Settings } from "#test/settings-example/contract.ts";
 import type { makeClient } from "#test/settings-example/makeClient.ts";

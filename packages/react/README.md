@@ -24,7 +24,7 @@ State belongs to an **atom in a registry**. A query hook reads that atom's nativ
 
 An **editor** joins a query atom, a form field schema and a save Effect. The query provides the row; `values(row)` converts it to input values; the schema decodes those values before the save runs. form owns the draft and the per-field merge. A **create form** uses the same submission rules without a query and starts a fresh form after success.
 
-Use `useConnectionStatus(client)` from `@shivaedev/react/client/adapters/useConnectionStatus.ts` with the client returned by contract's `makeClient`. It returns one `"live" | "reconnecting" | "waiting-for-connection"` value across mounted queries from every binding on that client's `Client` service. Live subscription status changes debounce for 300 ms on the client runtime's Clock. A bound command held for reconnection reports `"waiting-for-connection"` immediately, so the application can show Reconnecting while keeping the action pending. Contract holds unsent commands for up to 10 seconds and returns a typed `RpcClientError` on timeout; commands already sent are never replayed. The default socket probes Ping/Pong on browser or native resume and reconnects after 2.5 seconds without a Pong. A query refusal is separate from connectivity. Visible browser `online` and `visibilitychange` signals interrupt the live retry delay and reconnect immediately with a fresh backoff schedule.
+Use `useConnectionStatus(client)` from `@shivaedev/react/client/useConnectionStatus.ts` with the client returned by contract's `makeClient`. It returns one `"live" | "reconnecting" | "waiting-for-connection"` value across mounted queries from every binding on that client's `Client` service. Live subscription status changes debounce for 300 ms on the client runtime's Clock. A bound command held for reconnection reports `"waiting-for-connection"` immediately, so the application can show Reconnecting while keeping the action pending. Contract holds unsent commands for up to 10 seconds and returns a typed `RpcClientError` on timeout; commands already sent are never replayed. The default socket probes Ping/Pong on browser or native resume and reconnects after 2.5 seconds without a Pong. A query refusal is separate from connectivity. Visible browser `online` and `visibilitychange` signals interrupt the live retry delay and reconnect immediately with a fresh backoff schedule.
 
 Use `useFirstSettled(client)` from `@shivaedev/react/client/adapters/useFirstSettled.ts` with the same client to reveal a session's first screen in one step instead of one loading state per query. It returns `false` until the screen that calls it has rendered once and, with that, no query mounted on the client awaits a first result and no command is in flight, so a first screen that reads no query, such as a blank form, turns it `true` as soon as it has rendered. From then on it returns `true` for that client: a later command or a newly mounted query does not turn it back. A query the screen mounts only after its first render, from an effect or a state change, is not waited for: the reveal shows that query's own loading state. Render TanStack routes with `RouterProvider` from `@shivaedev/react/RouterProvider.ts`, which takes TanStack's props and renders TanStack's provider: it holds `useFirstSettled` until the first route has rendered, so the hook gives the right answer above the router too. Above TanStack's own `RouterProvider` the hook turns `true` before the first route exists. The signal belongs to the client, so a new session generation whose `connect` makes a new client starts at `false` again. A query that only the session's [warm list](#keep-queries-warm-for-the-session) mounts does not hold it back while it awaits its first result, and a query that shows a [stored](#keep-query-results-across-a-reload) or retained result does not hold it back while it revalidates, so a reload with stored results is revealed at once.
 
@@ -346,7 +346,7 @@ The next module assumes a sibling `invoice-lines-client.ts` exports a contract-b
 import { useCreate } from "@shivaedev/react/client/create.ts";
 import { useEditor } from "@shivaedev/react/client/editor.ts";
 import { QueryView } from "@shivaedev/react/client/QueryView.ts";
-import { useField } from "@shivaedev/form/adapters/react.ts";
+import { useField } from "@shivaedev/form/react.ts";
 import type { Form } from "@shivaedev/form/shape.ts";
 import { Option, Schema } from "effect";
 import { api } from "./invoice-lines-client.ts";
@@ -590,11 +590,11 @@ A typed `Unauthorized` failure shows its message and asks the session owner to r
 
 #### Remove with a version-guarded Undo
 
-Use `useUndoableChange` from `@shivaedev/react/client/adapters/useUndoableChange.ts` when a versioned command also performs its inverse. Its payload includes `expectedVersion: number`, and its success includes `version: number`. Pass the bound command, and the application's `deployUpdate` as the `update` option:
+Use `useUndoableChange` from `@shivaedev/react/client/useUndoableChange.ts` when a versioned command also performs its inverse. Its payload includes `expectedVersion: number`, and its success includes `version: number`. Pass the bound command, and the application's `deployUpdate` as the `update` option:
 
 ```tsx
 import { Option } from "effect";
-import { useUndoableChange } from "@shivaedev/react/client/adapters/useUndoableChange.ts";
+import { useUndoableChange } from "@shivaedev/react/client/useUndoableChange.ts";
 
 function RemoveNote({ note }: { readonly note: { id: string; version: number } }) {
 	const change = useUndoableChange(api.change, { describe: (saved) => `Removed ${saved.id}`, update });
@@ -783,13 +783,13 @@ export function App() {
 
 Keep the result of `queryRoute` to call its `useRetry()` hook inside that route's error component. The returned callback refreshes the query using the current match's params, decoded search dependencies and context, then invalidates that match. A successful retry renders the route again without replacing the surrounding shell or its draft inputs.
 
-State where a signed-out visitor goes once, as `redirects.signedOut` in the router's context. A query route whose query fails with the shared `Unauthorized` rejection redirects there, and `permissionGuard` takes the same callback. `signInRedirect(path)` from `@shivaedev/react/adapters/signInRedirect.ts` builds it: a TanStack redirect to `path` that carries the requested path, search and fragment in sign-in's `returnTo` search field. `redirects.refused` handles `Forbidden` and `QueryReadDenied` the same way, with a callback that returns TanStack's `redirect`. A route overrides either target for its own query with `queryRoute(buildQuery, { redirects })`, as `memberNote` does here:
+State where a signed-out visitor goes once, as `redirects.signedOut` in the router's context. A query route whose query fails with the shared `Unauthorized` rejection redirects there, and `permissionGuard` takes the same callback. `signInRedirect(path)` from `@shivaedev/react/signInRedirect.ts` builds it: a TanStack redirect to `path` that carries the requested path, search and fragment in sign-in's `returnTo` search field. `redirects.refused` handles `Forbidden` and `QueryReadDenied` the same way, with a callback that returns TanStack's `redirect`. A route overrides either target for its own query with `queryRoute(buildQuery, { redirects })`, as `memberNote` does here:
 
 ```ts
 import { createRootRouteWithContext, createRoute, createRouter } from "@tanstack/react-router";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
-import type { QueryRouteRedirects } from "@shivaedev/react/adapters/queryRouteFailure.ts";
-import { signInRedirect } from "@shivaedev/react/adapters/signInRedirect.ts";
+import type { QueryRouteRedirects } from "@shivaedev/react/queryRouteFailure.ts";
+import { signInRedirect } from "@shivaedev/react/signInRedirect.ts";
 import { queryRoute } from "@shivaedev/react/client/adapters/queryRoute.ts";
 import { api } from "./notes-client.ts";
 
@@ -837,11 +837,11 @@ import { RouterProvider } from "@shivaedev/react/RouterProvider.ts";
 import type { ReactNode } from "react";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { permission } from "@shivaedev/access/permission.ts";
-import { Forbidden } from "@shivaedev/react/adapters/Forbidden.ts";
+import { Forbidden } from "@shivaedev/react/Forbidden.ts";
 import { PermissionBoundary, PermissionBoundaryError, useCan } from "@shivaedev/react/adapters/permissionBoundary.ts";
 import { permissionGuard } from "@shivaedev/react/adapters/permissionGuard.ts";
-import type { QueryRouteRedirects } from "@shivaedev/react/adapters/queryRouteFailure.ts";
-import { signInRedirect } from "@shivaedev/react/adapters/signInRedirect.ts";
+import type { QueryRouteRedirects } from "@shivaedev/react/queryRouteFailure.ts";
+import { signInRedirect } from "@shivaedev/react/signInRedirect.ts";
 import type { PermissionSession } from "@shivaedev/identity/PermissionSession.ts";
 import { can } from "@shivaedev/react/can.ts";
 import { queryRoute } from "@shivaedev/react/client/adapters/queryRoute.ts";
@@ -949,7 +949,7 @@ export function navigateTo(router: AnyRouter, href: string): void {
 
 `InnerWrap` puts `PermissionBoundary` inside the router, and the boundary's fallback can render `Link` and read route context. TanStack types `InnerWrap` as a component that returns an element, so `PermissionShell` leaves its return type to inference; annotated as returning `ReactNode`, it does not compile. Set `defaultErrorComponent: PermissionBoundaryError` so route and loader failures reach the boundary's fallback while TanStack keeps its navigation controller mounted. This lets a refused viewer follow the fallback link without reloading the page. Keep `disableGlobalCatchBoundary: true`; other errors propagate to an enclosing application boundary. A route-specific `errorComponent` owns any failures it consumes.
 
-`Forbidden` from `@shivaedev/react/adapters/Forbidden.ts` supplies the no-access heading, explanation and a router link. Set `to` to a route the viewer may open. Optional `title`, `children`, `backLabel` and `className` let the application choose wording and layout. The default heading is “Permission denied” and the link says “Go back”.
+`Forbidden` from `@shivaedev/react/Forbidden.ts` supplies the no-access heading, explanation and a router link. Set `to` to a route the viewer may open. Optional `title`, `children`, `backLabel` and `className` let the application choose wording and layout. The default heading is “Permission denied” and the link says “Go back”.
 
 `PermissionBoundary` also catches component query failures containing the shared `Forbidden` class. Without a boundary, query failures keep their normal typed state. TanStack resets route failures when the viewer navigates away; remount a boundary to clear a failure it catches outside the route error path.
 
@@ -1109,7 +1109,7 @@ const [createdAt] = useState(now);
 const stamp = () => ({ id: newId(), at: now() });
 ```
 
-These lines belong inside a component; `client` is the application's atom client. Stories pass a runtime containing their test Clock and seeded `SecureRandom`. The hooks use native atom suspense while the runtime builds. `useNewId` reads `SecureRandom` from `effect/crypto`, whose UUID generation must be synchronous. Without a runtime, they use a shared native runtime with Effect's default Clock and `clientCrypto` from `@shivaedev/react/client/adapters/crypto.ts`, which merges Effect's Web Crypto `SecureRandom` and `Digest` Layers. Provide that Layer to an application's runtime when it needs browser crypto.
+These lines belong inside a component; `client` is the application's atom client. Stories pass a runtime containing their test Clock and seeded `SecureRandom`. The hooks use native atom suspense while the runtime builds. `useNewId` reads `SecureRandom` from `effect/crypto`, whose UUID generation must be synchronous. Without a runtime, they use a shared native runtime with Effect's default Clock and `clientCrypto` from `@shivaedev/react/client/crypto.ts`, which merges Effect's Web Crypto `SecureRandom` and `Digest` Layers. Provide that Layer to an application's runtime when it needs browser crypto.
 
 `usePromiseAction(() => promise, options?)` from `@shivaedev/react/client/adapters/usePromiseAction.ts` returns the same state as `useAction`, with `dispatch()` taking no input. It runs the callback on dispatch, keeps its atom across rerenders and calls the latest committed callback. A promise rejection or synchronous throw becomes `Cause.UnknownError` by default. Supply `catch` to map the unknown cause into an application's typed failure:
 
@@ -1174,7 +1174,7 @@ import { CurrentViewer } from "@shivaedev/contract/readPolicy.ts";
 import { Identity } from "@shivaedev/identity/identity.ts";
 import { Authenticated } from "@shivaedev/identity/middleware.ts";
 import { layerMemoryProtocol } from "@shivaedev/test-kits/contract/testing.ts";
-import { screenPending } from "@shivaedev/react/adapters/screenPending.ts";
+import { screenPending } from "@shivaedev/react/screenPending.ts";
 import { useAction, useQuery } from "@shivaedev/react/client/resultState.ts";
 import { render } from "@shivaedev/test-story/client/adapters/react.ts";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
@@ -1285,7 +1285,7 @@ screenStories.it("shows the route failure", [], async () => {
 
 Story kits can acquire `captureReactWarnings` from `@shivaedev/test-story/client/adapters/react.ts` in their `create` effect with `const warnings = yield* captureReactWarnings`. The scope owns the capture and restores `console.error` when it closes, including after a failed story. Pass `warnings.onCaughtError` to `render` to capture boundary errors, or `warnings.expectCaughtError(predicate)` to exclude a declared error. Both handlers silence caught errors; the capture also silences and records `console.error` calls. `warnings.read()` returns `{ consoleErrors, caughtErrors }`, with each console call's arguments and the unexpected caught errors. It asserts nothing, leaving the story spec to state its expectation. The Vitest guard uses the same capture mechanism and additionally checks that every declared error occurred.
 
-A screen kit tells its screen driver when the screen has finished its work with `screenPending({ router })` from `@shivaedev/react/adapters/screenPending.ts`. The Effect reads the `AtomRegistry` from its environment and returns a function that reports `true` while a native `AsyncResult` that something still reads is waiting, or while the optional TanStack router loads a route, and `false` otherwise. A result left waiting by a component that has unmounted does not count, even while the registry's idle window keeps its atom. A mounted live query counts until its first answer arrives; after that its open subscription keeps nothing pending, so the screen settles while the live query stays mounted. Each call reads the registry and router at that moment, so pass it as the driver's `pending` option instead of listing the screen's queries by hand:
+A screen kit tells its screen driver when the screen has finished its work with `screenPending({ router })` from `@shivaedev/react/screenPending.ts`. The Effect reads the `AtomRegistry` from its environment and returns a function that reports `true` while a native `AsyncResult` that something still reads is waiting, or while the optional TanStack router loads a route, and `false` otherwise. A result left waiting by a component that has unmounted does not count, even while the registry's idle window keeps its atom. A mounted live query counts until its first answer arrives; after that its open subscription keeps nothing pending, so the screen settles while the live query stays mounted. Each call reads the registry and router at that moment, so pass it as the driver's `pending` option instead of listing the screen's queries by hand:
 
 ```ts
 const pending = yield* screenPending({ router }).pipe(Effect.provideService(AtomRegistry.AtomRegistry, view.registry));

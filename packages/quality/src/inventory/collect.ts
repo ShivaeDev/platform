@@ -1,7 +1,7 @@
 import { join, relative } from "node:path";
 import { Effect, FileSystem } from "effect";
-import { ignorePatterns } from "#adapters/ignore.ts";
 import type { SetupFailure } from "#failure.ts";
+import { ignorePatterns } from "#ignore.ts";
 import { FilesystemFailure, orWhenAbsent, readRequiredText } from "#inventory/filesystem.ts";
 import { posix } from "#inventory/ignoreScope.ts";
 import { linesOf } from "#inventory/linesOf.ts";

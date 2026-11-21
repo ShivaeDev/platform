@@ -2,10 +2,10 @@ import { Effect } from "effect";
 import ts from "typescript";
 import { isTestSupport } from "#naming/testName.ts";
 import { defineRule } from "#rule.ts";
-import { eventConsumption, repeatedEventConsumption } from "#rules/stories/adapters/eventConsumption.ts";
-import { failingSleep } from "#rules/stories/adapters/failureDeadline.ts";
-import { realTime } from "#rules/stories/adapters/realTime.ts";
+import { eventConsumption, repeatedEventConsumption } from "#rules/stories/eventConsumption.ts";
+import { failingSleep } from "#rules/stories/failureDeadline.ts";
 import { bindsModule, type ImportBinding, importBindings } from "#rules/stories/importBindings.ts";
+import { realTime } from "#rules/stories/realTime.ts";
 import { storyWaitSources } from "#rules/stories/sources.ts";
 import { memberName, syntaxFindings, unwrapped } from "#rules/stories/syntax.ts";
 

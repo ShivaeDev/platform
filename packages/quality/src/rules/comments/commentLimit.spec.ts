@@ -1,7 +1,7 @@
 import { maxPerFile } from "#rules/comments/maxPerFile.ts";
 import { VITEST_ENVIRONMENT } from "#test/pragmas.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
+import { assertThat } from "#testing/assertThat.ts";
 
 const counted = [
 	["a block comment once, however many lines it spans", ["/*", " * one", " * block", " */"], "1 comment"],

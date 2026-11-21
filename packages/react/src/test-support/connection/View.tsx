@@ -1,8 +1,8 @@
 import type { Effect } from "effect";
 import { useState } from "react";
-import { useConnectionStatus } from "#client/adapters/useConnectionStatus.ts";
 import { QueryView } from "#client/QueryView.ts";
 import { useQuery } from "#client/resultState.ts";
+import { useConnectionStatus } from "#client/useConnectionStatus.ts";
 import type { connect } from "#test/connection/connect.ts";
 
 type Client = Effect.Success<ReturnType<typeof connect>>;

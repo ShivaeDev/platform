@@ -1,7 +1,7 @@
 import { nestedComponents } from "#rules/react/nestedComponents.ts";
 import { FAILURE_HANDLERS, hooksRejected, METHOD_HANDLER, NESTED_HOOK, nestedAccepted, nestedRejected } from "#test/nestedComponentFiles.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
+import { assertThat } from "#testing/assertThat.ts";
 
 ruleStory.it(
 	"react/nested-components accepts failure handlers keyed by an error tag in a component and a custom hook, as arrows and as a method",

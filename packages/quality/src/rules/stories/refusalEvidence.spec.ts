@@ -1,8 +1,8 @@
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { positiveRefusals } from "#rules/stories/positiveRefusals.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
-import { assertThat, withMatchers } from "#testing/adapters/assertThat.ts";
-import { inStory, kitFiles } from "#testing/adapters/storySpecFiles.ts";
+import { assertThat, withMatchers } from "#testing/assertThat.ts";
+import { inStory, kitFiles } from "#testing/storySpecFiles.ts";
 
 const SPEC = "src/orders.spec.ts";
 

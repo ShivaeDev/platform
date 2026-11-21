@@ -2,7 +2,7 @@ import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { manifestsSourceFirst } from "#rules/manifestsSourceFirst.ts";
 import { conditionManifest } from "#test/manifestStory.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
+import { assertThat } from "#testing/assertThat.ts";
 
 for (const condition of ["@shivaedev/source", "source"]) {
 	const SOURCE_FIRST = `{ "${condition}": "./src/*.ts", "types": "./dist/*.d.ts", "default": "./dist/*.js" }`;

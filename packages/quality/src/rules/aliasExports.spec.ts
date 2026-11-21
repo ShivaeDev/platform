@@ -2,8 +2,8 @@ import { biome } from "#rules/biome.ts";
 import { noBarrel } from "#rules/noBarrel.ts";
 import { repositoryHas, repositoryLinks, ruleStory } from "#test/ruleStory.ts";
 import { importForms, localAliasFacade, realWrappers, secondNameFiles, typeImportForms } from "#test/secondNameFiles.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
 import { DEFAULT_FILES, packageRoot } from "#testing/adapters/tree.ts";
+import { assertThat } from "#testing/assertThat.ts";
 
 const PRESET = [
 	repositoryHas(...DEFAULT_FILES.filter((file) => file.path !== "src/value.ts")),

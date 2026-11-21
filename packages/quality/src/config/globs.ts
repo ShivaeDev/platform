@@ -1,5 +1,5 @@
 import { Effect, Schema } from "effect";
-import { matchesIgnorePattern } from "#adapters/ignore.ts";
+import { matchesIgnorePattern } from "#ignore.ts";
 
 const GlobDeclaration = Schema.Struct({
 	glob: Schema.NonEmptyString,

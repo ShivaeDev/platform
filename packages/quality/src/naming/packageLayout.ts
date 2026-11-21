@@ -1,6 +1,6 @@
 import { posix } from "node:path";
 import { Effect } from "effect";
-import { type ManifestReadFailure, readPackageManifest } from "#adapters/manifestInventory.ts";
+import { type ManifestReadFailure, readPackageManifest } from "#manifestInventory.ts";
 import type { RuleInputs } from "#rule.ts";
 
 export interface PackageLayout {

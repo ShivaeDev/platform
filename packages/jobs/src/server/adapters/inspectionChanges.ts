@@ -1,9 +1,9 @@
 import { Effect } from "effect";
 import type { PgBossClient } from "#server/adapters/client.ts";
-import { inspectionChannel } from "#server/adapters/inspectionPlan.ts";
-import { localInspectionChanges } from "#server/adapters/localInspectionChanges.ts";
-import { queueSignal } from "#server/adapters/queueSignal.ts";
 import { toPgBossError } from "#server/error.ts";
+import { inspectionChannel } from "#server/inspectionPlan.ts";
+import { localInspectionChanges } from "#server/localInspectionChanges.ts";
+import { queueSignal } from "#server/queueSignal.ts";
 
 export const inspectionChanges = Effect.fnUntraced(function* (client: PgBossClient, schema: string, queue?: string) {
 	const signal = queueSignal();

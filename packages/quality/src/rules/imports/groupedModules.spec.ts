@@ -1,7 +1,7 @@
 import { importsRuntime } from "#rules/imports/runtime.ts";
 import { brokenModuleImports, groupedModules } from "#test/groupedModules.ts";
 import { importStory, repositoryHas } from "#test/importStory.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
+import { assertThat } from "#testing/assertThat.ts";
 
 for (const directory of ["", "packages/app/"]) {
 	const workspace = repositoryHas(

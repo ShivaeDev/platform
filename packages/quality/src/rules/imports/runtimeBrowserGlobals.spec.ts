@@ -1,6 +1,6 @@
 import { importsRuntime } from "#rules/imports/runtime.ts";
 import { emptyFolders, importStory, repositoryHas } from "#test/importStory.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
+import { assertThat } from "#testing/assertThat.ts";
 
 const DIRECT = [
 	"window",

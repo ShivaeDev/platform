@@ -1,5 +1,5 @@
 import ts from "typescript";
-import { storyBody } from "#adapters/bodyReferences.ts";
+import { storyBody } from "#bodyReferences.ts";
 
 export function storyUsesInputs(body: ts.Expression, checker: ts.TypeChecker): boolean | undefined {
 	const declaration = storyBody(body, checker);

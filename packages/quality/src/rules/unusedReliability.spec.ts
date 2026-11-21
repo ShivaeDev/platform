@@ -2,7 +2,7 @@ import { unusedCode } from "#rules/unusedCode.ts";
 import { repositoryHas as cliRepositoryHas, qualityInstalled, repositoryStory } from "#test/repositoryStory.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
 import { unusedWorktree } from "#test/unusedWorktree.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
+import { assertThat } from "#testing/assertThat.ts";
 
 repositoryStory.it(
 	"quality surfaces knip's exit code and broken tsconfig extends error without a schema error",

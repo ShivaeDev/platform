@@ -3,8 +3,8 @@ import { dirname, join } from "node:path";
 import { NodeFileSystem } from "@effect/platform-node";
 import { Effect, Schema } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { readPackageManifest } from "#adapters/manifestInventory.ts";
-import { manifestReader } from "#adapters/manifestReader.ts";
+import { readPackageManifest } from "#manifestInventory.ts";
+import { manifestReader } from "#manifestReader.ts";
 import { type CliAnswer, cliVerbs } from "#test/cliAnswers.ts";
 import { config, linkPackage, type SeedFile, seedTree } from "#testing/adapters/tree.ts";
 

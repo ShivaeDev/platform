@@ -7,8 +7,8 @@ import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDat
 import { render } from "@shivaedev/test-story/client/adapters/react.ts";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { JobsView } from "#client/adapters/JobsView.ts";
-import type { DateDisplay } from "#client/adapters/timestampText.ts";
+import { JobsView } from "#client/JobsView.ts";
+import type { DateDisplay } from "#client/timestampText.ts";
 import { browserZone } from "#test/browserZone.ts";
 import { jobsEngine, postgresConfigured, postgresLayer } from "#test/jobsEngine.ts";
 import { idOf, named } from "#test/jobsNames.ts";

@@ -1,7 +1,7 @@
 import { unusedCode } from "#rules/unusedCode.ts";
 import { BUILD_SHAPES, programmaticBuild } from "#test/programmaticBuild.ts";
 import { ruleStory } from "#test/ruleStory.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
+import { assertThat } from "#testing/assertThat.ts";
 
 for (const [shape, content] of BUILD_SHAPES) {
 	ruleStory.it(`code/unused follows ${shape} and keeps the abandoned file visible`, [programmaticBuild(content)], function* ({ check }) {

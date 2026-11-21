@@ -1,6 +1,6 @@
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { qualityInstalled, repositoryHas, ruleStory } from "#test/ruleStory.ts";
-import { withMatchers } from "#testing/adapters/assertThat.ts";
+import { withMatchers } from "#testing/assertThat.ts";
 
 for (const [name, path, content, problem] of [
 	["malformed JSON", "tsr.config.json", "{", "cannot read routes from"],

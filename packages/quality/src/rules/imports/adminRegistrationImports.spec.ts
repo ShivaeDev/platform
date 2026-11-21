@@ -1,6 +1,6 @@
 import { importsAliased } from "#rules/imports/aliased.ts";
 import { importStory, repositoryHas } from "#test/importStory.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
+import { assertThat } from "#testing/assertThat.ts";
 
 for (const directory of ["", "packages/app/"]) {
 	for (const module of ["inbox", "admin/inbox"]) {

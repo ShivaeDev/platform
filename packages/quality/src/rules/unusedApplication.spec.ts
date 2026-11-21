@@ -1,7 +1,7 @@
 import { unusedCode } from "#rules/unusedCode.ts";
 import { ruleStory } from "#test/ruleStory.ts";
 import { unusedApplication } from "#test/unusedApplication.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
+import { assertThat } from "#testing/assertThat.ts";
 
 ruleStory.it(
 	"code/unused accepts folder migrations, shadcn imports, CSS dependencies, peers and test support in a plain app",

@@ -10,7 +10,7 @@ Wrapping every body in `Effect.gen` hides the test's work, and copying a runner 
 import { expect } from "@effect/vitest";
 import { Clock } from "effect";
 import * as TestClock from "effect/testing/TestClock";
-import { it } from "@shivaedev/test/adapters/it.ts";
+import { it } from "@shivaedev/test/it.ts";
 
 it.effect("advances the test's time", function* () {
 	expect(yield* Clock.currentTimeMillis).toBe(0);
@@ -115,7 +115,7 @@ effectApp("reads the harness", function* (token) {
 ```ts
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
-import { it } from "@shivaedev/test/adapters/it.ts";
+import { it } from "@shivaedev/test/it.ts";
 
 it.effect("reads an Effect result", function* ({ task }) {
 	expect(task.name).toBe("reads an Effect result");
@@ -223,7 +223,7 @@ The entire wrapped Effect, including readiness checks and retry delays, uses liv
 
 Import the module that defines the name; the package has no root entry. Every source module is available through its `.ts` subpath.
 
-- `@shivaedev/test/adapters/it.ts`: `it`, with generator-aware `effect` and `live` testers.
+- `@shivaedev/test/it.ts`: `it`, with generator-aware `effect` and `live` testers.
 - `@shivaedev/test/adapters/makeEffectIt.ts`: `makeEffectIt({ layer, makeHarness, around?, clock? })`, returning `{ effectApp }`.
 - `@shivaedev/test/eventually.ts`: `eventually(effect, options?)` and `EventuallyOptions`.
 - `@shivaedev/test/withLive.ts`: `withLive(effect)`, a live-time region under either clock.

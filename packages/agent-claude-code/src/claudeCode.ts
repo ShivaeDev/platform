@@ -2,8 +2,8 @@ import { Deferred, Effect, Layer, Option, Ref, Schema, Stream } from "effect";
 import { Backend, type ConfiguredBackend } from "@shivaedev/agent/backend.ts";
 import { ProtocolFailure, Rejected, UnknownAcceptance } from "@shivaedev/agent/failures.ts";
 import type { BackendReference, Receipt, StartRequest } from "@shivaedev/agent/run.ts";
-import { ClaudeProvider } from "#adapters/ClaudeProvider.ts";
 import { openSession } from "#adapters/openSession.ts";
+import { ClaudeProvider } from "#ClaudeProvider.ts";
 import type { ClaudeOptions } from "#options.ts";
 import { makeRunState, type RunState } from "#runState.ts";
 

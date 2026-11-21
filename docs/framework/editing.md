@@ -8,7 +8,7 @@ if (editor.form === undefined) return editor.query.pending ? <Loading /> : <Load
 return <InvoiceLineForm form={editor.form} save={editor.save} saving={editor.saving} />;
 ```
 
-`InvoiceLineFields` holds the quantity as text; without it the fields would be the command's payload fields minus `fixed`. The editor fills the inputs by encoding each row with those fields, and every save sends `{ ...fixed, ...values }`. `fixed` and the fields must cover the payload exactly, or the call does not compile and the error names the key. Inside `InvoiceLineForm`, `useField(form, "name")` from `@shivaedev/form/adapters/react.ts` supplies value, change, blur and message.
+`InvoiceLineFields` holds the quantity as text; without it the fields would be the command's payload fields minus `fixed`. The editor fills the inputs by encoding each row with those fields, and every save sends `{ ...fixed, ...values }`. `fixed` and the fields must cover the payload exactly, or the call does not compile and the error names the key. Inside `InvoiceLineForm`, `useField(form, "name")` from `@shivaedev/form/react.ts` supplies value, change, blur and message.
 
 ## Behavior
 

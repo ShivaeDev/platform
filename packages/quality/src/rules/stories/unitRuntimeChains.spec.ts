@@ -1,8 +1,8 @@
-import { PURE_REPAIR } from "#adapters/units/runtime.ts";
 import { storySpecs } from "#rules/stories/specs.ts";
 import { repositoryHas, repositoryLinks, ruleStory } from "#test/ruleStory.ts";
 import { ordersPackage, unitSpec } from "#test/unitFiles.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
+import { assertThat } from "#testing/assertThat.ts";
+import { PURE_REPAIR } from "#units/runtime.ts";
 
 const UNIT = "src/orders.unit.test.ts";
 
@@ -46,14 +46,14 @@ ruleStory.it(
 	[
 		repositoryHas(
 			ordersPackage,
-			{ content: '{"name":"@shivaedev/test","exports":{"./adapters/it.ts":"./src/adapters/it.ts"}}', path: "packages/test/package.json" },
-			{ content: 'import { execute } from "./runEffectTest.ts";\nexport const it = { effect: execute };', path: "packages/test/src/adapters/it.ts" },
+			{ content: '{"name":"@shivaedev/test","exports":{"./it.ts":"./src/it.ts"}}', path: "packages/test/package.json" },
+			{ content: 'import { execute } from "./adapters/runEffectTest.ts";\nexport const it = { effect: execute };', path: "packages/test/src/it.ts" },
 			{
 				content: 'import { Effect } from "effect";\nexport const execute = (program: Effect.Effect<void>) => Effect.runPromise(program);',
 				path: "packages/test/src/adapters/runEffectTest.ts",
 			},
 			{ content: 'packages:\n  - "packages/*"\n', path: "pnpm-workspace.yaml" },
-			unitSpec('import { it } from "@shivaedev/test/adapters/it.ts";\nit.effect(program);'),
+			unitSpec('import { it } from "@shivaedev/test/it.ts";\nit.effect(program);'),
 		),
 		repositoryLinks("node_modules/@shivaedev/test", "../../packages/test"),
 	],
@@ -65,7 +65,7 @@ ruleStory.it(
 				{
 					file: UNIT,
 					line: 1,
-					message: `This \`.unit\` test reaches \`Effect.runPromise\` through \`packages/test/src/adapters/it.ts -> packages/test/src/adapters/runEffectTest.ts:2\`. ${PURE_REPAIR}`,
+					message: `This \`.unit\` test reaches \`Effect.runPromise\` through \`packages/test/src/it.ts -> packages/test/src/adapters/runEffectTest.ts:2\`. ${PURE_REPAIR}`,
 				},
 			]),
 		);

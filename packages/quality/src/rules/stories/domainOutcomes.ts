@@ -2,9 +2,9 @@ import { Effect } from "effect";
 import ts from "typescript";
 import { importGraph } from "#imports/graph.ts";
 import { defineRule } from "#rule.ts";
-import { internalValue, shapeModule } from "#rules/stories/adapters/outcomeShapes.ts";
 import { importBindings } from "#rules/stories/importBindings.ts";
 import { storyOrigins } from "#rules/stories/origins.ts";
+import { internalValue, shapeModule } from "#rules/stories/outcomeShapes.ts";
 import { storySources } from "#rules/stories/sources.ts";
 import { findingAt, memberName, nodesWhere, unwrapped } from "#rules/stories/syntax.ts";
 

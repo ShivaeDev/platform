@@ -1,7 +1,7 @@
 import { importsManifest } from "#rules/imports/manifest.ts";
 import { importStory, repositoryHas, repositoryHolds, workspaceInstalled } from "#test/importStory.ts";
 import { manifestTree } from "#test/manifestTree.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
+import { assertThat } from "#testing/assertThat.ts";
 
 const SHIPPED = { content: 'import "plain-kit";', path: "modules/app/src/app.ts" };
 

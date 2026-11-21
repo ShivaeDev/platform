@@ -1,6 +1,6 @@
 import { type ClientRequest, type IncomingMessage, request } from "node:http";
 import { Effect } from "effect";
-import { type NodeSubscriptionSignal, nodeSubscriptionSignal } from "#adapters/subscriptionSignal.ts";
+import { type NodeSubscriptionSignal, nodeSubscriptionSignal } from "#subscriptionSignal.ts";
 import { type HostState, io } from "#test/app-host/state.ts";
 
 export interface SubscriptionState {

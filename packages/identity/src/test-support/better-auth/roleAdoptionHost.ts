@@ -9,8 +9,8 @@ import { signedInUser } from "@shivaedev/test-kits/identity/adapters/betterAuth.
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { AssignRoles } from "#roles.ts";
 import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
-import { betterAuthMount } from "#server/better-auth/adapters/mount.ts";
 import { assignRole } from "#server/better-auth/assignRole.ts";
+import { betterAuthMount } from "#server/better-auth/mount.ts";
 import { authTestDatabase } from "#server/better-auth/testDatabase.ts";
 
 const Access = roleSet(role("member", []), role("admin", [AssignRoles]));

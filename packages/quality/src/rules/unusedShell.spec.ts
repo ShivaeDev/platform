@@ -1,7 +1,7 @@
 import { unusedCode } from "#rules/unusedCode.ts";
 import { ruleStory } from "#test/ruleStory.ts";
 import { codeFreeShell, shellWithCode } from "#test/unusedShell.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
+import { assertThat } from "#testing/assertThat.ts";
 
 ruleStory.it("code/unused accepts the dependencies of a package that ships only its manifest", codeFreeShell(), function* ({ check, findings }) {
 	yield* check(unusedCode);

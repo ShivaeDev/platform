@@ -1,6 +1,6 @@
 import { Option } from "effect";
 import { useId } from "react";
-import { useField } from "@shivaedev/form/adapters/react.ts";
+import { useField } from "@shivaedev/form/react.ts";
 import { useCreate } from "@shivaedev/react/client/create.ts";
 import { Button } from "#client/ui/button.tsx";
 import { Input } from "#client/ui/input.tsx";

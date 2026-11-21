@@ -101,7 +101,7 @@ import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { useState } from "react";
 import { createRoot } from "react-dom/client";
 import { form } from "@shivaedev/form/form.ts";
-import { useDirty, useField, useSubmit } from "@shivaedev/form/adapters/react.ts";
+import { useDirty, useField, useSubmit } from "@shivaedev/form/react.ts";
 
 const fields = Schema.Struct({ name: Schema.NonEmptyString, quantity: Schema.NumberFromString });
 
@@ -200,7 +200,7 @@ For a React form, pass the acquired persistence into `usePersistedDraft` before 
 
 ```tsx
 import { useState } from "react";
-import { usePersistedDraft } from "@shivaedev/form/adapters/react.ts";
+import { usePersistedDraft } from "@shivaedev/form/react.ts";
 import type { PersistedDraftConfig } from "@shivaedev/form/persistence.ts";
 
 function OrderEditor({ persistence }: { readonly persistence: Omit<PersistedDraftConfig, "key"> }) {
@@ -258,7 +258,7 @@ Use `omit("note")` to remove a top-level optional key, or `omitAt(["profile", "n
 React inputs use `useFieldAt` with the same typed path:
 
 ```ts
-import { useFieldAt } from "@shivaedev/form/adapters/useFieldAt.ts";
+import { useFieldAt } from "@shivaedev/form/useFieldAt.ts";
 
 const low = useFieldAt(foodForm, ["energy", "low"]);
 ```
@@ -313,8 +313,8 @@ Without a selector for an array, handler errors fall back to index paths. They r
 
 ```tsx
 import * as Field from "@shivaedev/form/field.ts";
-import { numberInput } from "@shivaedev/form/adapters/numberInput.ts";
-import { useField } from "@shivaedev/form/adapters/react.ts";
+import { numberInput } from "@shivaedev/form/numberInput.ts";
+import { useField } from "@shivaedev/form/react.ts";
 
 const numbers = form(Schema.Struct({ amount: Field.number({ optional: true, min: 0, max: 100, integer: true }) }), {
 	initialValues: { amount: "" },
@@ -340,7 +340,7 @@ function Amount() {
 
 ```tsx
 import * as Field from "@shivaedev/form/field.ts";
-import { useList } from "@shivaedev/form/adapters/useList.ts";
+import { useList } from "@shivaedev/form/useList.ts";
 
 const quickAmounts = form(Schema.Struct({ amounts: Field.list(Field.number({ min: 1 }), { max: 5 }) }), {
 	initialValues: { amounts: ["1", "2"] },
@@ -391,17 +391,17 @@ For a form made with these fields, `order.choices("visibility")` returns the enc
 
 Import the module that defines a name; there is no root entry.
 
-| Module                                    | Application-facing exports                                                      |
-| ----------------------------------------- | ------------------------------------------------------------------------------- |
-| `@shivaedev/form/form.ts`                 | `form(schema, config)`                                                          |
-| `@shivaedev/form/shape.ts`                | `Form`, `Submitter`, `FieldFailure`, `Invalid` and the field types they use     |
-| `@shivaedev/form/fieldRejection.ts`       | `rejecting`, `fieldRejectionOf`, `FieldRejection`, `RejectField`                |
-| `@shivaedev/form/adapters/react.ts`       | `useField`, `useSubmit`, `useDirty`, `usePersistedDraft`, `DraftSessionContext` |
-| `@shivaedev/form/draftSession.ts`         | `draftSession(id)`                                                              |
-| `@shivaedev/form/field.ts`                | `number`, `list`, `NumberOptions`, `ListOptions`                                |
-| `@shivaedev/form/adapters/numberInput.ts` | `numberInput`                                                                   |
-| `@shivaedev/form/adapters/useList.ts`     | `useList`                                                                       |
-| `@shivaedev/form/emptyAsNull.ts`          | `emptyAsNull`                                                                   |
+| Module                              | Application-facing exports                                                      |
+| ----------------------------------- | ------------------------------------------------------------------------------- |
+| `@shivaedev/form/form.ts`           | `form(schema, config)`                                                          |
+| `@shivaedev/form/shape.ts`          | `Form`, `Submitter`, `FieldFailure`, `Invalid` and the field types they use     |
+| `@shivaedev/form/fieldRejection.ts` | `rejecting`, `fieldRejectionOf`, `FieldRejection`, `RejectField`                |
+| `@shivaedev/form/react.ts`          | `useField`, `useSubmit`, `useDirty`, `usePersistedDraft`, `DraftSessionContext` |
+| `@shivaedev/form/draftSession.ts`   | `draftSession(id)`                                                              |
+| `@shivaedev/form/field.ts`          | `number`, `list`, `NumberOptions`, `ListOptions`                                |
+| `@shivaedev/form/numberInput.ts`    | `numberInput`                                                                   |
+| `@shivaedev/form/useList.ts`        | `useList`                                                                       |
+| `@shivaedev/form/emptyAsNull.ts`    | `emptyAsNull`                                                                   |
 
 `form` takes a `Schema.Struct` and this configuration:
 

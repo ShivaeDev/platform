@@ -14,7 +14,7 @@ export default [
 		.from(
 			anyOf(
 				folders("packages/server/src/node-http", "packages/server/src/rpc-server", "packages/server/src/runtime"),
-				files("packages/server/src/adapters/makePlatformRuntime.ts", "packages/server/src/adapters/subscriptionSignal.ts"),
+				files("packages/server/src/adapters/makePlatformRuntime.ts", "packages/server/src/subscriptionSignal.ts"),
 			),
 		)
 		.mayNotReach(anyOf(modules(...SERVER_OPTIONAL_PEERS), scopes("@better-auth")))

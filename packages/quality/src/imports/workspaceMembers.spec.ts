@@ -1,5 +1,5 @@
 import { importStory, repositoryHas } from "#test/importStory.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
+import { assertThat } from "#testing/assertThat.ts";
 
 const WORKSPACE = { content: "packages:\n  - packages/*\n  - '!packages/example'\n", path: "pnpm-workspace.yaml" };
 

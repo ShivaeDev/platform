@@ -3,10 +3,10 @@ import type { Model } from "effect/schema";
 import { SqlClient } from "effect/sql";
 import type { SqlError } from "effect/sql/SqlError";
 import type { Fragment } from "effect/sql/Statement";
-import { storageSchema } from "#adapters/storageSchema.ts";
 import type { RepositoryChanges } from "#repositoryChanges.ts";
 import type { RepositorySelect } from "#repositoryQueries.ts";
 import { sqlNameTransforms } from "#sqlNameTransforms.ts";
+import { storageSchema } from "#storageSchema.ts";
 
 type CompatibleColumn<TType, TEncoded, TFields extends Schema.Struct.Fields> = {
 	[TKey in keyof TFields]: TFields[TKey]["Type"] extends TType ? (TFields[TKey]["Encoded"] extends TEncoded ? TKey : never) : never;

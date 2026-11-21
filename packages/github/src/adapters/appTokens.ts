@@ -1,7 +1,6 @@
 import { Cache, Clock, Context, Effect, Exit, Layer, Option, type Redacted, Schema } from "effect";
 import { type HttpClient, HttpClientRequest } from "effect/http";
 import { readBoundedJson } from "@shivaedev/http/body.ts";
-import { resolveApiUrl } from "#adapters/resolveApiUrl.ts";
 import { appJwt } from "#appJwt.ts";
 import { authenticatedRequest } from "#authenticatedRequest.ts";
 import { GitHubAppError } from "#errors.ts";
@@ -9,6 +8,7 @@ import { GitHubConfig } from "#GitHubConfig.ts";
 import { GitHubToken } from "#GitHubToken.ts";
 import type { GitHubAppOptions } from "#githubApp.ts";
 import { rateLimits } from "#rateLimits.ts";
+import { resolveApiUrl } from "#resolveApiUrl.ts";
 import { TokenRefresh } from "#TokenRefresh.ts";
 
 const Installation = Schema.Struct({ id: Schema.Number });

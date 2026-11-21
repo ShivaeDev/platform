@@ -1,9 +1,9 @@
 import { Schema } from "effect";
-import { useUndoableChange } from "#client/adapters/useUndoableChange.ts";
 import { useCreate } from "#client/create.ts";
 import type { deployUpdate } from "#client/deployUpdate.ts";
 import { useEditor } from "#client/editor.ts";
 import { useAction } from "#client/resultState.ts";
+import { useUndoableChange } from "#client/useUndoableChange.ts";
 import { api } from "#test/compiler-fixtures/notes.ts";
 
 const query = api.get.query({ id: 1 });

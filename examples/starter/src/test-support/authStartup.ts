@@ -1,6 +1,6 @@
 import { DateTime, Effect, Redacted } from "effect";
 import { betterAuthDatabase } from "@shivaedev/identity/server/better-auth/adapters/database.ts";
-import { betterAuthMount } from "@shivaedev/identity/server/better-auth/adapters/mount.ts";
+import { betterAuthMount } from "@shivaedev/identity/server/better-auth/mount.ts";
 import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";

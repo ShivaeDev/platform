@@ -2,7 +2,7 @@ import { ConfigProvider, Effect } from "effect";
 import { SqlClient } from "effect/sql";
 import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
 import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
-import { betterAuthMount } from "#server/better-auth/adapters/mount.ts";
+import { betterAuthMount } from "#server/better-auth/mount.ts";
 import { authTestDatabase } from "#server/better-auth/testDatabase.ts";
 
 export const compositionOptions = {

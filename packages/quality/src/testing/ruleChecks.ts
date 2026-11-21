@@ -1,5 +1,6 @@
 import { Cause, Effect, Path } from "effect";
 import { configureRegistered } from "#adapters/rule.ts";
+import { permitted, reported } from "#engine/unsafeFindings.ts";
 import type { Findings, RegisteredRule, Rule, RuleInputs } from "#rule.ts";
 import type { Run } from "#testing/adapters/cli.ts";
 import { scanned } from "#testing/adapters/imports.ts";
@@ -9,6 +10,11 @@ export interface RuleEngine {
 	failure: string | undefined;
 	findings: Findings | undefined;
 	readonly root: string;
+}
+
+// The gate drops what adapters/ and test-support/ permit, so a checked rule reads the same findings.
+function gated(findings: Findings): Findings {
+	return findings.filter((finding) => !permitted(finding)).map(reported);
 }
 
 export function ruleChecks(engine: RuleEngine, tell: (line: string) => void) {
@@ -27,7 +33,7 @@ export function ruleChecks(engine: RuleEngine, tell: (line: string) => void) {
 			const path = yield* Path.Path;
 			const scannedInputs = yield* Effect.promise(() => scanned(path.join(engine.root, directory)));
 			const inputs: RuleInputs = entries === undefined ? scannedInputs : { ...scannedInputs, entries };
-			engine.findings = yield* configured.check(inputs);
+			engine.findings = gated(yield* configured.check(inputs));
 			return engine.findings;
 		}),
 		checkOutcome: Effect.fn("RuleStory.checkOutcome")(function* <TInput>(rule: Rule<string, TInput>, entries: readonly string[]) {
@@ -43,7 +49,7 @@ export function ruleChecks(engine: RuleEngine, tell: (line: string) => void) {
 				return "failed";
 			}
 			engine.failure = undefined;
-			engine.findings = result.value;
+			engine.findings = gated(result.value);
 			return "passed";
 		}),
 		failureMessage: () =>

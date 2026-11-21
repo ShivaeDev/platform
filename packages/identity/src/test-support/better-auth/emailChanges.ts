@@ -1,6 +1,6 @@
 import { Effect, Redacted } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { changeEmail } from "#client/adapters/changeEmail.ts";
+import { changeEmail } from "#client/changeEmail.ts";
 import { emailChangeHost } from "#test/better-auth/emailChangeHost.ts";
 import { storyClock, withIdentityDatabase } from "#test/clock.ts";
 import { CURRENT_PASSWORD } from "#test/passwords.ts";

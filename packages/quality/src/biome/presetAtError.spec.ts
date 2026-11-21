@@ -1,5 +1,5 @@
 import { biomeStory } from "#test/biomeStory.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
+import { assertThat } from "#testing/assertThat.ts";
 
 biomeStory.it(
 	"Quality's shipped preset runs every rule Biome recommends at error, apart from the rules its declarations weaken",

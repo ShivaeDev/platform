@@ -65,7 +65,7 @@ export default [
 			),
 		)
 		.demonstratedBy({
-			illegal: ["packages/admin/src/client/adapters/UsersView.ts", external("node:fs")],
-			legal: ["packages/admin/src/client/adapters/UsersView.ts", external("react")],
+			illegal: ["packages/admin/src/client/UsersView.ts", external("node:fs")],
+			legal: ["packages/admin/src/client/UsersView.ts", external("react")],
 		}),
 ];

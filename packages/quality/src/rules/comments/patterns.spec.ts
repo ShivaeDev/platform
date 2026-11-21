@@ -6,7 +6,7 @@ import { noPrReference } from "#rules/comments/noPrReference.ts";
 import { noTodo } from "#rules/comments/noTodo.ts";
 import { JEST_ENVIRONMENT, VITEST_ENVIRONMENT } from "#test/pragmas.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
+import { assertThat } from "#testing/assertThat.ts";
 
 interface Case {
 	readonly fires: ReadonlyArray<readonly [string, string]>;

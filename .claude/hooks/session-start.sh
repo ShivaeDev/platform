@@ -2,7 +2,7 @@
 # Prepares a Claude Code cloud session to run this repository's checks. The repository states every version it needs,
 # so the cloud environment stays generic and never needs an update when a version moves:
 #   Node           .node-version
-#   PostgreSQL     the image tag and server URL in packages/local-postgres/src/server/adapters/localContainer.ts and localPostgres.ts
+#   PostgreSQL     the image tag and server URL in packages/local-postgres/src/server/localContainer.ts and localPostgres.ts
 # Every step skips work that is already done, so a resumed or cached session starts in seconds.
 set -euo pipefail
 
@@ -65,7 +65,7 @@ if ! command -v pnpm >/dev/null; then
 fi
 
 # --- PostgreSQL: the major and minor of the pinned image, served on the port local setup expects ---
-tag="$(sed -n 's/.*"postgres:\([0-9][0-9.]*\)-alpine.*/\1/p' packages/local-postgres/src/server/adapters/localContainer.ts | head -1)"
+tag="$(sed -n 's/.*"postgres:\([0-9][0-9.]*\)-alpine.*/\1/p' packages/local-postgres/src/server/localContainer.ts | head -1)"
 url="$(sed -n 's/.*LOCAL_SERVER = "\([^"]*\)".*/\1/p' packages/local-postgres/src/server/localPostgres.ts | head -1)"
 major="${tag%%.*}"
 port="${url##*:}"

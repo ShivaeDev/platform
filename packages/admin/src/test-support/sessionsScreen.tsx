@@ -5,7 +5,7 @@ import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDat
 import { type Rendered, render } from "@shivaedev/test-story/client/adapters/react.ts";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import type { DateDisplay } from "#client/adapters/timestampText.ts";
+import type { DateDisplay } from "#client/timestampText.ts";
 import { browserZone } from "#test/browserZone.ts";
 import { postgresConfigured, postgresLayer } from "#test/jobsEngine.ts";
 import { SessionsScreenApp } from "#test/SessionsScreenApp.tsx";

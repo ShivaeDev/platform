@@ -1,7 +1,7 @@
 import { noDoubleCast } from "#rules/suppressions/noDoubleCast.ts";
 import { nativeCastTypes } from "#test/nativeCastTypes.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
+import { assertThat } from "#testing/assertThat.ts";
 
 const NEAR_MISSES = [
 	'export const reportable = (value: unknown) => Object.assign(Predicate.isObject(value) ? value : new Error(String(value)), { [ErrorReporter.severity]: "Error" });',

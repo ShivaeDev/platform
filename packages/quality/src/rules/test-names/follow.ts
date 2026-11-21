@@ -1,7 +1,7 @@
 import { posix } from "node:path";
 import { Effect, Schema } from "effect";
-import { ignorePatterns } from "#adapters/ignore.ts";
 import { GlobDeclarations, globPatterns, validateGlobs } from "#config/globs.ts";
+import { ignorePatterns } from "#ignore.ts";
 import { packageTests } from "#naming/packageTests.ts";
 import { ENVIRONMENTS, type TestName, testName } from "#naming/testName.ts";
 import { CAMEL } from "#naming/words.ts";

@@ -1,7 +1,7 @@
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { heavyLint } from "#test/heavyLint.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
 import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
+import { assertThat } from "#testing/assertThat.ts";
 
 heavyLint.it(
 	"a parallel lint waits until the lint running Biome releases the shared heavy-process lock",

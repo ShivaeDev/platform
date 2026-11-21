@@ -1,8 +1,8 @@
 import ts from "typescript";
-import { inAdaptersOrTestSupport } from "#naming/unsafeFolders.ts";
 import { defineRule, type Finding, type SourceFile } from "#rule.ts";
 import { boundaryReference, moduleBinder } from "#rules/effect/boundaryReference.ts";
 import { parses } from "#rules/parse.ts";
+import { skipsUnsafeFolder, unsafeFindings } from "#rules/unsafeFindings.ts";
 
 const UNSAFE_NAME = /[a-z0-9]Unsafe$/u;
 
@@ -80,7 +80,7 @@ function unsafeKey(checker: ts.TypeChecker, node: ts.Expression, called: boolean
 	return called && ts.isPropertyAccessExpression(node) && reference === undefined ? name : undefined;
 }
 
-function unsafeFindings(checker: ts.TypeChecker, path: string, source: ts.SourceFile): readonly Finding[] {
+function callFindings(checker: ts.TypeChecker, path: string, source: ts.SourceFile): readonly Finding[] {
 	const found: Finding[] = [];
 	function report(node: ts.Expression, called: boolean) {
 		const key = unsafeKey(checker, node, called);
@@ -107,13 +107,13 @@ function unsafeFindings(checker: ts.TypeChecker, path: string, source: ts.Source
 }
 
 function checked(file: SourceFile): boolean {
-	return parses(file) && !inAdaptersOrTestSupport(file.path) && !UNCHECKED_FILE.test(file.path) && /[a-z0-9]Unsafe\b/u.test(file.text);
+	return parses(file) && !UNCHECKED_FILE.test(file.path) && /[a-z0-9]Unsafe\b/u.test(file.text);
 }
 
 export const unsafeCalls = defineRule({
-	check: ({ sources }) => {
-		const { checker, parsed } = moduleBinder(sources.filter(checked));
-		return [...parsed].flatMap(([path, source]) => unsafeFindings(checker, path, source));
+	check: (inputs) => {
+		const { checker, parsed } = moduleBinder(inputs.sources.filter((file) => !skipsUnsafeFolder(inputs, file.path) && checked(file)));
+		return unsafeFindings([...parsed].flatMap(([path, source]) => callFindings(checker, path, source)));
 	},
 	description:
 		"Core code does not call Effect's …Unsafe functions bare: they run synchronously outside an Effect, so they throw on bad input (DateTime.makeUnsafe) or perform their side effect at once (Queue.offerUnsafe). The rule reports calls of …Unsafe functions imported from effect or @effect/*, such functions passed as an argument, and …Unsafe member calls on a value such as reactivity.registerUnsafe(keys). A call inside an Effect.sync, Effect.try or Effect.suspend thunk, including a callback written inside it, is accepted, as is the body of an object-literal or class member named …Unsafe, which implements an unsafe member of an interface; a function or variable named …Unsafe gets no such exemption. A repository's own …Unsafe function or module export is not reported. The finding names the safe counterpart where Effect ships one: DateTime.make and Duration.fromInput return an Option, the Duration constructors build a fixed value, Queue.offer is an Effect and Stream.callback turns a callback into a stream. Tests, tool configs, adapters/ and test-support/ are not checked. currentTimeMillisUnsafe stays with the ambient-runtime Biome plugin, and Context.makeUnsafe, which neither throws nor acts but only builds a Context from a raw map, is not reported; no-double-cast reports a Context retagged through mapUnsafe.",

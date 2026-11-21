@@ -1,9 +1,9 @@
 import { DateTime, Effect, Option, Redacted, Stream } from "effect";
 import { HttpClient, HttpClientRequest } from "effect/http";
 import * as HttpStatus from "effect/http/HttpStatus";
-import { manualRedirects } from "#adapters/manualRedirects.ts";
 import { GitHubTransportError } from "#errors.ts";
 import { GitHubToken } from "#GitHubToken.ts";
+import { manualRedirects } from "#manualRedirects.ts";
 import { failRateLimited, type RateLimits } from "#rateLimits.ts";
 import { checkStatus, isUnauthorized, isUnchanged } from "#status.ts";
 import { TokenRefresh } from "#TokenRefresh.ts";

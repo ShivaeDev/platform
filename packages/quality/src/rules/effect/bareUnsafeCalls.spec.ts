@@ -1,7 +1,7 @@
 import { unsafeCalls } from "#rules/effect/unsafeCalls.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
 import { uncheckedPaths, unsafeAccepted, unsafeRejected } from "#test/unsafeCallFiles.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
+import { assertThat } from "#testing/assertThat.ts";
 
 for (const { code, message, name } of unsafeRejected) {
 	ruleStory.it(

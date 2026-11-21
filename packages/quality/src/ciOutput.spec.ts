@@ -1,6 +1,6 @@
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { ciEnvironment, outputPolicyStory } from "#test/outputPolicyStory.ts";
-import { assertThat, withMatchers } from "#testing/adapters/assertThat.ts";
+import { assertThat, withMatchers } from "#testing/assertThat.ts";
 
 outputPolicyStory.it("in CI, a passing test's diagnostic stays in the output", [ciEnvironment("true")], function* ({ output, runsPassingTest }) {
 	yield* runsPassingTest();

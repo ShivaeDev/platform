@@ -1,5 +1,5 @@
-import { serviceFolderFindings } from "#adapters/serviceFolderFindings.ts";
 import { defineRule } from "#rule.ts";
+import { serviceFolderFindings } from "#serviceFolderFindings.ts";
 
 export const serviceFolders = defineRule({
 	check: serviceFolderFindings,

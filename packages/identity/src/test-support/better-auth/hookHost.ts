@@ -6,7 +6,7 @@ import { HttpMiddleware, HttpRouter, HttpServerRequest } from "effect/http";
 import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
 import { signInAgain } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
 import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
-import { betterAuthMount } from "#server/better-auth/adapters/mount.ts";
+import { betterAuthMount } from "#server/better-auth/mount.ts";
 import { authTestDatabase } from "#server/better-auth/testDatabase.ts";
 import { Admission, type HookApplication, userCreationHooks } from "#test/better-auth/hookApplication.ts";
 import { CURRENT_PASSWORD, PASSWORD_HASH } from "#test/passwords.ts";

@@ -1,7 +1,7 @@
 import { docsReferences } from "#rules/docs/references.ts";
 import { docsWorkspace, markdown, noModule } from "#test/docsRepository.ts";
 import { importStory, repositoryHas } from "#test/importStory.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
+import { assertThat } from "#testing/assertThat.ts";
 
 const GENERATED = "packages/lib/src/generated";
 

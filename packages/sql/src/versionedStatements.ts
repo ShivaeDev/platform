@@ -1,11 +1,11 @@
 import { Effect, Schema } from "effect";
 import type { Model } from "effect/schema";
 import { SqlClient } from "effect/sql";
-import { storageSchema } from "#adapters/storageSchema.ts";
 import { makeConflictClause } from "#makeConflictClause.ts";
 import type { OptimisticConcurrencyError } from "#repository.ts";
 import { selectedUpdate } from "#repositoryUpdate.ts";
 import { sqlNameTransforms } from "#sqlNameTransforms.ts";
+import { storageSchema } from "#storageSchema.ts";
 
 const Version = Schema.Number.check(Schema.isInt(), Schema.isGreaterThanOrEqualTo(0));
 export interface VersionedOptions {

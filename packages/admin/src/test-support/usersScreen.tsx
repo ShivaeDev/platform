@@ -6,8 +6,8 @@ import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDat
 import { render } from "@shivaedev/test-story/client/adapters/react.ts";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import type { DateDisplay } from "#client/adapters/timestampText.ts";
-import { UsersView } from "#client/adapters/UsersView.ts";
+import type { DateDisplay } from "#client/timestampText.ts";
+import { UsersView } from "#client/UsersView.ts";
 import { Access } from "#test/Access.ts";
 import { browserZone } from "#test/browserZone.ts";
 import { clientRuntime } from "#test/clientRuntime.ts";

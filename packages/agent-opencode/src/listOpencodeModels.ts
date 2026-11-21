@@ -1,9 +1,9 @@
 import { Effect, Option, Schema } from "effect";
 import type { ModelChoice } from "@shivaedev/agent/eventData.ts";
 import type { ReadFailure as BackendFailure } from "@shivaedev/agent/failures.ts";
-import { ProvidersResponse } from "#adapters/protocol.ts";
 import { opencodeFailure } from "#failure.ts";
 import { Provider } from "#Provider.ts";
+import { ProvidersResponse } from "#protocol.ts";
 
 const decodeProviders = Schema.decodeUnknownOption(ProvidersResponse);
 type Providers = typeof ProvidersResponse.Type;

@@ -1,11 +1,11 @@
 import { Effect, Option, PubSub, type Scope, Stream } from "effect";
 import type { RunEvent as AgentEvent } from "@shivaedev/agent/events.ts";
 import type { BackendFailure } from "@shivaedev/agent/failures.ts";
-import { openSessionProjection, type SessionProjection } from "#adapters/projection.ts";
 import { servedTools } from "#adapters/servedTools.ts";
-import { frameFor } from "#adapters/sessionFrames.ts";
 import type { OpenSessionOptions, SessionHandle } from "#options.ts";
 import { Provider } from "#Provider.ts";
+import { openSessionProjection, type SessionProjection } from "#projection.ts";
+import { frameFor } from "#sessionFrames.ts";
 import { openSession, promptSettings, sessionIdOf, sessionOpened } from "#sessionOpen.ts";
 import { turnRequests } from "#turnRequests.ts";
 import { makeTurnDriver } from "#turns.ts";

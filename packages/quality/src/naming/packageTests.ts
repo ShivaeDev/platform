@@ -1,6 +1,6 @@
 import { Effect, Path } from "effect";
-import { readPackageManifest } from "#adapters/manifestInventory.ts";
 import { packageOf, workspacePackages } from "#imports/workspace.ts";
+import { readPackageManifest } from "#manifestInventory.ts";
 import type { RuleInputs } from "#rule.ts";
 
 export const packageTests = Effect.fn("Tests.packageTests")(function* (inputs: RuleInputs) {

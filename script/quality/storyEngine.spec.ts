@@ -1,6 +1,6 @@
 import { expect } from "vitest";
 import { storyEngine } from "@shivaedev/quality/rules/stories/engine.ts";
-import { kitFiles, prerequisiteFiles, spec } from "@shivaedev/quality/testing/adapters/storySpecFiles.ts";
+import { kitFiles, prerequisiteFiles, spec } from "@shivaedev/quality/testing/storySpecFiles.ts";
 import { repositoryHas, ruleKit } from "#quality/test-support/ruleKit.ts";
 
 ruleKit.it(

@@ -1,10 +1,10 @@
 import * as NodePath from "@effect/platform-node/NodePath";
 import { Console, Effect, FileSystem, Path } from "effect";
-import { fixJsxConditionals } from "#adapters/fixJsxConditionals.ts";
 import { fixAscii } from "#cli/fixAscii.ts";
 import { loadConfig } from "#config/load.ts";
 import { scan } from "#engine/session.ts";
 import { GateFailed, SetupFailure } from "#failure.ts";
+import { fixJsxConditionals } from "#fixJsxConditionals.ts";
 import { collectInventory } from "#inventory/collect.ts";
 import { plural } from "#report/plural.ts";
 import type { RuleServices, SourceFile } from "#rule.ts";

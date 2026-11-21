@@ -1,5 +1,5 @@
 import ts from "typescript";
-import type { fakeReferences } from "#adapters/imports/fakeReferences.ts";
+import type { fakeReferences } from "#imports/fakeReferences.ts";
 import { memberName, unwrapped } from "#rules/stories/syntax.ts";
 
 export function fakeImplementation(expression: ts.Expression, references: ReturnType<typeof fakeReferences>, seen = new Set<ts.Node>()): boolean {

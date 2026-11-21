@@ -3,7 +3,7 @@ import { expectTypeOf } from "vitest";
 import { permission } from "@shivaedev/access/permission.ts";
 import type { PermissionSession } from "@shivaedev/identity/PermissionSession.ts";
 import { permissionGuard } from "#adapters/permissionGuard.ts";
-import { signInRedirect } from "#adapters/signInRedirect.ts";
+import { signInRedirect } from "#signInRedirect.ts";
 
 const root = createRootRouteWithContext<{ readonly session: () => PermissionSession | null }>()({
 	beforeLoad: ({ context, ...route }) => permissionGuard({ session: context.session, signedOut: signInRedirect("/login") })(route),

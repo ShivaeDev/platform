@@ -1,7 +1,7 @@
 import { expect, it } from "vitest";
-import { configurePostgres } from "#adapters/railway/configurePostgres.ts";
-import { webService } from "#adapters/railway/webService.ts";
-import { workerService } from "#adapters/railway/workerService.ts";
+import { configurePostgres } from "#railway/configurePostgres.ts";
+import { webService } from "#railway/webService.ts";
+import { workerService } from "#railway/workerService.ts";
 
 it("PostgreSQL carries explicit limits and leaves API-managed schedules out of IaC", () => {
 	const database = configurePostgres("Postgres", {

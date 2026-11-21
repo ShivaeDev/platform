@@ -1,7 +1,7 @@
 import { manifestsApplication } from "#rules/manifestsApplication.ts";
 import { application, entryPointWorkspace, HOIST_WORKSPACE, PLAIN_WORKSPACE, platformApp } from "#test/applicationFiles.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
+import { assertThat } from "#testing/assertThat.ts";
 
 const APP = application("modules/app/package.json", platformApp);
 

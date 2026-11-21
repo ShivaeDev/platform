@@ -1,7 +1,7 @@
 import { folderNames } from "#rules/files/folderNames.ts";
 import { APP, fileRoutedApp, ROUTE_CONTENT } from "#test/fileRoutedApp.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
+import { assertThat } from "#testing/assertThat.ts";
 
 for (const [name, files, folder, options] of [
 	["a nested source folder", [{ content: "", path: "src/server/internal/receive.ts" }], "src/server/internal", undefined],

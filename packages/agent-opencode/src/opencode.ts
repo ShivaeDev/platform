@@ -5,12 +5,12 @@ import { Backend } from "@shivaedev/agent/backend.ts";
 import type { ReadFailure } from "@shivaedev/agent/failures.ts";
 import { makeOpencodeServer } from "#adapters/makeOpencodeServer.ts";
 import { providerAddress } from "#adapters/providerAddress.ts";
-import { makeToolSessions } from "#adapters/toolSessions.ts";
 import { opencodeFailure } from "#failure.ts";
 import { listOpencodeModels } from "#listOpencodeModels.ts";
 import { makeOperations } from "#operations.ts";
 import type { OpencodeOptions } from "#options.ts";
 import { Provider } from "#Provider.ts";
+import { makeToolSessions } from "#toolSessions.ts";
 export function opencode(
 	options: OpencodeOptions & {
 		readonly url: string;

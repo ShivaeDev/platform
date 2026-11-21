@@ -1,5 +1,5 @@
 import ts from "typescript";
-import { fakeApi, type fakeReferences } from "#adapters/imports/fakeReferences.ts";
+import { fakeApi, type fakeReferences } from "#imports/fakeReferences.ts";
 import { fakeImplementation } from "#rules/stories/fakeImplementation.ts";
 import { memberName, unwrapped } from "#rules/stories/syntax.ts";
 

@@ -1,6 +1,6 @@
 import process from "node:process";
 import { DateTime, Schema } from "effect";
-import { timestampText } from "#client/adapters/timestampText.ts";
+import { timestampText } from "#client/timestampText.ts";
 
 const Dates = Schema.fromJsonString(Schema.Struct({ locale: Schema.optional(Schema.String), timeZone: Schema.optional(Schema.String) }));
 

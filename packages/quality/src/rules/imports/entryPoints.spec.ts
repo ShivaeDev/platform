@@ -1,7 +1,7 @@
 import { importsManifest } from "#rules/imports/manifest.ts";
 import { application, entryPointWorkspace, HOIST_WORKSPACE, pieceImports, platformApp } from "#test/applicationFiles.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
+import { assertThat } from "#testing/assertThat.ts";
 
 const WORKSPACE = repositoryHas(...entryPointWorkspace, HOIST_WORKSPACE);
 

@@ -6,7 +6,7 @@ import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
 import { signedInUser } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
 import { betterAuthSessions } from "#server/adapters/betterAuthSessions.ts";
 import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
-import { betterAuthMount } from "#server/better-auth/adapters/mount.ts";
+import { betterAuthMount } from "#server/better-auth/mount.ts";
 
 export type AuthCall = "session lookup" | "provider-account lookup" | "mounted request";
 const SessionReply = Schema.Struct({ user: Schema.Struct({ name: Schema.String }) });

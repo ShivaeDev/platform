@@ -3,7 +3,7 @@ import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { Effect } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import type { DateDisplay } from "#client/adapters/timestampText.ts";
+import type { DateDisplay } from "#client/timestampText.ts";
 
 interface Runtime {
 	own: { readonly locale: string; readonly timeZone: string } | undefined;

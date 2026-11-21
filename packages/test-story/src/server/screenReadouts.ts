@@ -1,5 +1,5 @@
-import { accessibility, isRendered } from "#server/adapters/screenAccessibility.ts";
 import { screenElements } from "#server/adapters/screenElements.ts";
+import { accessibility, isRendered } from "#server/screenAccessibility.ts";
 import type { ScreenTarget } from "#server/screenDriver.ts";
 import { targetName } from "#server/targetName.ts";
 
