@@ -1,6 +1,6 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { modulesHost, replacedSource } from "#test/modules/story.ts";
+import { modulesHost, queueSharedByNotesAndTasks, replacedSource } from "#test/modules/story.ts";
 
 modulesHost.it("both modules serve migrated titles through their HTTP RPC handlers", [], function* ({ read }) {
 	yield* outcomes([
@@ -29,3 +29,17 @@ modulesHost.it("a replacement reaches the port bound by both module services", [
 	]);
 	expect((yield* replacementCalls()).toSorted()).toEqual(["A note", "A task"]);
 });
+
+modulesHost.it(
+	"a queue declared by two named registrations with admin pages is refused by their names, with no admin page for either",
+	[queueSharedByNotesAndTasks],
+	function* ({ queueRefusal }) {
+		expect(yield* queueRefusal()).toEqual({
+			firstAdminPage: undefined,
+			firstModule: "notes",
+			queue: "titles.refresh",
+			secondAdminPage: undefined,
+			secondModule: "tasks",
+		});
+	},
+);

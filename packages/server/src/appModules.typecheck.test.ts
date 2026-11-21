@@ -3,6 +3,9 @@ import { Digest, SecureRandom } from "effect/crypto";
 import { Rpc, RpcGroup } from "effect/rpc";
 import { Migrator, type SqlClient } from "effect/sql";
 import { expectTypeOf, it } from "vitest";
+import { adminPage } from "@shivaedev/admin/page.ts";
+import { adminRegistry } from "@shivaedev/admin/registry.ts";
+import { registerAdmin } from "@shivaedev/admin/server/registerAdmin.ts";
 import { defineModule } from "@shivaedev/contract/defineModule.ts";
 import { query } from "@shivaedev/contract/operation.ts";
 import { SessionUser } from "@shivaedev/identity/identity.ts";
@@ -13,6 +16,7 @@ import { appHost } from "#appDatabase.ts";
 import { appModules } from "#appModules.ts";
 import type { DuplicateModuleQueue } from "#DuplicateModuleQueue.ts";
 import { draftsModule, Notes, notesModule } from "#test/defined-modules/features.ts";
+import { ToolsPermission } from "#test/permissions.ts";
 import { coachingModule } from "#test/subject/coaching.ts";
 import { workerHost } from "#workerHost.ts";
 
@@ -103,7 +107,7 @@ const Greetings = defineModule({
 	],
 	wire: { hello: { rejections: {}, success: Schema.String } },
 });
-const greetings = { module: Greetings, services: Layer.empty } satisfies AppModule;
+const greetings = { module: Greetings } satisfies AppModule;
 const greetingPorts = { ...module, name: "greeting", ports: Layer.succeed(Greeting, "Hello") } satisfies AppModule;
 const greetingPerRequest = { ...module, name: "greeting", requestServices: Layer.succeed(Greeting, "Hello") } satisfies AppModule;
 
@@ -141,7 +145,7 @@ const Tokens = defineModule({
 	],
 	wire: { greet: { rejections: {}, success: Schema.String }, issue: { rejections: {}, success: Schema.String } },
 });
-const tokens = { module: Tokens, services: Layer.empty } satisfies AppModule;
+const tokens = { module: Tokens } satisfies AppModule;
 
 it("a defined module's operations take the host's crypto services and ColumnKey from the host, and still need a registration for any other service", () => {
 	expectTypeOf(appModules([tokens, greetingPorts])).not.toBeAny();
@@ -172,19 +176,55 @@ it("a defined module never registers as a group with hand-written handlers", () 
 		handlers: Layer.empty,
 		migrations: { loader: Migrator.fromRecord({}) },
 		name: "notes",
-		services: Layer.empty,
 	} satisfies AppModule).not.toBeAny();
 });
 
 it("a defined module's registration takes its name from the module, and a hand-written one names itself", () => {
 	// @ts-expect-error The module already names itself, so a second name could disagree with it.
-	expectTypeOf({ module: Notes, name: "notebook", services: Layer.empty } satisfies AppModule).not.toBeAny();
+	expectTypeOf({ module: Notes, name: "notebook" } satisfies AppModule).not.toBeAny();
 	// @ts-expect-error Nothing else names a group served by hand-written handlers.
-	expectTypeOf({ group, handlers: Layer.empty, services: Layer.empty } satisfies AppModule).not.toBeAny();
+	expectTypeOf({ group, handlers: Layer.empty } satisfies AppModule).not.toBeAny();
 });
 
-const unmigrated = appModules([{ module: Notes, services: Layer.empty } satisfies AppModule, module]);
+const unmigrated = appModules([{ module: Notes } satisfies AppModule, module]);
 
 it("modules without migrations add no loader requirements", () => {
 	expectTypeOf<Effect.Services<Effect.Success<typeof unmigrated>["migrations"]["loader"]>>().toEqualTypeOf<never>();
+});
+
+const Usage = defineModule({
+	name: "admin.usage",
+	operations: [
+		query("read", {
+			readPolicy: () => Effect.succeed(true),
+			reads: () => [],
+			*run() {
+				return yield* Effect.succeed("usage");
+			},
+		}),
+	],
+	wire: { read: { rejections: {}, success: Schema.String } },
+});
+const UsagePage = adminPage({ contract: Usage, id: "usage", permission: ToolsPermission, route: { path: "/admin/usage", title: "Usage" } });
+const usageReport = { admin: registerAdmin(adminRegistry(UsagePage), { usage: Usage }) } satisfies AppModule;
+const reminders = { queues: [{ name: "reminders.send" }], workers: Layer.effectDiscard(Port) } satisfies AppModule;
+const bareNotes = { migrations: { loader: Migrator.fromRecord({}) }, module: Notes } satisfies AppModule;
+const withoutRpcs = appModules([usageReport, reminders, bareNotes, { name: "defaults", ports: Layer.succeed(Port, "default") }]);
+
+it("a registration names only what it contributes: no group, handlers, name or services it does not have", () => {
+	expectTypeOf<Effect.Success<typeof withoutRpcs>["admin"]["pages"][number]["id"]>().toEqualTypeOf<"usage">();
+	expectTypeOf<Effect.Success<typeof withoutRpcs>["queues"][number]["name"]>().toEqualTypeOf<string>();
+	expectTypeOf<Layer.Services<Effect.Success<typeof withoutRpcs>["workers"]>>().toEqualTypeOf<Port>();
+	expectTypeOf<Layer.Services<Effect.Success<typeof withoutRpcs>["services"]>>().toEqualTypeOf<never>();
+});
+
+it("a group still needs its handlers and a name, and a module takes neither", () => {
+	// @ts-expect-error A group without handlers would serve RPCs nothing answers.
+	expectTypeOf({ group, name: "example" } satisfies AppModule).not.toBeAny();
+	// @ts-expect-error A defined module's handlers come from its operations, so hand-written handlers beside it would be a second path.
+	expectTypeOf({ handlers: Layer.empty, module: Notes } satisfies AppModule).not.toBeAny();
+	// @ts-expect-error A registration serves a defined module or a group, never both.
+	expectTypeOf({ group, handlers: Layer.empty, module: Notes, name: "example" } satisfies AppModule).not.toBeAny();
+	// @ts-expect-error Handlers without a group answer RPCs no contract declares.
+	expectTypeOf({ handlers: Layer.empty, name: "example" } satisfies AppModule).not.toBeAny();
 });

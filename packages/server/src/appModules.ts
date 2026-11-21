@@ -7,8 +7,9 @@ import { mergeAdminRegistrations } from "@shivaedev/admin/server/mergeAdminRegis
 import { type AnyModule, type ModuleHandlers, moduleHandlers } from "@shivaedev/contract/moduleHandlers.ts";
 import type { SchemaComponent } from "@shivaedev/sql/SchemaComponent.ts";
 import type { AppModule, ModuleAdmin, ModuleLayer } from "#AppModule.ts";
-import { DuplicateModuleQueue } from "#DuplicateModuleQueue.ts";
+import type { DuplicateModuleQueue } from "#DuplicateModuleQueue.ts";
 import type { MigrationOptions } from "#MigrationOptions.ts";
+import { moduleQueues } from "#moduleQueues.ts";
 import type { ProvidedModules } from "#providedModules.ts";
 import type { GlobalServices } from "#requestServices.ts";
 
@@ -102,33 +103,15 @@ export function appModules(
 }
 
 const composeModules = Effect.fnUntraced(function* (modules: readonly AppModule[], options?: { readonly replacements?: ModuleLayer }) {
-	const owners = new Map<string, string>();
-	for (const module of modules) {
-		for (const queue of module.queues ?? []) {
-			const firstModule = owners.get(queue.name);
-			if (firstModule !== undefined) {
-				return yield* new DuplicateModuleQueue({ firstModule, queue: queue.name, secondModule: moduleName(module) });
-			}
-			owners.set(queue.name, moduleName(module));
-		}
-	}
-	const queues = modules.flatMap((module) => module.queues ?? []);
+	const queues = yield* moduleQueues(modules);
 	const registrations = modules.flatMap((module) => (module.admin === undefined ? [] : [module.admin]));
 	const admin = mergeAdminRegistrations(...registrations);
 	const defaults = Layer.mergeAll(Layer.empty, ...modules.map((module) => module.ports ?? Layer.empty));
 	const ports = Layer.merge(defaults, options?.replacements ?? Layer.empty);
 	return {
 		admin,
-		group: RpcGroup.make().merge(...modules.map((module) => (module.module === undefined ? module.group : module.module)), admin.group),
-		// The overload types each module's handlers from its operations' services; at run time moduleHandlers reads only its operations.
-		handlers: Layer.mergeAll(
-			admin.handlers,
-			...modules.map((module) =>
-				module.module === undefined
-					? module.handlers
-					: moduleHandlers({ "~requires": {}, application: module.module.application, declaration: module.module.declaration }),
-			),
-		),
+		group: RpcGroup.make().merge(...modules.flatMap(servedGroup), admin.group),
+		handlers: Layer.mergeAll(admin.handlers, ...modules.flatMap(servedHandlers)),
 		migrations: {
 			components: modules.flatMap((module) => module.migrations?.components ?? []),
 			loader: Effect.all(modules.flatMap((module) => (module.migrations === undefined ? [] : [module.migrations.loader]))).pipe(
@@ -137,11 +120,22 @@ const composeModules = Effect.fnUntraced(function* (modules: readonly AppModule[
 		},
 		queues,
 		requestServices: Layer.mergeAll(Layer.empty, ...modules.map((module) => module.requestServices ?? Layer.empty)),
-		services: Layer.mergeAll(Layer.empty, ...modules.map((module) => module.services)).pipe(Layer.provideMerge(ports)),
+		services: Layer.mergeAll(Layer.empty, ...modules.map((module) => module.services ?? Layer.empty)).pipe(Layer.provideMerge(ports)),
 		workers: Layer.mergeAll(Layer.empty, ...modules.map((module) => module.workers ?? Layer.empty)),
 	};
 });
 
-function moduleName(module: AppModule) {
-	return module.module === undefined ? module.name : module.module.declaration.name;
+function servedGroup(module: AppModule): readonly RpcGroup.Any[] {
+	if (module.module !== undefined) {
+		return [module.module];
+	}
+	return module.group === undefined ? [] : [module.group];
+}
+
+// The overload types each module's handlers from its operations' services; at run time moduleHandlers reads only its operations.
+function servedHandlers(module: AppModule): readonly ModuleLayer[] {
+	if (module.module !== undefined) {
+		return [moduleHandlers({ "~requires": {}, application: module.module.application, declaration: module.module.declaration })];
+	}
+	return module.handlers === undefined ? [] : [module.handlers];
 }

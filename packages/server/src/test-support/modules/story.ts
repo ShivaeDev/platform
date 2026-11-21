@@ -9,13 +9,16 @@ import { answered } from "@shivaedev/test-story/server/answers.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { appHost } from "#appDatabase.ts";
 import { appModules } from "#appModules.ts";
+import type { DuplicateModuleQueue } from "#DuplicateModuleQueue.ts";
 import { Api, notesModule, TitleSource, tasksModule } from "#test/modules/features.ts";
 import { TestRoles } from "#test/permissions.ts";
 import { databaseUrl, postgres } from "#test/postgres.ts";
 
 interface State {
 	readonly calls: string[];
+	refusal?: Pick<DuplicateModuleQueue, "firstAdminPage" | "firstModule" | "queue" | "secondAdminPage" | "secondModule">;
 	replacements: Layer.Layer<TitleSource> | Layer.Layer<never>;
+	sharedQueue: readonly { readonly name: string }[];
 	url: string;
 }
 
@@ -36,7 +39,25 @@ export const modulesHost = storyKit({
 	after: {
 		configured: Effect.fnUntraced(function* (state: State) {
 			const database = yield* PostgresTestDatabase;
-			const modules = yield* appModules([notesModule, tasksModule], { replacements: state.replacements });
+			const composed = yield* appModules(
+				[
+					{ ...notesModule, queues: state.sharedQueue },
+					{ ...tasksModule, queues: state.sharedQueue },
+				],
+				{ replacements: state.replacements },
+			).pipe(
+				Effect.map(Option.some),
+				Effect.catchTag("DuplicateModuleQueue", ({ firstAdminPage, firstModule, queue, secondAdminPage, secondModule }) =>
+					Effect.sync(() => {
+						state.refusal = { firstAdminPage, firstModule, queue, secondAdminPage, secondModule };
+						return Option.none();
+					}),
+				),
+			);
+			if (Option.isNone(composed)) {
+				return;
+			}
+			const modules = composed.value;
 			const services = yield* Layer.build(
 				appHost({
 					postgresSettings: {},
@@ -54,12 +75,13 @@ export const modulesHost = storyKit({
 	},
 	around: withIsolatedDatabase,
 	clock: "test",
-	create: (): State => ({ calls: [], replacements: Layer.empty, url: "" }),
+	create: (): State => ({ calls: [], replacements: Layer.empty, sharedQueue: [], url: "" }),
 	layer: postgres,
 	name: "application modules",
 	runIf: databaseUrl !== undefined,
 	stages: ["configured"],
 	verbs: (state, story) => ({
+		queueRefusal: () => Effect.sync(() => state.refusal ?? "composition was not refused"),
 		read: (operation: "notes.read" | "tasks.read" | "admin.notes.read" | "admin.tasks.read", caller?: "admin") => {
 			story.tell(`${caller ?? "a visitor"} calls ${operation} over HTTP`);
 			const protocol = RpcClient.layerProtocolHttp({
@@ -82,3 +104,11 @@ export const replacedSource = modulesHost.trait("configured", "the application r
 		}),
 	);
 });
+
+export const queueSharedByNotesAndTasks = modulesHost.trait(
+	"configured",
+	"the notes and tasks registrations, each named and each with an admin page, both declare the queue titles.refresh",
+	(state) => {
+		state.sharedQueue = [{ name: "titles.refresh" }];
+	},
+);
