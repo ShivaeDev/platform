@@ -3,7 +3,7 @@ import type { PgBossClient } from "#server/adapters/client.ts";
 import { toPgBossError } from "#server/error.ts";
 import { quotedSchema } from "#server/storedRows.ts";
 
-export const batchClockOffset = Effect.fnUntraced(function* (client: PgBossClient, schema: string, name: string) {
+export const databaseNow = Effect.fnUntraced(function* (client: PgBossClient, schema: string, name: string) {
 	const { rows } = yield* Effect.tryPromise({
 		catch: (error) => toPgBossError("settle", error, name),
 		try: () => {
@@ -16,5 +16,10 @@ export const batchClockOffset = Effect.fnUntraced(function* (client: PgBossClien
 	const row = yield* Schema.decodeUnknownEffect(Schema.Struct({ now: Schema.Union([Schema.String, Schema.Number]) }))(rows[0]).pipe(
 		Effect.mapError((error) => toPgBossError("settle", error, name)),
 	);
-	return (yield* Clock.currentTimeMillis) - Number(row.now);
+	return Number(row.now);
+});
+
+export const batchClockOffset = Effect.fnUntraced(function* (client: PgBossClient, schema: string, name: string) {
+	const now = yield* databaseNow(client, schema, name);
+	return (yield* Clock.currentTimeMillis) - now;
 });

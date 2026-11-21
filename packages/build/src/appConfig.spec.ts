@@ -6,6 +6,7 @@ import {
 	notesTestThroughTheAppConfig,
 	pageImporting,
 	pageImportingOldForm,
+	pageImportingOperations,
 	vite,
 } from "#test/vite.ts";
 
@@ -93,6 +94,20 @@ vite.it(
 		expect(built).toEqual({
 			failed: expect.stringContaining(
 				"oldFormFolders lists folders from which the browser bundle imports no old-form contract or operation file:\n  src/modules/billing\nRemove each entry: the bundle check then covers its folder like the rest of the application.",
+			),
+		});
+	},
+);
+
+vite.it(
+	"an oldFormFolders entry fails the build, naming the entry, when its folder holds only a contract that lists streams",
+	[notesApplication(), generatedOnce(), pageImportingOperations("a contract that imports only stream from operation.ts")],
+	function* ({ buildsWithTheAppConfig }) {
+		const built = yield* buildsWithTheAppConfig({ oldFormFolders: ["src/modules/ticks"] });
+
+		expect(built).toEqual({
+			failed: expect.stringContaining(
+				"oldFormFolders lists folders from which the browser bundle imports no old-form contract or operation file:\n  src/modules/ticks\nRemove each entry: the bundle check then covers its folder like the rest of the application.",
 			),
 		});
 	},

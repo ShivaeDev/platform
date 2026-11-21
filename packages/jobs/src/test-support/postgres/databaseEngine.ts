@@ -1,4 +1,4 @@
-import type { Context, Effect, Fiber, Redacted, Schema } from "effect";
+import type { Cause, Context, Effect, Fiber, Redacted, Schema } from "effect";
 import type { SqlClient } from "effect/sql";
 import { type PgBoss, TestClock } from "pg-boss";
 import type { WorkerRelease } from "@shivaedev/sql/worker-release/service.ts";
@@ -58,6 +58,7 @@ export interface DatabaseEngine {
 	readonly labels: Map<string, string>;
 	readonly logs: {
 		readonly annotations: Readonly<Record<string, unknown>>;
+		readonly cause: Cause.Cause<unknown>;
 		readonly level: string;
 		readonly message: unknown;
 		readonly runtime: string;

@@ -5,6 +5,7 @@ import { unusedOldFormFolders } from "#unusedOldFormFolders.ts";
 
 export interface BundleModule {
 	readonly builtin: boolean;
+	readonly fromOperation: readonly string[];
 	readonly imports: readonly string[];
 	readonly oldFormFolders: readonly string[];
 }
@@ -16,7 +17,6 @@ export interface BundleGraph {
 
 export interface ServerMarkers {
 	readonly defineModule: Option.Option<string>;
-	readonly operation: Option.Option<string>;
 	readonly sql: Option.Option<string>;
 }
 
@@ -26,8 +26,8 @@ export interface ServerCodeOptions {
 	readonly serverOnly: readonly string[];
 }
 
-function definesOperations(module: BundleModule, markers: ServerMarkers): boolean {
-	return Option.exists(markers.operation, (marker) => module.imports.includes(marker));
+function definesOperations(module: BundleModule): boolean {
+	return module.fromOperation.includes("query") || module.fromOperation.includes("command");
 }
 
 const reasonOf = Effect.fn("Build.reasonOf")(function* (
@@ -44,7 +44,7 @@ const reasonOf = Effect.fn("Build.reasonOf")(function* (
 	if (Option.exists(markers.defineModule, (marker) => module.imports.includes(marker))) {
 		return Option.some("a module file: it calls defineModule");
 	}
-	if (definesOperations(module, markers) && module.oldFormFolders.length === 0) {
+	if (definesOperations(module) && module.oldFormFolders.length === 0) {
 		return Option.some("an operation file: it defines a query or a command");
 	}
 	const owner = yield* ownerOf(id, owners);
@@ -95,7 +95,7 @@ const visit = Effect.fn("Build.visit")(function* (id: string, module: BundleModu
 	if (Option.isSome(reason)) {
 		return Option.some(yield* serverCodeFailure(chainTo(id, walk.parents), reason.value, options.root, walk.owners));
 	}
-	if (definesOperations(module, markers)) {
+	if (definesOperations(module)) {
 		for (const folder of module.oldFormFolders) {
 			walk.excusing.add(folder);
 		}

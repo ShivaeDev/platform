@@ -77,7 +77,7 @@ export function spawnCli(suite: Suite, args: readonly string[]): Promise<Run> {
 	writeFile(suite, "vitest.config.mts", vitestConfig(suite.directory, suite.config));
 	const child = spawn(process.execPath, ["--conditions=@shivaedev/source", CLI, "--output-dir", REPORTS, ...args], {
 		cwd: suite.directory,
-		env: { "GITHUB_STEP_SUMMARY": summaryPath(suite) },
+		env: { "GITHUB_STEP_SUMMARY": summaryPath(suite), ...suite.config.env },
 		stdio: ["ignore", "pipe", "pipe"],
 	});
 	let output = "";

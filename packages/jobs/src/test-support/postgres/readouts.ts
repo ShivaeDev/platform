@@ -1,4 +1,4 @@
-import { Effect, Option } from "effect";
+import { Cause, Effect, Option, Predicate } from "effect";
 import type { QueueDefinition } from "#server/definition.ts";
 import { deadLetterQueueName } from "#server/health.ts";
 import type { Job } from "#server/job.ts";
@@ -25,6 +25,17 @@ function summary(engine: DatabaseEngine, job: Job<unknown>) {
 
 function relabelled(engine: DatabaseEngine, value: unknown): unknown {
 	return typeof value === "string" ? labelOf(engine, value) : value;
+}
+
+function loggedFailure(cause: Cause.Cause<unknown>): unknown {
+	if (cause.reasons.length === 0) {
+		return "none";
+	}
+	const failure = Cause.squash(cause);
+	if (!Predicate.isObject(failure)) {
+		return failure;
+	}
+	return { ...Object.fromEntries(Object.entries(failure)), ...(Predicate.isError(failure) ? { message: failure.message } : {}) };
 }
 
 export function readouts(engine: DatabaseEngine) {
@@ -93,6 +104,18 @@ export function readouts(engine: DatabaseEngine) {
 			),
 		mostRunningAtOnce: (queue: Pick<QueueDefinition, "name">) => Effect.sync(() => engine.work.peaks.get(queue.name) ?? 0),
 		overlappingAttempts: () => Effect.sync(() => engine.work.overlaps.map((id) => labelOf(engine, id))),
+		recordedJobLog: (as: string) =>
+			Effect.sync(() => {
+				const { id } = idOf(engine, as);
+				return engine.logs
+					.filter(({ annotations, message }) => annotations["job.id"] === id || JSON.stringify(message).includes(id))
+					.map(({ annotations, cause, level, message }) => ({
+						annotations: Object.fromEntries(Object.entries(annotations).map(([key, value]) => [key, relabelled(engine, value)])),
+						failure: loggedFailure(cause),
+						level,
+						message,
+					}));
+			}),
 		remainingBudgets: (queue: Pick<QueueDefinition, "name">) =>
 			Effect.sync(() => engine.work.started.filter((attempt) => attempt.queue === queue.name).map(({ budget }) => budget)),
 		reported: () => Effect.sync(() => [...engine.reported]),

@@ -1,5 +1,4 @@
 import ts from "typescript";
-import { byText } from "#byText.ts";
 import { type ExportedVariable, exportedVariables, exportsAnything } from "#exportedVariables.ts";
 import { initializerOf, propertyOf } from "#moduleCalls.ts";
 
@@ -49,39 +48,43 @@ function withoutParentheses(expression: ts.Expression | undefined): ts.Expressio
 	return expression !== undefined && ts.isParenthesizedExpression(expression) ? withoutParentheses(expression.expression) : expression;
 }
 
-const REGISTRATION_PARTS = ["admin", "migrations", "ports", "queues", "requestServices", "services", "workers"];
-
 export function isServerPath(file: string): boolean {
 	return /(?:^|[\\/])server[\\/]/u.test(file);
 }
 
 // Services are optional, so a registration is known by what it serves: a group and its handlers, or a `module` beside another
 // registration part. Browser code may hold a module too, so a `module` alone counts only as a reference in a server folder.
-function namesModule(literal: ts.ObjectLiteralExpression, inServerCode: boolean): boolean {
+function namesModule(literal: ts.ObjectLiteralExpression, inServerCode: boolean, parts: readonly string[]): boolean {
 	const property = propertyOf(literal, "module");
 	if (property === undefined) {
 		return false;
 	}
 	const module = initializerOf(property);
 	const refersToModule = module !== undefined && (ts.isIdentifier(module) || ts.isPropertyAccessExpression(module));
-	return REGISTRATION_PARTS.some((part) => propertyOf(literal, part) !== undefined) || (inServerCode && refersToModule);
+	return parts.some((part) => propertyOf(literal, part) !== undefined) || (inServerCode && refersToModule);
 }
 
-function looksLikeRegistration(expression: ts.Expression | undefined, inServerCode: boolean): boolean {
+function registrationObject(expression: ts.Expression | undefined): ts.ObjectLiteralExpression | undefined {
 	const inner = withoutParentheses(expression);
 	if (inner !== undefined && ts.isAsExpression(inner)) {
-		return looksLikeRegistration(inner.expression, inServerCode);
+		return registrationObject(inner.expression);
 	}
-	return (
-		inner !== undefined
-		&& ts.isObjectLiteralExpression(inner)
-		&& (namesModule(inner, inServerCode) || (propertyOf(inner, "group") !== undefined && propertyOf(inner, "handlers") !== undefined))
-	);
+	return inner !== undefined && ts.isObjectLiteralExpression(inner) ? inner : undefined;
+}
+
+function looksLikeRegistration(literal: ts.ObjectLiteralExpression, inServerCode: boolean, parts: readonly string[]): boolean {
+	return namesModule(literal, inServerCode, parts) || (propertyOf(literal, "group") !== undefined && propertyOf(literal, "handlers") !== undefined);
 }
 
 type Found = { readonly refusal: string } | { readonly registration: string };
 
-function foundIn({ name, variable }: ExportedVariable, names: AppModuleNames, inServerCode: boolean): readonly Found[] {
+interface Reading {
+	readonly inServerCode: boolean;
+	readonly names: AppModuleNames;
+	readonly parts: readonly string[];
+}
+
+function foundIn({ name, variable }: ExportedVariable, { inServerCode, names, parts }: Reading): readonly Found[] {
 	const initializer = withoutParentheses(variable.initializer);
 	if (initializer !== undefined && ts.isSatisfiesExpression(initializer)) {
 		return namesAppModule(initializer.type, names) ? [{ registration: name }] : [];
@@ -94,22 +97,34 @@ function foundIn({ name, variable }: ExportedVariable, names: AppModuleNames, in
 			},
 		];
 	}
-	return looksLikeRegistration(initializer, inServerCode)
-		? [
+	const literal = registrationObject(initializer);
+	if (literal === undefined) {
+		return [];
+	}
+	if (looksLikeRegistration(literal, inServerCode, parts)) {
+		return [
+			{
+				refusal: `${name} names what it serves but is not written \`satisfies AppModule\`, so the server's module list leaves it out; write \`satisfies AppModule\` after its object, with AppModule imported from ${APP_MODULE}`,
+			},
+		];
+	}
+	const part = inServerCode ? parts.find((each) => propertyOf(literal, each) !== undefined) : undefined;
+	return part === undefined
+		? []
+		: [
 				{
-					refusal: `${name} names what it serves but is not written \`satisfies AppModule\`, so the server's module list leaves it out; write \`satisfies AppModule\` after its object, with AppModule imported from ${APP_MODULE}`,
+					refusal: `${name} carries ${part}, a part of a registration, but is not written \`satisfies AppModule\`, so the server's module list leaves it out; write \`satisfies AppModule\` after its object, with AppModule imported from ${APP_MODULE}, or, when it is no registration, rename its ${part} key or stop exporting it`,
 				},
-			]
-		: [];
+			];
 }
 
 export function isModuleRegistrationFile(file: string): boolean {
 	return /[\\/]modules[\\/].+[\\/]server[\\/]registration\.tsx?$/u.test(file);
 }
 
-export function registrationsIn(source: ts.SourceFile): Omit<FileRegistrations, "file"> {
-	const names = appModuleNames(source);
-	const found = exportedVariables(source).flatMap((exported) => foundIn(exported, names, isServerPath(source.fileName)));
+export function registrationsIn(source: ts.SourceFile, parts: readonly string[]): Omit<FileRegistrations, "file"> {
+	const reading: Reading = { inServerCode: isServerPath(source.fileName), names: appModuleNames(source), parts };
+	const found = exportedVariables(source).flatMap((exported) => foundIn(exported, reading));
 	const refusals = found.flatMap((each) => ("refusal" in each ? [each.refusal] : []));
 	const registrations = found.flatMap((each) => ("registration" in each ? [each.registration] : []));
 	const unfound = found.length === 0 && isModuleRegistrationFile(source.fileName) && exportsAnything(source);
@@ -127,15 +142,4 @@ export function registrationsIn(source: ts.SourceFile): Omit<FileRegistrations, 
 // kits may build registrations of their own, which the server's list must never serve.
 export function mayRegister(file: string): boolean {
 	return !(/[\\/]test-support[\\/]/u.test(file) || /\.(?:test|spec)\.tsx?$/u.test(file));
-}
-
-export interface ListEntry {
-	readonly file: string;
-	readonly name: string;
-}
-
-export function inPathOrder(found: readonly FileRegistrations[]): readonly ListEntry[] {
-	return [...found]
-		.sort((left, right) => byText(left.file, right.file))
-		.flatMap(({ file, registrations }) => registrations.map((name) => ({ file, name })));
 }

@@ -7,6 +7,7 @@ import { generate } from "#generate.ts";
 import { emptyProject, generatedOncePerFile, vitestRun, writeFiles } from "#test/fixtureProject.ts";
 import { MISPLACED_MODULES } from "#test/misplacedModules.ts";
 import { NOTES_PROJECT } from "#test/notesProject.ts";
+import { operationImportPages } from "#test/operationImportPages.ts";
 import { REFUSED_BRANDS } from "#test/refusedBrands.ts";
 import { REFUSING_PROJECT } from "#test/refusingProject.ts";
 import { VITE_PROJECT } from "#test/viteProject.ts";
@@ -216,6 +217,10 @@ export function pageImporting(kind: keyof typeof VITE_PROJECT.serverCodePages) {
 
 export function pageImportingOldForm(kind: keyof typeof VITE_PROJECT.oldFormPages) {
 	return vite.trait("page", `the page's script imports ${kind}`, (engine) => writeFiles(engine.root, VITE_PROJECT.oldFormPages[kind]));
+}
+
+export function pageImportingOperations(kind: keyof typeof operationImportPages) {
+	return vite.trait("page", `the page's script imports ${kind}`, (engine) => writeFiles(engine.root, operationImportPages[kind]));
 }
 
 export function billingContractImporting(kind: keyof typeof VITE_PROJECT.reachedThroughBilling) {

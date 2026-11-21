@@ -3,6 +3,10 @@ import type { PgBossClient } from "#server/adapters/client.ts";
 import { type PgBossError, toPgBossError } from "#server/error.ts";
 import type { WorkerJob } from "#server/job.ts";
 
+export function settleBound(deadline: number): number {
+	return deadline + 1000;
+}
+
 export function waitForBatchExpiry(
 	client: PgBossClient,
 	name: string,
@@ -28,6 +32,6 @@ export function waitForBatchExpiry(
 				}
 			}
 		});
-		return yield* poll.pipe(Effect.timeout(Math.max(0, deadline + 1000 - (yield* Clock.currentTimeMillis))));
+		return yield* poll.pipe(Effect.timeout(Math.max(0, settleBound(deadline) - (yield* Clock.currentTimeMillis))));
 	}).pipe(Effect.mapError((error) => toPgBossError("settle", error, name)));
 }

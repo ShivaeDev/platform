@@ -102,10 +102,10 @@ export const runtime = storyKit({
 			return startRuntime(engine, name, jobs, options);
 		},
 		startedAttempts: () => Effect.sync(() => engine.work.started.map(({ budget, id }) => ({ budget, id }))),
-		startsDelivering: (queue: string, job: Fetched) => {
-			story.tell(`pg-boss delivers ${job.id} to the ${queue} worker, and its handler starts`);
+		startsDelivering: (queue: string, job: Fetched, ...rest: readonly Fetched[]) => {
+			story.tell(`pg-boss delivers ${[job, ...rest].map(({ id }) => id).join(", ")} to the ${queue} worker, and the handler of ${job.id} starts`);
 			return Effect.gen(function* () {
-				const fiber = yield* delivered(engine, queue, [job], undefined).pipe(Effect.forkChild({ startImmediately: true }));
+				const fiber = yield* delivered(engine, queue, [job, ...rest], undefined).pipe(Effect.forkChild({ startImmediately: true }));
 				engine.pending.push(Fiber.join(fiber));
 				yield* untilWork(engine.work, () => (engine.work.started.some((attempt) => attempt.id === job.id) ? true : undefined));
 			});
@@ -246,6 +246,15 @@ export function storedJob(job: Parameters<FakeClient["stored"]["set"]>[1]) {
 export const claimReadsStall = runtime.trait("client", "pg-boss never answers reads of a claimed job", (engine) => {
 	engine.client.stallsClaimReads = true;
 });
+
+export const databaseStallsAfterBatchStart = runtime.trait(
+	"client",
+	"once a batch has read the database clock, PostgreSQL never answers another clock read or a read of a claimed job",
+	(engine) => {
+		engine.client.stallsClaimReads = true;
+		engine.client.stallsLaterClockReads = true;
+	},
+);
 
 export function deliveredWhileRegistering(queue: string, data: unknown) {
 	return runtime.trait("client", `pg-boss delivers a ${queue} job while its worker is still registering`, (engine) => {

@@ -1,4 +1,4 @@
-import { Effect, Stream } from "effect";
+import { Context, Effect, Stream } from "effect";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
 import { SetupFailure } from "#failure.ts";
 
@@ -8,6 +8,11 @@ export interface GitResult {
 	readonly stdout: string;
 }
 
+// The variables every git child receives on top of Quality's own environment; the CLI sets them once at launch.
+export const GitEnvironment = Context.Reference<Readonly<Record<string, string | undefined>>>("@shivaedev/quality/GitEnvironment", {
+	defaultValue: () => ({}),
+});
+
 export const run = Effect.fn("Git.run")(function* (
 	cwd: string,
 	args: readonly string[],
@@ -15,7 +20,8 @@ export const run = Effect.fn("Git.run")(function* (
 	return yield* Effect.scoped(
 		Effect.gen(function* () {
 			const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
-			const child = yield* spawner.spawn(ChildProcess.make("git", [...args], { cwd, stdin: "ignore" }));
+			const env = yield* GitEnvironment;
+			const child = yield* spawner.spawn(ChildProcess.make("git", [...args], { cwd, env: { ...env }, extendEnv: true, stdin: "ignore" }));
 			const [stdout, stderr, code] = yield* Effect.all(
 				[Stream.mkString(Stream.decodeText(child.stdout)), Stream.mkString(Stream.decodeText(child.stderr)), child.exitCode],
 				{ concurrency: "unbounded" },

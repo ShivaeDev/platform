@@ -1,6 +1,6 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { acquiredInScope, ci, heldBy, idBytes, inheritsHolderIdOf, layerBuilt, lockStory, running } from "#test/kit.ts";
+import { acquiredInScope, ci, heldBy, idBytes, inheritsHolderIdOf, layerBuilt, lockStory, psFails, running } from "#test/kit.ts";
 
 lockStory.it("ready records the lock id supplied by Effect's SecureRandom service", [idBytes(17)], function* ({ protocol, starts }) {
 	yield* starts("ready");
@@ -18,6 +18,21 @@ lockStory.it(
 			["lock holder", () => lock.holder(), "typecheck"],
 			["ready", () => stateOf("ready"), "running"],
 			["ready's holder id", () => holderIdGivenTo("ready"), "no holder id"],
+		]);
+	},
+);
+
+lockStory.it(
+	"with ps not on the PATH, ready runs at once beside typecheck's lock, without a holder id, and prints one notice line",
+	[heldBy("typecheck"), psFails("missing")],
+	function* ({ holderIdGivenTo, lock, printedBy, starts, stateOf }) {
+		yield* starts("ready");
+
+		yield* outcomes([
+			["lock holder", () => lock.holder(), "typecheck"],
+			["ready", () => stateOf("ready"), "running"],
+			["ready's holder id", () => holderIdGivenTo("ready"), "no holder id"],
+			["printed by ready", () => printedBy("ready"), ["heavy-process lock: ps is not on the PATH, so this command runs without the lock."]],
 		]);
 	},
 );

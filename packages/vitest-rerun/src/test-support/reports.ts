@@ -1,7 +1,7 @@
 import { Effect, Schema } from "effect";
 import { FlakyTests } from "#flakyTests.ts";
 import { decodeJsonReport, type JsonReport } from "#test/jsonReport.ts";
-import { RAN } from "#test/specFiles.ts";
+import { NODE_ENV_SEEN, RAN } from "#test/specFiles.ts";
 import { lastRun, listFiles, REPORTS, readFile, type Suite } from "#test/suite.ts";
 
 export interface Testcase {
@@ -98,6 +98,7 @@ export function reportReadouts(suite: Suite) {
 			),
 		jsonSnapshotTotals: () => Effect.sync(() => json("tests.json").snapshot),
 		junitResults: (name = "tests.junit.xml") => Effect.sync(() => testcases(reportText(name))),
+		nodeEnvSeen: () => Effect.sync(() => readFile(suite, NODE_ENV_SEEN) ?? "no test ran"),
 		printedError: () => Effect.sync(() => /^vitest-rerun: (?<message>.+)$/mu.exec(lastRun(suite).output)?.groups?.message ?? "nothing"),
 		reportContents: (name: string) => Effect.sync(() => reportText(name)),
 		reports: (directory = REPORTS) => Effect.sync(() => listFiles(suite, directory).filter((path) => REPORT_FILE.test(path))),
