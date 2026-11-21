@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.16.13 - 2026-11-21
+
+### Changed
+
+- Update `@shivaedev/email` from 0.10.1 to 0.10.2.
+- Update `@shivaedev/jobs` from 0.44.1 to 0.45.0.
+- Update `@shivaedev/server` from 0.46.2 to 0.46.3.
+- Update `@shivaedev/webhooks` from 0.13.2 to 0.13.3.
+
 ## 0.16.12 - 2026-11-21
 
 ### Changed
