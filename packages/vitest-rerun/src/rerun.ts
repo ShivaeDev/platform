@@ -1,5 +1,5 @@
 import { join } from "node:path";
-import { Console, Effect, FileSystem, Option, Path } from "effect";
+import { Config, Console, Effect, FileSystem, Option, Path } from "effect";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
 import { nodeInvocation } from "#adapters/nodeInvocation.ts";
 import type { RerunOptions } from "#options.ts";
@@ -19,8 +19,11 @@ const spawnAttempt = Effect.fn("VitestRerun.spawnAttempt")(function* (options: R
 	const path = yield* Path.Path;
 	const attemptModule = yield* path.fromFileUrl(new URL(import.meta.resolve("#attempt.ts"))).pipe(Effect.orDie);
 	const { execArgv, execPath } = yield* nodeInvocation;
+	// The Vitest CLI defaults NODE_ENV to test before Vite reads it; createVitest does not, and Vite would choose development.
+	const mode = yield* Effect.orDie(Config.String("NODE_ENV").pipe(Config.withDefault("test")));
 	const command = ChildProcess.make(execPath, [...execArgv, attemptModule, String(attempt), options.outputDir, ...options.vitestArgs], {
 		cwd: options.cwd,
+		env: { "NODE_ENV": mode },
 		extendEnv: true,
 		stderr: "inherit",
 		stdin: "inherit",

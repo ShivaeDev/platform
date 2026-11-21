@@ -4,11 +4,13 @@ const vitest = JSON.stringify(fileURLToPath(import.meta.resolve("vitest")));
 const compileCache = fileURLToPath(import.meta.resolve("@shivaedev/quality/adapters/compileCache.config.ts"));
 
 export const RAN = "ran.txt";
+export const NODE_ENV_SEEN = "node-env.txt";
 export const FLAKY = "checkout > recovers only in a fresh process";
 export const BESIDE = "checkout > passes beside it";
 
 export interface SuiteConfig {
 	coverage: boolean;
+	env?: Readonly<Record<string, string>>;
 	execArgv?: readonly string[];
 	globalSetup?: string;
 	projects: readonly string[];
