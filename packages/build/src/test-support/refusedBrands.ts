@@ -47,6 +47,22 @@ export const ReturnsReadonlyLiteralBrandKeys = query("returnsReadonlyLiteralBran
 	},
 });
 
+export const ReturnsMappedLiteralBrandKeys = query("returnsMappedLiteralBrandKeys", {
+	reads: () => [shared.list],
+	*run() {
+		const counts: { [L in Letter]: number } = yield* Effect.succeed({} as { [L in Letter]: number });
+		return counts;
+	},
+});
+
+export const ReturnsPartialMappedLiteralBrandKeys = query("returnsPartialMappedLiteralBrandKeys", {
+	reads: () => [shared.list],
+	*run() {
+		const counts: Partial<{ [L in Letter]: number }> = yield* Effect.succeed({});
+		return counts;
+	},
+});
+
 export const ReturnsPartialRecord = query("returnsPartialRecord", {
 	reads: () => [shared.list],
 	*run() {

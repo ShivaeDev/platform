@@ -29,6 +29,11 @@ generator.it(
 			["history", () => Effect.succeed(successOf(text, "history")), "Schema.Array(Schema.Json)"],
 			["blank, a record with no keys", () => Effect.succeed(successOf(text, "blank")), "Schema.Struct({})"],
 			[
+				"empties, an empty object, interface, Partial of one and mapped type",
+				() => Effect.succeed(successOf(text, "empties")),
+				"Schema.Struct({ object: Schema.Struct({}), unmarked: Schema.Struct({}), partial: Schema.Struct({}), keyless: Schema.Struct({}) })",
+			],
+			[
 				"answer",
 				() => Effect.succeed(successOf(text, "answer")),
 				"Schema.Struct({ answer: Schema.Union([Schema.String, Schema.Boolean]), score: Schema.Union([Schema.Number, Schema.Literal(true)]), note: Schema.optionalKey(Schema.Json) })",
@@ -62,6 +67,7 @@ generator.it(
 			["prices keyed by item code", "prices", { "item-": Number.POSITIVE_INFINITY, "item-a": 2.5 }],
 			["no prices", "prices", {}],
 			["a blank record", "blank", {}],
+			["empty objects", "empties", { keyless: {}, object: {}, partial: {}, unmarked: {} }],
 			["a JSON document", "document", DOCUMENT],
 			["a JSON string", "document", "Plan"],
 			["JSON null", "document", null],

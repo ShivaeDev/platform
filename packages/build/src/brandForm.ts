@@ -19,8 +19,32 @@ function isLibraryAlias(reading: TypeReading, type: ts.Type, names: ReadonlySet<
 	);
 }
 
-// TypeScript makes neither a property nor an index signature of a branded literal key, so a Record over one loses that key.
+function hasBrandedLiteral(keys: ts.Type): boolean {
+	return (keys.isUnion() ? keys.types : [keys]).some(
+		(key) => key.isIntersection() && key.types.some((member) => member.flags & (ts.TypeFlags.StringLiteral | ts.TypeFlags.NumberLiteral)),
+	);
+}
+
+function writesBrandedLiteralKeys(reading: TypeReading, type: ts.Type): boolean {
+	return (
+		type
+			.getSymbol()
+			?.declarations?.some(
+				(declaration) =>
+					ts.isMappedTypeNode(declaration)
+					&& declaration.typeParameter.constraint !== undefined
+					&& hasBrandedLiteral(reading.checker.getTypeFromTypeNode(declaration.typeParameter.constraint)),
+			) === true
+	);
+}
+
+// TypeScript makes neither a property nor an index signature of a branded literal key, so a Record or mapped type over one loses that key.
+// The public API has no getter for a mapped type's keys, so they are read from what its declaration writes after `in`; keys written
+// through a type parameter, as Record and Partial write theirs, read as that parameter and are left to the alias checks.
 export function dropsBrandedLiteralKeys(reading: TypeReading, type: ts.Type): boolean {
+	if (writesBrandedLiteralKeys(reading, type)) {
+		return true;
+	}
 	const [argument] = type.aliasTypeArguments ?? [];
 	if (argument === undefined) {
 		return false;
@@ -28,13 +52,7 @@ export function dropsBrandedLiteralKeys(reading: TypeReading, type: ts.Type): bo
 	if (isLibraryAlias(reading, type, HOMOMORPHIC)) {
 		return dropsBrandedLiteralKeys(reading, argument);
 	}
-	const keys = argument.isUnion() ? argument.types : [argument];
-	return (
-		isLibraryAlias(reading, type, RECORD)
-		&& keys.some(
-			(key) => key.isIntersection() && key.types.some((member) => member.flags & (ts.TypeFlags.StringLiteral | ts.TypeFlags.NumberLiteral)),
-		)
-	);
+	return isLibraryAlias(reading, type, RECORD) && hasBrandedLiteral(argument);
 }
 
 export function isStringBrand(type: ts.IntersectionType): boolean {

@@ -3,11 +3,11 @@
 export const CATALOG_PROJECT: Readonly<Record<string, string>> = {
 	"src/modules/catalog/catalog.ts": `import { defineModule } from "@shivaedev/contract/defineModule.ts";
 import { catalogWire } from "#generated/modules/catalog/catalog.ts";
-import { Answer, Blank, Code, Document, History, Item, Prices, Settings } from "#modules/catalog/operations.ts";
+import { Answer, Blank, Code, Document, Empties, History, Item, Prices, Settings } from "#modules/catalog/operations.ts";
 
 export const Catalog = defineModule({
 	name: "catalog",
-	operations: [Item, Code, Prices, Document, Settings, History, Answer, Blank],
+	operations: [Item, Code, Prices, Document, Settings, History, Answer, Blank, Empties],
 	wire: catalogWire,
 });
 `,
@@ -25,6 +25,15 @@ export type ItemCode = typeof ItemCode.Type;
 import { query } from "@shivaedev/contract/operation.ts";
 import type { Id } from "#modules/catalog/ids.ts";
 import type { ItemCode } from "#modules/catalog/model.ts";
+
+interface Unmarked {}
+
+interface Empty {
+	readonly object: {};
+	readonly unmarked: Unmarked;
+	readonly partial: Partial<Unmarked>;
+	readonly keyless: { [K in never]: number };
+}
 
 interface Answered {
 	readonly answer: string | boolean;
@@ -78,6 +87,13 @@ export const Blank = query("blank", {
 	*run() {
 		const blank: Record<never, number> = yield* Effect.succeed({});
 		return blank;
+	},
+});
+
+export const Empties = query("empties", {
+	*run() {
+		const empties = yield* Effect.succeed<Empty>({ keyless: {}, object: {}, partial: {}, unmarked: {} });
+		return empties;
 	},
 });
 
