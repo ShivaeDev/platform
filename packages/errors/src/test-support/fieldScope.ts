@@ -56,6 +56,17 @@ const holders = {
 };
 export type Holder = keyof typeof holders;
 
+class Visit extends Schema.Class<Visit>("Visit")({ day: Schema.String, state: Schema.String.annotate({ sensitive: true }) }) {}
+const ShownState = Schema.Struct({ state: Schema.String });
+const carriers = {
+	"a generated success that holds Visit under mutable keys in an object and in an array": Rpc.make("Read", {
+		payload: ShownState,
+		success: Schema.Struct({ latest: Schema.mutableKey(Visit), visits: Schema.mutableKey(Schema.Array(Visit)) }),
+	}).annotate(GeneratedSuccess, true),
+	"a stream of Visit": Rpc.make("Read", { payload: ShownState, stream: true, success: Visit }),
+};
+export type Carrier = keyof typeof carriers;
+
 function outcome(registration: Effect.Effect<unknown, Effect.Error<ReturnType<typeof schemaSensitiveKeys>>>) {
 	return registration.pipe(
 		Effect.match({
@@ -70,6 +81,17 @@ export const fieldScope = storyKit({
 	name: "RPC field scope registration",
 	stages: [],
 	verbs: (_state, story) => ({
+		carriedMasks: (carrier: Carrier, names: readonly string[]) => {
+			story.tell(
+				`register an RPC whose payload shows state and whose success is ${carrier}, and ask its policy which of ${names.join(", ")} it masks`,
+			);
+			return schemaSensitiveKeys(RpcGroup.make(carriers[carrier])).pipe(
+				Effect.match({
+					onFailure: (error) => error.message,
+					onSuccess: (policy) => names.filter(policy.forRpc("Read")),
+				}),
+			);
+		},
 		maskedNames: (holder: Holder, names: readonly string[]) => {
 			story.tell(`register an RPC whose success is ${holder}, and ask its policy which of ${names.join(", ")} it masks`);
 			return schemaSensitiveKeys(RpcGroup.make(Rpc.make("Read", { success: holders[holder] }))).pipe(

@@ -2,6 +2,7 @@ import { pathToFileURL } from "node:url";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { ConfigProvider, Effect, Exit, Fiber, FileSystem, Option, Path, Predicate, Schema, Scope } from "effect";
 import { TestClock } from "effect/testing";
+import { schemaFieldKeys } from "@shivaedev/errors/schemaFieldScope.ts";
 import { acquireHeavyLock } from "@shivaedev/heavy-lock/acquire.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { untilTimer } from "@shivaedev/test-story/server/watchedClock.ts";
@@ -145,6 +146,9 @@ export const generator = storyKit({
 			story.tell("a second passes and the waiting generate tries the heavy lock again");
 			yield* TestClock.adjust("1 second");
 			return Option.isSome(engine.running) ? yield* Fiber.join(engine.running.value) : yield* Effect.die(new Error("no generate is running"));
+		}),
+		marksOf: Effect.fn("BuildStory.marksOf")(function* (module: string, operation: string) {
+			return [...schemaFieldKeys((yield* successSchema(engine, module, operation)).ast, [])].toSorted((left, right) => left.localeCompare(right));
 		}),
 		noteCard: Effect.fn("BuildStory.noteCard")(function* (id: number, title: string) {
 			const model = yield* importedFrom(engine, NOTES_MODEL);

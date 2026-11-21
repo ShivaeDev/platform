@@ -62,7 +62,7 @@ const Audit = command("audit", {
 	},
 });
 
-// Stands in for the generated wire: a success derived from run's type carries no sensitivity.
+// Stands in for the generated wire, which restates the plain object run returns without annotations.
 const MemberWire = Schema.Struct({ address: Schema.String, id: Schema.Number, name: Schema.String });
 const membersWire = {
 	audit: { rejections: {}, success: Schema.Never },

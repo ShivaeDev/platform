@@ -1,5 +1,5 @@
 import { Context, Effect } from "effect";
-import { Rpc, type RpcGroup } from "effect/rpc";
+import { Rpc, type RpcGroup, RpcSchema } from "effect/rpc";
 import { GeneratedSuccess } from "#GeneratedSuccess.ts";
 import { SensitiveFieldConflict, schemaFieldKeys, validateFieldScope } from "#schemaFieldScope.ts";
 import { maskedValue } from "#schemaSensitiveAst.ts";
@@ -8,16 +8,20 @@ import { wireRedactor } from "#wireRedactor.ts";
 
 const rpcSensitiveKeys = Effect.fnUntraced(function* (rpc: Rpc.AnyWithProps, extra: readonly string[]) {
 	const Errors = Rpc.exitSchema(rpc).error;
+	const streamed = RpcSchema.isStreamSchema(rpc.successSchema);
+	const success = { ast: streamed ? rpc.successSchema.success.ast : rpc.successSchema.ast, name: `${rpc._tag}.success` };
+	// A generated success restates its fields without annotations, so only the names it marks count; a stream's elements count the same way, so adding them refuses no group that registers without them.
+	const checked = !(streamed || Context.get(rpc.annotations, GeneratedSuccess));
 	const schemas = [
 		{ ast: rpc.payloadSchema.ast, name: `${rpc._tag}.payload` },
-		...(Context.get(rpc.annotations, GeneratedSuccess) ? [] : [{ ast: rpc.successSchema.ast, name: `${rpc._tag}.success` }]),
+		...(checked ? [success] : []),
 		{ ast: rpc.errorSchema.ast, name: `${rpc._tag}.error` },
 		{ ast: rpc.defectSchema.ast, name: `${rpc._tag}.defect` },
 		...[...rpc.middlewares].map((middleware, index) => ({ ast: middleware.error.ast, name: `${rpc._tag}.middleware[${index}].error` })),
 		{ ast: Errors.ast, name: `${rpc._tag}.exit.error` },
 	];
 	yield* validateFieldScope(schemas, extra);
-	const keys = new Set(schemas.flatMap(({ ast }) => [...schemaFieldKeys(ast, extra)]));
+	const keys = new Set([...schemas, ...(checked ? [] : [success])].flatMap(({ ast }) => [...schemaFieldKeys(ast, extra)]));
 	function sensitive(key: string) {
 		return keys.has(key) || isSensitiveKey(key);
 	}
