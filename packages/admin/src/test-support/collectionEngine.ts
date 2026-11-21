@@ -1,14 +1,13 @@
 import { Effect, Layer, Option, Redacted, Ref } from "effect";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
-import * as AtomRpc from "effect/reactivity/AtomRpc";
-import { RpcTest } from "effect/rpc";
 import { Migrator, SqlClient } from "effect/sql";
-import { bind } from "@shivaedev/contract/bind.ts";
+import { makeClient } from "@shivaedev/contract/makeClient.ts";
 import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import type { UserSessionShape } from "@shivaedev/identity/server/session.ts";
 import { appDatabase } from "@shivaedev/server/appDatabase.ts";
 import { hostChanges } from "@shivaedev/server/hostChanges.ts";
 import { makeRepository } from "@shivaedev/sql/repository.ts";
+import { layerMemoryProtocol } from "@shivaedev/test-kits/contract/testing.ts";
 import { postgresTestUrl } from "@shivaedev/test-sql/server/adapters/postgresTestUrl.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { makePostgresTestLayer } from "@shivaedev/test-sql/server/postgres.ts";
@@ -54,17 +53,15 @@ export const collectionEngine = Effect.gen(function* () {
 		.pipe(Layer.provideMerge(registration.handlers))
 		.pipe(Layer.provide(Layer.succeed(SessionPolicy, policy)), Layer.provide(Layer.succeedContext(services)));
 	const runtime = yield* clientRuntime;
-	class Client extends AtomRpc.Service<Client>()("test/AdminCollectionClient", {
-		group: registration.group,
-		makeEffect: RpcTest.makeClient(registration.group, { flatten: true }),
-		protocol,
-		runtime,
-	}) {}
 	const registry = yield* Effect.acquireRelease(
 		Effect.sync(() => AtomRegistry.make()),
 		(value) => Effect.sync(() => value.dispose()),
 	);
-	const api = bind(page.contract, Client, { registry });
+	const connection = makeClient(
+		{ workspaces: page.contract },
+		{ protocol: layerMemoryProtocol(registration.group).pipe(Layer.provide(protocol)), registry, runtime },
+	);
+	const api = connection.api.workspaces;
 	const query = api.all.query();
 	const before: { current?: unknown } = {};
 	return { api, before, query, registry, repository, services, session };

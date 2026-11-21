@@ -1,11 +1,9 @@
-import { Effect, Layer, Schema } from "effect";
+import { Effect, Schema } from "effect";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
-import * as AtomRpc from "effect/reactivity/AtomRpc";
-import { RpcTest } from "effect/rpc";
-import { bind } from "@shivaedev/contract/bind.ts";
 import { contract } from "@shivaedev/contract/contract.ts";
+import { makeClient } from "@shivaedev/contract/makeClient.ts";
 import { query } from "@shivaedev/contract/operation.ts";
-import { hostChanges } from "@shivaedev/server/hostChanges.ts";
+import { layerLiveMemoryProtocol } from "@shivaedev/test-kits/contract/liveMemoryProtocol.ts";
 
 const Api = contract("module", {
 	keyScope: "session",
@@ -14,10 +12,6 @@ const Api = contract("module", {
 
 export function composedModule(name: string, registry: AtomRegistry.AtomRegistry) {
 	const application = Api.application.toLayer({ "module.read": () => Effect.succeed(name) });
-	class Client extends AtomRpc.Service<Client>()(`test/Composed/${name}`, {
-		group: Api,
-		makeEffect: RpcTest.makeClient(Api, { flatten: true }),
-		protocol: Layer.merge(application, hostChanges(Api).pipe(Layer.provide(application))),
-	}) {}
-	return { api: bind(Api, Client, { registry }), name };
+	const connection = makeClient({ module: Api }, { protocol: layerLiveMemoryProtocol(Api, application), registry });
+	return { api: connection.api.module, name };
 }

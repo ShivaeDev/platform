@@ -1,13 +1,12 @@
-import { Effect, Layer, Option, Schema, Stream } from 'effect';
+import { Effect, Layer, Option, Queue, Schema, Stream } from 'effect';
 import * as AtomRegistry from 'effect/reactivity/AtomRegistry';
-import * as AtomRpc from 'effect/reactivity/AtomRpc';
 import * as Reactivity from 'effect/reactivity/Reactivity';
-import { RpcTest } from 'effect/rpc';
+import { type Rpc, RpcClient, type RpcGroup, type RpcMessage, RpcSerialization, RpcServer } from 'effect/rpc';
 import { collection, invalidationKeys } from '@shivaedev/changes/keys.ts';
 import { LiveConnection } from '@shivaedev/contract/automaticLive.ts';
-import { bind } from '@shivaedev/contract/bind.ts';
 import { changesHandlerLayer } from '@shivaedev/contract/changesHandlerLayer.ts';
 import { contract } from '@shivaedev/contract/contract.ts';
+import { makeClient } from '@shivaedev/contract/makeClient.ts';
 import { makeLiveServer } from '@shivaedev/contract/makeLiveServer.ts';
 import { query } from '@shivaedev/contract/operation.ts';
 import { querySubscription } from '@shivaedev/contract/querySubscription.ts';
@@ -30,13 +29,10 @@ await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
    return server.subscribe(subscription, () => read);
   })))
  );
- class Client extends AtomRpc.Service<Client>()('packed/Push', {
-  group: Api, makeEffect: RpcTest.makeClient(Api, { flatten: true }), protocol: handlers
- }) {}
- const api = bind(Api, Client, { resume: listener => {
+ const api = makeClient({ workspace: Api }, { protocol: memoryProtocol(Api).pipe(Layer.provide(handlers)), resume: listener => {
   resumeListener = listener;
   return () => { resumeListener = undefined; };
- } });
+ } }).api.workspace;
  const registry = yield* Effect.acquireRelease(Effect.sync(() => AtomRegistry.make()), current => Effect.sync(() => current.dispose()));
  const atom = api.read.query();
  registry.mount(atom);
@@ -61,3 +57,20 @@ await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
  yield* shown('After resume');
 })));
 if (resumeListener !== undefined) throw new Error('Packed resume source was not released');
+// The packed client takes a native protocol; this one serves the handlers in the same process.
+function memoryProtocol<R extends Rpc.Any>(group: RpcGroup.RpcGroup<R>) {
+ return Layer.effect(RpcClient.Protocol, Effect.gen(function* () {
+  const requests = yield* Queue.unbounded<readonly [number, RpcMessage.FromClientEncoded]>();
+  const disconnects = yield* Queue.unbounded<number>();
+  const { codecFor } = yield* RpcSerialization.RpcSerialization;
+  return yield* RpcClient.Protocol.make((send, clientIds) => Effect.gen(function* () {
+   const server = RpcServer.Protocol.of({
+    clientIds: Effect.sync(() => clientIds), codecFor, disconnects, end: () => Effect.void, initialMessage: Effect.succeedNone,
+    run: receive => Effect.forever(Effect.flatMap(Queue.take(requests), ([id, message]) => receive(id, message))),
+    send, supportsAck: true, supportsNotifications: true, supportsSpanPropagation: true, supportsTransferables: false,
+   });
+   yield* RpcServer.make(group).pipe(Effect.provideService(RpcServer.Protocol, server), Effect.forkScoped);
+   return { codecFor, send: (clientId: number, request: RpcMessage.FromClientEncoded) => Effect.asVoid(Queue.offer(requests, [clientId, request])), supportsAck: true, supportsTransferables: false };
+  }));
+ })).pipe(Layer.provide(RpcSerialization.layerNdjson));
+}

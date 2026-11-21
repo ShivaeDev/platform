@@ -1,7 +1,6 @@
 import { Effect, Schema } from "effect";
-import * as AtomRpc from "effect/reactivity/AtomRpc";
-import { bind } from "@shivaedev/contract/bind.ts";
 import { contract } from "@shivaedev/contract/contract.ts";
+import { makeClient } from "@shivaedev/contract/makeClient.ts";
 import { command, query } from "@shivaedev/contract/operation.ts";
 import { Conflict } from "@shivaedev/errors/taxonomy.ts";
 import { layerLiveMemoryProtocol } from "@shivaedev/test-kits/contract/liveMemoryProtocol.ts";
@@ -32,19 +31,19 @@ const Retitle = command("retitle", {
 const Remove = command("remove", { invalidates: () => [], payload: NoteId, rejections: {}, success: Schema.Void });
 const Notes = contract("notes", { commands: [Create, Update, Rename, Retitle, Remove], queries: [Get] });
 
-class Client extends AtomRpc.Service<Client>()("fixture/NotesClient", {
-	group: Notes,
-	protocol: layerLiveMemoryProtocol(
-		Notes,
-		Notes.application.toLayer({
-			"notes.create": ({ title }) => Effect.succeed({ id: 1, title, version: 1, words: 0 }),
-			"notes.get": ({ id }) => Effect.succeed({ id, title: "", version: 1, words: 0 }),
-			"notes.remove": () => Effect.void,
-			"notes.rename": ({ id, title }) => Effect.succeed({ id, title, version: 2, words: 0 }),
-			"notes.retitle": ({ id, title }) => Effect.succeed({ id, title, version: 2, words: 0 }),
-			"notes.update": ({ id, title, version }) => Effect.succeed({ id, title, version, words: 0 }),
-		}),
-	),
-}) {}
-
-export const api = bind(Notes, Client);
+export const api = makeClient(
+	{ notes: Notes },
+	{
+		protocol: layerLiveMemoryProtocol(
+			Notes,
+			Notes.application.toLayer({
+				"notes.create": ({ title }) => Effect.succeed({ id: 1, title, version: 1, words: 0 }),
+				"notes.get": ({ id }) => Effect.succeed({ id, title: "", version: 1, words: 0 }),
+				"notes.remove": () => Effect.void,
+				"notes.rename": ({ id, title }) => Effect.succeed({ id, title, version: 2, words: 0 }),
+				"notes.retitle": ({ id, title }) => Effect.succeed({ id, title, version: 2, words: 0 }),
+				"notes.update": ({ id, title, version }) => Effect.succeed({ id, title, version, words: 0 }),
+			}),
+		),
+	},
+).api.notes;
