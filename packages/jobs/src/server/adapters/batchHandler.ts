@@ -1,7 +1,7 @@
 import { Cause, Clock, Deferred, Effect, Exit, Fiber } from "effect";
-import { redactDiagnosticCause } from "@shivaedev/errors/redactCause.ts";
 import { batchClockOffset, databaseNow } from "#server/adapters/batchClockOffset.ts";
 import type { PgBossClient } from "#server/adapters/client.ts";
+import { deadlineLogged, failureLogged } from "#server/attemptLog.ts";
 import { deadlineOf, validateDeadline } from "#server/deadlineOf.ts";
 import { deferredAttempt } from "#server/deferral.ts";
 import { type PgBossError, toPgBossError } from "#server/error.ts";
@@ -36,14 +36,6 @@ const interruptAt = Effect.fnUntraced(function* (deadline: number) {
 	return deadlineReached;
 });
 
-function attemptLogged(name: string, job: WorkerJob<unknown>, outcome: "deadline" | "failed", line: Effect.Effect<void>) {
-	return Effect.annotateLogs(line, { "job.attempt": job.retryCount + 1, "job.id": job.id, "job.outcome": outcome, "job.queue": name });
-}
-
-function deadlineLogged(name: string, job: WorkerJob<unknown>) {
-	return attemptLogged(name, job, "deadline", Effect.logError(`Job attempt hit its ${job.expireInSeconds}s deadline`));
-}
-
 function attemptEnded(name: string, job: WorkerJob<unknown>, exit: Exit.Exit<unknown, unknown>): Effect.Effect<"deadline" | "interrupted" | "ended"> {
 	if (Exit.isSuccess(exit) && exit.value === deadlineReached) {
 		return Effect.as(deadlineLogged(name, job), "deadline");
@@ -52,7 +44,7 @@ function attemptEnded(name: string, job: WorkerJob<unknown>, exit: Exit.Exit<unk
 		return Effect.succeed("interrupted");
 	}
 	if (Exit.isFailure(exit)) {
-		return Effect.as(attemptLogged(name, job, "failed", Effect.logError("Job attempt failed", redactDiagnosticCause(exit.cause))), "ended");
+		return Effect.as(failureLogged(name, job, exit.cause), "ended");
 	}
 	return Effect.succeed("ended");
 }
