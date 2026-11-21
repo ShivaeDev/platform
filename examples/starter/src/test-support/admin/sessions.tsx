@@ -79,7 +79,7 @@ export const adminSessionsOpen = adminSessions.trait(
 		Object.assign(engine, screen);
 		engine.driver = screenDriver({
 			act,
-			activity: activityScreenSignal(clientActivity(screen.foundationClient)),
+			activity: activityScreenSignal(clientActivity(screen.connection)),
 			pending: screen.pending,
 			root: screen.view.container,
 			tell: () => undefined,

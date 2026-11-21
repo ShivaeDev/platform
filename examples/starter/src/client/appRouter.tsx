@@ -1,28 +1,36 @@
 import { type AnyRoute, createRoute, createRouter, type RouterHistory } from "@tanstack/react-router";
-import { Effect } from "effect";
-import * as AtomRegistry from "effect/reactivity/AtomRegistry";
+import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import type { ReactElement } from "react";
 import { PermissionBoundaryError } from "@shivaedev/react/adapters/permissionBoundary.ts";
+import type { AppConnection, ClientApp } from "@shivaedev/react/client/app.ts";
 import { signInRedirect } from "@shivaedev/react/signInRedirect.ts";
 import type { AppSession, AuthActions } from "#client/adapters/auth.ts";
 import { navigateTo } from "#client/adapters/navigateTo.ts";
 import { Home } from "#client/Home.tsx";
 import { LoginScreen } from "#client/LoginScreen.tsx";
-import type { ClientModule } from "#client/Module.ts";
 import type { clientModules } from "#client/modules.ts";
 import { ResetPassword } from "#client/ResetPassword.tsx";
 import { rootRoute } from "#client/rootRoute.ts";
 import { Shell } from "#client/Shell.tsx";
 import { parseSearch, stringifySearch } from "#client/search.ts";
 
-export const appRouter = Effect.fnUntraced(function* <TRoute extends AnyRoute>(
-	client: { readonly modules: readonly ClientModule<TRoute>[] },
-	auth: AuthActions,
-	history?: RouterHistory,
-	session: () => AppSession | null | undefined = () => undefined,
-	onAuthenticated: () => void = () => undefined,
-) {
-	const registry = yield* AtomRegistry.AtomRegistry;
+export interface Routing<TRoute extends AnyRoute = AnyRoute> {
+	readonly auth: AuthActions;
+	readonly connection: AppConnection<TRoute>;
+	readonly history?: RouterHistory | undefined;
+	readonly onAuthenticated?: () => void;
+	readonly registry: AtomRegistry.AtomRegistry;
+	readonly session?: () => AppSession | null | undefined;
+}
+
+export function appRouter<TRoute extends AnyRoute>({
+	auth,
+	connection,
+	history,
+	onAuthenticated = () => undefined,
+	registry,
+	session = () => undefined,
+}: Routing<TRoute>) {
 	const root = rootRoute();
 	const login = createRoute({
 		component: (): ReactElement => <LoginScreen auth={auth} onAuthenticated={onAuthenticated} />,
@@ -30,20 +38,19 @@ export const appRouter = Effect.fnUntraced(function* <TRoute extends AnyRoute>(
 		path: "/sign-in",
 		validateSearch: (search: Record<string, unknown>) => (typeof search.returnTo === "string" ? { returnTo: search.returnTo } : {}),
 	});
-	const adminPages = client.modules.flatMap((module) => module.admin?.pages ?? []);
 	const resetPassword = createRoute({
 		component: (): ReactElement => <ResetPassword auth={auth} token={resetPassword.useSearch().token} />,
 		getParentRoute: () => root,
 		path: "/reset-password",
 		validateSearch: (search: Record<string, unknown>) => ({ token: typeof search.token === "string" ? search.token : "" }),
 	});
-	const routes = client.modules.flatMap((module) => module.routes({ getParentRoute: () => root }));
+	const routes = connection.routes(root);
 	const home = createRoute({ component: (): ReactElement => <Home auth={auth} />, getParentRoute: () => root, path: "/" });
 	const router = createRouter({
 		context: {
-			adminPages,
+			adminPages: connection.adminPages,
 			auth,
-			modules: client.modules,
+			modules: connection.modules,
 			navigate: (to) => navigateTo(router, to),
 			redirects: { signedOut: signInRedirect("/sign-in") },
 			registry,
@@ -64,12 +71,10 @@ export const appRouter = Effect.fnUntraced(function* <TRoute extends AnyRoute>(
 		]),
 	});
 	return router;
-});
+}
 
 declare module "@tanstack/react-router" {
 	interface Register {
-		router: Effect.Success<
-			ReturnType<typeof appRouter<ReturnType<Effect.Success<ReturnType<typeof clientModules>>["modules"][number]["routes"]>[number]>>
-		>;
+		router: ReturnType<typeof appRouter<typeof clientModules extends ClientApp<infer TRoute> ? TRoute : never>>;
 	}
 }

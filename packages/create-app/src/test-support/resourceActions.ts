@@ -31,7 +31,7 @@ export function resourceActions(engine: Engine, story: { readonly tell: (line: s
 				workspaceConditions(app(), engine.source.starter);
 				return scriptOutcome(
 					appScript(app(), "test", [
-						...names.map((name) => `src/modules/${name}/server/lifecycle.spec.ts`),
+						...names.flatMap((name) => [`src/modules/${name}/server/lifecycle.spec.ts`, `src/modules/${name}/client/list.dom.spec.ts`]),
 						"--configLoader",
 						"native",
 						"--maxWorkers",

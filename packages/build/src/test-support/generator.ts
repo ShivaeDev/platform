@@ -7,6 +7,7 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { untilTimer } from "@shivaedev/test-story/server/watchedClock.ts";
 import { generate } from "#generate.ts";
 import type { GenerateFailed, GenerateReport } from "#report.ts";
+import { type ClientModuleShape, clientModuleFile, clientModulePath } from "#test/clientModulesProject.ts";
 import { CREDENTIAL_MODEL } from "#test/credentialModel.ts";
 import { emptyProject, fromSource, generatedOncePerFile, projectIn, typeCheck, writeFiles } from "#test/fixtureProject.ts";
 import { NOTES_PROJECT } from "#test/notesProject.ts";
@@ -102,6 +103,11 @@ export const generator = storyKit({
 	name: "generator",
 	stages: ["project", "generated", "lock"],
 	verbs: (engine, story) => ({
+		addsClientModule: Effect.fn("BuildStory.addsClientModule")(function* (module: string, shape: ClientModuleShape = "built by clientModule") {
+			const file = clientModulePath(module, shape);
+			story.tell(`the developer writes ${file}, exporting the ${module} client module ${shape}`);
+			yield* writeFiles(engine.root, { [file]: clientModuleFile(module, shape) });
+		}),
 		addsRegistration: Effect.fn("BuildStory.addsRegistration")(function* (module: string, shape: RegistrationShape = "written satisfies AppModule") {
 			const file = `src/modules/${module.toLowerCase()}/server/registration.ts`;
 			story.tell(`the developer writes ${file}, exporting the ${module} registration ${shape}`);

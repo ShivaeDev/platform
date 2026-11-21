@@ -3,6 +3,12 @@ import { Children, type ReactElement, type ReactNode } from "react";
 import { PermissionBoundary } from "@shivaedev/react/adapters/permissionBoundary.ts";
 import { Forbidden } from "@shivaedev/react/Forbidden.ts";
 
+declare module "@tanstack/react-router" {
+	interface StaticDataRouteOption {
+		readonly fullScreen?: boolean;
+	}
+}
+
 export function Shell({ children }: { readonly children: ReactNode }): ReactElement {
 	const pending = useRouterState({ select: (state) => state.isLoading });
 	const router = useRouter();

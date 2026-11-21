@@ -3,11 +3,11 @@ import { mintUser } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { notes } from "#modules/notes/model.ts";
-import { appScreen } from "#modules/notes/test-support/appScreen.tsx";
 import { notesHttp } from "#modules/notes/test-support/http.ts";
 import { screenActions } from "#modules/notes/test-support/screenActions.ts";
 import { screenObservations } from "#modules/notes/test-support/screenObservations.ts";
 import { AppAuth } from "#server/AppAuth.ts";
+import { appScreen } from "#test-support/appScreen.tsx";
 import { configured, postgres } from "#test-support/postgres.ts";
 import { uiScreenVerbs } from "#test-support/uiScreenVerbs.ts";
 

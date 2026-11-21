@@ -215,7 +215,14 @@ export const notesRegistration = { module: Notes, services: Notes.layer } satisf
 `,
 };
 
+const NOTES_CLIENT_MODULE = `import { clientModule } from "@shivaedev/react/client/module.ts";
+import { Notes } from "#generated/modules/notes/notes.ts";
+
+export const notesModule = clientModule({ notes: Notes }, () => ({}));
+`;
+
 export const VITE_PROJECT = {
+	notesClientModule: { path: "src/modules/notes/client/module.tsx", text: NOTES_CLIENT_MODULE },
 	notesPage: NOTES_PAGE,
 	notesRegistration: { path: "src/modules/notes/server/registration.ts", texts: NOTES_REGISTRATIONS },
 	notesTest: NOTES_TEST,

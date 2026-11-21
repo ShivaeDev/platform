@@ -5,11 +5,9 @@ import { memoryQueryStorage } from "@shivaedev/test-kits/contract/memoryQuerySto
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { App } from "#client/App.tsx";
-import { clientModules } from "#client/modules.ts";
-import { notesRegistration } from "#modules/notes/client/registration.tsx";
 import { notesClient } from "#modules/notes/test-support/client.ts";
 import { screenObservations } from "#modules/notes/test-support/screenObservations.ts";
-import { createScreen, type Screen } from "#modules/notes/test-support/screenState.ts";
+import { createScreen, type Screen, screenApp } from "#modules/notes/test-support/screenState.ts";
 import { settleQuery } from "#modules/notes/test-support/settleQuery.ts";
 import { appAuth } from "#test-support/appAuth.ts";
 import { acquireScreen, screenView } from "#test-support/screenState.ts";
@@ -18,14 +16,7 @@ const openStoredApp = Effect.fn("StoredNotes.openStoredApp")(function* (engine: 
 	const fixture = appAuth({ baseUrl: "http://app.test", signedIn: true });
 	const view = yield* acquireScreen(engine);
 	yield* Effect.promise(() =>
-		view.render(
-			<App
-				auth={fixture.auth}
-				connect={(session) => clientModules(session, [notesRegistration(engine.client)])}
-				history={createMemoryHistory({ initialEntries: ["/"] })}
-				persist={storage.layer}
-			/>,
-		),
+		view.render(<App app={screenApp(engine)} auth={fixture.auth} history={createMemoryHistory({ initialEntries: ["/"] })} persist={storage.layer} />),
 	);
 	yield* screenDriver({
 		act,

@@ -1,27 +1,56 @@
 import { Effect, FileSystem, Path } from "effect";
-import { registrationsOf } from "#adapters/typeScript.ts";
+import { clientModulesOf, registrationsOf } from "#adapters/typeScript.ts";
 import { emitList } from "#emitList.ts";
 import type { Project } from "#inputs.ts";
 import { sourceFiles } from "#project.ts";
-import { inPathOrder, mayRegister } from "#registrations.ts";
+import { type FileRegistrations, inPathOrder, mayRegister } from "#registrations.ts";
 import type { ListOutcome } from "#report.ts";
 import { settle } from "#settle.ts";
 import { specifierFor } from "#specifiers.ts";
 
-const IMPORTED_AS = "generated/server/modules";
+export interface ListSource {
+	readonly find: (relative: string, text: string) => Omit<FileRegistrations, "file">;
+	readonly holds: string;
+	// The folder under src/generated the list is written to, and the one its importers name.
+	readonly side: "client" | "server";
+}
+
+export const LIST_SOURCES: readonly ListSource[] = [
+	{
+		find: registrationsOf,
+		holds: "the server's module list, every exported registration written `satisfies AppModule` in path order",
+		side: "server",
+	},
+	{
+		find: clientModulesOf,
+		holds: "the client's module list, every exported `clientModule(...)` outside server code in path order",
+		side: "client",
+	},
+];
+
+export function listsSomething(relative: string, text: string): boolean {
+	return (
+		mayRegister(relative)
+		&& LIST_SOURCES.some((source) => {
+			const { registrations, refusals } = source.find(relative, text);
+			return registrations.length + refusals.length > 0;
+		})
+	);
+}
 
 // Written from syntax alone, so it needs no program and no cache: every run reads the sources and writes the list again. A
-// project with no registration gets the list only when its sources import it, so a library that serves nothing carries none.
-export const serverList = Effect.fn("Build.serverList")(function* (project: Project, check: boolean) {
+// project with nothing to list gets the list only when its sources import it, so a library that serves nothing carries none.
+export const moduleList = Effect.fn("Build.moduleList")(function* (project: Project, check: boolean, source: ListSource) {
 	const fs = yield* FileSystem.FileSystem;
 	const path = yield* Path.Path;
-	const output = path.join(project.generated, "server", "modules.ts");
+	const importedAs = `generated/${source.side}/modules`;
+	const output = path.join(project.generated, source.side, "modules.ts");
 	const candidates = sourceFiles(project).filter((file) => mayRegister(path.relative(project.root, file)));
 	const read = yield* Effect.forEach(candidates, (file) =>
 		Effect.map(fs.readFileString(file), (text) => ({
 			file,
-			imports: text.includes(IMPORTED_AS),
-			...registrationsOf(path.relative(project.root, file), text),
+			imports: text.includes(importedAs),
+			...source.find(path.relative(project.root, file), text),
 		})),
 	);
 	const found = read.filter((each) => each.registrations.length + each.refusals.length > 0);
@@ -38,11 +67,7 @@ export const serverList = Effect.fn("Build.serverList")(function* (project: Proj
 	const items = yield* Effect.forEach(inPathOrder(found), ({ file, name }) =>
 		Effect.map(specifierFor(project.root, output, file), (specifier) => ({ name, preferred: name, specifier: specifier ?? file, typeOnly: false })),
 	);
-	const content = emitList({
-		holds: "the server's module list, every exported registration written `satisfies AppModule` in path order",
-		items,
-		name: "modules",
-	});
+	const content = emitList({ holds: source.holds, items, name: "modules" });
 	const outcomes: readonly ListOutcome[] = [{ output: relative, status: yield* settle(check, output, content) }];
 	return { inputs, outcomes, refusals };
 });

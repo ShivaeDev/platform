@@ -5,10 +5,10 @@ import { byText } from "#byText.ts";
 import { cachedOutput, recordOutput } from "#cache.ts";
 import { emit } from "#emit.ts";
 import { inputKey } from "#inputs.ts";
+import { LIST_SOURCES, moduleList } from "#moduleList.ts";
 import { plan } from "#plan.ts";
 import { moduleFiles, openProject } from "#project.ts";
 import { GenerateFailed, type GenerateReport, type ModuleOutcome, problemOf } from "#report.ts";
-import { serverList } from "#serverList.ts";
 import { settle } from "#settle.ts";
 import { settleOrphans } from "#settleOrphans.ts";
 
@@ -65,11 +65,12 @@ export const generate = Effect.fn("Build.generate")(function* (directory: string
 		outcomes.push({ ...relative, status });
 	}
 	outcomes.push(...(yield* settleOrphans(project, options.check)));
-	const list = yield* serverList(project, options.check);
-	refusals.push(...list.refusals);
-	const inputs = [...new Set([...keyed.flatMap((file) => file.inputs), ...list.inputs])].sort(byText);
-	const report: GenerateReport = { inputs, lists: list.outcomes, modules: outcomes, programBuilt: pending.length > 0 };
-	const lines = [...outcomes, ...list.outcomes].flatMap((outcome) => problemOf(outcome) ?? []);
+	const lists = yield* Effect.forEach(LIST_SOURCES, (source) => moduleList(project, options.check, source));
+	refusals.push(...lists.flatMap((list) => list.refusals));
+	const listed = lists.flatMap((list) => list.outcomes);
+	const inputs = [...new Set([...keyed.flatMap((file) => file.inputs), ...lists.flatMap((list) => list.inputs)])].sort(byText);
+	const report: GenerateReport = { inputs, lists: listed, modules: outcomes, programBuilt: pending.length > 0 };
+	const lines = [...outcomes, ...listed].flatMap((outcome) => problemOf(outcome) ?? []);
 	if (refusals.length > 0 || lines.length > 0) {
 		const problems = [...refusals, ...lines].map((problem) => problem.replaceAll(`${project.root}${path.sep}`, ""));
 		return yield* new GenerateFailed({ problems, report });
