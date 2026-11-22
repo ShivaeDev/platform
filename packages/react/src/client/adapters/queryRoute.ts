@@ -33,11 +33,13 @@ function checkedFailures(failures: unknown): unknown {
 	return failures ?? {};
 }
 
-export interface LoadedRoute<A, E> {
+interface RouteRow<A, E> {
 	readonly loaded: A;
 	readonly query: Atom.Atom<AsyncResult.AsyncResult<A, E>>;
 	readonly queryFailures: RouteFailures<E>;
 }
+
+export type LoadedRow<TQuery> = TQuery extends Atom.Atom<AsyncResult.AsyncResult<infer A, infer E>> ? RouteRow<A, E> : never;
 
 function useLoadedQuery<TParams, TSearch, A, E, TContext>(
 	query: (route: QueryRouteInput<TParams, TSearch, TContext>) => Atom.Atom<AsyncResult.AsyncResult<A, E>>,
@@ -79,7 +81,7 @@ export function queryRoute<TParams extends object, TSearch extends object, A, E,
 		// Spread into the route's options, so the router's default failure screen can word this route's rejections and rerun its own query.
 		queryFailures,
 		refreshQuery: (match: AnyRouteMatch) => refreshMatch(query, match),
-		useLoaded: (): LoadedRoute<A, E> => ({ ...useLoadedQuery(query), queryFailures }),
+		useLoaded: (): RouteRow<A, E> => ({ ...useLoadedQuery(query), queryFailures }),
 		useQuery: (queryOptions: { readonly keepPreviousData?: boolean } = {}): LoadedQueryState<A, E> => {
 			const { loaded, query: atom } = useLoadedQuery(query);
 			return useLoadedQueryState(atom, loaded, { failures: queryFailures, keepPreviousData: queryOptions.keepPreviousData });

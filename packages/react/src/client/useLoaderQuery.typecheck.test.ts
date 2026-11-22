@@ -2,7 +2,7 @@ import { Effect, Layer, Schema } from "effect";
 import * as Atom from "effect/reactivity/Atom";
 import { expectTypeOf } from "vitest";
 import { Conflict } from "@shivaedev/errors/taxonomy.ts";
-import { queryRoute } from "#client/adapters/queryRoute.ts";
+import { type LoadedRow, queryRoute } from "#client/adapters/queryRoute.ts";
 import { useEditor } from "#client/editor.ts";
 import { useLoaderQuery } from "#client/useLoaderQuery.ts";
 
@@ -54,6 +54,9 @@ export function useLoadedFailures() {
 	const route = queryRoute(() => declared, { failures: { SubtitleRejected: subtitleNotice } });
 	useEditor(save, { fields: Fields, ...route.useLoaded() });
 	useEditor(save, { fields: Fields, ...route.useLoaded(), queryFailures: { SubtitleRejected: "silent" } });
+	const loadedRow: LoadedRow<typeof declared> = route.useLoaded();
+	useEditor(save, { fields: Fields, ...loadedRow });
+	expectTypeOf({ loaded: row, query: declared, queryFailures: {} }).not.toExtend<LoadedRow<typeof declared>>();
 	// An editor that loads its own row shows its query's failures through QueryView, which checks them.
 	useEditor(save, { fields: Fields, query: declared });
 }

@@ -1,16 +1,15 @@
 import { Link } from "@tanstack/react-router";
-import type * as AsyncResult from "effect/reactivity/AsyncResult";
-import type * as Atom from "effect/reactivity/Atom";
 import { useId } from "react";
 import type { ContractClient } from "@shivaedev/contract/makeClient.ts";
 import { useField } from "@shivaedev/form/react.ts";
 import type { Form } from "@shivaedev/form/shape.ts";
+import type { LoadedRow } from "@shivaedev/react/client/adapters/queryRoute.ts";
 import { useEditor } from "@shivaedev/react/client/editor.ts";
 import { Button } from "#client/ui/button.tsx";
 import { Input } from "#client/ui/input.tsx";
 import type { Notes } from "#generated/modules/notes/Notes.ts";
 import { NoteDelete } from "#modules/notes/client/Delete.tsx";
-import type { Note, NoteEditFields } from "#modules/notes/model.ts";
+import type { NoteEditFields } from "#modules/notes/model.ts";
 
 function Title<A, E, TRuntimeError>({ form }: { readonly form: Form<typeof NoteEditFields.fields, A, E, TRuntimeError> }) {
 	const title = useField(form, "title");
@@ -45,7 +44,7 @@ export function NoteEdit({
 	onDeleted,
 }: {
 	readonly client: ContractClient<typeof Notes>;
-	readonly note: { readonly loaded: typeof Note.Type; readonly query: Atom.Atom<AsyncResult.AsyncResult<typeof Note.Type, unknown>> };
+	readonly note: LoadedRow<ReturnType<ContractClient<typeof Notes>["get"]["query"]>>;
 	readonly onDeleted: () => void;
 }) {
 	const noteId = note.loaded.id;
