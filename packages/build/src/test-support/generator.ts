@@ -1,17 +1,17 @@
-import { pathToFileURL } from "node:url";
 import * as NodeServices from "@effect/platform-node/NodeServices";
-import { ConfigProvider, Effect, Exit, Fiber, FileSystem, Option, Path, Predicate, Schema, Scope } from "effect";
+import { Deferred, Effect, Exit, Fiber, FileSystem, Option, Path, Predicate, Schema, Scope } from "effect";
 import { TestClock } from "effect/testing";
 import { schemaFieldKeys } from "@shivaedev/errors/schemaFieldScope.ts";
 import { acquireHeavyLock } from "@shivaedev/heavy-lock/acquire.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { untilTimer } from "@shivaedev/test-story/server/watchedClock.ts";
-import { generate } from "#generate.ts";
-import type { GenerateFailed, GenerateReport } from "#report.ts";
 import { CATALOG_PROJECT } from "#test/catalogProject.ts";
 import { type ClientModuleShape, clientModuleFile, clientModulePath } from "#test/clientModulesProject.ts";
 import { CREDENTIAL_MODEL } from "#test/credentialModel.ts";
 import { emptyProject, fromSource, generatedOncePerFile, projectIn, typeCheck, writeFiles } from "#test/fixtureProject.ts";
+import { importedFrom, successSchema } from "#test/generatedWire.ts";
+import { type GenerateOutcome, generateIn, onlyTheStoryLock } from "#test/generateRun.ts";
+import { type HeldRun, type HoldPoint, startedHeld } from "#test/heldRuns.ts";
 import { MISPLACED_MODULES } from "#test/misplacedModules.ts";
 import { NOTES_PROJECT } from "#test/notesProject.ts";
 import { PUBLIC_SHAPE_PROJECT } from "#test/publicShapeProject.ts";
@@ -22,68 +22,29 @@ import { SERVER_ONLY_PROJECT } from "#test/serverOnlyProject.ts";
 
 const NOTES_MODEL = "src/modules/notes/model.ts";
 
-type WireSchema = Schema.Top & { readonly DecodingServices: never; readonly EncodingServices: never };
-
-// A generated schema's services are Effect's own codecs, which need none.
-function isWireSchema(value: unknown): value is WireSchema {
-	return Schema.isSchema(value);
-}
-
-interface GenerateOutcome {
-	readonly files: Readonly<Record<string, string>>;
-	readonly problems: readonly string[];
-	readonly programBuilt: boolean;
-	readonly result: "failed" | "succeeded";
-}
-
 interface GeneratorEngine {
+	readonly held: Map<string, HeldRun<GenerateOutcome>>;
 	readonly lock: string;
 	otherHold: Option.Option<Scope.Closeable>;
 	root: string;
 	running: Option.Option<Fiber.Fiber<GenerateOutcome, unknown>>;
 }
 
-function outcomeOf(report: GenerateReport, failed: GenerateFailed | undefined): GenerateOutcome {
-	return {
-		files: Object.fromEntries([...report.modules, ...report.lists].map(({ output, status }) => [output, status])),
-		problems: failed?.problems ?? [],
-		programBuilt: report.programBuilt,
-		result: failed === undefined ? "succeeded" : "failed",
-	};
-}
-
-// Only the story's lock file, so the lock is taken even on CI, where a set CI variable skips it.
-function onlyTheStoryLock(engine: GeneratorEngine) {
-	return Effect.provideService(ConfigProvider.ConfigProvider, ConfigProvider.fromEnv({ env: { "HEAVY_PROCESS_LOCK": engine.lock } }));
-}
-
-const importedFrom = Effect.fn("BuildStory.importedFrom")(function* (engine: GeneratorEngine, file: string) {
-	const path = yield* Path.Path;
-	const imported: unknown = yield* Effect.promise(() => import(pathToFileURL(path.join(engine.root, file)).href));
-	return imported;
-});
-
-const successSchema = Effect.fn("BuildStory.successSchema")(function* (engine: GeneratorEngine, module: string, operation: string) {
-	const generated = yield* importedFrom(engine, `src/generated/modules/${module}/${module}.ts`);
-	const wire = Predicate.hasProperty(generated, `${module}Wire`) ? generated[`${module}Wire`] : undefined;
-	const entry = Predicate.hasProperty(wire, operation) ? wire[operation] : undefined;
-	const success = Predicate.hasProperty(entry, "success") ? entry.success : undefined;
-	return isWireSchema(success) ? success : yield* Effect.die(new Error(`the generated ${module} wire has no success schema for ${operation}`));
-});
-
 function run(engine: GeneratorEngine, check: boolean) {
-	return generate(engine.root, { check }).pipe(
-		Effect.map((report) => outcomeOf(report, undefined)),
-		Effect.catchTag("GenerateFailed", (failed) => Effect.succeed(outcomeOf(failed.report, failed))),
-		onlyTheStoryLock(engine),
-	);
+	return generateIn(engine.root, engine.lock, check);
 }
 
 export const generator = storyKit({
 	*create() {
 		const root = yield* emptyProject();
 		const path = yield* Path.Path;
-		const engine: GeneratorEngine = { lock: path.join(root, "heavy-process.lock"), otherHold: Option.none(), root, running: Option.none() };
+		const engine: GeneratorEngine = {
+			held: new Map(),
+			lock: path.join(root, "heavy-process.lock"),
+			otherHold: Option.none(),
+			root,
+			running: Option.none(),
+		};
 		return engine;
 	},
 	inspect: ({ root }) => ({ root }),
@@ -128,6 +89,11 @@ export const generator = storyKit({
 			const path = yield* Path.Path;
 			return (yield* fs.readDirectory(path.join(engine.root, folder))).toSorted();
 		}),
+		everythingUnder: Effect.fn("BuildStory.everythingUnder")(function* (folder: string) {
+			const fs = yield* FileSystem.FileSystem;
+			const path = yield* Path.Path;
+			return (yield* fs.readDirectory(path.join(engine.root, folder), { recursive: true })).toSorted();
+		}),
 		generatedFile: Effect.fn("BuildStory.generatedFile")(function* (file: string) {
 			const fs = yield* FileSystem.FileSystem;
 			const path = yield* Path.Path;
@@ -138,6 +104,13 @@ export const generator = storyKit({
 			story.tell("the application runs generate");
 			return run(engine, false);
 		},
+		generatesUntilFileSystemError: Effect.fn("BuildStory.generatesUntilFileSystemError")(function* () {
+			story.tell("the application runs generate");
+			return yield* run(engine, false).pipe(
+				Effect.as("no file system error"),
+				Effect.catchTag("PlatformError", (error) => Effect.succeed(error.message.replaceAll(`${engine.root}/`, ""))),
+			);
+		}),
 		generatesWithCheck: () => {
 			story.tell("the application runs generate --check");
 			return run(engine, true);
@@ -147,11 +120,22 @@ export const generator = storyKit({
 			yield* TestClock.adjust("1 second");
 			return Option.isSome(engine.running) ? yield* Fiber.join(engine.running.value) : yield* Effect.die(new Error("no generate is running"));
 		}),
+		heldGenerateContinues: Effect.fn("BuildStory.heldGenerateContinues")(function* (name: string) {
+			story.tell(`${name} continues`);
+			const held = engine.held.get(name);
+			if (held === undefined) {
+				return yield* Effect.die(new Error(`${name} is not held`));
+			}
+			yield* Deferred.succeed(held.release, undefined);
+			return yield* Fiber.join(held.fiber);
+		}),
 		marksOf: Effect.fn("BuildStory.marksOf")(function* (module: string, operation: string) {
-			return [...schemaFieldKeys((yield* successSchema(engine, module, operation)).ast, [])].toSorted((left, right) => left.localeCompare(right));
+			return [...schemaFieldKeys((yield* successSchema(engine.root, module, operation)).ast, [])].toSorted((left, right) =>
+				left.localeCompare(right),
+			);
 		}),
 		noteCard: Effect.fn("BuildStory.noteCard")(function* (id: number, title: string) {
-			const model = yield* importedFrom(engine, NOTES_MODEL);
+			const model = yield* importedFrom(engine.root, NOTES_MODEL);
 			const NoteCard = Predicate.hasProperty(model, "NoteCard") ? model.NoteCard : undefined;
 			if (!Predicate.isFunction(NoteCard)) {
 				return yield* Effect.die(new Error(`${NOTES_MODEL} exports no NoteCard class`));
@@ -167,7 +151,7 @@ export const generator = storyKit({
 		}),
 		receives: Effect.fn("BuildStory.receives")(function* (operation: string, sent: unknown, module = "notes") {
 			story.tell(`the server encodes what ${module}.${operation} returns with the generated wire, JSON carries it and the browser decodes it`);
-			const codec = Schema.toCodecJson(yield* successSchema(engine, module, operation));
+			const codec = Schema.toCodecJson(yield* successSchema(engine.root, module, operation));
 			const encoded = yield* Schema.encodeUnknownEffect(codec)(sent).pipe(Effect.option);
 			if (Option.isNone(encoded)) {
 				return "cannot be encoded";
@@ -200,6 +184,10 @@ export const generator = storyKit({
 		startsGenerating: Effect.fn("BuildStory.startsGenerating")(function* () {
 			story.tell("the application starts generate");
 			engine.running = Option.some(yield* Effect.forkScoped(run(engine, false)));
+		}),
+		startsGeneratingHeld: Effect.fn("BuildStory.startsGeneratingHeld")(function* (name: string, point: HoldPoint) {
+			story.tell(`${name} starts and is held before ${point.before} ${point.file}`);
+			engine.held.set(name, yield* startedHeld(name, engine.root, point, run(engine, false)));
 		}),
 		waitsForTheHeavyLock: () => {
 			story.tell("generate waits a second to try the heavy lock again");
@@ -275,6 +263,15 @@ export function generatedFileAt(file: string, source: string) {
 	);
 }
 
+export function linkToItselfAt(file: string) {
+	return generator.trait("project", `${file} is a link to itself, which no file system call can follow`, function* (engine) {
+		const fs = yield* FileSystem.FileSystem;
+		const path = yield* Path.Path;
+		yield* fs.makeDirectory(path.dirname(path.join(engine.root, file)), { recursive: true });
+		yield* fs.symlink(path.join(engine.root, file), path.join(engine.root, file));
+	});
+}
+
 export function generatedOnce() {
 	return generator.trait("generated", "generate has written the project's files", (engine) => generatedOncePerFile(engine.root, run(engine, false)));
 }
@@ -285,7 +282,7 @@ export function heavyLockHeldElsewhere() {
 		yield* Effect.addFinalizer(() => Scope.close(scope, Exit.void));
 		yield* acquireHeavyLock({ command: "another heavy run", lockPath: engine.lock }).pipe(
 			Effect.provideService(Scope.Scope, scope),
-			onlyTheStoryLock(engine),
+			onlyTheStoryLock(engine.lock),
 		);
 		engine.otherHold = Option.some(scope);
 	});
