@@ -1,11 +1,11 @@
 import { expect } from "vitest";
 import { cleanup } from "#test/cleanup.ts";
 import { cloneClosed, cloneOpen, dropDenied, runStarted } from "#test/cleanupActivity.ts";
-import { limitedCleanupRole } from "#test/cleanupOwnership.ts";
+import { ownCleanupRole } from "#test/cleanupOwnership.ts";
 
 cleanup.it(
 	"closing the run dies with the SQL error of a queued drop the run's role may not perform",
-	[limitedCleanupRole, runStarted, cloneOpen, dropDenied, cloneClosed],
+	[ownCleanupRole, runStarted, cloneOpen, dropDenied, cloneClosed],
 	function* ({ closeRun, runClosing }) {
 		yield* closeRun();
 

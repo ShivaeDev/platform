@@ -1,4 +1,4 @@
-import { Clock, Deferred, Effect, Exit, Layer, Redacted, Scope } from "effect";
+import { Clock, Deferred, Effect, Exit, Layer, Scope } from "effect";
 import type { Story } from "@shivaedev/test-story/server/storyKit.ts";
 import { untilTimer } from "@shivaedev/test-story/server/watchedClock.ts";
 import { CleanupClock } from "#server/clocks.ts";
@@ -6,6 +6,7 @@ import { PostgresTestDatabase } from "#server/database.ts";
 import { observeUntil } from "#server/observeUntil.ts";
 import type { CleanupEngine } from "#test/cleanup.ts";
 import { attempt } from "#test/outcome.ts";
+import { roleOf } from "#test/storyRole.ts";
 
 export function dropOnStoryEnd(state: CleanupEngine, name: string) {
 	const admin = state.engine.admin;
@@ -13,7 +14,7 @@ export function dropOnStoryEnd(state: CleanupEngine, name: string) {
 }
 
 export function cleanupRole(state: CleanupEngine) {
-	return new URL(Redacted.value(state.engine.options.url)).username;
+	return roleOf(state.engine.options.url);
 }
 
 export function cleanupVerbs(state: CleanupEngine, story: Story<CleanupEngine>) {
@@ -22,6 +23,11 @@ export function cleanupVerbs(state: CleanupEngine, story: Story<CleanupEngine>) 
 	function exists(name: string) {
 		return Effect.map(admin`select 1 from pg_database where datname = ${name}`, (rows) => (rows.length > 0 ? "exists" : "dropped"));
 	}
+	const cloneSessions = Effect.suspend(() =>
+		Effect.map(admin<{ name: string }>`select application_name as name from pg_stat_activity where datname = ${state.clone}`, (rows) =>
+			rows.map(({ name }) => name),
+		),
+	);
 	let closing = "not closed";
 	return {
 		awaitCleanup: () => {
@@ -45,9 +51,11 @@ export function cleanupVerbs(state: CleanupEngine, story: Story<CleanupEngine>) 
 		},
 		cloneSessions: () => {
 			story.tell("the story reads the clone's session names from PostgreSQL");
-			return Effect.map(admin<{ name: string }>`select application_name as name from pg_stat_activity where datname = ${state.clone}`, (rows) =>
-				rows.map(({ name }) => name),
-			);
+			return cloneSessions;
+		},
+		cloneSessionsOnceEnded: () => {
+			story.tell("the story waits for PostgreSQL to end the clone's sessions and reads their names");
+			return observeUntil(cloneSessions, (names) => names.length === 0, "PostgreSQL to end the clone's sessions");
 		},
 		closeClone: () => {
 			story.tell("the story closes its clone's scope");
@@ -60,8 +68,8 @@ export function cleanupVerbs(state: CleanupEngine, story: Story<CleanupEngine>) 
 			});
 		},
 		connectionsReturn: () => {
-			story.tell("the run's role may open 2 connections again");
-			return admin`alter role ${admin(cleanupRole(state))} connection limit 2`;
+			story.tell("the run's role may open connections again");
+			return admin`alter role ${admin(cleanupRole(state))} connection limit -1`;
 		},
 		crashedWorkerDatabases: () => {
 			story.tell("the story checks which databases remain from the crashed worker");

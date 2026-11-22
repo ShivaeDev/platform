@@ -6,8 +6,8 @@ import { invalidateOnCommit } from "@shivaedev/sql/transact.ts";
 import { database } from "#test/database.ts";
 import type { DatabaseEngine } from "#test/databaseEngine.ts";
 import { inPlace } from "#test/inPlace.ts";
-import { limitedRole } from "#test/limitedRole.ts";
 import { ITEMS_KEY } from "#test/postgres.ts";
+import { roleOf, storyRole } from "#test/storyRole.ts";
 import { writeItem } from "#test/writeItem.ts";
 
 export function poolLimit(maxConnections: number) {
@@ -18,7 +18,20 @@ export function poolLimit(maxConnections: number) {
 
 export function roleLimit(limit = 1) {
 	return database.trait("configuration", `the role allows ${limit} connections`, function* (engine) {
-		engine.options = { ...engine.options, url: yield* limitedRole(limit).pipe(Effect.provideService(Scope.Scope, engine.scope)) };
+		engine.options = { ...engine.options, url: yield* storyRole(limit).pipe(Effect.provideService(Scope.Scope, engine.scope)) };
+	});
+}
+
+export const ownRole = database.trait("configuration", "the worker connects as a role of its own", function* (engine) {
+	engine.options = { ...engine.options, url: yield* storyRole().pipe(Effect.provideService(Scope.Scope, engine.scope)) };
+});
+
+// PostgreSQL counts a closed connection against the role until its backend exits, after the close has returned,
+// so a story lowers the limit only once the worker's own connections are open.
+export function roleLimitLowered(limit: number) {
+	return database.trait("activity", `the role's connection limit is lowered to ${limit}`, (engine) => {
+		const admin = engine.admin;
+		return admin`alter role ${admin(roleOf(engine.options.url))} connection limit ${admin.literal(String(limit))}`;
 	});
 }
 

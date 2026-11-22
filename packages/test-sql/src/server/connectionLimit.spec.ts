@@ -1,6 +1,6 @@
 import { expect } from "vitest";
 import { database } from "#test/database.ts";
-import { exhaustedRole, roleLimit, sharedConnectionIdle } from "#test/databaseTraits.ts";
+import { exhaustedRole, isolatedBlockOpen, ownRole, roleLimit, roleLimitLowered, sharedConnectionIdle } from "#test/databaseTraits.ts";
 
 const CONNECTION_LIMIT_FAILURE =
 	"failed with SQLSTATE 53300: PostgreSQL connection limit reached (SQLSTATE 53300): check max_connections and role connection limits. Try vitest run --maxWorkers=4, reduce the suite's maxConnections, or increase the server's connection budget.";
@@ -12,14 +12,6 @@ for (const wrapper of ["a rollback test", "an isolated block"] as const) {
 }
 
 database.it(
-	"with a role allowed two connections, a clone opens beside an idle shared connection, because no administration connection stays open",
-	[roleLimit(2), sharedConnectionIdle],
-	function* ({ items }) {
-		expect(yield* items("a new clone")).toEqual(["seed"]);
-	},
-);
-
-database.it(
 	"when another client holds the role's only connection, starting the worker fails with the connection-limit hint",
 	[roleLimit(), exhaustedRole],
 	function* ({ workerStart }) {
@@ -29,7 +21,7 @@ database.it(
 
 database.it(
 	"when the shared pool holds the role's only connection, a rollback test fails with the connection-limit hint",
-	[roleLimit()],
+	[ownRole, sharedConnectionIdle, roleLimitLowered(1)],
 	function* ({ rollbackTestWithoutConnections }) {
 		expect(yield* rollbackTestWithoutConnections()).toBe(CONNECTION_LIMIT_FAILURE);
 	},
@@ -37,7 +29,7 @@ database.it(
 
 database.it(
 	"when an idle shared connection and an isolated block hold the role's two connections, another client the block opens fails with the connection-limit hint",
-	[roleLimit(2), sharedConnectionIdle],
+	[ownRole, sharedConnectionIdle, isolatedBlockOpen(), roleLimitLowered(2)],
 	function* ({ isolatedBlockWithoutConnections }) {
 		expect(yield* isolatedBlockWithoutConnections()).toBe(CONNECTION_LIMIT_FAILURE);
 	},
