@@ -1,6 +1,6 @@
 import { expect } from "@effect/vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { entries, names } from "#test/lifecycle.ts";
+import { entries, names, normalizedNames } from "#test/lifecycle.ts";
 
 names.it(
 	"without a runtime, a save receives the trimmed name while the input keeps the typed spaces",
@@ -94,6 +94,52 @@ names.it(
 	function* ({ finishSave, shown, unsavedChanges }) {
 		expect(yield* unsavedChanges()).toBe(true);
 
+		yield* finishSave();
+
+		yield* outcomes([
+			["shown name", () => shown("name"), "  Saved  "],
+			["unsaved changes", () => unsavedChanges(), false],
+		]);
+	},
+);
+
+normalizedNames.it(
+	"a save that a refresh of its own result overtook shows the server's trimmed name and leaves nothing unsaved",
+	[normalizedNames.edited("name", "  Saved  "), normalizedNames.saveInFlight(), normalizedNames.refreshReceived({ name: "Saved" })],
+	function* ({ finishSave, shown, unsavedChanges }) {
+		expect(yield* shown("name")).toBe("  Saved  ");
+
+		yield* finishSave();
+
+		yield* outcomes([
+			["shown name", () => shown("name"), "Saved"],
+			["unsaved changes", () => unsavedChanges(), false],
+		]);
+	},
+);
+
+normalizedNames.it(
+	"a save that a refresh of its own result overtook keeps a name edited after submitting, unsaved",
+	[
+		normalizedNames.edited("name", "  Saved  "),
+		normalizedNames.saveInFlight(),
+		normalizedNames.edited("name", "Newer"),
+		normalizedNames.refreshReceived({ name: "Saved" }),
+	],
+	function* ({ finishSave, shown, unsavedChanges }) {
+		yield* finishSave();
+
+		yield* outcomes([
+			["shown name", () => shown("name"), "Newer"],
+			["unsaved changes", () => unsavedChanges(), true],
+		]);
+	},
+);
+
+normalizedNames.it(
+	"a save that a refresh of another name overtook keeps the submitted name and leaves nothing unsaved",
+	[normalizedNames.edited("name", "  Saved  "), normalizedNames.saveInFlight(), normalizedNames.refreshReceived({ name: "Remote" })],
+	function* ({ finishSave, shown, unsavedChanges }) {
 		yield* finishSave();
 
 		yield* outcomes([

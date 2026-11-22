@@ -73,9 +73,23 @@ export function changedFields(previous: Entries, current: Entries): readonly str
 	return Object.keys({ ...previous, ...current }).filter((name) => !sameField(previous, current, name));
 }
 
-export function accepted<TValues extends Entries>(held: Draft<TValues>, baseline: TValues, submitted: TValues, incoming?: TValues): Draft<TValues> {
+// A refresh that overtook the save may predate it; only where it already shows the saved value is it known to be the save's result.
+function adoptedFromRefresh(held: Draft<Entries>, submitted: Entries, incoming: Entries): Entries {
+	const result: Record<string, unknown> = {};
+	for (const name of Object.keys({ ...held.current, ...held.baseline })) {
+		const source = sameField(held.current, submitted, name) && sameField(held.baseline, incoming, name) ? held.baseline : held.current;
+		if (Object.hasOwn(source, name)) {
+			result[name] = source[name];
+		}
+	}
+	return result;
+}
+
+export function accepted<TValues extends Entries>(held: Draft<TValues>, baseline: TValues, submitted: TValues, incoming?: TValues): Draft<TValues>;
+export function accepted(held: Draft<Entries>, baseline: Entries, submitted: Entries, incoming?: Entries): Draft<Entries> {
 	if (held.baseline !== baseline) {
-		return { ...held, settled: matching(held.current, submitted, held.baseline) };
+		const current = incoming === undefined ? held.current : adoptedFromRefresh(held, submitted, incoming);
+		return { ...held, current, settled: matching(current, submitted, held.baseline) };
 	}
 	return {
 		...held,

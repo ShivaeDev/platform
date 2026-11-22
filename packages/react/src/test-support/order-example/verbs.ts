@@ -1,5 +1,7 @@
 import { Deferred, Effect, Result } from "effect";
+import { screenAct } from "@shivaedev/test-story/server/adapters/screenAct.ts";
 import { type Application, orderId } from "#test/order-example/applicationEngine.ts";
+import { reactAct } from "#test/order-example/screens.ts";
 import { screenVerbs, settleOrders } from "#test/order-example/screenVerbs.ts";
 
 export function outcomeOf<A, E>(effect: Effect.Effect<A, E>) {
@@ -59,7 +61,10 @@ export function orderVerbs(engine: Application, tell: (line: string) => void) {
 			}),
 		saveOrder: (alias: string, name: string, quantity: number) => {
 			tell(`Alice saves ${alias} as ${name} / ${quantity} through the HTTP API`);
-			return engine.alice["orders.save"]({ id: orderId(engine, alias), name, quantity }).pipe(Effect.asVoid);
+			const save = engine.alice["orders.save"]({ id: orderId(engine, alias), name, quantity });
+			const shown = Effect.forEach(engine.screens.values(), (screen) => screen.sync, { discard: true });
+			// The open screens' live queries can push this save before its HTTP answer, so the save and the wait for that push share one act.
+			return screenAct(reactAct, Effect.andThen(save, shown)).pipe(Effect.andThen(settleOrders(engine)));
 		},
 		storedOrder: (alias: string) =>
 			Effect.gen(function* () {

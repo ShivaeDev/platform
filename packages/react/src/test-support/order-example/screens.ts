@@ -1,13 +1,19 @@
 import { Effect } from "effect";
 import { act, createElement, Fragment } from "react";
 import { activityScreenSignal, clientActivity } from "@shivaedev/contract/clientActivity.ts";
+import { screenSync } from "@shivaedev/contract/screenSync.ts";
 import { render } from "@shivaedev/test-story/client/adapters/react.ts";
+import type { ScreenAct } from "@shivaedev/test-story/server/adapters/screenAct.ts";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 import { type Application, orderId } from "#test/order-example/applicationEngine.ts";
 import { Editor, OrderList } from "#test/order-example/Editor.tsx";
 import { makeClient } from "#test/order-example/makeClient.ts";
 
 Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
+
+export const reactAct: ScreenAct = async (action) => {
+	await act(action);
+};
 
 export const openScreens = Effect.fn("Orders.openScreens")(function* (
 	engine: Application,
@@ -25,10 +31,9 @@ export const openScreens = Effect.fn("Orders.openScreens")(function* (
 		(view) => Effect.promise(view.unmount),
 	);
 	const queries = Object.values(editors).map((alias) => views.api.get.query({ id: orderId(engine, alias) }));
+	const sync = screenSync(views.connection, root.registry);
 	const driver = screenDriver({
-		act: async (action) => {
-			await act(action);
-		},
+		act: reactAct,
 		activity: activityScreenSignal(clientActivity(views.connection)),
 		pending: () =>
 			queries.some((query) => root.registry.get(query).waiting)
@@ -42,10 +47,10 @@ export const openScreens = Effect.fn("Orders.openScreens")(function* (
 		if (panel === null) {
 			return yield* Effect.die(`Missing editor ${key}`);
 		}
-		engine.screens.set(key, { container: panel, driver: driver.within(panel) });
+		engine.screens.set(key, { container: panel, driver: driver.within(panel), sync });
 	}
 	if (list !== undefined) {
-		engine.screens.set("list", { container: root.container, driver });
+		engine.screens.set("list", { container: root.container, driver, sync });
 	}
 });
 

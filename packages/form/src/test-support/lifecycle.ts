@@ -10,6 +10,12 @@ export const names = formStories(() => Schema.Struct({ name: Schema.Trim }), {
 	verbs: () => ({}),
 });
 
+export const normalizedNames = formStories(() => Schema.Struct({ name: Schema.Trim }), {
+	config: () => ({ initialValues: { name: "First" }, onSubmit: Effect.succeed, savedValues: ({ name }: { readonly name: string }) => ({ name }) }),
+	support: () => undefined,
+	verbs: () => ({}),
+});
+
 export const entries = formStories(() => Schema.Struct({ name: Schema.Trim, note: Schema.String }), {
 	config: () => ({ initialValues: { name: "First", note: "" }, onSubmit: Effect.succeed }),
 	support: () => undefined,

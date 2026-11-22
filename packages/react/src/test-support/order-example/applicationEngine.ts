@@ -14,6 +14,7 @@ function client(url: string, token?: string) {
 export interface Screen {
 	readonly container: HTMLElement;
 	readonly driver: ScreenDriver;
+	readonly sync: Effect.Effect<void, unknown>;
 }
 
 export const createApplication = Effect.gen(function* () {
