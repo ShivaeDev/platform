@@ -60,7 +60,7 @@ export const socketPolicyStory = storyKit({
 					);
 					// A write committed before the subscription can still rerun it, so the feed starts after a sync passes behind every earlier commit.
 					yield* engine[caller]("platform.liveSync.request", undefined, { headers: commandSyncHeaders({ client, id: 1 }) });
-					yield* Effect.repeat(feed.next, { until: (hint) => hint === "synced" });
+					yield* feed.synced;
 					engine.feeds.set(query, feed);
 				}),
 			subscriptionRefusal: (query: "timeline" | "all", owner = "bob") =>
