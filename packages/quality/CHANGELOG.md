@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.84.5 - 2026-11-22
+
+### Changed
+
+- Update `@shivaedev/heavy-lock` from 0.11.5 to 0.11.6.
+- Update `@shivaedev/test-story` from 0.52.7 to 0.52.8.
+
 ## 0.84.4 - 2026-11-21
 
 ### Changed

@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.46.0 - 2026-11-22
+
+### Added
+
+- a jobs Layer logs `Worker ready to take jobs` once its workers fetch: at startup without `WorkerRelease`, and the first time its release owns the database with it. Pausing and resuming for a release logs no second line, a Layer with only queue definitions logs none, and Layers that share one client log it once between them: it is logged once per client, whichever host builds the Layer.
+- `activeJobs(queue, { limit, cursor? })` on the jobs service and `PgBossInspection` lists a queue's running jobs, oldest start first and paged like `failedJobs`. Each `ActiveJob` from `@shivaedev/jobs/server/health.ts` carries `id`, `queue`, `attempt`, `startedOn`, `deadline` (its start plus `expireInSeconds`) and `timeLeft`, a `Duration` measured against PostgreSQL's clock in the same query and negative once the deadline has passed. It reads no payload.
+
+### Breaking
+
+- `PgBossService` and `PgBossInspectionService` from `@shivaedev/jobs/server/service.ts` and `@shivaedev/jobs/server/inspection.ts` now require `activeJobs`. An object that implements either type itself, such as a test fake, adds `activeJobs: (queue: { name }, options: JobPageOptions) => Effect<JobPage<ActiveJob>, PgBossError | PgBossPayloadError | SchemaError>`. Services built by `makePgBoss` and `PgBossInspection.layer` already provide it.
+
 ## 0.45.1 - 2026-11-21
 
 ### Changed
