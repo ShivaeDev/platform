@@ -2,9 +2,10 @@ import { existsSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
-import { Cause, Clock, ConfigProvider, Effect, Exit, Layer, Option, Scope, Tracer } from "effect";
+import { Cause, Clock, ConfigProvider, Effect, Exit, Fiber, Layer, Logger, Option, Scope, Tracer } from "effect";
 import { TestClock } from "effect/testing";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { passes, untilTimer } from "@shivaedev/test-story/server/watchedClock.ts";
 import { localTracing } from "#localTracing.ts";
 import { otlpTracing } from "#otlpTracing.ts";
 import { RedactionPolicy } from "#RedactionPolicy.ts";
@@ -16,12 +17,22 @@ const policy = Object.assign(credential, {
 	forRpc: (tag: string | undefined) => (key: string) => credential(key) || (tag === "checkout" && key === "rpcSecret"),
 });
 
+// The recorder's first wait for a held store.
+const FIRST_BUSY_WAIT = "10 millis";
+
+function shutdownOutcome(close: Effect.Effect<void>) {
+	return Effect.exit(close).pipe(Effect.map((exit) => (Exit.isSuccess(exit) ? "closed" : `failed: ${String(Cause.squash(exit.cause))}`)));
+}
+
 export const localTraces = storyKit({
 	clock: "test",
 	*create() {
 		const root = mkdtempSync(join(tmpdir(), "platform-traces-"));
 		yield* Effect.addFinalizer(() => Effect.sync(() => rmSync(root, { force: true, recursive: true })));
 		const path = join(root, "nested", "traces.db");
+		const writer: { held?: DatabaseSync } = {};
+		yield* Effect.addFinalizer(() => Effect.sync(() => writer.held?.close()));
+		const warnings: string[] = [];
 		const nativeSpans: Tracer.NativeSpan[] = [];
 		const nativeTracer = Tracer.make({
 			span: (options) => {
@@ -30,11 +41,33 @@ export const localTraces = storyKit({
 				return span;
 			},
 		});
-		return { nativeSpans, nativeTracer, path };
+		return { nativeSpans, nativeTracer, path, warnings, writer };
 	},
 	name: "local development traces",
 	stages: [],
-	verbs: ({ nativeSpans, nativeTracer, path }, story) => ({
+	verbs: ({ nativeSpans, nativeTracer, path, warnings, writer }, story) => ({
+		anotherWriterDropsSpansTable: () =>
+			Effect.sync(() => {
+				story.tell("another writer drops the store's spans table");
+				const db = new DatabaseSync(path);
+				db.exec("DROP TABLE spans");
+				db.close();
+			}),
+		anotherWriterHoldsStore: () =>
+			Effect.sync(() => {
+				story.tell("another writer opens a write transaction on the store and keeps it open");
+				const db = new DatabaseSync(path);
+				db.exec("BEGIN IMMEDIATE");
+				writer.held = db;
+			}),
+		flushPassesWhileStoreStaysHeld: () =>
+			Effect.gen(function* () {
+				story.tell("the flush interval passes and the store stays held for two seconds more");
+				yield* TestClock.adjust(1000);
+				yield* untilTimer(FIRST_BUSY_WAIT);
+				yield* TestClock.adjust("2 seconds");
+			}),
+		loggedWarnings: () => Effect.sync(() => [...warnings]),
 		nativeFailure: () =>
 			Effect.sync(() => {
 				const span = nativeSpans.find((entry) => entry.name === "failed");
@@ -55,16 +88,40 @@ export const localTraces = storyKit({
 			const provider = ConfigProvider.fromEnv({
 				env: { "NODE_ENV": mode, "PLATFORM_TRACE_INDEXED_ATTRIBUTES": "orderId,password", "PLATFORM_TRACE_STORE": path },
 			});
+			const warned = Logger.make(({ logLevel, message }) => {
+				if (logLevel === "Warn") {
+					warnings.push(String(message));
+				}
+			});
 			const context = yield* Layer.buildWithScope(
 				recorder.pipe(
+					Layer.provide(Logger.layer([warned], { mergeWithExisting: true })),
 					Layer.provide(Layer.succeed(Tracer.Tracer, nativeTracer)),
 					Layer.provide(Layer.succeed(RedactionPolicy, policy)),
 					Layer.provide(ConfigProvider.layer(provider)),
 				),
 				scope,
 			);
+			function shutDown() {
+				return shutdownOutcome(Scope.close(scope, Exit.void));
+			}
 			return {
 				close: () => Scope.close(scope, Exit.void),
+				closeAsStoreFrees: () =>
+					Effect.gen(function* () {
+						story.tell("the recorder closes, and the other writer lets go of the store while the recorder waits");
+						const closing = yield* Effect.forkChild(shutDown());
+						yield* untilTimer(FIRST_BUSY_WAIT);
+						writer.held?.exec("ROLLBACK");
+						return yield* passes(FIRST_BUSY_WAIT, Fiber.join(closing));
+					}),
+				closeWhileStoreStaysHeld: () =>
+					Effect.gen(function* () {
+						story.tell("the recorder closes and the store stays held for two seconds");
+						const closing = yield* Effect.forkChild(shutDown());
+						yield* untilTimer(FIRST_BUSY_WAIT);
+						return yield* passes("2 seconds", Fiber.join(closing));
+					}),
 				nested: () =>
 					Effect.annotateCurrentSpan({ rpcSecret: "hidden-child" }).pipe(
 						Effect.withSpan("child"),
@@ -79,6 +136,7 @@ export const localTraces = storyKit({
 					}).pipe(Effect.withSpan(name, { sampled }), Effect.provide(context));
 				},
 				reject: (error: unknown) => Effect.fail(error).pipe(Effect.withSpan("failed"), Effect.exit, Effect.provide(context)),
+				shutDown,
 			};
 		},
 		read: () => Effect.sync(() => readLocalTraces(path)),
