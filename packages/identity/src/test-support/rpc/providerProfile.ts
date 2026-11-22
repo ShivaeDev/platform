@@ -59,7 +59,7 @@ interface State {
 	answer?: unknown;
 	readonly connection: { current?: Effect.Success<ReturnType<typeof openProviderProfile>> };
 	readonly lookups: string[];
-	user?: SessionShape["user"];
+	user?: SessionShape["user"] & Partial<ProviderAccountsSessionShape["user"]>;
 }
 
 function connected(state: State) {
