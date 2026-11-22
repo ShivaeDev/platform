@@ -1,4 +1,5 @@
 import { Context, Effect } from "effect";
+import { activeJobs } from "#server/activeJobs.ts";
 import { inspection } from "#server/adapters/inspection.ts";
 import { enqueuePayload } from "#server/enqueuePayload.ts";
 import { getJob } from "#server/getJob.ts";
@@ -16,6 +17,7 @@ export const makeService = Effect.fnUntraced(function* (): Effect.fn.Return<
 	const operations = yield* PgBossOperations;
 	const reads = yield* inspection();
 	return {
+		activeJobs: (queue, options) => activeJobs(queue, options).pipe(Effect.provide(context)),
 		counts: operations.counts,
 		deadLetteredJobs: (queue, options) => deadLetteredJobs(queue, options).pipe(Effect.provide(context)),
 		deleteQueue: operations.deleteQueue,

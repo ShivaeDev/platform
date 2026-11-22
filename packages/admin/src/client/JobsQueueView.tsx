@@ -5,6 +5,7 @@ import { JobList } from "#client/JobList.tsx";
 import { JobsMetrics } from "#client/JobsMetrics.tsx";
 import { JobsQueryPanel } from "#client/JobsQueryPanel.tsx";
 import type { JobsViewClient, RetryJob } from "#client/jobsTypes.ts";
+import { RunningList } from "#client/RunningList.tsx";
 import type { DateDisplay } from "#client/timestampText.ts";
 
 export function JobsQueueView({
@@ -22,8 +23,14 @@ export function JobsQueueView({
 	readonly retry: RetryJob | undefined;
 	readonly subject?: QueueDisplay["subject"];
 }) {
-	const [kind, setKind] = useState<"failed" | "deadLettered">("failed");
+	const [kind, setKind] = useState<"failed" | "deadLettered" | "running">("failed");
 	const counts = useQuery(api.counts.query({ queue }));
+	const list =
+		kind === "running" ? (
+			<RunningList api={api} dates={dates} queue={queue} />
+		) : (
+			<JobList api={api} dates={dates} key={kind} kind={kind} queue={queue} retry={retry} subject={subject} />
+		);
 	return (
 		<>
 			<section aria-label="Queue counts" className="space-y-4">
@@ -39,6 +46,7 @@ export function JobsQueueView({
 					[
 						["failed", "Failed"],
 						["deadLettered", "Dead-lettered"],
+						["running", "Running"],
 					] as const
 				).map(([value, tabLabel]) => (
 					<button
@@ -56,7 +64,7 @@ export function JobsQueueView({
 				))}
 			</div>
 			<div aria-labelledby={`jobs-${kind}-tab`} id={`jobs-${kind}-panel`} role="tabpanel">
-				<JobList api={api} dates={dates} key={kind} kind={kind} queue={queue} retry={retry} subject={subject} />
+				{list}
 			</div>
 		</>
 	);

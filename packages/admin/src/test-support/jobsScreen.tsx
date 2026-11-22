@@ -1,4 +1,4 @@
-import { Effect, Option } from "effect";
+import { Deferred, Effect, Option } from "effect";
 import { TestClock } from "effect/testing";
 import { act } from "react";
 import { activityScreenSignal, isClientIdle } from "@shivaedev/contract/clientActivity.ts";
@@ -44,6 +44,10 @@ export const jobsScreen = storyKit({
 		return {
 			...jobsReadouts(engine, driver),
 			chooseQueue: (name: string) => Effect.andThen(driver.select("select", name), driver.settle()),
+			heldMailFinishes: () => {
+				story.tell("the held mail's handler lets it go and the workers finish it");
+				return Deferred.succeed(engine.heldMail.released, undefined).pipe(Effect.andThen(engine.testing.waitForIdle));
+			},
 			loseNextConnection: () => {
 				story.tell("the live connection is lost and the host holds its reconnection");
 				return Effect.andThen(engine.host.hold, engine.host.drop);
@@ -73,7 +77,7 @@ export const jobsScreen = storyKit({
 			retrySelected: () => Effect.andThen(driver.click({ name: "Retry job", role: "button" }), driver.settle()),
 			runSelectedSchedule: () => Effect.andThen(driver.click({ name: "Run now", role: "button" }), driver.settle()),
 			scheduledRuns: () => Effect.sync(() => [...engine.scheduledRuns]),
-			selectList: (name: "Failed" | "Dead-lettered") => Effect.andThen(driver.click({ name, role: "tab" }), driver.settle()),
+			selectList: (name: "Failed" | "Dead-lettered" | "Running") => Effect.andThen(driver.click({ name, role: "tab" }), driver.settle()),
 			sendMail: (id: number) =>
 				Effect.gen(function* () {
 					story.tell(`enqueue mail ${id}`);

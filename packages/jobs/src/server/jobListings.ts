@@ -5,24 +5,10 @@ import type { JobPayloadSchema } from "#server/definition.ts";
 import type { Listing } from "#server/engine.ts";
 import { type PgBossError, PgBossPayloadError } from "#server/error.ts";
 import type { DeadLetteredJob, JobPage, JobPageOptions } from "#server/health.ts";
+import { ListingCursor, ListingPageOptions } from "#server/listingCursor.ts";
 import { readJobFailure } from "#server/readJobFailure.ts";
 import { PgBossOperations } from "#server/services/operations/service.ts";
 import { decodeStoredData } from "#server/storedRows.ts";
-
-const Cursor = Schema.StringFromBase64Url.pipe(
-	Schema.decodeTo(
-		Schema.fromJsonString(
-			Schema.Tuple([
-				Schema.String.check(Schema.makeFilter((value) => Option.isSome(Schema.decodeUnknownOption(Schema.DateTimeUtcFromString)(value)))),
-				Schema.String.check(Schema.isUUID()),
-			]),
-		),
-	),
-);
-const PageOptions = Schema.Struct({
-	cursor: Schema.optionalKey(Schema.UndefinedOr(Cursor)),
-	limit: Schema.Number.check(Schema.isInt(), Schema.isGreaterThan(0)),
-});
 
 const Row = Schema.Struct({
 	completedOn: Schema.OptionFromNullOr(Schema.DateTimeUtcFromDate),
@@ -69,7 +55,7 @@ const listJobs = Effect.fnUntraced(function* <const TName extends string, const 
 	TPayload["DecodingServices"] | "@shivaedev/jobs/PgBossOperations"
 > {
 	const engine = yield* PgBossOperations;
-	const { cursor: after, limit } = yield* Schema.decodeUnknownEffect(PageOptions)(options);
+	const { cursor: after, limit } = yield* Schema.decodeUnknownEffect(ListingPageOptions)(options);
 	const page = yield* keysetPage({
 		after,
 		cursorFor: (row: typeof Row.Type) => [row.cursorAt, row.id] as const,
@@ -96,5 +82,5 @@ const listJobs = Effect.fnUntraced(function* <const TName extends string, const 
 			return { ...row, attempt: Option.isSome(row.startedOn) ? row.retryCount + 1 : 0, data: redact(decoded), output, sourceOutput };
 		}),
 	);
-	return { jobs, next: Option.map(page.next, Schema.encodeSync(Cursor)) };
+	return { jobs, next: Option.map(page.next, Schema.encodeSync(ListingCursor)) };
 });

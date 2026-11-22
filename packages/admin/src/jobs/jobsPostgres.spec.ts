@@ -120,7 +120,7 @@ for (const queue of ["private", "mail-dlq"]) {
 	jobsStory.it(
 		`every read of ${queue} is refused as an unregistered queue before reading pg-boss`,
 		[admin],
-		function* ({ counts, deadLettered, failedJobs, job, pgBossReadsSinceRegistration }) {
+		function* ({ counts, deadLettered, failedJobs, job, pgBossReadsSinceRegistration, runningJobs }) {
 			const refusal = `${queue} is not a registered queue`;
 
 			yield* outcomes([
@@ -128,6 +128,7 @@ for (const queue of ["private", "mail-dlq"]) {
 				["counts", () => counts(queue), refusal],
 				["dead-lettered jobs", () => deadLettered(queue), refusal],
 				["failed jobs", () => failedJobs(queue), refusal],
+				["running jobs", () => runningJobs(queue), refusal],
 				["pg-boss reads since registration", () => pgBossReadsSinceRegistration(), 0],
 			]);
 		},
@@ -175,6 +176,13 @@ jobsStory.it(
 	},
 );
 
+jobsStory.it("a running mail list given a malformed cursor answers bad input", [admin], function* ({ pgBossReadsSinceRegistration, runningJobs }) {
+	yield* outcomes([
+		["page input", () => runningJobs("mail", { cursor: "invalid cursor", limit: 1 }), "bad input"],
+		["pg-boss reads", () => pgBossReadsSinceRegistration(), 0],
+	]);
+});
+
 jobsStory.it(
 	"after pg-boss stops, mail counts answer that jobs are unavailable for counts while the profile is still served",
 	[admin],
@@ -196,13 +204,14 @@ for (const [caller, session, refusal] of [
 	jobsStory.it(
 		`${caller} is ${refusal} on every Jobs read and on retrying failed mail 42`,
 		[session, mailFails(42)],
-		function* ({ counts, deadLettered, failedJobs, health, job, retry }) {
+		function* ({ counts, deadLettered, failedJobs, health, job, retry, runningJobs }) {
 			yield* outcomes([
 				["counts", () => counts("mail"), refusal],
 				["dead-lettered jobs", () => deadLettered("mail"), refusal],
 				["failed jobs", () => failedJobs("mail"), refusal],
 				["health", () => health(), refusal],
 				["mail 42", () => job("mail 42", "mail"), refusal],
+				["running jobs", () => runningJobs("mail"), refusal],
 				["retry of mail 42", () => retry("mail 42"), refusal],
 			]);
 		},

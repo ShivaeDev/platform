@@ -1,4 +1,4 @@
-import type { DateTime, Option } from "effect";
+import type { DateTime, Duration, Option } from "effect";
 import type { JobFailure } from "#JobFailure.ts";
 import type { JobState } from "#server/job.ts";
 
@@ -49,6 +49,15 @@ export interface DeadLetteredJob<TData> extends ListedJob<TData> {
 	readonly sourceId: Option.Option<string>;
 	readonly sourceOutput: JobFailure | null;
 	readonly sourceQueue: string;
+}
+
+export interface ActiveJob {
+	readonly attempt: number;
+	readonly deadline: DateTime.Utc;
+	readonly id: string;
+	readonly queue: string;
+	readonly startedOn: DateTime.Utc;
+	readonly timeLeft: Duration.Duration;
 }
 
 export interface JobPageOptions {

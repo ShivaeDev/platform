@@ -1,8 +1,8 @@
-import { Effect, Option, Queue, Redacted, Ref, Schema } from "effect";
+import { Deferred, Effect, Option, Queue, Redacted, Ref, Schema } from "effect";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import type { Access } from "#test/Access.ts";
-import { jobsEngine, postgresConfigured, postgresLayer } from "#test/jobsEngine.ts";
+import { HELD_MAIL, jobsEngine, postgresConfigured, postgresLayer } from "#test/jobsEngine.ts";
 import {
 	describeCopy,
 	describeJob,
@@ -137,6 +137,13 @@ export const jobsStory = storyKit({
 				story.tell(`retry ${name} in ${queue}`);
 				return refused(engine, engine.run(engine.api.retry.run({ id: idOf(engine, name), queue })).pipe(Effect.as("retried")));
 			},
+			runningJobs: (queue: string, page: Page = firstPage) => {
+				story.tell(`list the running jobs of ${queue}`);
+				return refused(
+					engine,
+					client["admin.jobs.running"]({ ...page, queue }).pipe(Effect.map((listed) => listed.jobs.map(({ id }) => nameOf(engine, id)))),
+				);
+			},
 			stateOf: (name: string, queue: string = Mail.name) => {
 				story.tell(`read the state of ${name} in ${queue}`);
 				return refused(
@@ -173,6 +180,12 @@ export function mailFails(...ids: readonly number[]) {
 		nameCopies(engine, copies.jobs, (source) => `the dead-letter copy of ${source}`);
 	});
 }
+
+export const mailHeld = jobsStory.trait("jobs", "the held mail is being delivered and its handler holds it", function* (engine) {
+	named(engine, Option.getOrThrow(yield* engine.jobs.enqueue(Mail, { id: HELD_MAIL }, { retryLimit: 0 })), "the held mail");
+	yield* engine.testing.runDueNow(Mail);
+	yield* Deferred.await(engine.heldMail.delivering);
+});
 
 export const syncWaits = jobsStory.trait("jobs", "the waiting sync job has no worker to take it", function* (engine) {
 	named(engine, Option.getOrThrow(yield* engine.jobs.enqueue(Sync, { key: "sync-key" })), "the waiting sync job");

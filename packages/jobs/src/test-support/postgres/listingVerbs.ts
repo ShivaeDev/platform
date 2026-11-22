@@ -1,5 +1,5 @@
-import { DateTime, Effect, Option, type Schema } from "effect";
-import type { DeadLetteredJob, JobPage, ListedJob } from "#server/health.ts";
+import { DateTime, Duration, Effect, Option, type Schema } from "effect";
+import type { ActiveJob, DeadLetteredJob, JobPage, ListedJob } from "#server/health.ts";
 import type { DatabaseEngine, StoryPayload } from "#test/postgres/databaseEngine.ts";
 import { errorOf, labelOf, provided, runningIn } from "#test/postgres/engine.ts";
 
@@ -38,6 +38,16 @@ function row(engine: DatabaseEngine, job: Listed) {
 	};
 }
 
+function running(engine: DatabaseEngine, job: ActiveJob) {
+	return {
+		attempt: job.attempt,
+		deadline: `${Duration.format(DateTime.distance(job.startedOn, job.deadline))} after its start`,
+		job: labelOf(engine, job.id),
+		queue: job.queue,
+		timeLeft: Duration.format(job.timeLeft),
+	};
+}
+
 export function listingVerbs(engine: DatabaseEngine, tell: (line: string) => void) {
 	let cursor: Option.Option<string> = Option.none();
 	let last: { readonly name: string; readonly listing: Listing; readonly queue: ListedQueue; readonly limit: number } | undefined;
@@ -64,6 +74,26 @@ export function listingVerbs(engine: DatabaseEngine, tell: (line: string) => voi
 		return pages;
 	});
 	return {
+		activeListed: (name: string, queue: ListedQueue) =>
+			Effect.suspend(() => provided(engine, name, runningIn(engine, name).jobs.activeJobs(queue, { limit: 100 }))).pipe(
+				Effect.map(({ jobs, next }) => ({
+					jobs: jobs.map((job) => running(engine, job)),
+					next: Option.isSome(next) ? "another page" : "no further page",
+				})),
+			),
+		activePages: (name: string, queue: ListedQueue, limit: number) =>
+			Effect.gen(function* () {
+				tell(`${name} pages through the active ${queue.name} jobs, ${limit} at a time`);
+				const pages: string[][] = [];
+				let from: Option.Option<string> = Option.none();
+				do {
+					const options = { limit, ...(Option.isSome(from) ? { cursor: from.value } : {}) };
+					const read = yield* provided(engine, name, runningIn(engine, name).jobs.activeJobs(queue, options));
+					pages.push(read.jobs.map((job) => labelOf(engine, job.id)));
+					from = read.next;
+				} while (Option.isSome(from));
+				return pages;
+			}),
 		firstPage: (name: string, listing: Listing, queue: ListedQueue, limit: number) => {
 			tell(`${name} reads the first page of ${limit} ${listing} ${queue.name} jobs`);
 			return Effect.map(page(name, listing, queue, limit, Option.none()), (first) => {

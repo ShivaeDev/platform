@@ -1,4 +1,4 @@
-import { Context, Data, Effect, Exit, Layer, Option, type Queue, Redacted, Schema, Scope } from "effect";
+import { Context, Data, Deferred, Effect, Exit, Layer, Option, type Queue, Redacted, Schema, Scope } from "effect";
 import { TestClock } from "effect/testing";
 import { vi } from "vitest";
 import { defineQueue } from "@shivaedev/jobs/server/definition.ts";
@@ -30,6 +30,7 @@ class WorkerRejected extends Data.TaggedError("WorkerRejected")<{ readonly id: n
 }
 const Jobs = makePgBoss("test/AdminJobs");
 const ScheduledJobs = makePgBoss("test/AdminScheduledJobs");
+export const HELD_MAIL = 99;
 const InvalidMail = defineQueue({ name: Mail.name, schema: Schema.Struct({ invalid: Schema.String }) });
 
 export const jobsEngine = Effect.gen(function* () {
@@ -38,25 +39,24 @@ export const jobsEngine = Effect.gen(function* () {
 	const clock = yield* TestClock.testClockWith(Effect.succeed);
 	const testing = makePgBossTesting({ clock });
 	const deliveries: string[] = [];
+	const heldMail = { delivering: yield* Deferred.make<void>(), released: yield* Deferred.make<void>() };
 	const scheduledRuns: string[] = [];
 	const boss: { client?: ReturnType<typeof testing.clientFactory> } = {};
+	const holdDelivery = Deferred.succeed(heldMail.delivering, undefined).pipe(Effect.andThen(Deferred.await(heldMail.released)));
+	function deliverOnRetry(id: number, job: string) {
+		return Effect.suspend(() => {
+			const repeated = deliveries.includes(job);
+			deliveries.push(job);
+			return repeated ? Effect.succeed({ sent: id }) : Effect.fail(new WorkerRejected({ id }));
+		});
+	}
 	let readCount: () => number = function readCount() {
 		return 0;
 	};
 	const context = yield* Layer.build(
 		Layer.merge(
 			Jobs.layer({
-				jobs: [
-					Mail.handle(({ id }, job) =>
-						Effect.suspend(() => {
-							const repeated = deliveries.includes(job.id);
-							deliveries.push(job.id);
-							return repeated ? Effect.succeed({ sent: id }) : Effect.fail(new WorkerRejected({ id }));
-						}),
-					),
-					Sync,
-					Private,
-				],
+				jobs: [Mail.handle(({ id }, job) => (id === HELD_MAIL ? holdDelivery : deliverOnRetry(id, job.id))), Sync, Private],
 			}),
 			ScheduledJobs.layer({
 				jobs: [
@@ -80,6 +80,8 @@ export const jobsEngine = Effect.gen(function* () {
 			),
 		),
 	).pipe(Effect.provideService(Scope.Scope, scope));
+	// Finalizers run in reverse, so this releases a held delivery before the jobs Layer drains its workers.
+	yield* Effect.addFinalizer(() => Deferred.succeed(heldMail.released, undefined));
 	const jobs = Context.get(context, Jobs);
 	const beforeRegistration = readCount();
 	const registry = pages();
@@ -107,6 +109,7 @@ export const jobsEngine = Effect.gen(function* () {
 				}
 				return client.fail(Sync.name, id, output);
 			}),
+		heldMail,
 		ids: new Map<string, string>(),
 		jobs,
 		names: new Map<string, string>(),
