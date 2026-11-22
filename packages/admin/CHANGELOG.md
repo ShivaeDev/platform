@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.30.0 - 2026-11-22
+
+### Added
+
+- the Jobs page gains an `admin.jobs.running` query on both `JobsPage` and `JobsPageWithRetry`, returning `JobsRunning` entries from `@shivaedev/admin/jobs/Running.ts`. `JobsView` shows them under a Running tab beside Failed and Dead-lettered, with each job's queue, ID, attempt, start time, deadline and time left, `past deadline` once the deadline has passed and `No running jobs.` when nothing runs. A bound retry or run-now also refreshes the running listing.
+
+### Breaking
+
+- `JobsViewClient` from `@shivaedev/admin/client/jobsTypes.ts` now requires a `running` query. A custom client passed to `JobsView` adds `running` taking `{ queue, limit, cursor? }` and returning `{ jobs: readonly JobsRunning[], next: Option<string> }`; the Jobs page contract's bound client already has it.
+- `RegisteredQueues` from `@shivaedev/admin/server/RegisteredQueues.ts` now requires `activeJobs(queue, { limit, cursor? })`, returning `JobPage<ActiveJob>` with the same failures as `failedJobs`. An application that provides its own `RegisteredQueues` Layer adds it; `pgBossQueues` already does.
+
 ## 0.29.11 - 2026-11-22
 
 ### Changed

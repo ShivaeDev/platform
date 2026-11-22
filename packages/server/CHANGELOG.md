@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.47.0 - 2026-11-22
+
+### Added
+
+- `appDatabase`, and so `appHost` and `workerHost`, provides `WorkerRelease` whenever `migrations.release` is given, in every migration mode instead of only in `"wait"`. A web process that runs its jobs Layer in `appHost`'s `services` and passes its release pauses those workers once another process records a newer release, while its HTTP keeps answering, and its readiness line comes from the jobs Layer inside the host's redaction and export.
+
+### Breaking
+
+- `Worker ready to take jobs` now means "this process fetches jobs", not "this process has started". `workerHost` no longer writes it; its jobs Layers do, once their workers fetch. A `workerHost` user sees three differences: with a release, the line comes when the workers first take the release, after the old release's workers have drained, instead of when the host finishes building; a worker host with no queue workers logs no line; and a process whose jobs Layers use two separate clients logs two lines. A deployment check or test kit that waits for the line to learn that a worker process started waits for that drain, or forever when its release never takes the database. To migrate, give the worker process a start signal of its own and wait on that for "started", as the starter's deployment kit now does: `src/test-support/deployApplication.ts` writes `started` to file descriptor 3 once the worker Layer is built, `src/test-support/deployChild.ts` resolves `ready` from it and `takingJobs` from the line, and `src/test-support/deploymentProcesses.ts` waits on `takingJobs` only where a story is about readiness. A generated application takes these files with `create-app update`.
+
 ## 0.46.5 - 2026-11-22
 
 ### Changed

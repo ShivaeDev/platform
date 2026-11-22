@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/test-kits",
-	"version": "0.16.15",
+	"version": "0.16.16",
 	"description": "Reusable story building blocks for Platform applications",
 	"keywords": [
 		"effect"

@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.42.0 - 2026-11-22
+
+### Changed
+
+- Update `@shivaedev/admin` from 0.29.11 to 0.30.0.
+- Update `@shivaedev/email` from 0.10.3 to 0.10.4.
+- Update `@shivaedev/identity` from 0.44.2 to 0.44.3.
+- Update `@shivaedev/jobs` from 0.45.1 to 0.46.0.
+- Update `@shivaedev/rate-limit` from 0.8.2 to 0.8.3.
+- Update `@shivaedev/react` from 0.59.5 to 0.59.6.
+- Update `@shivaedev/server` from 0.46.5 to 0.47.0.
+- Update `@shivaedev/sql` from 0.55.0 to 0.56.0.
+- Update `@shivaedev/webhooks` from 0.13.4 to 0.13.5.
+
+### Breaking
+
+- `@shivaedev/server`: `Worker ready to take jobs` now means "this process fetches jobs", not "this process has started". `workerHost` no longer writes it; its jobs Layers do, once their workers fetch. A `workerHost` user sees three differences: with a release, the line comes when the workers first take the release, after the old release's workers have drained, instead of when the host finishes building; a worker host with no queue workers logs no line; and a process whose jobs Layers use two separate clients logs two lines. A deployment check or test kit that waits for the line to learn that a worker process started waits for that drain, or forever when its release never takes the database. To migrate, give the worker process a start signal of its own and wait on that for "started", as the starter's deployment kit now does: `src/test-support/deployApplication.ts` writes `started` to file descriptor 3 once the worker Layer is built, `src/test-support/deployChild.ts` resolves `ready` from it and `takingJobs` from the line, and `src/test-support/deploymentProcesses.ts` waits on `takingJobs` only where a story is about readiness. A generated application takes these files with `create-app update`.
+- `@shivaedev/jobs`: `PgBossService` and `PgBossInspectionService` from `@shivaedev/jobs/server/service.ts` and `@shivaedev/jobs/server/inspection.ts` now require `activeJobs`. An object that implements either type itself, such as a test fake, adds `activeJobs: (queue: { name }, options: JobPageOptions) => Effect<JobPage<ActiveJob>, PgBossError | PgBossPayloadError | SchemaError>`. Services built by `makePgBoss` and `PgBossInspection.layer` already provide it.
+- `@shivaedev/admin`: `JobsViewClient` from `@shivaedev/admin/client/jobsTypes.ts` now requires a `running` query. A custom client passed to `JobsView` adds `running` taking `{ queue, limit, cursor? }` and returning `{ jobs: readonly JobsRunning[], next: Option<string> }`; the Jobs page contract's bound client already has it.
+- `@shivaedev/admin`: `RegisteredQueues` from `@shivaedev/admin/server/RegisteredQueues.ts` now requires `activeJobs(queue, { limit, cursor? })`, returning `JobPage<ActiveJob>` with the same failures as `failedJobs`. An application that provides its own `RegisteredQueues` Layer adds it; `pgBossQueues` already does.
+
 ## 0.41.1 - 2026-11-22
 
 ### Changed
