@@ -1,26 +1,56 @@
 import { Effect, Redacted, Schema } from "effect";
 import { observeUntil } from "@shivaedev/test-sql/server/observeUntil.ts";
+import type { ClientDatabase } from "#server/ClientDatabase.ts";
 import type { DatabaseEngine } from "#test/postgres/databaseEngine.ts";
 import { runningIn, startRuntime } from "#test/postgres/engine.ts";
 import type { Registration } from "#test/workers.ts";
 
 const Backend = Schema.Tuple([Schema.Struct({ pid: Schema.Number })]);
 
-function backendOf(engine: DatabaseEngine, name: string) {
-	return Effect.promise(async () => {
-		const db = runningIn(engine, name).client.getDb?.();
-		if (db === undefined) {
-			throw new Error(`${name}'s client exposes no database`);
-		}
-		const { rows } = await db.executeSql("select pg_backend_pid() as pid");
-		return Schema.decodeUnknownSync(Backend)(rows)[0].pid;
-	});
+function databaseOf(engine: DatabaseEngine, name: string): ClientDatabase {
+	const db = runningIn(engine, name).client.getDb?.();
+	if (db === undefined) {
+		throw new Error(`${name}'s client exposes no database`);
+	}
+	return db;
+}
+
+async function pidOf(db: ClientDatabase) {
+	const { rows } = await db.executeSql("select pg_backend_pid() as pid");
+	return Schema.decodeUnknownSync(Backend)(rows)[0].pid;
 }
 
 export function connectionVerbs(engine: DatabaseEngine, tell: (line: string) => void) {
+	const held = new Map<string, () => Promise<void>>();
+	function returnHeld(name: string) {
+		return Effect.promise(async () => {
+			const release = held.get(name);
+			held.delete(name);
+			await release?.();
+		});
+	}
+
 	return {
+		backendHeld: (name: string) => {
+			tell(`${name} checks its pooled connection out and keeps it in an open transaction`);
+			return Effect.acquireRelease(
+				Effect.promise(async () => {
+					const transaction = await databaseOf(engine, name).beginTransaction?.();
+					if (transaction === undefined) {
+						throw new Error(`${name}'s database opens no transactions`);
+					}
+					held.set(name, transaction.commit);
+					return pidOf(transaction.db);
+				}),
+				() => returnHeld(name),
+			);
+		},
 		backendIsConnected: (pid: number) => engine.sql`select pid from pg_stat_activity where pid = ${pid}`.pipe(Effect.map((rows) => rows.length > 0)),
-		backendPid: (name: string) => backendOf(engine, name),
+		backendPid: (name: string) => Effect.promise(() => pidOf(databaseOf(engine, name))),
+		backendReturned: (name: string) => {
+			tell(`${name} commits and returns its connection to the pool`);
+			return returnHeld(name);
+		},
 		connectionsOf: (applicationName: string) =>
 			engine.sql<{ readonly ssl: boolean }>`select s.ssl from pg_stat_activity a join pg_stat_ssl s using (pid)
 				where a.datname = current_database() and a.application_name = ${applicationName}`.pipe(
