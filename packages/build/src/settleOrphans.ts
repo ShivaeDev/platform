@@ -1,4 +1,4 @@
-import { Effect, FileSystem, Option, Path } from "effect";
+import { Effect, FileSystem, Option, Path, type PlatformError } from "effect";
 import { definesModule } from "#adapters/typeScript.ts";
 import { generatedFrom } from "#emit.ts";
 import { readIfPresent } from "#files.ts";
@@ -16,25 +16,40 @@ const definesModuleStill = Effect.fn("Build.definesModuleStill")(function* (proj
 	return Option.exists(yield* readIfPresent(module), (text) => definesModule(module, text));
 });
 
+// Another run may remove its draft's folder or an orphan between a listing and the next step, so a folder that is gone reads as
+// empty and a file that is gone is skipped; every other failure still stops the run.
+const filesUnder = Effect.fn("Build.filesUnder")(function* (
+	folder: string,
+): Effect.fn.Return<readonly string[], PlatformError.PlatformError, FileSystem.FileSystem | Path.Path> {
+	const fs = yield* FileSystem.FileSystem;
+	const path = yield* Path.Path;
+	const entries = yield* fs.readDirectoryEntries(folder).pipe(Effect.catchReason("PlatformError", "NotFound", () => Effect.succeed([])));
+	const found = yield* Effect.forEach(entries, (entry) =>
+		entry.type === "Directory" ? filesUnder(path.join(folder, entry.name)) : Effect.succeed([path.join(folder, entry.name)]),
+	);
+	return found.flat();
+});
+
+const isFile = Effect.fn("Build.isFile")(function* (file: string) {
+	const fs = yield* FileSystem.FileSystem;
+	return yield* fs.stat(file).pipe(
+		Effect.map((info) => info.type === "File"),
+		Effect.catchReason("PlatformError", "NotFound", () => Effect.succeed(false)),
+	);
+});
+
 // Decided by the module the header names, never by comparing paths: on a case-insensitive file system a folder renamed by
 // case alone lists the module's own file under its old spelling.
 const orphansOf = Effect.fn("Build.orphansOf")(function* (project: Project) {
-	const fs = yield* FileSystem.FileSystem;
-	const path = yield* Path.Path;
-	if (!(yield* fs.exists(project.generated))) {
-		return [];
-	}
-	const entries = (yield* fs.readDirectory(project.generated, { recursive: true })).map((entry) => path.join(project.generated, entry)).sort();
-	const orphans = yield* Effect.forEach(
-		entries.filter((file) => file.endsWith(".ts")),
-		(file) =>
-			Effect.gen(function* () {
-				if ((yield* fs.stat(file)).type !== "File") {
-					return [];
-				}
-				const source = Option.flatMap(yield* readIfPresent(file), (text) => Option.fromUndefinedOr(generatedFrom(text)));
-				return Option.isSome(source) && !(yield* definesModuleStill(project, source.value)) ? [{ file, source: source.value } satisfies Orphan] : [];
-			}),
+	const files = (yield* filesUnder(project.generated)).filter((file) => file.endsWith(".ts")).toSorted();
+	const orphans = yield* Effect.forEach(files, (file) =>
+		Effect.gen(function* () {
+			if (!(yield* isFile(file))) {
+				return [];
+			}
+			const source = Option.flatMap(yield* readIfPresent(file), (text) => Option.fromUndefinedOr(generatedFrom(text)));
+			return Option.isSome(source) && !(yield* definesModuleStill(project, source.value)) ? [{ file, source: source.value } satisfies Orphan] : [];
+		}),
 	);
 	return orphans.flat();
 });
@@ -45,7 +60,7 @@ export const settleOrphans = Effect.fn("Build.settleOrphans")(function* (project
 	return yield* Effect.forEach(yield* orphansOf(project), (orphan) =>
 		Effect.gen(function* () {
 			if (!check) {
-				yield* fs.remove(orphan.file);
+				yield* fs.remove(orphan.file).pipe(Effect.catchReason("PlatformError", "NotFound", () => Effect.void));
 			}
 			const outcome: ModuleOutcome = {
 				module: orphan.source,
