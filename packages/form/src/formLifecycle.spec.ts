@@ -119,6 +119,24 @@ normalizedNames.it(
 );
 
 normalizedNames.it(
+	"a save that a refresh of its own result overtook keeps a name edited after submitting, unsaved",
+	[
+		normalizedNames.edited("name", "  Saved  "),
+		normalizedNames.saveInFlight(),
+		normalizedNames.edited("name", "Newer"),
+		normalizedNames.refreshReceived({ name: "Saved" }),
+	],
+	function* ({ finishSave, shown, unsavedChanges }) {
+		yield* finishSave();
+
+		yield* outcomes([
+			["shown name", () => shown("name"), "Newer"],
+			["unsaved changes", () => unsavedChanges(), true],
+		]);
+	},
+);
+
+normalizedNames.it(
 	"a save that a refresh of another name overtook keeps the submitted name and leaves nothing unsaved",
 	[normalizedNames.edited("name", "  Saved  "), normalizedNames.saveInFlight(), normalizedNames.refreshReceived({ name: "Remote" })],
 	function* ({ finishSave, shown, unsavedChanges }) {
