@@ -45,6 +45,7 @@ database.it(
 				"recorded worker log",
 				() => Effect.map(logged("app"), (lines) => lines.filter(({ level }) => level === "Info")),
 				[
+					{ level: "Info", message: "Worker ready to take jobs" },
 					{ level: "Info", message: masked },
 					{ level: "Info", message: "mail attempted" },
 				],

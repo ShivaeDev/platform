@@ -28,6 +28,7 @@ database.it(
 				"logs",
 				() => logged("app"),
 				[
+					{ level: "Info", message: "Worker ready to take jobs" },
 					{ level: "Error", message: "Job attempt failed" },
 					{ level: "Error", message: "pg-boss settle for queue wake-read-failure failed: Error: retry lookup failed" },
 				],

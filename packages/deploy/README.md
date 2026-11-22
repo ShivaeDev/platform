@@ -88,7 +88,7 @@ Both service functions take a service name and Railway's `ServiceConfigInput`. K
 
 `webService` defaults `deploy.preDeployCommand` to `["pnpm migrate"]`, `env.TRUSTED_PROXY` to `"100.64.0.0/10"` and `env.AUTH_CLIENT_IP_HEADER` to `"x-real-ip"`. Additional `env` or `variables` entries coexist with those defaults. Explicit entries replace defaults; Railway's `env` takes precedence over `variables`.
 
-`workerService` defaults `deploy.drainingSeconds` to `75`. Other deploy settings coexist with that default. It adds no web migration or proxy variables.
+`workerService` defaults `deploy.drainingSeconds` to `75`. Other deploy settings coexist with that default. It adds no web migration or proxy variables. `webService` sets no draining time, so a web service that runs jobs in its own process sets `deploy.drainingSeconds` beyond its jobs `stop` timeout, as a worker does.
 
 ```ts
 import { Effect } from "effect";

@@ -104,7 +104,7 @@ runtime.it(
 
 		yield* outcomes([
 			["interrupted", () => interrupted(), ["job-1"]],
-			["logs", () => logged(), []],
+			["logs", () => logged(), [{ level: "Info", message: "Worker ready to take jobs" }]],
 		]);
 	},
 );
@@ -128,6 +128,7 @@ for (const reads of [
 					"logs",
 					() => logged(),
 					[
+						{ level: "Info", message: "Worker ready to take jobs" },
 						{ level: "Error", message: "Job attempt hit its 1s deadline" },
 						{ level: "Error", message: expect.stringMatching(/^settle reports failed with Operation timed out/u) },
 					],
@@ -161,6 +162,7 @@ runtime.it(
 				"logs",
 				() => logged(),
 				[
+					{ level: "Info", message: "Worker ready to take jobs" },
 					{ level: "Error", message: "Job attempt hit its 1s deadline" },
 					{ level: "Error", message: expect.stringMatching(/^settle reports failed with Operation timed out/u) },
 				],

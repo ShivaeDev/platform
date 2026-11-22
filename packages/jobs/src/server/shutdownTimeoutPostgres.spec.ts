@@ -36,7 +36,7 @@ for (const client of ["its own", "a shared"] as const) {
 					["shutdown before timeout", () => shutdown("app"), "still stopping"],
 					["first handler before timeout", () => interruptions(First), []],
 					["second handler before timeout", () => interruptions(Second), []],
-					["worker reports before timeout", () => logged("app"), []],
+					["worker reports before timeout", () => logged("app"), [{ level: "Info", message: "Worker ready to take jobs" }]],
 				]);
 
 				yield* drainTimePasses(1);
@@ -73,7 +73,7 @@ database.it(
 
 		yield* outcomes([
 			["handler", () => interruptions(First), ["first job before its deadline"]],
-			["worker reports", () => logged("app"), []],
+			["worker reports", () => logged("app"), [{ level: "Info", message: "Worker ready to take jobs" }]],
 		]);
 	},
 	{ clock: "test" },

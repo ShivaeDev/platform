@@ -6,6 +6,7 @@ export function registerWorkerRelease(state: Effect.Success<typeof initializeWor
 		const registered = Effect.suspend(() => control(state.active));
 		const attach = Effect.gen(function* () {
 			state.controls.add(registered);
+			yield* state.registered.open;
 			yield* registered;
 		});
 		const detach = Effect.sync(() => {

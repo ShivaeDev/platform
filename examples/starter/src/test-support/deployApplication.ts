@@ -27,7 +27,12 @@ if (process.argv[2] === "web") {
 			yield* TestClock.setTime(yield* Config.Number("STORY_CLOCK_START"));
 			const time = yield* hostTime();
 			yield* deploymentTime(time);
-			yield* Layer.launch(applicationWorker({ poolSizes: testPoolSizes }).pipe(Layer.provide(time.layer))).pipe(TestClock.withLive);
+			yield* Layer.launch(
+				applicationWorker({ poolSizes: testPoolSizes }).pipe(
+					Layer.provide(time.layer),
+					Layer.tap(() => Effect.sync(() => writeSync(3, "started\n"))),
+				),
+			).pipe(TestClock.withLive);
 		}).pipe(Effect.scoped, Effect.provide(TestClock.layer())),
 		{ teardown: workerTeardown },
 	);
