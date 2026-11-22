@@ -1,10 +1,11 @@
 import { isBuiltin } from "node:module";
-import { dirname, isAbsolute, join, posix, relative, sep } from "node:path";
+import { isAbsolute, posix, relative, sep } from "node:path";
 import { Option } from "effect";
 import type { Plugin, Rollup } from "vite";
+import { bundleMarkers } from "#adapters/bundleMarkers.ts";
 import { runNode } from "#adapters/runNode.ts";
 import { projectFolder } from "#project.ts";
-import { type BundleGraph, type BundleModule, type ServerMarkers, serverCodeIn } from "#serverCode.ts";
+import { type BundleGraph, type BundleModule, serverCodeIn } from "#serverCode.ts";
 
 const BROWSER_EXTERNAL = "__vite-browser-external:";
 
@@ -64,18 +65,16 @@ function statementsOf(context: Rollup.PluginContext, info: Rollup.ModuleInfo, ro
 // Read from the module's code as the bundler holds it. A namespace import, a dynamic import or a re-export of everything takes
 // both names, and so does a module whose code names operation.ts in no statement, such as a require(), since the check cannot
 // tell what it takes.
-async function namesFromOperation(context: Rollup.PluginContext, info: Rollup.ModuleInfo, operation: Option.Option<string>, root: string) {
-	if (Option.isNone(operation)) {
-		return [];
-	}
-	const dynamic = info.dynamicallyImportedIds.includes(operation.value) ? QUERY_AND_COMMAND : [];
-	if (!info.importedIds.includes(operation.value)) {
+async function namesFromOperation(context: Rollup.PluginContext, info: Rollup.ModuleInfo, operation: ReadonlySet<string>, root: string) {
+	const dynamic = info.dynamicallyImportedIds.some((id) => operation.has(id)) ? QUERY_AND_COMMAND : [];
+	if (!info.importedIds.some((id) => operation.has(id))) {
 		return dynamic;
 	}
 	const taken = await Promise.all(
 		statementsOf(context, info, root).map(async (statement) => {
 			const source = "source" in statement ? statement.source : null;
-			if (source === null || (await context.resolve(source.value, info.id))?.id !== operation.value) {
+			const resolved = source === null ? undefined : (await context.resolve(source.value, info.id))?.id;
+			if (resolved === undefined || !operation.has(resolved)) {
 				return Option.none<readonly string[]>();
 			}
 			return Option.some(takenBy(statement));
@@ -89,7 +88,7 @@ async function graphOf(
 	context: Rollup.PluginContext,
 	root: string,
 	oldFormFolders: readonly string[],
-	operation: Option.Option<string>,
+	operation: ReadonlySet<string>,
 ): Promise<BundleGraph> {
 	const modules = new Map<string, BundleModule>();
 	const entries: string[] = [];
@@ -111,17 +110,6 @@ async function graphOf(
 	return { entries, modules };
 }
 
-async function resolvedFromRoot(context: Rollup.PluginContext, root: string, specifier: string) {
-	return Option.fromNullishOr((await context.resolve(specifier, join(root, "index.html")))?.id);
-}
-
-async function markersFrom(context: Rollup.PluginContext, root: string): Promise<ServerMarkers> {
-	return {
-		defineModule: await resolvedFromRoot(context, root, "@shivaedev/contract/defineModule.ts"),
-		sql: Option.map(await resolvedFromRoot(context, root, "effect/sql"), dirname),
-	};
-}
-
 export function bundleCheck(serverOnly: readonly string[], oldFormFolders: readonly string[] = []): Plugin {
 	let root = ".";
 	return {
@@ -132,9 +120,9 @@ export function bundleCheck(serverOnly: readonly string[], oldFormFolders: reado
 				return;
 			}
 			const project = await runNode(projectFolder(root));
-			const operation = await resolvedFromRoot(this, root, "@shivaedev/contract/operation.ts");
+			const { markers, operation } = await bundleMarkers(this, root);
 			const graph = await graphOf(this, project, oldFormFolders, operation);
-			const found = await runNode(serverCodeIn(graph, await markersFrom(this, root), { oldFormFolders, root: project, serverOnly }));
+			const found = await runNode(serverCodeIn(graph, markers, { oldFormFolders, root: project, serverOnly }));
 			if (Option.isSome(found)) {
 				this.error(found.value);
 			}
