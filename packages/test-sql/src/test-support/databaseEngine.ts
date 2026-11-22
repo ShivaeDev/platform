@@ -125,7 +125,7 @@ export class DatabaseEngine {
 		});
 	}
 
-	end(name: string, ending: Effect.Effect<void, unknown>) {
+	end(name: string, ending: Effect.Effect<void, unknown, Services | Scope.Scope>) {
 		const engine = this;
 		return Effect.gen(function* () {
 			const block = yield* engine.block(name);

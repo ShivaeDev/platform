@@ -9,7 +9,7 @@ import {
 	dropsBlocked,
 	runStarted,
 } from "#test/cleanupActivity.ts";
-import { crashedRun, limitedCleanupRole, namedCleanupPools, otherHostDatabase, unownedLeftover } from "#test/cleanupOwnership.ts";
+import { crashedRun, namedCleanupPools, otherHostDatabase, ownCleanupRole, unownedLeftover } from "#test/cleanupOwnership.ts";
 
 cleanup.it(
 	"closing a clone's scope returns while its drop is blocked, and the clone's database still exists",
@@ -27,7 +27,7 @@ for (const { opened, clock } of [
 ]) {
 	cleanup.it(
 		`a drop refused for lack of connections is retried and drops the clone once connections return${clock}`,
-		[limitedCleanupRole, runStarted, opened, dropRefusedForLackOfConnections],
+		[ownCleanupRole, runStarted, opened, dropRefusedForLackOfConnections],
 		function* ({ firstDropAttempt, cloneDatabase, connectionsReturn, cleanupRetryIntervalPasses, cloneDatabaseOnceDrained }) {
 			yield* outcomes([
 				["the clone's database", () => cloneDatabase(), "exists"],
@@ -100,14 +100,14 @@ cleanup.it("starting another run keeps a live worker's clone", [runStarted, clon
 cleanup.it(
 	"closing a clone closes its PostgreSQL sessions before its blocked drop can run",
 	[namedCleanupPools, runStarted, cloneOpen, dropsBlocked],
-	function* ({ closeClone, cloneDatabase, cloneSessions }) {
+	function* ({ closeClone, cloneDatabase, cloneSessions, cloneSessionsOnceEnded }) {
 		expect(yield* cloneSessions()).toEqual(["cleanup-fixture"]);
 
 		yield* closeClone();
 
 		yield* outcomes([
+			["the clone's sessions", () => cloneSessionsOnceEnded(), []],
 			["the clone's database", () => cloneDatabase(), "exists"],
-			["the clone's sessions", () => cloneSessions(), []],
 		]);
 	},
 );

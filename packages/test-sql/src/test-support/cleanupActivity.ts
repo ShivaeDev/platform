@@ -86,7 +86,7 @@ export const dropRefusedForLackOfConnections = cleanup.trait(
 		const admin = state.engine.admin;
 		const role = cleanupRole(state);
 		yield* admin`alter role ${admin(role)} connection limit 0`;
-		yield* Effect.addFinalizer(() => Effect.orDie(admin`alter role ${admin(role)} connection limit 2`));
+		yield* Effect.addFinalizer(() => Effect.orDie(admin`alter role ${admin(role)} connection limit -1`));
 		const tracer = yield* Effect.tracer;
 		yield* Scope.close(state.cloneScope, Exit.void).pipe(Effect.withTracer(watchingDrops(state, tracer)));
 		yield* Deferred.await(state.firstDropAttempt);

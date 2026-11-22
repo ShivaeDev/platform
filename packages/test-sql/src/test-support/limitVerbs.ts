@@ -58,19 +58,19 @@ export function limitVerbs(engine: DatabaseEngine, story: Story<DatabaseEngine>)
 				: attempt(engine.run(withIsolatedDatabase(divideByZero)));
 		},
 		isolatedBlockWithoutConnections: () => {
-			story.tell("an isolated block holds a connection to its clone and opens another client");
-			return attempt(
-				engine.run(
-					withIsolatedDatabase(
-						Effect.gen(function* () {
-							const sql = yield* SqlClient.SqlClient;
-							yield* sql.reserve;
-							const database = yield* PostgresTestDatabase;
-							yield* PgClient.makeClient({ url: database.url });
-						}),
-					),
-				),
-			);
+			story.tell("the isolated block holds a connection to its clone and opens another client");
+			const block = "the isolated block";
+			return engine
+				.end(
+					block,
+					Effect.gen(function* () {
+						const sql = yield* SqlClient.SqlClient;
+						yield* sql.reserve;
+						const database = yield* PostgresTestDatabase;
+						yield* PgClient.makeClient({ url: database.url });
+					}),
+				)
+				.pipe(Effect.andThen(Effect.sync(() => engine.endings.get(block) ?? "still running")));
 		},
 		rollbackTestWithoutConnections: () => {
 			story.tell("the shared pool holds the role's only connection and a rollback test starts");

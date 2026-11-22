@@ -6,7 +6,7 @@ import { Effect, Scope } from "effect";
 import { databaseId } from "#server/databaseOwner.ts";
 import { cleanup } from "#test/cleanup.ts";
 import { dropOnStoryEnd } from "#test/cleanupVerbs.ts";
-import { limitedRole } from "#test/limitedRole.ts";
+import { storyRole } from "#test/storyRole.ts";
 
 const run = promisify(execFile);
 
@@ -14,11 +14,11 @@ export const namedCleanupPools = cleanup.trait("configuration", "the run's pools
 	state.engine.options = { ...state.engine.options, applicationName: "cleanup-fixture" };
 });
 
-export const limitedCleanupRole = cleanup.trait(
+export const ownCleanupRole = cleanup.trait(
 	"configuration",
-	"the run's role may open 2 connections and cannot drop other owners' databases",
+	"the run connects as a role of its own, which cannot drop other owners' databases",
 	function* (state) {
-		state.engine.options = { ...state.engine.options, url: yield* limitedRole(2).pipe(Effect.provideService(Scope.Scope, state.roleScope)) };
+		state.engine.options = { ...state.engine.options, url: yield* storyRole().pipe(Effect.provideService(Scope.Scope, state.roleScope)) };
 	},
 );
 

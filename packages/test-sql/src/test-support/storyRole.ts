@@ -3,7 +3,7 @@ import { SqlClient } from "effect/sql";
 import { databaseId } from "#server/databaseOwner.ts";
 import { adminUrl } from "#test/postgres.ts";
 
-export const limitedRole = Effect.fn("ConnectionBudget.limitedRole")(function* (limit = 1) {
+export const storyRole = Effect.fn("ConnectionBudget.storyRole")(function* (limit = -1) {
 	const admin = yield* SqlClient.SqlClient;
 	const role = `budget_${yield* databaseId}`;
 	yield* Effect.acquireRelease(
@@ -15,3 +15,7 @@ export const limitedRole = Effect.fn("ConnectionBudget.limitedRole")(function* (
 	url.password = "budget-test";
 	return Redacted.make(url.toString());
 });
+
+export function roleOf(url: Redacted.Redacted<string>) {
+	return new URL(Redacted.value(url)).username;
+}
