@@ -33,10 +33,14 @@ database.it(
 
 		yield* outcomes([
 			["app queues working", () => workingQueues("app"), []],
-			["app timeline", () => timeline("app"), ["job 1 finished", "app: Workers paused for another database release"]],
+			[
+				"app timeline",
+				() => timeline("app"),
+				["app: Worker ready to take jobs", "job 1 finished", "app: Workers paused for another database release"],
+			],
 			["job 1", () => job("job 1"), expect.objectContaining({ state: "completed" })],
 			["sibling queues working", () => workingQueues("sibling"), []],
-			["sibling timeline", () => timeline("sibling"), ["sibling: Workers paused for another database release"]],
+			["sibling timeline", () => timeline("sibling"), ["sibling: Worker ready to take jobs", "sibling: Workers paused for another database release"]],
 		]);
 	},
 );
@@ -74,7 +78,12 @@ database.it(
 			[
 				"sibling timeline",
 				() => timeline("sibling"),
-				["sibling: Workers paused for another database release", "sibling: Workers resumed for database release", "job 4 finished"],
+				[
+					"sibling: Worker ready to take jobs",
+					"sibling: Workers paused for another database release",
+					"sibling: Workers resumed for database release",
+					"job 4 finished",
+				],
 			],
 		]);
 	},

@@ -50,9 +50,11 @@ export function appDatabase<R, E = never>(options: AppDatabaseOptions<R, E>) {
 	const live = liveServerLayer.pipe(Layer.provideMerge(Reactivity.layer));
 	const migrations = options.migrations;
 	const worker =
-		migrations.mode === "wait" && migrations.release !== undefined
-			? Layer.effect(WorkerRelease, coordinateWorkerRelease(migrations.release, migrations.pollInterval, migrations.table)).pipe(Layer.provide(clock))
-			: Layer.empty;
+		migrations.release === undefined
+			? Layer.empty
+			: Layer.effect(WorkerRelease, coordinateWorkerRelease(migrations.release, migrations.pollInterval, migrations.table)).pipe(
+					Layer.provide(clock),
+				);
 	const base = Layer.merge(pool, live);
 	const changes = options.config?.changes;
 	const connected = Layer.unwrap(

@@ -1,7 +1,8 @@
-import { Effect, Semaphore } from "effect";
+import { Effect, Latch, Semaphore } from "effect";
 
 export const initializeWorkerRelease = Effect.sync(() => ({
 	active: false,
 	controls: new Set<Effect.Effect<void, unknown>>(),
 	lock: Semaphore.makeUnsafe(1),
+	registered: Latch.makeUnsafe(false),
 }));

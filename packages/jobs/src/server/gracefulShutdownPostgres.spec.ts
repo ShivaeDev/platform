@@ -35,7 +35,7 @@ for (const client of ["its own", "a shared"] as const) {
 				["held job", () => job("held job"), expect.objectContaining({ state: "completed" })],
 				["interrupted handlers", () => interruptions(Held), []],
 				["shutdown", () => shutdown("app"), "stopped"],
-				["worker reports", () => logged("app"), []],
+				["worker reports", () => logged("app"), [{ level: "Info", message: "Worker ready to take jobs" }]],
 			]);
 		},
 		{ clock: "test" },

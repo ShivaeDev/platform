@@ -8,6 +8,19 @@ import type { JobRegistration } from "#server/definition.ts";
 import { toPgBossError } from "#server/error.ts";
 import type { PgBoss } from "#server/PgBoss.ts";
 
+// One line per client: the modules of a process share its client and register their workers in separate jobs Layers.
+const announced = new WeakSet<PgBossClient>();
+
+function announceReady(client: PgBossClient, workers: number) {
+	return Effect.suspend(() => {
+		if (workers === 0 || announced.has(client)) {
+			return Effect.void;
+		}
+		announced.add(client);
+		return Effect.logInfo("Worker ready to take jobs");
+	});
+}
+
 export const registerReleasedJobs = Effect.fnUntraced(function* <R>(
 	client: PgBossClient,
 	jobs: readonly JobRegistration<R>[],
@@ -25,7 +38,8 @@ export const registerReleasedJobs = Effect.fnUntraced(function* <R>(
 		Effect.provideService(Scope.Scope, scope),
 	);
 	if (Option.isNone(signal) || (workers.length === 0 && retired.length === 0)) {
-		return yield* register;
+		yield* register;
+		return yield* announceReady(client, workers.length);
 	}
 	yield* registerJobs(client, jobs, replaceWorkers, schema, false, stop);
 	let working = replaceWorkers;
@@ -38,6 +52,7 @@ export const registerReleasedJobs = Effect.fnUntraced(function* <R>(
 				if (paused) {
 					yield* Effect.logInfo("Workers resumed for database release");
 				}
+				yield* announceReady(client, workers.length);
 			} else if (working) {
 				yield* Effect.tryPromise({
 					catch: (error) => toPgBossError("register", error),
