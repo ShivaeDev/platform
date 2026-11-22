@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.60.1 - 2026-11-22
+
+### Changed
+
+- Update `@shivaedev/form` from 0.21.1 to 0.21.2.
+
 ## 0.60.0 - 2026-11-22
 
 ### Added

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.47.2 - 2026-11-22
+
+### Changed
+
+- Update `@shivaedev/admin` from 0.30.1 to 0.30.2.
+
 ## 0.47.1 - 2026-11-22
 
 ### Fixed
