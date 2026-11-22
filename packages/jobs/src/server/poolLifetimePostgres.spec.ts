@@ -14,10 +14,11 @@ for (const [reason, options] of [
 	database.it(
 		`a jobs backend closes after ${reason} and a subsequent enqueue succeeds on a replacement`,
 		[running("app", [Notes], { ...options, controller: "none", max: 1, schedule: false, supervise: false })],
-		function* ({ answered, backendIsConnected, backendPid, enqueue, untilBackendDisconnects }) {
-			const before = yield* backendPid("app");
+		function* ({ answered, backendHeld, backendIsConnected, backendPid, backendReturned, enqueue, untilBackendDisconnects }) {
+			const before = yield* backendHeld("app");
 			expect(yield* backendIsConnected(before)).toBe(true);
 
+			yield* backendReturned("app");
 			yield* untilBackendDisconnects(before);
 
 			expect(yield* backendIsConnected(before)).toBe(false);
