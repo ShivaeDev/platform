@@ -1,13 +1,28 @@
 import { resolve } from "node:path";
-import { Effect } from "effect";
+import { Effect, Option } from "effect";
 import { DEFAULT_OUTPUT_DIR, DEFAULT_RERUNS } from "#defaults.ts";
 import { VitestRerunError } from "#error.ts";
+import { parseVitestArguments } from "#parseVitestArguments.ts";
 
 export interface RerunOptions {
 	readonly cwd: string;
 	readonly outputDir: string;
 	readonly reruns: number;
 	readonly vitestArgs: readonly string[];
+}
+
+const MODES = ["clearCache", "listTags", "mergeReports"] as const;
+
+function refuseModes(vitestArgs: readonly string[]): Effect.Effect<void, VitestRerunError> {
+	// An argument Vitest cannot parse fails the attempt, which names it.
+	return Effect.option(parseVitestArguments(vitestArgs)).pipe(
+		Effect.flatMap((parsed) => {
+			const mode = Option.isSome(parsed) ? MODES.find((name) => Boolean(parsed.value.options[name])) : undefined;
+			return mode === undefined
+				? Effect.void
+				: Effect.fail(new VitestRerunError({ message: `--${mode} runs no tests, so vitest-rerun cannot run it; run vitest --${mode} directly` }));
+		}),
+	);
 }
 
 function option(arg: string, name: string, next: string | undefined): { name: string; value: string | undefined; consumed: number } | undefined {
@@ -44,5 +59,5 @@ export function parseOptions(args: readonly string[], cwd: string): Effect.Effec
 	if (!/^\d+$/u.test(reruns)) {
 		return Effect.fail(new VitestRerunError({ message: `--reruns expects a whole number, got ${JSON.stringify(reruns)}` }));
 	}
-	return Effect.succeed({ cwd, outputDir: resolve(cwd, outputDir), reruns: Number(reruns), vitestArgs });
+	return Effect.as(refuseModes(vitestArgs), { cwd, outputDir: resolve(cwd, outputDir), reruns: Number(reruns), vitestArgs });
 }

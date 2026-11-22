@@ -6,6 +6,7 @@ import { TimedJsonReporter } from "#adapters/TimedJsonReporter.ts";
 import { writeMergedReports } from "#adapters/writeMergedReports.ts";
 import { failWith } from "#error.ts";
 import { mergeSnapshotSummary } from "#mergeSnapshotSummary.ts";
+import { parseVitestArguments } from "#parseVitestArguments.ts";
 import type { Snapshot } from "#snapshot.ts";
 import type { Files } from "#tasks.ts";
 import type { RunOptions, Selection } from "#VitestRuntime.ts";
@@ -14,13 +15,23 @@ function promise<A>(message: string, run: () => Promise<A>) {
 	return Effect.tryPromise({ catch: failWith(message), try: run });
 }
 
+// Vitest's CLI rewrites these options in its normalizeCliOptions and prepareVitest before it starts and exports no function for it, so compare them on a Vitest upgrade.
+function likeTheCli(filter: readonly string[], { exclude, ...options }: VitestNode.CliOptions): VitestNode.CliOptions {
+	const located = options.includeTaskLocation === undefined && filter.some((item) => item.includes(":"));
+	const typecheckOnly = typeof options.typecheck?.only === "boolean" && options.typecheck.enabled === undefined;
+	return {
+		...options,
+		...(exclude === undefined ? {} : { cliExclude: [exclude].flat() }),
+		...(located ? { includeTaskLocation: true } : {}),
+		...(typecheckOnly ? { typecheck: { ...options.typecheck, enabled: true } } : {}),
+		...(options.standalone === true && filter.length > 0 ? { standalone: false } : {}),
+	};
+}
+
 export const open = Effect.fn("VitestRerun.open")(function* (input: RunOptions) {
-	const { filter, options } = yield* Effect.try({
-		catch: (cause) => failWith(`Could not parse Vitest arguments: ${cause instanceof Error ? cause.message : String(cause)}`)(cause),
-		try: () => VitestNode.parseCLI(["vitest", "run", ...input.vitestArgs]),
-	});
+	const { filter, options } = yield* parseVitestArguments(input.vitestArgs);
 	// Command-line reporters would replace the reports the merge reads, and each would describe only its own attempt.
-	const { reporter: _reporter, ...withoutReporter } = options;
+	const { reporter: _reporter, ...withoutReporter } = likeTheCli(filter, options);
 	const { shard: _shard, ...unsharded } = withoutReporter;
 	const junit = new RerunJunitReporter(input.reports.junit);
 	const vitest = yield* Effect.acquireRelease(

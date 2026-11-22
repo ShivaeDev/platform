@@ -13,11 +13,13 @@ export const BESIDE = "checkout > passes beside it";
 export interface SuiteConfig {
 	coverage: boolean;
 	env?: Readonly<Record<string, string>>;
+	exclude?: readonly string[];
 	execArgv?: readonly string[];
 	globalSetup?: string;
 	projects: readonly string[];
 	recordsEnvironment?: boolean;
 	threshold?: number;
+	typechecker?: string;
 }
 
 export function recordEnvironment(reader: EnvironmentReader): string {
@@ -25,8 +27,11 @@ export function recordEnvironment(reader: EnvironmentReader): string {
 	return `writeFileSync(${JSON.stringify(ENVIRONMENT_SEEN[reader])}, JSON.stringify(Object.fromEntries(${variables}.map((name) => [name, process.env[name] ?? 'unset']))));`;
 }
 
-export function vitestConfig(root: string, { coverage, execArgv, globalSetup, projects, recordsEnvironment, threshold }: SuiteConfig): string {
-	const include = "include: ['*.spec.ts']";
+export function vitestConfig(
+	root: string,
+	{ coverage, exclude, execArgv, globalSetup, projects, recordsEnvironment, threshold, typechecker }: SuiteConfig,
+): string {
+	const include = `include: ['*.spec.ts']${exclude === undefined ? "" : `, exclude: ${JSON.stringify(exclude)}`}`;
 	const tests =
 		projects.length === 0
 			? include
@@ -37,8 +42,9 @@ export function vitestConfig(root: string, { coverage, execArgv, globalSetup, pr
 		: "";
 	const setup = globalSetup === undefined ? "" : `, globalSetup: ${JSON.stringify(globalSetup)}`;
 	const workerArguments = `, execArgv: ${JSON.stringify(["--import", compileCache, ...(execArgv ?? [])])}`;
+	const typecheck = typechecker === undefined ? "" : `, typecheck: { checker: ${JSON.stringify(typechecker)} }`;
 	const records = recordsEnvironment === true ? `import { writeFileSync } from 'node:fs';\n${recordEnvironment("config")}\n` : "";
-	return `${records}export default { root: ${JSON.stringify(root)}, cacheDir: '.vite', test: { ${tests}${coverageOptions}${setup}${workerArguments} } };\n`;
+	return `${records}export default { root: ${JSON.stringify(root)}, cacheDir: '.vite', test: { ${tests}${coverageOptions}${setup}${workerArguments}${typecheck} } };\n`;
 }
 
 const recordsRuns = `const ran = (name) => appendFileSync(${JSON.stringify(RAN)}, name + '\\n');`;
