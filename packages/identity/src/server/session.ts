@@ -1,4 +1,4 @@
-import { Effect, Layer, Option, Schema } from "effect";
+import { Effect, Layer, Option } from "effect";
 import type { Headers } from "effect/http";
 import { unauthorized } from "@shivaedev/access/refusal.ts";
 import { CurrentViewer } from "@shivaedev/contract/readPolicy.ts";
@@ -7,12 +7,12 @@ import {
 	Identity,
 	OptionalIdentity,
 	SessionUser,
-	SessionUserSchema,
 	type SessionUserValue,
 	SessionUserWithProviderAccounts,
 	type SessionUserWithProviderAccountsValue,
 } from "#identity.ts";
 import { Authenticated, AuthenticatedUser, AuthenticatedUserWithProviderAccounts, MaybeAuthenticated } from "#middleware.ts";
+import { decodeSessionUser } from "#server/decodeSessionUser.ts";
 import { lookupSession, sessionRequest } from "#server/lookupSession.ts";
 import { providerAccountsUser } from "#server/providerAccountsUser.ts";
 import { recheckSession } from "#server/recheckSession.ts";
@@ -90,7 +90,7 @@ export function withSessionUser(headers: Headers.Headers, operation: string) {
 			if (Option.isNone(session)) {
 				return yield* unauthorized();
 			}
-			const user = Schema.decodeUnknownSync(SessionUserSchema)(session.value.user);
+			const user = yield* decodeSessionUser(session.value.user);
 			const id = yield* identified(session.value.user.id);
 			return yield* effect.pipe(
 				Effect.provideService(Identity, { id }),
