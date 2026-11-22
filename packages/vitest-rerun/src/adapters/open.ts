@@ -15,7 +15,7 @@ function promise<A>(message: string, run: () => Promise<A>) {
 	return Effect.tryPromise({ catch: failWith(message), try: run });
 }
 
-// Vitest's CLI rewrites these options in its normalizeCliOptions before it starts and exports no function for it, so compare them on a Vitest upgrade.
+// Vitest's CLI rewrites these options in its normalizeCliOptions and prepareVitest before it starts and exports no function for it, so compare them on a Vitest upgrade.
 function likeTheCli(filter: readonly string[], { exclude, ...options }: VitestNode.CliOptions): VitestNode.CliOptions {
 	const located = options.includeTaskLocation === undefined && filter.some((item) => item.includes(":"));
 	const typecheckOnly = typeof options.typecheck?.only === "boolean" && options.typecheck.enabled === undefined;
@@ -24,6 +24,7 @@ function likeTheCli(filter: readonly string[], { exclude, ...options }: VitestNo
 		...(exclude === undefined ? {} : { cliExclude: [exclude].flat() }),
 		...(located ? { includeTaskLocation: true } : {}),
 		...(typecheckOnly ? { typecheck: { ...options.typecheck, enabled: true } } : {}),
+		...(options.standalone === true && filter.length > 0 ? { standalone: false } : {}),
 	};
 }
 

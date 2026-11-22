@@ -33,6 +33,16 @@ rerunStory.it(
 	},
 );
 
+rerunStory.it(
+	"--standalone with a file filter runs only that file, as under the Vitest CLI",
+	[filesRecordTheirRun("kept.spec.ts", "other.spec.ts")],
+	function* ({ runExecutable, timesRan }) {
+		yield* runExecutable("--standalone", "kept.spec.ts");
+
+		expect(yield* timesRan()).toEqual({ "kept.spec.ts": 1 });
+	},
+);
+
 for (const mode of ["--clearCache", "--listTags", "--mergeReports"]) {
 	rerunStory.it(
 		`${mode}, a Vitest mode that runs no tests, exits 2 saying to run it with vitest directly, and no test runs`,
