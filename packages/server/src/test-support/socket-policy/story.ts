@@ -1,4 +1,5 @@
 import { Effect, Schema, Stream } from "effect";
+import { commandSyncHeaders, streamSyncHeaders } from "@shivaedev/contract/syncHeader.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { answered } from "@shivaedev/test-story/server/answers.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
@@ -53,7 +54,14 @@ export const socketPolicyStory = storyKit({
 			subscribe: (caller: "alice" | "admin", query: "timeline" | "all" | "role") =>
 				Effect.gen(function* () {
 					story.tell(`${caller} subscribes to ${query} over the host's socket`);
-					engine.feeds.set(query, yield* followHints(engine[caller]("socketNotes.$changes", { queries: [reference(query)] })));
+					const client = `${caller}-${query}`;
+					const feed = yield* followHints(
+						engine[caller]("socketNotes.$changes", { queries: [reference(query)] }, { headers: streamSyncHeaders(client) }),
+					);
+					// A write committed before the subscription can still rerun it, so the feed starts after a sync passes behind every earlier commit.
+					yield* engine[caller]("platform.liveSync.request", undefined, { headers: commandSyncHeaders({ client, id: 1 }) });
+					yield* Effect.repeat(feed.next, { until: (hint) => hint === "synced" });
+					engine.feeds.set(query, feed);
 				}),
 			subscriptionRefusal: (query: "timeline" | "all", owner = "bob") =>
 				answered(engine.alice("socketNotes.$changes", { queries: [reference(query, owner)] }).pipe(Stream.runCollect)),

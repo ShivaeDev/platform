@@ -2,7 +2,8 @@ import { layerWebSocket } from "@effect/platform-node/NodeSocket";
 import { Effect, Layer, Option } from "effect";
 import { HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
-import { RpcClient, RpcSerialization } from "effect/rpc";
+import { RpcClient, RpcGroup, RpcSerialization } from "effect/rpc";
+import { liveSyncRpc } from "@shivaedev/contract/liveSyncRpc.ts";
 import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { appHost } from "#appDatabase.ts";
@@ -51,6 +52,7 @@ export const openHost = Effect.gen(function* () {
 		return yield* Effect.die("Expected a TCP host");
 	}
 	const url = `ws://127.0.0.1:${address.port}/rpc`;
+	const group = RpcGroup.make(...Api.requests.values(), ...liveSyncRpc.requests.values()).annotateMerge(Api.annotations);
 	function client(caller: string) {
 		return Effect.flatMap(
 			Layer.build(
@@ -58,7 +60,7 @@ export const openHost = Effect.gen(function* () {
 					Layer.provide([layerWebSocket(url, { headers: { authorization: caller } }), RpcSerialization.layerNdjson]),
 				),
 			),
-			(protocol) => RpcClient.make(Api, { flatten: true }).pipe(Effect.provideContext(protocol)),
+			(protocol) => RpcClient.make(group, { flatten: true }).pipe(Effect.provideContext(protocol)),
 		);
 	}
 	return { access, client };

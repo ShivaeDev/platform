@@ -32,7 +32,7 @@ export const followHints = Effect.fnUntraced(function* <E, R>(stream: Stream.Str
 		Effect.forkScoped,
 	);
 	for (let index = 0; index < initialResults; index += 1) {
-		const first = yield* Queue.take(queue);
+		const first = yield* Effect.repeat(Queue.take(queue), { while: (hint) => hint === "syncing" });
 		if (first !== "resync" && first !== "result") {
 			return yield* Effect.die(`The subscription opened with ${first} instead of a result or resync`);
 		}
