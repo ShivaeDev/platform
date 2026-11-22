@@ -1,5 +1,6 @@
 import { expect } from "vitest";
-import { aliceLinkedGitHub, firstLookupFails, providerProfile } from "#test/rpc/providerProfile.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { aliceLinkedGitHub, aliceWithoutEmailVerified, firstLookupFails, providerProfile } from "#test/rpc/providerProfile.ts";
 
 const ALICE_GITHUB = { accountId: "123", providerId: "github" };
 
@@ -34,5 +35,18 @@ providerProfile.it(
 		yield* readAccountsThreeTimes();
 
 		expect(yield* providerLookups()).toEqual(["alice's provider accounts"]);
+	},
+);
+
+providerProfile.it(
+	"a custom provider's user without emailVerified fails a provider-accounts operation as auth unavailable before its accounts are looked up",
+	[aliceWithoutEmailVerified],
+	function* ({ answer, identity, providerLookups }) {
+		yield* identity();
+
+		yield* outcomes([
+			["answer", () => answer(), "auth unavailable"],
+			["provider lookups", () => providerLookups(), []],
+		]);
 	},
 );

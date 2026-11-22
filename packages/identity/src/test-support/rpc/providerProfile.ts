@@ -5,7 +5,7 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { Identity, SessionUserWithProviderAccounts } from "#identity.ts";
 import { AuthenticatedUserWithProviderAccounts } from "#middleware.ts";
 import { SessionPolicy } from "#server/SessionPolicy.ts";
-import { authenticatedUserWithProviderAccountsLayer, type ProviderAccountsSessionShape } from "#server/session.ts";
+import { authenticatedUserWithProviderAccountsLayer, type ProviderAccountsSessionShape, type SessionShape } from "#server/session.ts";
 
 const READS_PER_CALL = 3;
 
@@ -43,7 +43,7 @@ const handlers = Api.toLayer({
 			),
 		),
 });
-const openProviderProfile = Effect.fnUntraced(function* (user: ProviderAccountsSessionShape["user"]) {
+const openProviderProfile = Effect.fnUntraced(function* (user: SessionShape["user"]) {
 	const middleware = authenticatedUserWithProviderAccountsLayer();
 	const services = yield* Layer.build(
 		handlers.pipe(
@@ -56,9 +56,10 @@ const openProviderProfile = Effect.fnUntraced(function* (user: ProviderAccountsS
 });
 
 interface State {
+	answer?: unknown;
 	readonly connection: { current?: Effect.Success<ReturnType<typeof openProviderProfile>> };
 	readonly lookups: string[];
-	user?: ProviderAccountsSessionShape["user"];
+	user?: SessionShape["user"] & Partial<ProviderAccountsSessionShape["user"]>;
 }
 
 function connected(state: State) {
@@ -94,11 +95,18 @@ export const providerProfile = storyKit({
 	name: "provider profile",
 	stages: ["session"],
 	verbs: (state, story) => ({
+		answer: () => Effect.sync(() => state.answer),
 		identity: () => {
 			story.tell("a handler reads alice's Identity");
 			const { client, services } = connected(state);
 			return client.Accounts().pipe(
-				Effect.map(({ identity }) => identity),
+				Effect.map(({ identity }): unknown => identity),
+				Effect.catch((error) => Effect.succeed(error._tag === "AuthUnavailable" ? "auth unavailable" : `failed: ${error._tag}`)),
+				Effect.tap((answer) =>
+					Effect.sync(() => {
+						state.answer = answer;
+					}),
+				),
 				Effect.provide(services),
 			);
 		},
@@ -141,5 +149,21 @@ export const firstLookupFails = providerProfile.trait(
 				state.lookups.length === 1 ? Effect.fail(new AuthUnavailable({ message: "Temporary outage" })) : Effect.succeed([githubAccount]),
 			),
 		);
+	},
+);
+
+export const aliceWithoutEmailVerified = providerProfile.trait(
+	"session",
+	"alice is signed in with a GitHub account through a custom provider whose user carries no emailVerified",
+	(state) => {
+		state.user = {
+			email: "alice@example.test",
+			id: "alice",
+			name: "Alice",
+			providerAccounts: Effect.suspend(() => {
+				state.lookups.push("alice's provider accounts");
+				return Effect.succeed([githubAccount]);
+			}),
+		};
 	},
 );

@@ -1,7 +1,8 @@
-import { Context, Effect, Option, Schema } from "effect";
+import { Context, Effect, Option } from "effect";
 import { unauthorized } from "@shivaedev/access/refusal.ts";
 import type { AuthUnavailable, Forbidden } from "@shivaedev/errors/taxonomy.ts";
-import { SessionUser, SessionUserSchema, SessionUserWithProviderAccounts } from "#identity.ts";
+import { SessionUser, SessionUserWithProviderAccounts } from "#identity.ts";
+import { decodeSessionUser } from "#server/decodeSessionUser.ts";
 import { providerAccountsUser } from "#server/providerAccountsUser.ts";
 import type { SessionShape } from "#server/session.ts";
 
@@ -15,7 +16,7 @@ export const currentSessionContext = Effect.fnUntraced(function* <TSession exten
 	}
 	let context = yield* Effect.context<never>();
 	if (Option.isSome(Context.getOption(context, SessionUser))) {
-		context = Context.add(context, SessionUser, Schema.decodeUnknownSync(SessionUserSchema)(session.value.user));
+		context = Context.add(context, SessionUser, yield* decodeSessionUser(session.value.user));
 	}
 	if (Option.isSome(Context.getOption(context, SessionUserWithProviderAccounts))) {
 		context = Context.add(context, SessionUserWithProviderAccounts, yield* providerAccountsUser(session.value.user));
