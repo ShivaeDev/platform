@@ -4,7 +4,8 @@ import type * as Atom from "effect/reactivity/Atom";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { loadQuery } from "#adapters/loadQuery.ts";
 import { useQueryRetry } from "#adapters/useQueryRetry.ts";
-import type { FailureChoices, QueryFailuresOption, Unhandled } from "#client/failures.ts";
+import type { FailureChoices, HandleAppRejections, QueryFailuresOption, Unhandled } from "#client/failures.ts";
+import type { NoticeDescriptor } from "#client/notices.ts";
 import { type LoadedQueryState, useLoadedQueryState } from "#client/useLoaderQuery.ts";
 import { type QueryRouteRedirects, queryRouteFailure } from "#queryRouteFailure.ts";
 
@@ -21,8 +22,22 @@ interface QueryRouteContext {
 
 export type QueryRouteOptions<E> = { readonly redirects?: QueryRouteRedirects } & QueryFailuresOption<E>;
 
-// Options are required while the query can fail with a rejection the app declared, so the route names what it shows.
+// Options are required while the query can fail with a rejection the app declared, so the route names what it shows, and the handlers
+// it hands on are typed as checked, which its erased options cannot show.
 export type QueryRouteArguments<E> = [Unhandled<E>] extends [never] ? [options?: QueryRouteOptions<E>] : [options: QueryRouteOptions<E>];
+
+type RouteFailures<E> = HandleAppRejections<Unhandled<E>, E, void, NoticeDescriptor>;
+
+function checkedFailures<E>(failures: FailureChoices["failures"]): RouteFailures<E>;
+function checkedFailures(failures: unknown): unknown {
+	return failures ?? {};
+}
+
+export interface LoadedRoute<A, E> {
+	readonly loaded: A;
+	readonly query: Atom.Atom<AsyncResult.AsyncResult<A, E>>;
+	readonly queryFailures: RouteFailures<E>;
+}
 
 function useLoadedQuery<TParams, TSearch, A, E, TContext>(
 	query: (route: QueryRouteInput<TParams, TSearch, TContext>) => Atom.Atom<AsyncResult.AsyncResult<A, E>>,
@@ -45,7 +60,7 @@ export function queryRoute<TParams extends object, TSearch extends object, A, E,
 	query: (route: QueryRouteInput<TParams, TSearch, TContext>) => Atom.Atom<AsyncResult.AsyncResult<A, E>>,
 	...[options]: NoInfer<QueryRouteArguments<E>>
 ) {
-	const queryFailures: FailureChoices["failures"] = options?.failures;
+	const queryFailures = checkedFailures<E>(options?.failures);
 	return {
 		loader: async (
 			context: Pick<LoaderFnContext, "abortController" | "location"> & {
@@ -64,7 +79,7 @@ export function queryRoute<TParams extends object, TSearch extends object, A, E,
 		// Spread into the route's options, so the router's default failure screen can word this route's rejections and rerun its own query.
 		queryFailures,
 		refreshQuery: (match: AnyRouteMatch) => refreshMatch(query, match),
-		useLoaded: () => useLoadedQuery(query),
+		useLoaded: (): LoadedRoute<A, E> => ({ ...useLoadedQuery(query), queryFailures }),
 		useQuery: (queryOptions: { readonly keepPreviousData?: boolean } = {}): LoadedQueryState<A, E> => {
 			const { loaded, query: atom } = useLoadedQuery(query);
 			return useLoadedQueryState(atom, loaded, { failures: queryFailures, keepPreviousData: queryOptions.keepPreviousData });
