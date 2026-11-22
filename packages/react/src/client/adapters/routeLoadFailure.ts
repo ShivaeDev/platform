@@ -4,7 +4,7 @@ import { type ComponentType, createContext, createElement, type ReactNode, useCo
 import { failureKind } from "@shivaedev/contract/failureKind.ts";
 import { isForbidden } from "@shivaedev/errors/taxonomy.ts";
 import { useQueryRetry } from "#adapters/useQueryRetry.ts";
-import { decide } from "#client/failureDecision.ts";
+import { decide, defaultRetry } from "#client/failureDecision.ts";
 import type { FailureChoices } from "#client/failures.ts";
 import { type FailureLayout, FailureMessage } from "#client/QueryView.ts";
 import { useFailureWording } from "#client/useFailureWording.ts";
@@ -34,8 +34,8 @@ function noField(): undefined {
 }
 
 // A loader that failed shows the application's one failure screen. A rejection the app declared reads as the route's handler words its
-// refresh notice and offers no Retry, since the server would give the same answer; anything else is worded as a notice would be and can be
-// read again. A refusal shows the forbidden screen, and an error thrown while rendering reaches the application.
+// refresh notice; anything else is worded as a notice would be. A refusal shows the forbidden screen, and an error thrown while rendering
+// reaches the application.
 export function RouteLoadFailure({ error }: { readonly error: unknown }): ReactNode {
 	const permission = useContext(PermissionContext);
 	const screen = useContext(LoadFailureContext);
@@ -51,15 +51,10 @@ export function RouteLoadFailure({ error }: { readonly error: unknown }): ReactN
 	if (!loadFailed) {
 		throw error;
 	}
-	if (failureKind(error) === "app") {
-		const decision = decide<never>(error, undefined, { failures: routeFailures(router, routeId) }, noField);
-		return createElement(screen, { message: decision._tag === "notice" ? decision.descriptor.message : word(Cause.fail(error)), retrying });
-	}
-	return createElement(screen, {
-		message: word(Cause.fail(error)),
-		retry: () => {
-			void retry();
-		},
-		retrying,
+	const decision = failureKind(error) === "app" ? decide<never>(error, undefined, { failures: routeFailures(router, routeId) }, noField) : undefined;
+	const message = decision?._tag === "notice" ? decision.descriptor.message : word(Cause.fail(error));
+	const offered = defaultRetry(error, () => {
+		void retry();
 	});
+	return createElement(screen, offered === undefined ? { message, retrying } : { message, retry: offered, retrying });
 }

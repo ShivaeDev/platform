@@ -3,7 +3,7 @@ import * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as Atom from "effect/reactivity/Atom";
 import { type ContextType, useContext, useEffect, useInsertionEffect, useRef } from "react";
 import { type FailureHost, FailureHostContext } from "#client/FailureHostContext.ts";
-import { decide } from "#client/failureDecision.ts";
+import { decide, defaultRetry } from "#client/failureDecision.ts";
 import type { FailureChoices } from "#client/failures.ts";
 import { NoticeContext } from "#client/NoticeContext.ts";
 import { unexpectedFailure } from "#client/unexpectedFailure.ts";
@@ -35,10 +35,10 @@ function present(cause: Cause.Cause<unknown>, choices: FailureChoices, retry: ()
 	}
 	const decision = decide<never>(error.value, undefined, choices, noField);
 	if (decision._tag === "notice") {
-		const action = decision.descriptor.action ?? { label: "Retry", run: Effect.sync(retry) };
-		return publishNotice(store, runtime, { ...decision.descriptor, action }, "rejection");
+		const action = decision.descriptor.action ?? defaultRetry(error.value, { label: "Retry", run: Effect.sync(retry) });
+		return publishNotice(store, runtime, action === undefined ? decision.descriptor : { ...decision.descriptor, action }, "rejection");
 	}
-	return decision._tag === "unexpected" ? host?.report(unexpectedFailure(cause), retry) : undefined;
+	return decision._tag === "unexpected" ? host?.report(unexpectedFailure(cause), defaultRetry(error.value, retry)) : undefined;
 }
 
 // A loaded query always has data on screen, so its failed refreshes go to the notice host, one notice at a time, until it next succeeds.
