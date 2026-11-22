@@ -7,26 +7,30 @@ import { type LocalTraceRow, traceJson } from "#localTraceRow.ts";
 
 const SQLITE_BUSY = 5;
 
-export class TraceStoreBusy extends Data.TaggedError("TraceStoreBusy") {}
+export class TraceStoreBusy extends Data.TaggedError("TraceStoreBusy")<{ readonly path: string }> {
+	override get message() {
+		return `Another writer holds the development trace store ${this.path}`;
+	}
+}
 
 function isBusy(error: unknown) {
 	return error instanceof Error && "errcode" in error && typeof error.errcode === "number" && (error.errcode & 0xff) === SQLITE_BUSY;
 }
 
-function attempt(run: () => void): Effect.Effect<void, TraceStoreBusy> {
+function attempt(path: string, run: () => void): Effect.Effect<void, TraceStoreBusy> {
 	return Effect.suspend(() => {
 		try {
 			run();
 			return Effect.void;
 		} catch (error) {
-			return isBusy(error) ? Effect.fail(new TraceStoreBusy()) : Effect.die(error);
+			return isBusy(error) ? Effect.fail(new TraceStoreBusy({ path })) : Effect.die(error);
 		}
 	});
 }
 
 export function localTraceDatabase(path: string, retainedRuns: number, indexedAttributes: readonly string[], startedAtMillis: number) {
 	return Effect.try({
-		catch: (error) => (isBusy(error) ? new TraceStoreBusy() : new Cause.UnknownError(error)),
+		catch: (error) => (isBusy(error) ? new TraceStoreBusy({ path }) : new Cause.UnknownError(error)),
 		try: () => open(path, retainedRuns, indexedAttributes, startedAtMillis),
 	});
 }
@@ -92,8 +96,8 @@ function open(path: string, retainedRuns: number, indexedAttributes: readonly st
 		}
 		return {
 			close: Effect.sync(() => db.close()),
-			finish: (rows: readonly LocalTraceRow[]) => attempt(() => transaction(rows, true)),
-			write: (rows: readonly LocalTraceRow[]) => attempt(() => transaction(rows, false)),
+			finish: (rows: readonly LocalTraceRow[]) => attempt(path, () => transaction(rows, true)),
+			write: (rows: readonly LocalTraceRow[]) => attempt(path, () => transaction(rows, false)),
 		};
 	} catch (error) {
 		db.close();

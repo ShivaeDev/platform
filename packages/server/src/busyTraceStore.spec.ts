@@ -58,3 +58,16 @@ localTraces.it(
 		expect(shutdown).toContain("no such table: spans");
 	},
 );
+
+localTraces.it(
+	"a recorder that opens while another writer keeps holding the store fails to start and names the store",
+	[],
+	function* ({ anotherWriterHoldsStore, open, openWhileStoreStaysHeld }) {
+		yield* open();
+		yield* anotherWriterHoldsStore();
+
+		const opened = yield* openWhileStoreStaysHeld();
+
+		expect(opened).toMatch(/Another writer holds the development trace store \S+traces\.db/u);
+	},
+);
