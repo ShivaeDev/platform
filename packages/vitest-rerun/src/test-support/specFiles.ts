@@ -5,6 +5,8 @@ const compileCache = fileURLToPath(import.meta.resolve("@shivaedev/quality/adapt
 
 export const RAN = "ran.txt";
 export const NODE_ENV_SEEN = "node-env.txt";
+export const ENVIRONMENT_SEEN = { config: "config-environment.json", "global setup": "global-setup-environment.json" } as const;
+export type EnvironmentReader = keyof typeof ENVIRONMENT_SEEN;
 export const FLAKY = "checkout > recovers only in a fresh process";
 export const BESIDE = "checkout > passes beside it";
 
@@ -14,10 +16,16 @@ export interface SuiteConfig {
 	execArgv?: readonly string[];
 	globalSetup?: string;
 	projects: readonly string[];
+	recordsEnvironment?: boolean;
 	threshold?: number;
 }
 
-export function vitestConfig(root: string, { coverage, execArgv, globalSetup, projects, threshold }: SuiteConfig): string {
+export function recordEnvironment(reader: EnvironmentReader): string {
+	const variables = JSON.stringify(["NODE_ENV", "TEST", "VITEST"]);
+	return `writeFileSync(${JSON.stringify(ENVIRONMENT_SEEN[reader])}, JSON.stringify(Object.fromEntries(${variables}.map((name) => [name, process.env[name] ?? 'unset']))));`;
+}
+
+export function vitestConfig(root: string, { coverage, execArgv, globalSetup, projects, recordsEnvironment, threshold }: SuiteConfig): string {
 	const include = "include: ['*.spec.ts']";
 	const tests =
 		projects.length === 0
@@ -29,7 +37,8 @@ export function vitestConfig(root: string, { coverage, execArgv, globalSetup, pr
 		: "";
 	const setup = globalSetup === undefined ? "" : `, globalSetup: ${JSON.stringify(globalSetup)}`;
 	const workerArguments = `, execArgv: ${JSON.stringify(["--import", compileCache, ...(execArgv ?? [])])}`;
-	return `export default { root: ${JSON.stringify(root)}, cacheDir: '.vite', test: { ${tests}${coverageOptions}${setup}${workerArguments} } };\n`;
+	const records = recordsEnvironment === true ? `import { writeFileSync } from 'node:fs';\n${recordEnvironment("config")}\n` : "";
+	return `${records}export default { root: ${JSON.stringify(root)}, cacheDir: '.vite', test: { ${tests}${coverageOptions}${setup}${workerArguments} } };\n`;
 }
 
 const recordsRuns = `const ran = (name) => appendFileSync(${JSON.stringify(RAN)}, name + '\\n');`;

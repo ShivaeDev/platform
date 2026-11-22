@@ -2,7 +2,7 @@ import { Effect, Schema } from "effect";
 import { DEFAULT_OUTPUT_DIR } from "#defaults.ts";
 import { FlakyTests } from "#flakyTests.ts";
 import { decodeJsonReport, type JsonReport } from "#test/jsonReport.ts";
-import { NODE_ENV_SEEN, RAN } from "#test/specFiles.ts";
+import { ENVIRONMENT_SEEN, type EnvironmentReader, NODE_ENV_SEEN, RAN } from "#test/specFiles.ts";
 import { lastRun, listFiles, readFile, type Suite } from "#test/suite.ts";
 
 export interface Testcase {
@@ -18,6 +18,7 @@ const ENTITIES: Readonly<Record<string, string>> = { "&amp;": "&", "&apos;": "'"
 const RESULT_ELEMENTS = { failed: "failure", skipped: "skipped" } as const;
 const REPORT_FILE = /^[^/]+\.(?:bin|json|xml)$/u;
 const COVERED_FUNCTION = /^FNDA:(?<count>\d+),(?<name>\w+)$/gmu;
+const SeenEnvironment = Schema.Record(Schema.String, Schema.String);
 const RESULTS_CACHE = /^(?<cache>.+)\/vitest\/\w+\/results\.json$/u;
 
 function byText(left: string, right: string): number {
@@ -80,6 +81,11 @@ export function reportReadouts(suite: Suite) {
 					.flatMap((match) => (Number(match.groups?.count) > 0 ? (match.groups?.name ?? []) : []))
 					.toSorted(byText),
 			),
+		environmentSeen: (reader: EnvironmentReader) =>
+			Effect.sync(() => {
+				const contents = readFile(suite, ENVIRONMENT_SEEN[reader]);
+				return contents === undefined ? "not recorded" : Schema.decodeUnknownSync(Schema.fromJsonString(SeenEnvironment))(contents);
+			}),
 		exitCode: () => Effect.sync(() => lastRun(suite).exitCode),
 		fileDurations: (file: string) => durations(file, (written) => written.testResults.find((result) => result.name.endsWith(`/${file}`))?.durationMs),
 		flakyTests: () =>
