@@ -94,10 +94,12 @@ function subscribeQueries<E, R>(subscription: QuerySubscription<E, R>, read: Que
 						compare = compareQueries(subscription, keys.recordingRead, false);
 						return [new QueryReadDenied({ message: "Read no longer allowed for subscribed queries" })];
 					}
-					const updates = yield* compare(hint, keys.merged());
+					const heard = keys.merged();
 					if (subscription.readScopes !== undefined) {
 						keys.replaceScopes(yield* subscription.readScopes);
+						keys.register();
 					}
+					const updates = yield* compare(hint, heard);
 					keys.register();
 					return updates;
 				});

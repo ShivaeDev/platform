@@ -1,4 +1,4 @@
-import { Effect, Fiber, Match, SubscriptionRef } from "effect";
+import { Deferred, Effect, Fiber, Match, SubscriptionRef } from "effect";
 import type * as AsyncResult from "effect/reactivity/AsyncResult";
 import type * as Atom from "effect/reactivity/Atom";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
@@ -49,6 +49,10 @@ export const evolvingReadsStory = storyKit({
 			return engine.rpc("evolving.create", { body, id, scope: "alice" });
 		},
 		delivered: () => Effect.map(SubscriptionRef.get(engine.updates), (all) => all.flatMap(renderDelivery)),
+		discoveryWaiting: () =>
+			Effect.suspend(() =>
+				engine.discovery.reached === undefined ? Effect.die("No list discovery is held") : Deferred.await(engine.discovery.reached),
+			),
 		edit: (id: number, body: string) => {
 			story.tell(`a writer commits record ${id} as ${body}`);
 			engine.mark = markQuery(engine.registry, engine.view);
@@ -58,11 +62,22 @@ export const evolvingReadsStory = storyKit({
 			story.tell("the subscription's list relation becomes unavailable");
 			return engine.sql`drop table lists cascade`;
 		},
+		holdDiscovery: () =>
+			Effect.gen(function* () {
+				story.tell("the server's next lookup of alice's lists waits");
+				engine.discovery.reached = yield* Deferred.make<void>();
+				yield* engine.discovery.gate.close;
+			}),
 		joinEmptyList: (id: number) => {
 			story.tell(`alice joins empty list ${id}`);
 			engine.mark = markQuery(engine.registry, engine.view);
 			return engine.rpc("evolving.join", { id, scope: "alice" });
 		},
+		lastDelivered: (query: Delivery) =>
+			Effect.map(SubscriptionRef.get(engine.updates), (all) => {
+				const result = all.findLast((update) => update._tag === "Result" && update.query === query);
+				return result?._tag === "Result" ? result.value : "nothing delivered";
+			}),
 		leave: (id: number) => {
 			story.tell(`alice leaves list ${id}`);
 			return engine.rpc("evolving.leave", { id, scope: "alice" });
@@ -83,6 +98,11 @@ export const evolvingReadsStory = storyKit({
 		},
 		refreshed: () => reRead(engine.registry, engine.view, engine.mark),
 		registered: (id: number) => Effect.sync(() => (engine.registrations.get(readKeys([records.bucket.listId(id)])[0]) ?? 0) > 0),
+		releaseDiscovery: () => {
+			story.tell("the server's lookup of alice's lists continues");
+			engine.discovery.reached = undefined;
+			return engine.discovery.gate.open;
+		},
 		shown: () => Effect.flatMap(settled(engine.registry, engine.view), () => AtomRegistry.getResult(engine.registry, engine.view)),
 		subscriptionEnd: () => answered(Fiber.join(engine.finished), () => "completed"),
 		timelineShows: () => Effect.sync(() => shown(engine.registry.get(engine.view), (rows) => rows.join(", "))),

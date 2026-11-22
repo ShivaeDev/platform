@@ -1,5 +1,5 @@
 import { layerWebSocket, layerWebSocketConstructor } from "@effect/platform-node/NodeSocket";
-import { Context, Effect, Fiber, Layer, Option, Stream, SubscriptionRef } from "effect";
+import { Context, Deferred, Effect, Fiber, Latch, Layer, Option, Stream, SubscriptionRef } from "effect";
 import { HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
@@ -38,7 +38,20 @@ export const evolvingReadsEngine = Effect.gen(function* () {
 			};
 		},
 	};
-	const { create, data, edit } = yield* derivedReadsData.pipe(Effect.provideService(Reactivity.Reactivity, tracked));
+	const derived = yield* derivedReadsData.pipe(Effect.provideService(Reactivity.Reactivity, tracked));
+	const { create, edit } = derived;
+	const timelines = Context.get(yield* Layer.build(derived.data), TimelineData);
+	const discovery: { readonly gate: Latch.Latch; reached: Deferred.Deferred<void> | undefined } = {
+		gate: yield* Latch.make(true),
+		reached: undefined,
+	};
+	const data = Layer.succeed(TimelineData, {
+		...timelines,
+		keys: (scope) =>
+			Effect.suspend(() =>
+				discovery.reached === undefined ? Effect.void : Deferred.succeed(discovery.reached, undefined).pipe(Effect.andThen(discovery.gate.await)),
+			).pipe(Effect.andThen(timelines.keys(scope))),
+	});
 	const handlers = EvolvingTimelines.application
 		.toLayer({
 			"evolving.addRecord": ({ body, id, listId }) =>
@@ -106,5 +119,5 @@ export const evolvingReadsEngine = Effect.gen(function* () {
 	yield* until(SubscriptionRef.changes(updates), (all) => all.some((update) => update._tag === "Result" && update.query === "barrier"), {
 		name: "open timeline subscription",
 	}).pipe(Effect.raceFirst(Fiber.join(finished).pipe(Effect.andThen(Effect.die("Subscription ended before opening")))));
-	return { api: connection.api.evolvingTimelines, finished, registrations, registry, rpc, sql, updates };
+	return { api: connection.api.evolvingTimelines, discovery, finished, registrations, registry, rpc, sql, updates };
 });
