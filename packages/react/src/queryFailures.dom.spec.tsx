@@ -148,6 +148,28 @@ reportApps.it(
 	},
 );
 
+for (const [answer, shown, actions] of [
+	["ReportArchived", "The 2024 report is archived", ["Dismiss"]],
+	["ReportMoved", "The report moved to the 2025 report", ["Open the 2025 report", "Dismiss"]],
+] as const) {
+	reportApps.it(
+		`an editor on the route's loaded report words the app's own ${answer} on refresh as the route's handler does, without Retry`,
+		[openedAt("/report/edit")],
+		function* ({ edit, noticeActions, notices, pressRefresh, serverAnswers, title }) {
+			yield* edit("Draft title");
+			yield* serverAnswers(answer);
+
+			yield* pressRefresh();
+
+			yield* outcomes([
+				["title", () => title(), "Draft title"],
+				["notices", () => notices(), [shown]],
+				["notice actions", () => noticeActions(), actions],
+			]);
+		},
+	);
+}
+
 for (const [answer, wording, shown] of [
 	["ServiceUnavailable", "its failure host's own wording", "Out of service (unavailable)"],
 	["Conflict", "its default failure wording", "The report changed while it was read"],

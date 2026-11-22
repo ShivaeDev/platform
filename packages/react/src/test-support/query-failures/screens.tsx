@@ -1,16 +1,17 @@
 import type { ReactElement } from "react";
 import type { ContractClient } from "@shivaedev/contract/makeClient.ts";
 import { useField } from "@shivaedev/form/react.ts";
+import type { LoadedRow } from "#client/adapters/queryRoute.ts";
 import { useEditor } from "#client/editor.ts";
 import type { FailureLayout } from "#client/QueryView.ts";
 import type { LoadedQueryState } from "#client/useLoaderQuery.ts";
-import { type Reports, reportFailures } from "#test/query-failures/backend.ts";
+import type { Reports } from "#test/query-failures/backend.ts";
 
 interface Report {
 	readonly title: string;
 }
 
-// The screens write no failure handling; the editor names the rejections the app declared, which its route declares too.
+// The screens write no failure handling: the route names the rejections the app declared, and the editor reads them from its loaded row.
 export function ReportScreen({ report }: { readonly report: LoadedQueryState<Report, unknown> }): ReactElement {
 	return (
 		<main>
@@ -27,9 +28,9 @@ export function ReportEditor({
 	report,
 }: {
 	readonly reports: ContractClient<typeof Reports>;
-	readonly report: { readonly loaded: Report; readonly query: ReturnType<ContractClient<typeof Reports>["report"]["query"]> };
+	readonly report: LoadedRow<ReturnType<ContractClient<typeof Reports>["report"]["query"]>>;
 }): ReactElement {
-	const editor = useEditor(reports.rename, { ...report, queryFailures: reportFailures });
+	const editor = useEditor(reports.rename, report);
 	const title = useField(editor.form, "title");
 	return (
 		<main>
