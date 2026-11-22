@@ -52,17 +52,7 @@ export async function startServer(databaseUrl: string, options: ServerOptions = 
 				Effect.succeed(Option.map(Option.fromUndefinedOr(sessions.get(headers.authorization ?? "")), (id) => ({ user: { id } }))),
 		},
 	};
-	const changes: NonNullable<AppDatabaseOptions["config"]> =
-		options.channel === undefined
-			? {}
-			: {
-					changes: {
-						channel: options.channel,
-						heartbeatInterval: "100 millis",
-						heartbeatTimeout: "300 millis",
-						retryDelay: "50 millis",
-					},
-				};
+	const changes: NonNullable<AppDatabaseOptions["config"]> = options.channel === undefined ? {} : { changes: { channel: options.channel } };
 	const runtime = ManagedRuntime.make(
 		appHost({
 			config: {
