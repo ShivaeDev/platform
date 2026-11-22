@@ -1,6 +1,6 @@
-import { Clock, Effect, Layer, Tracer } from "effect";
+import { Clock, Effect, Layer, Schedule, Tracer } from "effect";
 import { defaultTraceStore } from "#adapters/defaultTraceStore.ts";
-import { localTraceDatabase } from "#adapters/localTraceDatabase.ts";
+import { localTraceDatabase, TraceStoreBusy } from "#adapters/localTraceDatabase.ts";
 import { redactingDiagnostics } from "#adapters/redactingDiagnostics.ts";
 import { traceDiagnostics } from "#adapters/traceDiagnostics.ts";
 import { type LocalTraceEvent, type LocalTraceRow, localTraceRow } from "#localTraceRow.ts";
@@ -29,6 +29,12 @@ const storePath = Effect.fnUntraced(function* (chosen: string | undefined) {
 	return store.path;
 });
 
+const busyStoreWait = Schedule.exponential("10 millis").pipe(Schedule.upTo({ duration: "1 second" }));
+
+function whileBusy<A, E, R>(effect: Effect.Effect<A, E, R>) {
+	return Effect.retry(effect, { schedule: busyStoreWait, while: (error) => error instanceof TraceStoreBusy });
+}
+
 export function localTracing({
 	clock = Clock.Clock.defaultValue(),
 	path: chosen,
@@ -43,16 +49,37 @@ export function localTracing({
 			const startedAtMillis = yield* Clock.currentTimeMillis;
 			const path = yield* storePath(chosen);
 			const database = yield* Effect.acquireRelease(
-				Effect.try(() => localTraceDatabase(path, retainedRuns, indexedAttributes, startedAtMillis)),
-				(db) => Effect.sync(() => db.close()),
+				whileBusy(localTraceDatabase(path, retainedRuns, indexedAttributes, startedAtMillis)).pipe(Effect.provideService(Clock.Clock, clock)),
+				(db) => db.close,
 			);
 			let pending: LocalTraceRow[] = [];
-			const flush = Effect.sync(() => {
-				database.write(pending);
-				pending = [];
+			let dropping = false;
+			const written = Effect.sync(() => {
+				dropping = false;
 			});
-			yield* Effect.addFinalizer(() => flush);
-			yield* Effect.sleep(flushInterval).pipe(Effect.andThen(flush), Effect.forever, Effect.provideService(Clock.Clock, clock), Effect.forkScoped);
+			function dropped(spans: number) {
+				if (dropping) {
+					return Effect.void;
+				}
+				dropping = true;
+				return Effect.logWarning(
+					`Development traces were dropped: another writer held ${path} for over a second, so ${spans} spans were not recorded. Later drops are not logged until a write succeeds.`,
+				);
+			}
+			function flush(write: (rows: readonly LocalTraceRow[]) => Effect.Effect<void, TraceStoreBusy>) {
+				return Effect.suspend(() => {
+					const rows = pending;
+					pending = [];
+					return whileBusy(write(rows)).pipe(Effect.matchEffect({ onFailure: () => dropped(rows.length), onSuccess: () => written }));
+				});
+			}
+			yield* Effect.addFinalizer(() => flush(database.finish).pipe(Effect.provideService(Clock.Clock, clock)));
+			yield* Effect.sleep(flushInterval).pipe(
+				Effect.andThen(Effect.suspend(() => (pending.length === 0 ? Effect.void : Effect.uninterruptible(flush(database.write))))),
+				Effect.forever,
+				Effect.provideService(Clock.Clock, clock),
+				Effect.forkScoped,
+			);
 			const tracer = Tracer.make({
 				...underlying,
 				span: (options) => {
