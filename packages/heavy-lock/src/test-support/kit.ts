@@ -170,12 +170,22 @@ export function workingDirectory(cwd: string) {
 	});
 }
 
-export function psFails(how: "missing" | "prints nothing") {
-	return lockStory.trait("configuration", how === "missing" ? "ps is not on the PATH" : "ps prints no start time", (engine) => {
+const PS_FAILURES = {
+	"missing": { described: "ps is not on the PATH", script: undefined },
+	"prints nothing": { described: "ps prints no start time", script: "exit 0" },
+	"rejects -p": {
+		described: `ps rejects -p the way BusyBox ps does, printing "unrecognized option: p" and exiting 1`,
+		script: `echo "ps: unrecognized option: p" >&2\nexit 1`,
+	},
+} satisfies Record<string, { readonly described: string; readonly script: string | undefined }>;
+
+export function psFails(how: keyof typeof PS_FAILURES) {
+	const { described, script } = PS_FAILURES[how];
+	return lockStory.trait("configuration", described, (engine) => {
 		const bin = join(engine.directory, "bin");
 		mkdirSync(bin);
-		if (how === "prints nothing") {
-			writeFileSync(join(bin, "ps"), "#!/bin/sh\nexit 0\n");
+		if (script !== undefined) {
+			writeFileSync(join(bin, "ps"), `#!/bin/sh\n${script}\n`);
 			chmodSync(join(bin, "ps"), 0o755);
 		}
 		engine.env.PATH = bin;

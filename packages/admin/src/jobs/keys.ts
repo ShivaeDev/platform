@@ -7,4 +7,5 @@ export const jobsKeys = {
 	failed: collection("admin.jobs.failed", Schema.String),
 	health: collection("admin.jobs.health", Schema.String),
 	job: (queue: string) => collection(`admin.jobs.job.${queue}`, Schema.String),
+	running: collection("admin.jobs.running", Schema.String),
 };

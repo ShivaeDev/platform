@@ -20,6 +20,20 @@ adminScreens.it(
 );
 
 adminScreens.it(
+	"alice the owner's refreshed Users list shows the role bob was given past the app",
+	[adminScreenAccount("bob"), adminScreen("/admin/users", "owner")],
+	function* ({ refreshesUsers, roleSetPastTheApp, settle, shownRole }) {
+		yield* settle();
+		expect(yield* shownRole("bob")).toBe("user");
+		yield* roleSetPastTheApp("bob", "admin");
+
+		yield* refreshesUsers();
+
+		expect(yield* shownRole("bob")).toBe("admin");
+	},
+);
+
+adminScreens.it(
 	"alice the admin reads bob's role without a role control",
 	[adminScreenAccount("bob"), adminScreen("/admin/users")],
 	function* ({ roleControl, settle, shownRole }) {

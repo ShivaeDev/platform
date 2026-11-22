@@ -1,6 +1,6 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { aliceSignedIn, originForbidden, profile, providerOutage, signedOut } from "#test/rpc/profile.ts";
+import { aliceSignedIn, aliceWithoutEmailVerified, originForbidden, profile, providerOutage, signedOut } from "#test/rpc/profile.ts";
 
 profile.it(
 	"a handler sees alice's Identity as her id alone and her session user as her email, its confirmation, id and name, without the provider's private field",
@@ -42,3 +42,32 @@ profile.it("a caller without a session is unauthorized", [signedOut], function* 
 profile.it("while the session provider is down, a caller is told auth is unavailable", [providerOutage], function* ({ whoami }) {
 	expect(yield* whoami()).toBe("auth unavailable");
 });
+
+profile.it(
+	"a custom provider's user without emailVerified fails a SessionUser operation as auth unavailable and logs the missing field without values",
+	[aliceWithoutEmailVerified],
+	function* ({ answer, errors, whoami }) {
+		yield* whoami();
+
+		yield* outcomes([
+			["answer", () => answer(), "auth unavailable"],
+			[
+				"errors",
+				() => errors(),
+				[
+					[
+						"The session provider returned a user without a valid emailVerified, so the request fails with AuthUnavailable. A provider that serves SessionUser returns id, name, email and emailVerified on its user.",
+					],
+				],
+			],
+		]);
+	},
+);
+
+profile.it(
+	"a custom provider's user without emailVerified still serves an operation that reads only Identity",
+	[aliceWithoutEmailVerified],
+	function* ({ whoamiById }) {
+		expect(yield* whoamiById()).toEqual({ id: "alice" });
+	},
+);

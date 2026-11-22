@@ -3,25 +3,32 @@ import { Rpc, RpcGroup, RpcTest } from "effect/rpc";
 import { AuthUnavailable, Forbidden, Unauthorized } from "@shivaedev/errors/taxonomy.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { Identity, SessionUser } from "#identity.ts";
-import { AuthenticatedUser } from "#middleware.ts";
+import { Authenticated, AuthenticatedUser } from "#middleware.ts";
 import type { OriginPolicy } from "#server/origin.ts";
 import { SessionPolicy } from "#server/SessionPolicy.ts";
-import { authenticatedUserLayer, type UserSessionShape } from "#server/session.ts";
+import { authenticatedLayer, authenticatedUserLayer, type SessionShape } from "#server/session.ts";
 import { recorder } from "#test/rpc/harness.ts";
 
 const Seen = Schema.Record(Schema.String, Schema.Unknown);
 
-const Api = RpcGroup.make(Rpc.make("Whoami", { success: Schema.Struct({ identity: Seen, user: Seen }) })).middleware(AuthenticatedUser);
+const Api = RpcGroup.make(
+	Rpc.make("Whoami", { success: Schema.Struct({ identity: Seen, user: Seen }) }).middleware(AuthenticatedUser),
+	Rpc.make("WhoamiById", { success: Seen }).middleware(Authenticated),
+);
 const handlers = Api.toLayer({
 	Whoami: () =>
 		Effect.gen(function* () {
 			return { identity: { ...(yield* Identity) }, user: { ...(yield* SessionUser) } };
 		}),
+	WhoamiById: () => Effect.map(Identity, (identity) => ({ ...identity })),
 });
 
 const openProfile = Effect.fnUntraced(function* (policy: SessionPolicy["Service"]) {
 	const services = yield* Layer.build(
-		handlers.pipe(Layer.provideMerge(authenticatedUserLayer()), Layer.provide(Layer.succeed(SessionPolicy, policy))),
+		handlers.pipe(
+			Layer.provideMerge(Layer.merge(authenticatedUserLayer(), authenticatedLayer())),
+			Layer.provide(Layer.succeed(SessionPolicy, policy)),
+		),
 	);
 	const client = yield* RpcTest.makeClient(Api).pipe(Effect.provide(services));
 	return { client, services };
@@ -47,7 +54,7 @@ interface State {
 	lookups: number;
 	origin: OriginPolicy;
 	readonly recorded: ReturnType<typeof recorder>;
-	session?: Effect.Effect<Option.Option<UserSessionShape>, AuthUnavailable>;
+	session?: Effect.Effect<Option.Option<SessionShape>, AuthUnavailable>;
 }
 
 function storySession(state: State) {
@@ -58,6 +65,13 @@ function storySession(state: State) {
 		}
 		return state.session;
 	});
+}
+
+function connected(state: State) {
+	if (state.connection.current === undefined) {
+		throw new Error("The profile client has not been started");
+	}
+	return state.connection.current;
 }
 
 export const profile = storyKit({
@@ -73,14 +87,12 @@ export const profile = storyKit({
 	stages: ["policy"],
 	verbs: (state, story) => ({
 		answer: () => Effect.sync(() => state.answer),
+		errors: () => Effect.sync(() => state.recorded.logs.filter((log) => log.level === "Error").map((log) => log.message)),
 		sessionLookups: () => Effect.sync(() => state.lookups),
 		warnings: () => Effect.sync(() => state.recorded.logs.filter((log) => log.level === "Warn").map((log) => log.message)),
 		whoami: () => {
 			story.tell("the caller asks a handler what it sees of them");
-			const connection = state.connection.current;
-			if (connection === undefined) {
-				throw new Error("The profile client has not been started");
-			}
+			const connection = connected(state);
 			const headers = state.callerOrigin === undefined ? undefined : { headers: { origin: state.callerOrigin } };
 			return connection.client.Whoami(undefined, headers).pipe(
 				Effect.catch((error) => Effect.succeed(refusal(error))),
@@ -92,6 +104,14 @@ export const profile = storyKit({
 				Effect.provide(connection.services),
 			);
 		},
+		whoamiById: () => {
+			story.tell("the caller asks a handler that reads only their Identity who they are");
+			const { client, services } = connected(state);
+			return client.WhoamiById().pipe(
+				Effect.catch((error) => Effect.succeed(refusal(error))),
+				Effect.provide(services),
+			);
+		},
 	}),
 });
 
@@ -100,6 +120,13 @@ export const aliceSignedIn = profile.trait("policy", "alice is signed in, and th
 		Option.some({ user: { email: "alice@example.test", emailVerified: true, id: "alice", name: "Alice", privateField: "provider-only" } }),
 	);
 });
+export const aliceWithoutEmailVerified = profile.trait(
+	"policy",
+	"alice is signed in through a custom provider whose user carries her id, name and email but no emailVerified",
+	(state) => {
+		state.session = Effect.succeed(Option.some({ user: { email: "alice@example.test", id: "alice", name: "Alice" } }));
+	},
+);
 export const signedOut = profile.trait("policy", "nobody is signed in", (state) => {
 	state.session = Effect.succeed(Option.none());
 });

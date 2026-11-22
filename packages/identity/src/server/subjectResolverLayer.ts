@@ -1,4 +1,4 @@
-import { Context, Deferred, Effect, Layer, Option, Schema } from "effect";
+import { Context, Deferred, Effect, Layer, Option } from "effect";
 import type { Rpc } from "effect/rpc";
 import type { Permission } from "@shivaedev/access/permission.ts";
 import { unauthorized } from "@shivaedev/access/refusal.ts";
@@ -6,9 +6,10 @@ import { DefinedModule } from "@shivaedev/contract/defineModule.ts";
 import { operationKind } from "@shivaedev/contract/operationKind.ts";
 import { CurrentViewer } from "@shivaedev/contract/readPolicy.ts";
 import { subjectHeader } from "@shivaedev/contract/subjectHeader.ts";
-import { Identity, SessionUser, SessionUserSchema } from "#identity.ts";
+import { Identity, SessionUser } from "#identity.ts";
 import type { IdentityFailures } from "#middleware.ts";
 import { hasPermission } from "#permission.ts";
+import { decodeSessionUser } from "#server/decodeSessionUser.ts";
 import { recheckSession } from "#server/recheckSession.ts";
 import { revalidateStream } from "#server/revalidateStream.ts";
 import { SessionPolicy } from "#server/SessionPolicy.ts";
@@ -69,6 +70,7 @@ function guard<E>(policy: Policy<E>): SubjectMiddleware<E, SessionPolicy> {
 				return yield* unauthorized();
 			}
 			const user = session.value.user;
+			const sessionUser = yield* decodeSessionUser(user);
 			// RPC merges each call's message headers over its transport's, so the call's own subject comes first and a subject set on the
 			// socket upgrade is the fallback. The subject is the only header taken from the message: it names what to act on, and the
 			// authorization below decides whether that is allowed, while the session, origin and cookies stay bound to the transport.
@@ -84,7 +86,7 @@ function guard<E>(policy: Policy<E>): SubjectMiddleware<E, SessionPolicy> {
 				revalidateStream(rpc, user.id, lookup),
 				Effect.provideService(Subject, { id: SubjectId(id) }),
 				Effect.provideService(Identity, { id: user.id }),
-				Effect.provideService(SessionUser, Schema.decodeUnknownSync(SessionUserSchema)(user)),
+				Effect.provideService(SessionUser, sessionUser),
 				Effect.provideService(CurrentViewer, Option.some({ id: user.id })),
 			);
 		});

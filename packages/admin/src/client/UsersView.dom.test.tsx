@@ -115,6 +115,19 @@ usersScreen.it(
 );
 
 usersScreen.it(
+	"alice's refreshed users view shows dave, who registered after it opened",
+	[viewOpen],
+	function* ({ refreshUsers, registerPastTheApp, shownNames }) {
+		expect(yield* shownNames()).toEqual(["alice", "bob", "carol"]);
+		yield* registerPastTheApp("dave");
+
+		yield* refreshUsers();
+
+		expect(yield* shownNames()).toEqual(["alice", "bob", "carol", "dave"]);
+	},
+);
+
+usersScreen.it(
 	"alice cannot remove herself as the last role assigner and sees the reason while remaining owner",
 	[viewOpen],
 	function* ({ alert, chooseRole, refreshUsers, shownRole }) {
