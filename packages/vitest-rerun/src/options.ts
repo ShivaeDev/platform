@@ -1,8 +1,8 @@
 import { resolve } from "node:path";
 import { Effect, Option } from "effect";
-import { parseVitestArguments } from "#adapters/parseVitestArguments.ts";
 import { DEFAULT_OUTPUT_DIR, DEFAULT_RERUNS } from "#defaults.ts";
 import { VitestRerunError } from "#error.ts";
+import { parseVitestArguments } from "#parseVitestArguments.ts";
 
 export interface RerunOptions {
 	readonly cwd: string;

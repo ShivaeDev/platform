@@ -1,12 +1,12 @@
 import { Effect } from "effect";
 import * as VitestNode from "vitest/node";
 import { deferCoverageThresholds } from "#adapters/deferCoverageThresholds.ts";
-import { parseVitestArguments } from "#adapters/parseVitestArguments.ts";
 import { RerunJunitReporter } from "#adapters/RerunJunitReporter.ts";
 import { TimedJsonReporter } from "#adapters/TimedJsonReporter.ts";
 import { writeMergedReports } from "#adapters/writeMergedReports.ts";
 import { failWith } from "#error.ts";
 import { mergeSnapshotSummary } from "#mergeSnapshotSummary.ts";
+import { parseVitestArguments } from "#parseVitestArguments.ts";
 import type { Snapshot } from "#snapshot.ts";
 import type { Files } from "#tasks.ts";
 import type { RunOptions, Selection } from "#VitestRuntime.ts";
