@@ -41,7 +41,14 @@ export const followHints = Effect.fnUntraced(function* <E, R>(stream: Stream.Str
 		ending: Fiber.join(fiber),
 		hints,
 		next: Queue.take(queue),
-		synced: Effect.asVoid(Effect.repeat(Queue.take(queue), { until: (hint) => hint === "synced" })),
+		// The history starts after the sync, so the reruns of writes committed before the subscription stay out of it.
+		synced: Effect.repeat(Queue.take(queue), { until: (hint) => hint === "synced" }).pipe(
+			Effect.andThen(
+				Effect.sync(() => {
+					hints.splice(0, hints.indexOf("synced") + 1);
+				}),
+			),
+		),
 		values,
 	};
 });

@@ -64,7 +64,7 @@ sessionKeys.it(
 		yield* outcomes([
 			["answer", () => Effect.succeed(answer), "failed with conflict"],
 			["published", () => published(), ["preferences:theme and preferences"]],
-			["second session's hints", () => hintsUntilOwnBarrier("second"), ["result", "result", "unchanged"]],
+			["second session's hints", () => hintsUntilOwnBarrier("second"), ["unchanged"]],
 			["second session's theme", () => read("second"), "committed"],
 		]);
 	},

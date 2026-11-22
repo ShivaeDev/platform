@@ -12,7 +12,7 @@ const leakyCollector = {
 for (const [failure, options] of [
 	[`a ${HttpStatus.fromLiteral("BadRequest")} answer`, { status: HttpStatus.fromLiteral("BadRequest") }],
 	[`a ${HttpStatus.fromLiteral("ServiceUnavailable")} answer`, { status: HttpStatus.fromLiteral("ServiceUnavailable") }],
-	["an offline collector", { offline: true }],
+	["a collector that drops each connection", { drops: true }],
 ] as const) {
 	host.it(
 		`two exports failing with ${failure} warn once`,
@@ -54,8 +54,8 @@ for (const status of [HttpStatus.fromLiteral("BadRequest"), HttpStatus.fromLiter
 }
 
 host.it(
-	"the warning for an offline collector names a transport failure",
-	[collector({ offline: true }), flushable()],
+	"the warning for a collector that drops each connection names a transport failure",
+	[collector({ drops: true }), flushable()],
 	function* ({ exportWarnings, flushedRequest }) {
 		yield* flushedRequest();
 

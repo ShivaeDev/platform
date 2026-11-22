@@ -6,6 +6,7 @@ import { Rpc, RpcClient, RpcGroup, RpcSerialization } from "effect/rpc";
 import * as Socket from "effect/socket/Socket";
 import { Migrator } from "effect/sql";
 import { LiveHint } from "@shivaedev/contract/live.ts";
+import { liveSyncRpc } from "@shivaedev/contract/liveSyncRpc.ts";
 import { CurrentViewer } from "@shivaedev/contract/readPolicy.ts";
 import { Unauthorized } from "@shivaedev/errors/taxonomy.ts";
 import { Identity } from "@shivaedev/identity/identity.ts";
@@ -116,8 +117,11 @@ export const openSessionKeysHost = Effect.fnUntraced(function* (provider: Provid
 			]),
 		);
 	}
+	const group = RpcGroup.make(...Api.requests.values(), ...liveSyncRpc.requests.values()).annotateMerge(Api.annotations);
 	function client(cookie = "") {
-		return Effect.flatMap(Layer.build(protocol(cookie)), (services) => RpcClient.make(Api, { flatten: true }).pipe(Effect.provideContext(services)));
+		return Effect.flatMap(Layer.build(protocol(cookie)), (services) =>
+			RpcClient.make(group, { flatten: true }).pipe(Effect.provideContext(services)),
+		);
 	}
 	function wireClient(cookie: string) {
 		return Effect.flatMap(Layer.build(protocol(cookie)), (services) => RpcClient.make(Wire, { flatten: true }).pipe(Effect.provideContext(services)));
