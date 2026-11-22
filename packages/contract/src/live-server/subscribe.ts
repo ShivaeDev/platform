@@ -72,6 +72,7 @@ function subscriptionKeys<E, R>(subscription: QuerySubscription<E, R>, read: Que
 	}
 	function replaceScopes(next: readonly (readonly Key[])[]) {
 		scopes = next;
+		register();
 	}
 	return { merged, recordingRead, register, replaceScopes };
 }
@@ -97,7 +98,6 @@ function subscribeQueries<E, R>(subscription: QuerySubscription<E, R>, read: Que
 					const heard = keys.merged();
 					if (subscription.readScopes !== undefined) {
 						keys.replaceScopes(yield* subscription.readScopes);
-						keys.register();
 					}
 					const updates = yield* compare(hint, heard);
 					keys.register();

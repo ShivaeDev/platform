@@ -23,15 +23,15 @@ for (const delivery of ["timeline", "pushed"] as const) {
 }
 
 evolvingReadsStory.it(
-	"a record edited in a new list while the open subscription is still looking up that list reaches both timelines",
+	"a record edited in a new list just after the open subscription's rerun read that list reaches both timelines",
 	[],
-	function* ({ create, discoveryWaiting, edit, holdDiscovery, lastDelivered, releaseDiscovery, untilBarrier }) {
-		yield* holdDiscovery();
+	function* ({ create, edit, holdTimelineRead, lastDelivered, releaseTimelineRead, timelineReadWaiting, untilBarrier }) {
+		yield* holdTimelineRead();
 		yield* create(4, "New list");
-		yield* discoveryWaiting();
+		yield* timelineReadWaiting();
 
 		yield* edit(4, "Changed new list");
-		yield* releaseDiscovery();
+		yield* releaseTimelineRead();
 
 		yield* untilBarrier("Changed new list");
 		yield* outcomes([
