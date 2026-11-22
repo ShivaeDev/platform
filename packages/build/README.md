@@ -121,6 +121,8 @@ With a generated client the browser never needs a module or its operations, so t
 
 An operation file is judged by the names it takes from `operation.ts`, as the bundler holds its code. A namespace import, a dynamic import or a re-export of everything takes every name, and a file that re-exports `query` or `command` is an operation file itself, so neither gets round the check. Where the module's code names `operation.ts` in no import or export statement, such as a `require()`, the check cannot tell what it takes and counts it as an operation file, and a module whose code the check cannot read fails the build with its name. A contract that imports only `stream`, such as the host's own `HostVersion`, is not an operation file, because a stream keeps its own contract, so a browser bundle that uses `@shivaedev/react`'s `deployUpdate`, which watches `HostVersion`, passes the check. An `oldFormFolders` entry whose folder holds only such contracts excuses nothing, and the build fails naming it.
 
+The check finds `defineModule.ts`, `operation.ts` and `effect/sql` as each folder of the module graph resolves them, and as the project's root does. A workspace package that brings its own `@shivaedev/contract` or Effect, as under pnpm when only that package depends on them, is judged by the copy it imports, so its module files, operation files and SQL repositories fail the build even when the project's root resolves no contract or Effect at all. An application with no contract anywhere has no module or operation files, and its build passes the check as before.
+
 The build fails with the import chain from the client entry to that module:
 
 ```text

@@ -16,8 +16,8 @@ export interface BundleGraph {
 }
 
 export interface ServerMarkers {
-	readonly defineModule: Option.Option<string>;
-	readonly sql: Option.Option<string>;
+	readonly defineModule: ReadonlySet<string>;
+	readonly sql: ReadonlySet<string>;
 }
 
 export interface ServerCodeOptions {
@@ -41,7 +41,7 @@ const reasonOf = Effect.fn("Build.reasonOf")(function* (
 	if (module.builtin) {
 		return Option.some("a Node builtin");
 	}
-	if (Option.exists(markers.defineModule, (marker) => module.imports.includes(marker))) {
+	if (module.imports.some((imported) => markers.defineModule.has(imported))) {
 		return Option.some("a module file: it calls defineModule");
 	}
 	if (definesOperations(module) && module.oldFormFolders.length === 0) {
@@ -67,7 +67,7 @@ const importsSqlFromOutside = Effect.fn("Build.importsSqlFromOutside")(function*
 	owners: Map<string, Option.Option<Owner>>,
 ) {
 	const path = yield* Path.Path;
-	if (!Option.exists(markers.sql, (directory) => imported.startsWith(`${directory}${path.sep}`))) {
+	if (![...markers.sql].some((directory) => imported.startsWith(`${directory}${path.sep}`))) {
 		return false;
 	}
 	const sqlOwner = yield* ownerOf(imported, owners);
