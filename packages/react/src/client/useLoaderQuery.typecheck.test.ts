@@ -2,6 +2,7 @@ import { Effect, Layer, Schema } from "effect";
 import * as Atom from "effect/reactivity/Atom";
 import { expectTypeOf } from "vitest";
 import { Conflict } from "@shivaedev/errors/taxonomy.ts";
+import { queryRoute } from "#client/adapters/queryRoute.ts";
 import { useEditor } from "#client/editor.ts";
 import { useLoaderQuery } from "#client/useLoaderQuery.ts";
 
@@ -50,6 +51,9 @@ export function useLoadedFailures() {
 	// @ts-expect-error The loaded editor's query can fail with SubtitleRejected: `queryFailures` must say what its notice shows.
 	useEditor(save, { fields: Fields, loaded: row, query: declared });
 	useEditor(save, { fields: Fields, loaded: row, query: declared, queryFailures: { SubtitleRejected: "silent" } });
+	const route = queryRoute(() => declared, { failures: { SubtitleRejected: subtitleNotice } });
+	useEditor(save, { fields: Fields, ...route.useLoaded() });
+	useEditor(save, { fields: Fields, ...route.useLoaded(), queryFailures: { SubtitleRejected: "silent" } });
 	// An editor that loads its own row shows its query's failures through QueryView, which checks them.
 	useEditor(save, { fields: Fields, query: declared });
 }
