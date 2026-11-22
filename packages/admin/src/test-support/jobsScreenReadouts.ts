@@ -1,4 +1,4 @@
-import { Effect } from "effect";
+import { DateTime, Duration, Effect } from "effect";
 import type { Rendered } from "@shivaedev/test-story/client/adapters/react.ts";
 import type { ScreenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 import type { jobsEngine } from "#test/jobsEngine.ts";
@@ -76,13 +76,16 @@ export function jobsReadouts(engine: JobsScreenEngine, driver: ScreenDriver) {
 			Effect.sync(() =>
 				[...screenOf(engine).querySelectorAll('[role="tabpanel"] tbody tr')].map((row) => {
 					const cells = [...row.querySelectorAll("td > div")];
-					const [queue, job, attempt, started, timeLeft] = cells.map(({ textContent }) => textContent ?? "");
+					const [queue, job, attempt, started, deadline, timeLeft] = cells.map(({ textContent }) => textContent ?? "");
+					const [startedAt, deadlineAt] = [cells[3], cells[4]].map((cell) => cell?.querySelector("time")?.dateTime ?? "");
 					return {
 						attempt,
+						deadline,
+						deadlineAfterStart: Duration.format(DateTime.distance(DateTime.makeUnsafe(startedAt ?? ""), DateTime.makeUnsafe(deadlineAt ?? ""))),
 						job: nameOf(engine, job ?? ""),
 						queue,
-						started: cells[3]?.querySelector("time")?.dateTime,
-						startedText: started,
+						started,
+						startedAt,
 						timeLeft,
 					};
 				}),

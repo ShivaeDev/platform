@@ -10,7 +10,7 @@ const tokyoTime = expect.stringMatching(/^\d{1,2} \w{3} \d{4}, \d{2}:\d{2}:\d{2}
 const utcInstant = expect.stringMatching(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/u);
 
 jobsScreen.it(
-	"the Running tab lists the held mail with its queue, attempt, start time and time left, and only its failed neighbour under Failed",
+	"the Running tab lists the held mail with its queue, attempt, start time, a deadline fifteen minutes after it and the time left, and only its failed neighbour under Failed",
 	[signedInAs("operator"), mailFails(42), mailHeld, jobsViewOpen],
 	function* ({ selectList, shownJobs, shownRunningJobs }) {
 		expect((yield* shownJobs()).map(({ job }) => job)).toEqual(["mail 42"]);
@@ -18,7 +18,16 @@ jobsScreen.it(
 		yield* selectList("Running");
 
 		expect(yield* shownRunningJobs()).toEqual([
-			{ attempt: "1", job: "the held mail", queue: "mail", started: utcInstant, startedText: tokyoTime, timeLeft: "15m left" },
+			{
+				attempt: "1",
+				deadline: tokyoTime,
+				deadlineAfterStart: "15m",
+				job: "the held mail",
+				queue: "mail",
+				started: tokyoTime,
+				startedAt: utcInstant,
+				timeLeft: "15m left",
+			},
 		]);
 	},
 );

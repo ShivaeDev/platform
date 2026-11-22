@@ -34,7 +34,7 @@ function RunningTable({ dates, jobs }: { readonly dates: DateDisplay; readonly j
 			<caption className="sr-only">Running jobs and their deadlines</caption>
 			<thead className="hidden sm:table-header-group">
 				<tr>
-					{["Queue", "Job", "Attempt", "Started", "Time left"].map((label) => (
+					{["Queue", "Job", "Attempt", "Started", "Deadline", "Time left"].map((label) => (
 						<th className="p-3" key={label} scope="col">
 							{label}
 						</th>
@@ -58,6 +58,9 @@ function RunningRow({ dates, job }: { readonly dates: DateDisplay; readonly job:
 			<JobCell label="Attempt">{job.attempt}</JobCell>
 			<JobCell label="Started">
 				<Timestamp dates={dates} time={job.startedOn} />
+			</JobCell>
+			<JobCell label="Deadline">
+				<Timestamp dates={dates} time={job.deadline} />
 			</JobCell>
 			<JobCell label="Time left">{timeLeftText(job.timeLeft)}</JobCell>
 		</tr>

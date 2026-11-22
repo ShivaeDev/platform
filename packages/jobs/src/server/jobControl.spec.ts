@@ -59,6 +59,7 @@ const operations: ReadonlyArray<{
 	readonly missing: string;
 	readonly call: JobRequest;
 }> = [
+	{ call: (jobs) => jobs.activeJobs(Control, { limit: 1 }), missing: "getDb", operation: "activeJobs" },
 	{ call: (jobs) => jobs.counts(Control), missing: "getDb", operation: "counts" },
 	{ call: (jobs) => jobs.deadLetteredJobs(Control, { limit: 1 }), missing: "getDb", operation: "deadLetteredJobs" },
 	{ call: (jobs) => jobs.failedJobs(Control, { limit: 1 }), missing: "getDb", operation: "failedJobs" },
