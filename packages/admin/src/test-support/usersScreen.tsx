@@ -1,6 +1,12 @@
 import { Effect, Option, Stream } from "effect";
 import { act } from "react";
-import { activityScreenSignal, type ClientActivity, clientActivity } from "@shivaedev/contract/clientActivity.ts";
+import {
+	activityScreenSignal,
+	type ClientActivity,
+	type ClientActivityState,
+	clientActivity,
+	isClientIdle,
+} from "@shivaedev/contract/clientActivity.ts";
 import { makeClient } from "@shivaedev/contract/makeClient.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { render } from "@shivaedev/test-story/client/adapters/react.ts";
@@ -25,10 +31,10 @@ type Engine = Effect.Success<typeof usersEngine> & {
 
 Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 
-function driverFor(engine: Engine, tell: (line: string) => void) {
+function driverFor(engine: Engine, tell: (line: string) => void, settled?: (state: ClientActivityState) => boolean) {
 	// The view's client exists only once the screen opens, after the verbs are made.
 	function signal() {
-		return activityScreenSignal(Option.getOrThrow(engine.activity));
+		return activityScreenSignal(Option.getOrThrow(engine.activity), settled);
 	}
 	return screenDriver({
 		act: async (action) => {
@@ -58,6 +64,7 @@ function usersScreenKit(engineEffect: typeof usersEngine) {
 		stages: ["users", "caller", "screen", "page"],
 		verbs: (engine, story) => {
 			const driver = driverFor(engine, story.tell);
+			const idle = driverFor(engine, story.tell, isClientIdle);
 			return {
 				alert: () => Effect.sync(() => screenOf(engine).querySelector('[role="alert"]')?.textContent ?? "no alert"),
 				assignFromAnotherClient: (actor: string, userId: string, role: typeof Access.Role.Type) => {
@@ -72,7 +79,11 @@ function usersScreenKit(engineEffect: typeof usersEngine) {
 						return availability(button, "missing");
 					}),
 				previousUsers: () => Effect.andThen(driver.click({ name: "Previous users", role: "button" }), driver.settle()),
-				refreshUsers: () => Effect.andThen(driver.click({ name: "Refresh users", role: "button" }), driver.settle()),
+				refreshUsers: () => Effect.andThen(driver.click({ name: "Refresh users", role: "button" }), idle.settle()),
+				registerPastTheApp: (name: string) => {
+					story.tell(`${name} registers through the auth adapter, so no live update announces the new account`);
+					return Effect.asVoid(engine.register(name, "user"));
+				},
 				...usersReadouts(engine, driver),
 			};
 		},

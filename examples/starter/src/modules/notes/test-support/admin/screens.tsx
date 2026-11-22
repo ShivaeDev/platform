@@ -1,7 +1,10 @@
 import { layerWebSocketConstructor } from "@effect/platform-node/NodeWS";
 import { DateTime, Effect } from "effect";
 import { act } from "react";
+import { isClientIdle } from "@shivaedev/contract/clientActivity.ts";
 import { makeClient } from "@shivaedev/contract/makeClient.ts";
+import { betterAuthUserDirectory } from "@shivaedev/identity/server/better-auth/userDirectory.ts";
+import { UserDirectory } from "@shivaedev/identity/server/UserDirectory.ts";
 import { mintUser } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
@@ -14,6 +17,7 @@ import { AppAuth } from "#server/AppAuth.ts";
 import { startHost } from "#test-support/host.ts";
 import { configured, postgres } from "#test-support/postgres.ts";
 import { type ScreenSurface, screenView } from "#test-support/screenState.ts";
+import { settleScreen } from "#test-support/settleScreen.ts";
 import { uiScreenVerbs } from "#test-support/uiScreenVerbs.ts";
 
 type Account = Effect.Success<ReturnType<typeof mintUser>>;
@@ -71,8 +75,20 @@ export const adminScreens = storyKit({
 				),
 			opensNoteStatistics: () => Effect.andThen(ui.clickControl({ name: "Note statistics", role: "link" }), ui.settle()),
 			queueFilter: () => Effect.sync(() => controls.selection({ name: "Queue", role: "combobox" }).options.map(({ value }) => value)),
-			refreshesUsers: () => Effect.andThen(ui.clickControl({ name: "Refresh users", role: "button" }), ui.settle()),
+			refreshesUsers: () =>
+				Effect.andThen(ui.clickControl({ name: "Refresh users", role: "button" }), settleScreen(engine, story.tell, isClientIdle)),
 			roleControl: (name: string) => Effect.sync(() => (userRow(name).querySelector("select") === null ? "not offered" : "offered")),
+			roleSetPastTheApp: Effect.fn("AdminScreen.roleSetPastTheApp")(function* (name: string, role: typeof AppAccess.Role.Type) {
+				story.tell(`${name}'s role is set to ${role} through a user directory outside the app host, so no live update announces it`);
+				const account = engine.accounts.get(name);
+				if (account === undefined) {
+					return yield* Effect.die(`No account for ${name}`);
+				}
+				const assign = Effect.gen(function* () {
+					yield* (yield* UserDirectory).assignRole(account.user.id, role);
+				});
+				yield* assign.pipe(Effect.provide(betterAuthUserDirectory(AppAuth)));
+			}),
 			settle: ui.settle,
 			shown: ui.shown,
 			shownRole: (name: string) =>
