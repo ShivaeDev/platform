@@ -110,3 +110,19 @@ releasedJobs.it(
 		]);
 	},
 );
+
+releasedJobs.it(
+	"a checking host given a release that the migration step never recorded holds its worker back and warns once that it waits for that release",
+	[],
+	function* ({ hostStarts, releaseCheckPasses, releaseLinesOnceHeld, workingQueues }) {
+		yield* hostStarts("v1", { runsJobs: false });
+		yield* hostStarts("v2", { mode: "check" });
+
+		yield* releaseCheckPasses("v2");
+
+		yield* outcomes([
+			["v2 working queues", () => workingQueues("v2"), []],
+			["v2 release lines", () => releaseLinesOnceHeld("v2"), ["Workers wait for database release v2 to be recorded"]],
+		]);
+	},
+);

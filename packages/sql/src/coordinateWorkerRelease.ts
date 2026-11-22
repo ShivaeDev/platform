@@ -33,7 +33,7 @@ export const coordinateWorkerRelease = Effect.fn("EffectSql.coordinateWorkerRele
 	);
 	const heartbeat = Effect.suspend(() => (claimed ? rows.heartbeat : Effect.void));
 	// A process claims a row only once a worker registers, so a host without workers never holds back another release's takeover.
-	const poll = Effect.gen(function* () {
+	const check = Effect.gen(function* () {
 		const owner = yield* readPostgresRelease(table);
 		if (owner?.release !== release) {
 			yield* gate.setActive(false).pipe(Effect.orDie);
@@ -44,7 +44,18 @@ export const coordinateWorkerRelease = Effect.fn("EffectSql.coordinateWorkerRele
 				yield* gate.setActive(true).pipe(Effect.orDie);
 			}
 		}
+		return owner?.release;
 	});
+	const poll = Effect.asVoid(check);
+	const firstPoll = check.pipe(
+		Effect.flatMap((recorded) =>
+			recorded === release
+				? Effect.void
+				: Effect.logWarning(`Workers wait for database release ${release} to be recorded`).pipe(
+						Effect.annotateLogs({ recordedRelease: recorded ?? "none" }),
+					),
+		),
+	);
 	function tick<A, E, R>(name: string, effect: Effect.Effect<A, E, R>) {
 		return effect.pipe(
 			Effect.tapCause((cause) => Effect.logWarning(`Worker release ${name} failed`, cause)),
@@ -84,7 +95,7 @@ export const coordinateWorkerRelease = Effect.fn("EffectSql.coordinateWorkerRele
 					registered = true;
 				}),
 			),
-			Effect.andThen(tick("poll", poll)),
+			Effect.andThen(tick("poll", firstPoll)),
 		),
 	);
 	yield* loop("poll", poll);

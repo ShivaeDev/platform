@@ -30,6 +30,7 @@ interface RunningHost {
 	readonly context: Context.Context<Layer.Success<ReturnType<typeof hostLayer>>>;
 	disposal?: Fiber.Fiber<void>;
 	readonly drains: Deferred.Deferred<void>;
+	readonly held: Deferred.Deferred<void>;
 	readonly logs: string[];
 	readonly ready: Deferred.Deferred<void>;
 	releaseCheck?: Fiber.Fiber<void, unknown>;
@@ -45,7 +46,12 @@ interface State {
 	readonly lifecycle: string[];
 }
 
-function hostLayer(state: State, release: string, runsJobs: boolean, onClient: (client: PgBossClient) => void, drains: Deferred.Deferred<void>) {
+interface HostOptions {
+	readonly mode?: "check" | "migrate";
+	readonly runsJobs?: boolean;
+}
+
+function hostLayer(state: State, release: string, options: HostOptions, onClient: (client: PgBossClient) => void, drains: Deferred.Deferred<void>) {
 	const handler = Work.handle(({ id }) =>
 		Effect.gen(function* () {
 			const job = jobOf(state, id);
@@ -62,8 +68,8 @@ function hostLayer(state: State, release: string, runsJobs: boolean, onClient: (
 			const factory = yield* JobsClientFactory;
 			return pgBossLayer({ connectionString: state.database.url, migrate: false, schedule: false, supervise: false }).pipe(
 				Layer.provide(
-					Layer.succeed(JobsClientFactory, (options) => {
-						const created = factory(options);
+					Layer.succeed(JobsClientFactory, (settings) => {
+						const created = factory(settings);
 						onClient(observeDrains(created, drains));
 						return created;
 					}),
@@ -75,10 +81,16 @@ function hostLayer(state: State, release: string, runsJobs: boolean, onClient: (
 		config: { databaseUrl: state.database.url, port: 0 },
 		group: Ping,
 		handlers: pingHandlers,
-		migrations: { components: [pgBossSchema()], loader: migrationLoader("host_items"), mode: "migrate", pollInterval: RELEASE_CHECK, release },
+		migrations: {
+			components: [pgBossSchema()],
+			loader: migrationLoader("host_items"),
+			mode: options.mode ?? "migrate",
+			pollInterval: RELEASE_CHECK,
+			release,
+		},
 		policy: "loopback",
 		postgresSettings: {},
-		services: HostJobs.layer({ jobs: runsJobs ? [handler] : [Work] }).pipe(Layer.provide(client)),
+		services: HostJobs.layer({ jobs: options.runsJobs === false ? [Work] : [handler] }).pipe(Layer.provide(client)),
 	});
 }
 
@@ -103,11 +115,12 @@ function jobOf(state: State, id: string) {
 	return job;
 }
 
-const startHost = Effect.fnUntraced(function* (state: State, release: string, runsJobs: boolean) {
+const startHost = Effect.fnUntraced(function* (state: State, release: string, options: HostOptions) {
 	const scope = yield* Scope.fork(yield* Scope.Scope);
 	const logs: string[] = [];
 	const drains = yield* Deferred.make<void>();
 	const ready = yield* Deferred.make<void>();
+	const held = yield* Deferred.make<void>();
 	const time = yield* hostTime();
 	let client: PgBossClient | undefined;
 	const recorder = Logger.make(({ message }) => {
@@ -116,12 +129,15 @@ const startHost = Effect.fnUntraced(function* (state: State, release: string, ru
 		if (line === "Worker ready to take jobs") {
 			Deferred.doneUnsafe(ready, Exit.void);
 		}
+		if (line.startsWith("Workers wait for database release")) {
+			Deferred.doneUnsafe(held, Exit.void);
+		}
 	});
 	const context = yield* Layer.buildWithScope(
 		hostLayer(
 			state,
 			release,
-			runsJobs,
+			options,
 			(created) => {
 				client = created;
 			},
@@ -133,7 +149,7 @@ const startHost = Effect.fnUntraced(function* (state: State, release: string, ru
 	if (!NetAddress.isInetAddress(server.address)) {
 		return yield* Effect.die(new Error("The host must listen on TCP"));
 	}
-	const host: RunningHost = { client: () => client, context, drains, logs, ready, scope, time, url: `http://127.0.0.1:${server.address.port}` };
+	const host: RunningHost = { client: () => client, context, drains, held, logs, ready, scope, time, url: `http://127.0.0.1:${server.address.port}` };
 	state.hosts.set(release, host);
 });
 
@@ -198,11 +214,11 @@ export const releasedJobs = storyKit({
 				yield* Deferred.await(host.drains);
 			});
 		},
-		hostStarts: (release: string, options: { readonly runsJobs?: boolean } = {}) => {
+		hostStarts: (release: string, options: HostOptions = {}) => {
 			story.tell(
-				`a host of release ${release} starts in migrate mode${options.runsJobs === false ? " with only the queue definition" : " with a queue worker"}`,
+				`a host of release ${release} starts in ${options.mode ?? "migrate"} mode${options.runsJobs === false ? " with only the queue definition" : " with a queue worker"}`,
 			);
-			return startHost(state, release, options.runsJobs !== false);
+			return startHost(state, release, options);
 		},
 		httpAnswer: (release: string) =>
 			Effect.tryPromise(() => fetch(`${hostOf(state, release).url}/health`)).pipe(
@@ -261,6 +277,14 @@ export const releasedJobs = storyKit({
 			});
 		},
 		releaseLines: (release: string) => Effect.sync(() => hostOf(state, release).logs.filter((line) => line.startsWith("Workers"))),
+		releaseLinesOnceHeld: (release: string) =>
+			Effect.suspend(() => {
+				const host = hostOf(state, release);
+				return Deferred.await(host.held).pipe(
+					Effect.timeoutOrElse({ duration: "10 seconds", orElse: () => Effect.die(new Error(`The ${release} host never said its workers wait`)) }),
+					Effect.andThen(Effect.sync(() => host.logs.filter((line) => line.startsWith("Workers")))),
+				);
+			}),
 		workingQueues: (release: string) =>
 			Effect.sync(() => [...new Set((hostOf(state, release).client()?.getWipData?.() ?? []).map((worker) => worker.name))]),
 	}),
