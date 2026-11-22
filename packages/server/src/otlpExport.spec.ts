@@ -84,7 +84,7 @@ for (const [settings, env] of [
 }
 
 for (const [failure, options] of [
-	["an offline collector", { offline: true }],
+	["a collector that drops each connection", { drops: true }],
 	["a collector answering 500", { status: HttpStatus.fromLiteral("InternalServerError") }],
 ] as const) {
 	host.it(

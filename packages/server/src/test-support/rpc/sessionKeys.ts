@@ -1,6 +1,7 @@
 import { DateTime, Effect, Schema, Stream } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
 import { SqlClient } from "effect/sql";
+import { commandSyncHeaders, streamSyncHeaders } from "@shivaedev/contract/syncHeader.ts";
 import { signedInUser, signInAgain } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { answered } from "@shivaedev/test-story/server/answers.ts";
@@ -133,7 +134,14 @@ export const sessionKeys = storyKit({
 				Effect.gen(function* () {
 					story.tell(`${names[caller]} subscribes to its theme and list through ${boundary}`);
 					const client = yield* state.clients[caller];
-					const subscription = yield* followHints(client(`${boundary}.$changes`, { queries: THEME_AND_LIST }), THEME_AND_LIST.length);
+					const syncClient = `${caller}-${boundary}`;
+					const subscription = yield* followHints(
+						client(`${boundary}.$changes`, { queries: THEME_AND_LIST }, { headers: streamSyncHeaders(syncClient) }),
+						THEME_AND_LIST.length,
+					);
+					// A write committed before the subscription can still rerun it, so the feed starts after a sync passes behind every earlier commit.
+					yield* client("platform.liveSync.request", undefined, { headers: commandSyncHeaders({ client: syncClient, id: 1 }) });
+					yield* subscription.synced;
 					state.feeds.set(caller, subscription);
 				}),
 			subscriptionOutcome: (caller: Caller) =>
