@@ -31,11 +31,8 @@ const storePath = Effect.fnUntraced(function* (chosen: string | undefined) {
 
 const busyStoreWait = Schedule.exponential("10 millis").pipe(Schedule.upTo({ duration: "1 second" }));
 
-function whileBusy<A, E>(effect: Effect.Effect<A, E>, clock: Clock.Clock) {
-	return effect.pipe(
-		Effect.retry({ schedule: busyStoreWait, while: (error) => error instanceof TraceStoreBusy }),
-		Effect.provideService(Clock.Clock, clock),
-	);
+function whileBusy<A, E, R>(effect: Effect.Effect<A, E, R>) {
+	return Effect.retry(effect, { schedule: busyStoreWait, while: (error) => error instanceof TraceStoreBusy });
 }
 
 export function localTracing({
@@ -52,7 +49,7 @@ export function localTracing({
 			const startedAtMillis = yield* Clock.currentTimeMillis;
 			const path = yield* storePath(chosen);
 			const database = yield* Effect.acquireRelease(
-				whileBusy(localTraceDatabase(path, retainedRuns, indexedAttributes, startedAtMillis), clock),
+				whileBusy(localTraceDatabase(path, retainedRuns, indexedAttributes, startedAtMillis)).pipe(Effect.provideService(Clock.Clock, clock)),
 				(db) => db.close,
 			);
 			let pending: LocalTraceRow[] = [];
@@ -73,10 +70,10 @@ export function localTracing({
 				return Effect.suspend(() => {
 					const rows = pending;
 					pending = [];
-					return whileBusy(write(rows), clock).pipe(Effect.matchEffect({ onFailure: () => dropped(rows.length), onSuccess: () => written }));
+					return whileBusy(write(rows)).pipe(Effect.matchEffect({ onFailure: () => dropped(rows.length), onSuccess: () => written }));
 				});
 			}
-			yield* Effect.addFinalizer(() => flush(database.finish));
+			yield* Effect.addFinalizer(() => flush(database.finish).pipe(Effect.provideService(Clock.Clock, clock)));
 			yield* Effect.sleep(flushInterval).pipe(
 				Effect.andThen(Effect.suspend(() => (pending.length === 0 ? Effect.void : Effect.uninterruptible(flush(database.write))))),
 				Effect.forever,
