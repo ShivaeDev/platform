@@ -48,7 +48,7 @@ export const authSql = storyKit({
 		return {
 			call: (kind: AuthCall) => {
 				story.tell(`alice completes a ${kind}`);
-				return engine.host.call(kind, engine.headers);
+				return engine.host.call(kind, engine.headers, "alice");
 			},
 			consoleOutput: () => Effect.sync(() => engine.consoleOutput.flatMap((spy) => spy.mock.calls)),
 			interrupt: (caller = "alice") => {
@@ -65,11 +65,14 @@ export const authSql = storyKit({
 					Effect.map((rows) => rows.map((row) => row.waiting)),
 				);
 			},
-			settled: () => engine.host.settled(),
+			settled: (caller?: string) => {
+				story.tell(caller === undefined ? "Better Auth settles every auth call" : `Better Auth settles the auth call of ${caller}`);
+				return engine.host.settled(caller);
+			},
 			startCall: (kind: AuthCall, caller = "alice") =>
 				Effect.gen(function* () {
 					story.tell(`${caller} starts a ${kind}`);
-					engine.pending.set(caller, yield* engine.host.call(kind, engine.headers).pipe(Effect.forkScoped));
+					engine.pending.set(caller, yield* engine.host.call(kind, engine.headers, caller).pipe(Effect.forkScoped));
 				}),
 		};
 	},

@@ -30,13 +30,14 @@ for (const kind of ["session lookup", "provider-account lookup", "mounted reques
 authSql.it(
 	"interrupting one caller leaves the other caller's auth query pending",
 	[aliceSignedIn, lockedAuthTable("session lookup")],
-	function* ({ interrupt, pendingQueries, startCall }) {
+	function* ({ interrupt, pendingQueries, settled, startCall }) {
 		yield* startCall("session lookup", "alice's first request");
 		yield* startCall("session lookup", "alice's second request");
 		expect(yield* pendingQueries(2)).toEqual(["Lock", "Lock"]);
 
 		yield* interrupt("alice's first request");
 
+		yield* settled("alice's first request");
 		expect(yield* pendingQueries(1)).toEqual(["Lock"]);
 	},
 );
