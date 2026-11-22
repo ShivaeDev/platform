@@ -45,7 +45,7 @@ A rerun must collect the same tests as the attempt before it, with the same test
 vitest-rerun [--reruns <count>] [--output-dir <directory>] [--] [vitest run arguments]
 ```
 
-`--reruns` sets how many fresh-process reruns may follow the first attempt; it defaults to `1`, and `0` turns reruns off. `--output-dir` sets where the reports go; it defaults to `test-results`. Every other argument, and everything after `--`, goes to `vitest run`, for example `--config`, `--project`, `--shard` or `--coverage`. `vitest-rerun` supplies Vitest's reporters itself: the default terminal reporter, a JSON report and a JUnit report.
+`--reruns` sets how many fresh-process reruns may follow the first attempt; it defaults to `1`, and `0` turns reruns off. `--output-dir` sets where the reports go; it defaults to `test-results`. Every other argument, and everything after `--`, goes to `vitest run`, for example `--config`, `--project`, `--shard` or `--coverage`. `vitest-rerun` supplies Vitest's reporters itself: the default terminal reporter, a JSON report and a JUnit report. It ignores `--reporter` arguments, because a reporter Vitest ran in each attempt would describe only that attempt, so a command that adds its own reporters still gets the reports below. Under [`quality ci --coverage`](https://github.com/ShivaeDev/platform/blob/main/packages/quality/README.md), which adds `--reporter=junit`, the run writes no `coverage/junit.xml`: its final JUnit report is `tests.junit.xml` in the output directory. After a rerun the attempt reports beside it repeat tests of the final report, so upload `tests.junit.xml` by name, never a `*.junit.xml` glob. Coverage still goes to `coverage/lcov.info`, merged across attempts and checked against the configured thresholds.
 
 ### Reports
 

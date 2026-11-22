@@ -4,12 +4,15 @@ import { join } from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { vi } from "@effect/vitest";
-import { Console, Deferred, Effect, type Fiber, FileSystem } from "effect";
+import { Config, Console, Deferred, Effect, type Fiber, FileSystem } from "effect";
+import { DEFAULT_OUTPUT_DIR } from "#defaults.ts";
 import { main } from "#main.ts";
 import { type SuiteConfig, vitestConfig } from "#test/specFiles.ts";
 
 const CLI = fileURLToPath(new URL("../cli.ts", import.meta.url));
-export const REPORTS = "reports";
+const QUALITY = fileURLToPath(import.meta.resolve("@shivaedev/quality/cli.ts"));
+const SOURCE = "--conditions=@shivaedev/source";
+const PASSING_STEP = 'node --eval ""';
 
 export interface Run {
 	readonly exitCode: number | null;
@@ -66,18 +69,18 @@ export const runProgram = Effect.fn("VitestRerunSuite.runProgram")(function* (su
 		},
 	};
 	vi.stubEnv("GITHUB_STEP_SUMMARY", summaryPath(suite));
-	const status = yield* main(["--output-dir", REPORTS, ...args], suite.directory).pipe(
+	const status = yield* main(["--output-dir", DEFAULT_OUTPUT_DIR, ...args], suite.directory).pipe(
 		Effect.provideService(Console.Console, captured),
 		Effect.ensuring(Effect.sync(() => vi.unstubAllEnvs())),
 	);
 	suite.runs.push({ exitCode: status, output });
 });
 
-export function spawnCli(suite: Suite, args: readonly string[]): Promise<Run> {
+function spawnNode(suite: Suite, args: readonly string[], env: Readonly<Record<string, string>> = {}): Promise<Run> {
 	writeFile(suite, "vitest.config.mts", vitestConfig(suite.directory, suite.config));
-	const child = spawn(process.execPath, ["--conditions=@shivaedev/source", CLI, "--output-dir", REPORTS, ...args], {
+	const child = spawn(process.execPath, [SOURCE, ...args], {
 		cwd: suite.directory,
-		env: { "GITHUB_STEP_SUMMARY": summaryPath(suite), ...suite.config.env },
+		env: { "GITHUB_STEP_SUMMARY": summaryPath(suite), ...env, ...suite.config.env },
 		stdio: ["ignore", "pipe", "pipe"],
 	});
 	let output = "";
@@ -96,3 +99,15 @@ export function spawnCli(suite: Suite, args: readonly string[]): Promise<Run> {
 		});
 	});
 }
+
+export function spawnCli(suite: Suite, args: readonly string[]): Promise<Run> {
+	return spawnNode(suite, [CLI, "--output-dir", DEFAULT_OUTPUT_DIR, ...args]);
+}
+
+// The gate's other steps pass at once, so it reaches the test script, which runs vitest-rerun with its default output directory as the starter's does.
+export const spawnQualityCi = Effect.fn("VitestRerunSuite.spawnQualityCi")(function* (suite: Suite) {
+	const path = yield* Config.String("PATH");
+	const scripts = { build: PASSING_STEP, lint: PASSING_STEP, test: `node ${SOURCE} ${JSON.stringify(CLI)}`, typecheck: PASSING_STEP };
+	writeFile(suite, "package.json", JSON.stringify({ private: true, scripts, type: "module" }));
+	return yield* Effect.promise(() => spawnNode(suite, [QUALITY, "ci", "--coverage"], { "PATH": path }));
+});

@@ -36,12 +36,11 @@ export const checkUpgraded = Effect.fn("Published.checkUpgraded")(function* (app
 			"test",
 			"src/server/authMigrations.spec.ts",
 			"src/server/browserReports.spec.ts",
-			"--reporter=default",
-			"--reporter=json",
-			`--outputFile=${path.join(directory, "upgrade-stories.json")}`,
+			"--output-dir",
+			path.join(directory, "upgrade-stories"),
 		]),
 	);
-	const report = decodeReport(yield* fs.readFileString(path.join(directory, "upgrade-stories.json")));
+	const report = decodeReport(yield* fs.readFileString(path.join(directory, "upgrade-stories/tests.json")));
 	yield* requireThat(
 		report.numTotalTests > 0 && report.numPendingTests === 0 && report.numPassedTests === report.numTotalTests,
 		"The upgraded app's PostgreSQL and HTTP stories must pass without skips.",

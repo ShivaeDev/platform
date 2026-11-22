@@ -19,13 +19,15 @@ export const open = Effect.fn("VitestRerun.open")(function* (input: RunOptions) 
 		catch: (cause) => failWith(`Could not parse Vitest arguments: ${cause instanceof Error ? cause.message : String(cause)}`)(cause),
 		try: () => VitestNode.parseCLI(["vitest", "run", ...input.vitestArgs]),
 	});
-	const { shard: _shard, ...unsharded } = options;
+	// Command-line reporters would replace the reports the merge reads, and each would describe only its own attempt.
+	const { reporter: _reporter, ...withoutReporter } = options;
+	const { shard: _shard, ...unsharded } = withoutReporter;
 	const junit = new RerunJunitReporter(input.reports.junit);
 	const vitest = yield* Effect.acquireRelease(
 		promise("Vitest could not start", () =>
 			VitestNode.createVitest(
 				{
-					...(input.rerun ? unsharded : options),
+					...(input.rerun ? unsharded : withoutReporter),
 					reporters: ["default", new TimedJsonReporter({ outputFile: input.reports.json }), junit],
 					retry: 0,
 					watch: false,

@@ -114,6 +114,6 @@ rerunStory.it(
 	function* ({ resultsCaches, run }) {
 		yield* run();
 
-		expect(yield* resultsCaches()).toEqual([".vite", "reports/vite-rerun"]);
+		expect(yield* resultsCaches()).toEqual([".vite", "test-results/vite-rerun"]);
 	},
 );
