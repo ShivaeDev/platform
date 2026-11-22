@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.41.1 - 2026-11-22
+
+### Changed
+
+- Update `@shivaedev/admin` from 0.29.10 to 0.29.11.
+- Update `@shivaedev/react` from 0.59.4 to 0.59.5.
+- Update `@shivaedev/server` from 0.46.4 to 0.46.5.
+
 ## 0.41.0 - 2026-11-21
 
 ### Changed
