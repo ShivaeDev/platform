@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/mcp",
-	"version": "0.10.12",
+	"version": "0.10.13",
 	"description": "Identity-aware Effect MCP tools mounted on the application host",
 	"keywords": [
 		"effect"

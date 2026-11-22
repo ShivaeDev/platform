@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.56.0 - 2026-11-22
+
+### Added
+
+- `WorkerRelease` gains `awaitRegistration()`, which completes once a first worker control has registered.
+- when its first check after a worker registers finds another release, or none, recorded, worker release coordination logs `Workers wait for database release <release> to be recorded` once at warning level, annotated with `recordedRelease`. A host given a release that its migration step never recorded, such as one in `"check"` mode, no longer holds its workers back without a word.
+
+### Changed
+
+- `coordinateWorkerRelease` claims a process row only after a worker control registers, claiming at once when the first one does, and writes heartbeats and removes the row only while it holds one. A process without workers, such as a web host given a release, never holds back another release's takeover.
+
 ## 0.55.0 - 2026-11-21
 
 ### Added
