@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.44.4 - 2026-11-22
+
+### Changed
+
+- Update `@shivaedev/contract` from 0.59.1 to 0.59.2.
+
 ## 0.44.3 - 2026-11-22
 
 ### Changed
