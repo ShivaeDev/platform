@@ -18,9 +18,9 @@ ruleStory.it(
 					{ file: "apps/desktop/script/abandoned.ts", subject: "files:apps/desktop/script/abandoned.ts" },
 					{ file: "apps/desktop/script/notes.ts", subject: "files:apps/desktop/script/notes.ts" },
 					{ file: "apps/desktop/src/abandoned.ts", subject: "files:apps/desktop/src/abandoned.ts" },
+					{ file: "apps/desktop/src/launch.ts", subject: "exports:abandonedExport" },
 					{ file: "apps/desktop/src/mentioned.ts", subject: "files:apps/desktop/src/mentioned.ts" },
 					{ file: "apps/desktop/src/unshipped.ts", subject: "files:apps/desktop/src/unshipped.ts" },
-					{ file: "apps/desktop/src/launch.ts", subject: "exports:abandonedExport" },
 				]),
 		);
 	},

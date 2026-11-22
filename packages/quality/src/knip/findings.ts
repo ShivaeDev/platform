@@ -32,15 +32,18 @@ export const KNIP_ISSUES = REPAIRS.map(([kind]) => kind);
 
 export function knipFindings(stdout: string): readonly Finding[] {
 	const report = Schema.decodeUnknownSync(Schema.fromJsonString(Report))(stdout);
-	return report.issues.flatMap((issue) =>
-		REPAIRS.flatMap(([kind, repair]) => {
-			const symbols = issue[kind];
-			return (symbols ?? []).map((symbol) => ({
-				file: issue.file,
-				line: symbol.line,
-				message: `${repair}: ${symbol.name}.`,
-				subject: `${kind}:${symbol.name}`,
-			}));
-		}),
-	);
+	// knip lists files in the order its directory crawl finishes, which varies between runs.
+	return report.issues
+		.toSorted((left, right) => left.file.localeCompare(right.file))
+		.flatMap((issue) =>
+			REPAIRS.flatMap(([kind, repair]) => {
+				const symbols = issue[kind];
+				return (symbols ?? []).map((symbol) => ({
+					file: issue.file,
+					line: symbol.line,
+					message: `${repair}: ${symbol.name}.`,
+					subject: `${kind}:${symbol.name}`,
+				}));
+			}),
+		);
 }

@@ -20,8 +20,8 @@ ruleStory.it("code/unused still reports an unused file and dependency in the pla
 		(yield* findings()).map(({ file, subject }) => ({ file, subject })),
 		(actual) =>
 			actual.toEqual([
-				{ file: "src/abandoned.ts", subject: "files:src/abandoned.ts" },
 				{ file: "package.json", subject: "dependencies:unused-tool" },
+				{ file: "src/abandoned.ts", subject: "files:src/abandoned.ts" },
 			]),
 	);
 });
