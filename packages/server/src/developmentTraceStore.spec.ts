@@ -126,3 +126,14 @@ localTraces.it("two scoped recorders share a store and flush their own batches",
 	yield* worker.close();
 	expect((yield* read()).spans.map((row) => row.name)).toEqual(["effect.log", "server", "effect.log", "worker"]);
 });
+
+localTraces.it(
+	"retention finds a deleted span's indexed attributes through an index instead of scanning every stored attribute",
+	[],
+	function* ({ open, pruneLookupPlan }) {
+		const recorder = yield* open();
+		yield* recorder.close();
+
+		expect(yield* pruneLookupPlan()).toEqual([expect.stringMatching(/^SEARCH span_attributes USING (?:COVERING )?INDEX /u)]);
+	},
+);
