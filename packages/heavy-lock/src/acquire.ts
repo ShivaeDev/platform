@@ -27,6 +27,9 @@ function heldBy(id: string, lockPath: string): HeldLockShape {
 
 const NO_HOLD = { env: {} } satisfies HeldLockShape;
 
+const PS_WITHOUT_START_TIME =
+	"Could not read this process's start time because this ps does not support `ps -o lstart= -p <pid>`, as BusyBox ps in Alpine images does not; install procps, or set CI to run the command without the lock.";
+
 // Without `ps` no waiter could check this process's hold, so the command runs unlocked; a `ps` that runs without a start time is broken and fails.
 const ownStartTime = Effect.fn("HeavyLock.ownStartTime")(function* (pid: number) {
 	const started = yield* processStartTime(pid).pipe(
@@ -40,7 +43,7 @@ const ownStartTime = Effect.fn("HeavyLock.ownStartTime")(function* (pid: number)
 		return undefined;
 	}
 	if (Option.isNone(started)) {
-		return yield* new HeavyLockError({ message: "Could not read this process's start time from ps." });
+		return yield* new HeavyLockError({ message: PS_WITHOUT_START_TIME });
 	}
 	return started.value;
 });
