@@ -1,4 +1,4 @@
-import { Effect, Fiber, Match, SubscriptionRef } from "effect";
+import { Deferred, Effect, Fiber, Match, SubscriptionRef } from "effect";
 import type * as AsyncResult from "effect/reactivity/AsyncResult";
 import type * as Atom from "effect/reactivity/Atom";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
@@ -58,11 +58,23 @@ export const evolvingReadsStory = storyKit({
 			story.tell("the subscription's list relation becomes unavailable");
 			return engine.sql`drop table lists cascade`;
 		},
+		holdTimelineRead: () =>
+			Effect.gen(function* () {
+				story.tell("the server's next timeline read waits once it has its rows");
+				engine.timelineRead.reached = yield* Deferred.make<void>();
+				engine.timelineRead.armed = true;
+				yield* engine.timelineRead.gate.close;
+			}),
 		joinEmptyList: (id: number) => {
 			story.tell(`alice joins empty list ${id}`);
 			engine.mark = markQuery(engine.registry, engine.view);
 			return engine.rpc("evolving.join", { id, scope: "alice" });
 		},
+		lastDelivered: (query: Delivery) =>
+			Effect.map(SubscriptionRef.get(engine.updates), (all) => {
+				const result = all.findLast((update) => update._tag === "Result" && update.query === query);
+				return result?._tag === "Result" ? result.value : "nothing delivered";
+			}),
 		leave: (id: number) => {
 			story.tell(`alice leaves list ${id}`);
 			return engine.rpc("evolving.leave", { id, scope: "alice" });
@@ -83,8 +95,16 @@ export const evolvingReadsStory = storyKit({
 		},
 		refreshed: () => reRead(engine.registry, engine.view, engine.mark),
 		registered: (id: number) => Effect.sync(() => (engine.registrations.get(readKeys([records.bucket.listId(id)])[0]) ?? 0) > 0),
+		releaseTimelineRead: () => {
+			story.tell("the server's timeline read continues");
+			return engine.timelineRead.gate.open;
+		},
 		shown: () => Effect.flatMap(settled(engine.registry, engine.view), () => AtomRegistry.getResult(engine.registry, engine.view)),
 		subscriptionEnd: () => answered(Fiber.join(engine.finished), () => "completed"),
+		timelineReadWaiting: () =>
+			Effect.suspend(() =>
+				engine.timelineRead.reached === undefined ? Effect.die("No timeline read is held") : Deferred.await(engine.timelineRead.reached),
+			),
 		timelineShows: () => Effect.sync(() => shown(engine.registry.get(engine.view), (rows) => rows.join(", "))),
 		untilBarrier: (body: string) =>
 			until(

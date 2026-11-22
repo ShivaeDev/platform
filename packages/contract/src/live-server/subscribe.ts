@@ -72,6 +72,7 @@ function subscriptionKeys<E, R>(subscription: QuerySubscription<E, R>, read: Que
 	}
 	function replaceScopes(next: readonly (readonly Key[])[]) {
 		scopes = next;
+		register();
 	}
 	return { merged, recordingRead, register, replaceScopes };
 }
@@ -94,10 +95,11 @@ function subscribeQueries<E, R>(subscription: QuerySubscription<E, R>, read: Que
 						compare = compareQueries(subscription, keys.recordingRead, false);
 						return [new QueryReadDenied({ message: "Read no longer allowed for subscribed queries" })];
 					}
-					const updates = yield* compare(hint, keys.merged());
+					const heard = keys.merged();
 					if (subscription.readScopes !== undefined) {
 						keys.replaceScopes(yield* subscription.readScopes);
 					}
+					const updates = yield* compare(hint, heard);
 					keys.register();
 					return updates;
 				});
