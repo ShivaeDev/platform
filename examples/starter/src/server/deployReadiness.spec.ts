@@ -49,7 +49,7 @@ deployment.it(
 		yield* schemaCreationIsHeld();
 
 		yield* startsMigrating("current");
-		yield* migrationBlocksOnTheSchemaLock();
+		yield* migrationBlocksOnTheSchemaLock("current");
 
 		yield* outcomes([
 			["migration ledger", () => migrationLedger(), "app_migrations"],
@@ -76,7 +76,7 @@ deployment.it(
 		yield* workerStartsWaiting("current");
 		yield* schemaCreationIsHeld();
 		yield* startsMigrating("current");
-		yield* migrationBlocksOnTheSchemaLock();
+		yield* migrationBlocksOnTheSchemaLock("current");
 
 		yield* schemaLockIsReleased();
 

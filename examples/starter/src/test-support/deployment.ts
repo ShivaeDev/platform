@@ -1,9 +1,10 @@
-import { Clock, DateTime, Effect } from "effect";
+import { Clock, DateTime, Duration, Effect } from "effect";
 import { SqlClient } from "effect/sql";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { storyDatabase } from "@shivaedev/test-sql/server/storyDatabase.ts";
+import { waitForBlockedSessions } from "@shivaedev/test-sql/server/waitForBlockedSessions.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { type DeploymentEngine, deploymentEngine, deploymentVerbs } from "#test-support/deploymentProcesses.ts";
+import { type DeploymentEngine, deploymentControls, deploymentEngine, deploymentVerbs } from "#test-support/deploymentProcesses.ts";
 import { holdSchemaCreation } from "#test-support/holdSchemaCreation.ts";
 import { startHost } from "#test-support/host.ts";
 import { configured, postgres } from "#test-support/postgres.ts";
@@ -38,13 +39,23 @@ export const deployment = storyKit({
 			const host = yield* startHost().pipe(Effect.provideContext(services));
 			return Number(new URL(host.baseUrl).port);
 		}),
-		migrationBlocksOnTheSchemaLock: () => {
+		migrationBlocksOnTheSchemaLock: Effect.fn("DeploymentStory.migrationBlocksOnTheSchemaLock")(function* (release: string) {
 			story.tell("the migration waits on the schema lock");
 			if (engine.schemaLock === undefined) {
-				throw new Error("No schema lock is held; call schemaCreationIsHeld() first");
+				return yield* Effect.die("No schema lock is held; call schemaCreationIsHeld() first");
 			}
-			return engine.schemaLock.migrationBlocked;
-		},
+			const migration = deploymentControls(engine).processOf(`${release} migration`);
+			const exited = migration.exitCode.pipe(
+				Effect.flatMap((code) =>
+					Effect.die(
+						`The ${release} migration exited with code ${code} before it waited on the schema lock\n${[...migration.logs, ...migration.errors].join("\n")}`,
+					),
+				),
+			);
+			// Starting the migration's process takes as long as the machine allows, so the wait ends when the migration exits, at the latest
+			// after its own lock timeout, rather than at a deadline.
+			yield* waitForBlockedSessions(engine.schemaLock.holder, { within: Duration.infinity }).pipe(Effect.raceFirst(exited));
+		}),
 		migrationLedger: Effect.fn("DeploymentStory.migrationLedger")(function* () {
 			const sql = yield* SqlClient.SqlClient;
 			const [row] = yield* sql<{ ledger: string | null }>`select to_regclass('app_migrations')::text as ledger`;
