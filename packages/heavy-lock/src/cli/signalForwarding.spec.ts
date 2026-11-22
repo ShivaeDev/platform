@@ -97,17 +97,28 @@ lockStory.it(
 	CLI_TIMEOUT_MS,
 );
 
-lockStory.it(
-	`when ps prints no start time, the CLI prints "Could not read this process's start time from ps." and exits 1 without running check's command`,
-	[psFails("prints nothing")],
-	function* ({ cli }) {
-		yield* cli.runs("check", cli.commands.exitsWith(0));
+for (const [given, how] of [
+	["ps prints no start time", "prints nothing"],
+	["ps rejects -p like BusyBox ps", "rejects -p"],
+] as const) {
+	lockStory.it(
+		`when ${given}, the CLI prints that this ps does not support \`ps -o lstart= -p <pid>\` and exits 1 without running check's command`,
+		[psFails(how)],
+		function* ({ cli }) {
+			yield* cli.runs("check", cli.commands.exitsWith(0));
 
-		yield* outcomes([
-			["check ran its command", () => cli.ranItsCommand("check"), false],
-			["check's exit code", () => cli.exitCodeOf("check"), 1],
-			["printed by check", () => cli.printedBy("check"), ["heavy-lock: Could not read this process's start time from ps."]],
-		]);
-	},
-	CLI_TIMEOUT_MS,
-);
+			yield* outcomes([
+				["check ran its command", () => cli.ranItsCommand("check"), false],
+				["check's exit code", () => cli.exitCodeOf("check"), 1],
+				[
+					"printed by check",
+					() => cli.printedBy("check"),
+					[
+						`heavy-lock: Could not read this process's start time because this ps does not support \`ps -o lstart= -p <pid>\`, as BusyBox ps in Alpine images does not; install procps, or set CI to run the command without the lock.`,
+					],
+				],
+			]);
+		},
+		CLI_TIMEOUT_MS,
+	);
+}
