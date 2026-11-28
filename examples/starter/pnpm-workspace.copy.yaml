@@ -35,7 +35,7 @@ catalog:
   "@types/react-dom": 19.3.0
   "@vitejs/plugin-react": 6.3.0
   class-variance-authority: 0.7.1
-  better-auth: 1.7.23
+  better-auth: 1.7.27
   effect: 4.1.4
   happy-dom: 21.0.4
   react: 19.3.1
@@ -43,4 +43,4 @@ catalog:
   tailwindcss: 4.3.5
   typescript: 7.0.2
   vite: 8.3.8
-  vitest: 5.1.0
+  vitest: 5.1.1

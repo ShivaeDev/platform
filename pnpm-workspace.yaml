@@ -16,9 +16,9 @@ overrides:
   "@effect/platform-node-shared": "catalog:"
 
 catalog:
-  "@mdn/browser-compat-data": 8.1.9
-  browserslist: 4.29.5
-  "@anthropic-ai/claude-agent-sdk": 0.3.325
+  "@mdn/browser-compat-data": 8.1.10
+  browserslist: 4.29.6
+  "@anthropic-ai/claude-agent-sdk": 0.3.330
   "@earendil-works/pi-coding-agent": 1.5.2
   "@modelcontextprotocol/sdk": 1.32.2
   "@zip.js/zip.js": 2.25.0
@@ -35,7 +35,7 @@ catalog:
   tailwindcss: 4.3.5
   class-variance-authority: 0.7.1
   lucide-react: 1.73.0
-  "@biomejs/biome": 2.6.7
+  "@biomejs/biome": 2.6.8
   "@effect/vitest": 4.1.4
   "@effect/atom-react": 4.1.4
   "@effect/platform-node": 4.1.4
@@ -50,19 +50,19 @@ catalog:
   fake-indexeddb: 6.2.8
   dom-accessibility-api: 0.7.1
   knip: 6.44.1
-  ignore: 7.0.14
+  ignore: 7.0.16
   sort-package-json: 4.1.0
   "@types/node": 24.19.2
   "@typescript/native": npm:typescript@7.0.2
   effect: 4.1.4
   esbuild: 0.28.2
-  "@better-auth/oauth-provider": 1.7.23
-  better-auth: 1.7.23
+  "@better-auth/oauth-provider": 1.7.27
+  better-auth: 1.7.27
   pg-boss: 12.38.2
   typescript: 7.0.2
   yaml: 2.9.1
-  vitest: 5.1.0
-  "@vitest/coverage-v8": 5.1.0
+  vitest: 5.1.1
+  "@vitest/coverage-v8": 5.1.1
 
 catalogs:
   claude-code:
